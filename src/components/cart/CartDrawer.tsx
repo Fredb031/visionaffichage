@@ -1,49 +1,37 @@
-import { useState, Suspense } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useTexture } from '@react-three/drei';
-import * as THREE from 'three';
+import { X, ShoppingBag, Trash2, Tag, ChevronRight, Shirt } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLang } from '@/lib/langContext';
 import type { CartItemCustomization } from '@/types/customization';
 
-// ── Mini 3D preview in cart item ─────────────────────────────────────────────
-function MiniProductMesh({ snapshotUrl, logoUrl }: { snapshotUrl: string; logoUrl?: string }) {
-  const texture = useTexture(snapshotUrl);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const logoTex = logoUrl ? useTexture(logoUrl) : null;
-  if (logoTex) { logoTex.colorSpace = THREE.SRGBColorSpace; logoTex.premultiplyAlpha = false; }
-
-  return (
-    <group>
-      <mesh>
-        <planeGeometry args={[1.6, 2.0, 16, 20]} />
-        <meshStandardMaterial map={texture} side={THREE.DoubleSide} roughness={0.8} />
-      </mesh>
-      {logoTex && (
-        <mesh position={[0, 0.15, 0.01]}>
-          <planeGeometry args={[0.55, 0.35]} />
-          <meshBasicMaterial map={logoTex} transparent alphaTest={0.01} depthWrite={false} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-function CartItem3D({ item }: { item: CartItemCustomization }) {
+// ── Simple image thumbnail for cart items (replaces fragile 3D canvas) ───────
+function CartItemThumb({ item }: { item: CartItemCustomization }) {
   const logoUrl = item.logoPlacement?.previewUrl ?? item.logoPlacement?.processedUrl;
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="w-16 h-20 rounded-lg overflow-hidden bg-secondary flex-shrink-0 border border-border touch-none">
-      <Canvas camera={{ position: [0, 0, 2.2], fov: 40 }} style={{ background: 'transparent' }} gl={{ antialias: true, alpha: true }}>
-        <ambientLight intensity={1.4} />
-        <directionalLight position={[2, 3, 3]} intensity={0.8} />
-        <Suspense fallback={null}>
-          <MiniProductMesh snapshotUrl={item.previewSnapshot} logoUrl={logoUrl} />
-        </Suspense>
-        <OrbitControls enablePan={false} enableZoom={false} rotateSpeed={0.5} minPolarAngle={Math.PI / 3} maxPolarAngle={Math.PI / 1.7} />
-      </Canvas>
+    <div className="w-16 h-20 rounded-lg overflow-hidden bg-secondary flex-shrink-0 border border-border relative">
+      {item.previewSnapshot && !imgError ? (
+        <img
+          src={item.previewSnapshot}
+          alt="preview"
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: item.colorId ? `var(--${item.colorId})` : 'hsl(var(--secondary))' }}>
+          <Shirt size={24} className="text-muted-foreground opacity-50" />
+        </div>
+      )}
+      {logoUrl && !imgError && (
+        <img
+          src={logoUrl}
+          alt="logo"
+          className="absolute inset-0 m-auto w-8 h-5 object-contain pointer-events-none"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
     </div>
   );
 }
@@ -110,7 +98,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   className="flex gap-3 p-3 border border-border rounded-xl bg-secondary/50"
                 >
                   {/* 3D rotating mini preview */}
-                  <CartItem3D item={item} />
+                  <CartItemThumb item={item} />
 
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-extrabold text-foreground truncate">{item.productName}</p>
