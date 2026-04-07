@@ -1,11 +1,12 @@
 name: Sync Product Images from Google Drive
 
 on:
-  workflow_dispatch:          # Run manually from GitHub Actions tab
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/sync-product-images.yml'  # Re-run if workflow changes
+      - '.github/workflows/sync-product-images.yml'
+      - '.github/scripts/sync_images.py'
 
 jobs:
   sync-images:
@@ -14,27 +15,34 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Setup Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install gdown supabase requests pillow
+      - name: Install Python deps
+        run: |
+          pip install --upgrade pip
+          pip install gdown==5.2.0 supabase requests pillow
 
-      - name: Download images from Google Drive & upload to Supabase
+      - name: Run image sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python .github/scripts/sync_images.py
+        run: |
+          python .github/scripts/sync_images.py 2>&1
 
-      - name: Commit updated products.ts if changed
+      - name: Commit updated products.ts
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add src/data/products.ts
+          git add src/data/products.ts products_images.json || true
           git diff --staged --quiet || git commit -m "chore: auto-sync product images from Google Drive"
-          git push || echo "Nothing to push"
+          git push || echo "Nothing new to push"
