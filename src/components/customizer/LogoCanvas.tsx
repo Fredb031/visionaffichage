@@ -13,7 +13,8 @@ interface LogoCanvasProps {
  */
 export function LogoCanvas({ logoUrl, width, height, onTransform }: LogoCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<fabric.Canvas | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fabricRef = useRef<any>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
