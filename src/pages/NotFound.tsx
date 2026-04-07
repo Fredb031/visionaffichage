@@ -22,8 +22,8 @@ const NotFound = () => {
           </h1>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
             {lang === 'en'
-              ? 'The page you're looking for doesn't exist or has been moved.'
-              : 'La page que tu cherches n'existe pas ou a été déplacée.'}
+              ? "The page you're looking for doesn't exist or has been moved."
+              : "La page que tu cherches n'existe pas ou a été déplacée."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
@@ -31,7 +31,7 @@ const NotFound = () => {
               className="inline-flex items-center justify-center gap-2 text-sm font-bold text-primary-foreground gradient-navy px-6 py-3 rounded-full"
             >
               <Home className="w-4 h-4" />
-              {lang === 'en' ? 'Go home' : 'Retour à l'accueil'}
+              {lang === 'en' ? 'Go home' : "Retour à l'accueil"}
             </Link>
             <Link
               to="/products"
