@@ -172,6 +172,19 @@
   to { opacity: 1; }
 }
 
+/* Cinematic loader */
+@keyframes ldGridIn { to { opacity: 1; } }
+@keyframes ldLogoUp { to { opacity: 1; transform: translateY(0); } }
+@keyframes ldLineDraw { to { width: 280px; } }
+@keyframes ldTagIn { to { color: rgba(255,255,255,.25); } }
+@keyframes ldCornerIn { to { opacity: 1; } }
+@keyframes ldCurtain { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
+@keyframes ldScan { 0% { transform: translateX(-100%); } 100% { transform: translateX(100vw); } }
+@keyframes staggerUp { to { opacity: 1; transform: translateY(0); } }
+
+/* Hero logo marquee */
+@keyframes heroLogoScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 /* Intersection observer fade-in */
 .fi {
   opacity: 0;

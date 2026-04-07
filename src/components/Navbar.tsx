@@ -3,9 +3,10 @@ import { useCartStore } from '@/stores/cartStore';
 
 interface NavbarProps {
   onOpenCart?: () => void;
+  onOpenLogin?: () => void;
 }
 
-export function Navbar({ onOpenCart }: NavbarProps) {
+export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const totalItems = useCartStore(state => state.items.reduce((sum, item) => sum + item.quantity, 0));
 
   return (
