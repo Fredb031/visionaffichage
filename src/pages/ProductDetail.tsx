@@ -177,6 +177,34 @@ export default function ProductDetail() {
               </div>
             ))}
 
+            {/* CTA — Add to Cart */}
+            <button
+              className="w-full py-4 bg-accent text-accent-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={isCartLoading || !selectedVariant?.availableForSale}
+              onClick={async () => {
+                if (!selectedVariant) return;
+                await addItem({
+                  product: { node: product },
+                  variantId: selectedVariant.id,
+                  variantTitle: selectedVariant.title,
+                  price: selectedVariant.price,
+                  quantity: 1,
+                  selectedOptions: selectedVariant.selectedOptions || [],
+                });
+                toast.success('Ajouté au panier !', { description: product.title });
+                setCartOpen(true);
+              }}
+            >
+              {isCartLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <ShoppingBag size={18} />
+                  {selectedVariant?.availableForSale ? 'Ajouter au panier' : 'Rupture de stock'}
+                </>
+              )}
+            </button>
+
             {/* CTA — Customiser */}
             <button
               className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2"
