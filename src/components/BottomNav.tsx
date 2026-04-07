@@ -1,12 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useLang } from '@/lib/langContext';
+import { useCartStore } from '@/store/cartStore';
 
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLang();
+  const itemCount = useCartStore(s => s.getItemCount());
 
   const items = [
-    { label: 'Accueil', path: '/' },
-    { label: 'Boutique', path: '/products' },
+    { label: t('accueil'), path: '/' },
+    { label: t('boutique'), path: '/products' },
   ];
 
   return (
@@ -24,6 +28,21 @@ export function BottomNav() {
           {item.label}
         </button>
       ))}
+      <button
+        onClick={() => navigate('/cart')}
+        className={`relative text-[12px] px-5 py-2 rounded-full border-none cursor-pointer transition-all font-semibold ${
+          location.pathname === '/cart'
+            ? 'bg-primary-foreground/12 text-primary-foreground'
+            : 'bg-transparent text-primary-foreground/38 hover:text-primary-foreground/70'
+        }`}
+      >
+        {t('panier')}
+        {itemCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent rounded-full text-[8px] font-extrabold text-accent-foreground flex items-center justify-center">
+            {itemCount > 9 ? '9+' : itemCount}
+          </span>
+        )}
+      </button>
     </div>
   );
 }
