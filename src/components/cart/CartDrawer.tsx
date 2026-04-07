@@ -98,7 +98,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   className="flex gap-3 p-3 border border-border rounded-xl bg-secondary/50"
                 >
                   {/* 3D rotating mini preview */}
-                  <CartItem3D item={item} />
+                  <CartItemThumb item={item} />
 
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-extrabold text-foreground truncate">{item.productName}</p>
