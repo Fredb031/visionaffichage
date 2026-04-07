@@ -277,8 +277,8 @@ export default function Index() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
-                { init: 'SL', name: 'Samuel Lacroix',           date: 'Il y a 2 mois', color: '#1B3A6B', txt: '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l'air professionnel."' },
-                { init: 'WB', name: 'William Barry',             date: 'Il y a 3 mois', color: '#1a3d2e', txt: '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d'une PME."' },
+                { init: 'SL', name: 'Samuel Lacroix',           date: 'Il y a 2 mois', color: '#1B3A6B', txt: '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
+                { init: 'WB', name: 'William Barry',             date: 'Il y a 3 mois', color: '#1a3d2e', txt: '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
                 { init: 'JP', name: 'Jean-Philippe N.-Langevin', date: 'Il y a 4 mois', color: '#5f1f1f', txt: '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
               ].map((r, i) => (
                 <div key={i} className="bg-secondary border border-border rounded-2xl p-[18px] px-5">

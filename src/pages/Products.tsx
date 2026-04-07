@@ -104,7 +104,6 @@ export default function Products() {
             <p className="text-sm text-muted-foreground mt-2">Dites-nous quel produit vous souhaitez créer!</p>
           </div>
         ) : activeCategory === 'overview' ? (
-          {/* Category tiles overview */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
             {CATEGORY_TILES.map((tile) => (
               <div
@@ -127,7 +126,6 @@ export default function Products() {
             ))}
           </div>
         ) : (
-          {/* Product grid for selected category */}
           <>
             <button
               onClick={() => selectCategory('overview')}
