@@ -3,8 +3,9 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
+import { findProductByHandle } from '@/data/products';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 const CATEGORIES = [
   { id: 'overview', label: 'Tout' },
@@ -17,12 +18,31 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_TILES = [
-  { id: 'tshirts', name: 'T-Shirts', img: 'https://visionaffichage.com/cdn/shop/files/ATC1000-Devant.jpg?v=1770866927&width=800' },
-  { id: 'hoodies', name: 'Hoodies', img: 'https://visionaffichage.com/cdn/shop/files/ATCF2500-Devant.jpg?v=1770866896&width=800' },
-  { id: 'headwear', name: 'Casquettes & Tuques', img: 'https://visionaffichage.com/cdn/shop/files/yupoong-6606-noir-2_cb488769-745e-41f0-91fd-f317d9787cae.jpg?v=1763598460&width=800' },
-  { id: 'manteaux', name: 'Manteaux', img: 'https://visionaffichage.com/cdn/shop/files/ATCF2600-Devant.jpg?v=1770866896&width=800' },
-  { id: 'enfants', name: 'Enfants', img: 'https://visionaffichage.com/cdn/shop/files/ATCFY2500-Devant.jpg?v=1770866961&width=800' },
+  { id: 'tshirts',  name: 'T-Shirts',             img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATC1000-Devant.jpg?v=1770866927&width=800' },
+  { id: 'hoodies',  name: 'Hoodies',               img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCF2500-Devant.jpg?v=1770866896&width=800' },
+  { id: 'headwear', name: 'Casquettes & Tuques',   img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/yupoong-6606-noir-2_cb488769-745e-41f0-91fd-f317d9787cae.jpg?v=1763598460&width=800' },
+  { id: 'manteaux', name: 'Manteaux',               img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCF2600-Devant.jpg?v=1770866896&width=800' },
+  { id: 'enfants',  name: 'Enfants',                img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCFY2500-Devant.jpg?v=1770866961&width=800' },
 ];
+
+function matchesCategory(product: { node: { handle: string; productType: string; title: string } }, catId: string): boolean {
+  const local = findProductByHandle(product.node.handle);
+  const title = product.node.title.toLowerCase();
+  const type  = product.node.productType.toLowerCase();
+
+  if (catId === 'kits') {
+    return type === '' || title.includes('pack');
+  }
+  if (!local) return false;
+  switch (catId) {
+    case 'tshirts':  return ['tshirt','longsleeve','polo','sport'].includes(local.category);
+    case 'hoodies':  return ['hoodie','crewneck'].includes(local.category);
+    case 'headwear': return ['cap','toque'].includes(local.category);
+    case 'enfants':  return local.gender === 'enfant';
+    case 'manteaux': return false;
+    default:         return true;
+  }
+}
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -33,6 +53,14 @@ export default function Products() {
     setActiveCategory(catId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const filteredProducts = useMemo(() => {
+    if (!products || activeCategory === 'overview') return products ?? [];
+    return products.filter(p => matchesCategory(p, activeCategory));
+  }, [products, activeCategory]);
+
+  const categoryCount = (catId: string) =>
+    (products ?? []).filter(p => matchesCategory(p, catId)).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,7 +104,7 @@ export default function Products() {
             <p className="text-sm text-muted-foreground mt-2">Dites-nous quel produit vous souhaitez créer!</p>
           </div>
         ) : activeCategory === 'overview' ? (
-          /* Category tiles overview */
+          {/* Category tiles overview */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
             {CATEGORY_TILES.map((tile) => (
               <div
@@ -89,7 +117,7 @@ export default function Products() {
                 <div className="absolute bottom-0 left-0 right-0 p-5">
                   <div className="text-[17px] font-extrabold text-primary-foreground">{tile.name}</div>
                   <div className="text-[12px] text-primary-foreground/60 mt-[3px]">
-                    {products.length > 0 ? `${products.length} produits` : ''}
+                    {categoryCount(tile.id)} produit{categoryCount(tile.id) !== 1 ? 's' : ''}
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 w-7 h-7 bg-primary-foreground/15 rounded-full flex items-center justify-center">
@@ -99,7 +127,7 @@ export default function Products() {
             ))}
           </div>
         ) : (
-          /* Product grid for selected category */
+          {/* Product grid for selected category */}
           <>
             <button
               onClick={() => selectCategory('overview')}
@@ -110,12 +138,19 @@ export default function Products() {
             </button>
             <h2 className="text-xl font-extrabold text-foreground mb-[18px]">
               {CATEGORIES.find(c => c.id === activeCategory)?.label}
+              <span className="text-sm font-normal text-muted-foreground ml-2">{filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''}</span>
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-              {products.map((product) => (
-                <ProductCard key={product.node.id} product={product} />
-              ))}
-            </div>
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p>Aucun produit dans cette catégorie pour l'instant.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.node.id} product={product} />
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
