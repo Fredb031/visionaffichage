@@ -20,7 +20,7 @@ function CartItemThumb({ item }: { item: CartItemCustomization }) {
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: item.color ?? 'hsl(var(--secondary))' }}>
+        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: item.colorId ? `var(--${item.colorId})` : 'hsl(var(--secondary))' }}>
           <Shirt size={24} className="text-muted-foreground opacity-50" />
         </div>
       )}
