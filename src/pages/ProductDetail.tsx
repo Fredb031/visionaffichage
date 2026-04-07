@@ -6,11 +6,9 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt, ShoppingBag } from 'lucide-react';
+import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt } from 'lucide-react';
 import { useState } from 'react';
 import { PRODUCTS } from '@/data/products';
-import { useCartStore } from '@/stores/cartStore';
-import { toast } from 'sonner';
 
 // Map Shopify handle → local product id for customizer
 const HANDLE_TO_PRODUCT_ID: Record<string, string> = {
@@ -44,8 +42,6 @@ export default function ProductDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
-  const addItem = useCartStore(state => state.addItem);
-  const isCartLoading = useCartStore(state => state.isLoading);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['shopify-product', handle],
@@ -176,34 +172,6 @@ export default function ProductDetail() {
                 </div>
               </div>
             ))}
-
-            {/* CTA — Add to Cart */}
-            <button
-              className="w-full py-4 bg-accent text-accent-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 disabled:opacity-50"
-              disabled={isCartLoading || !selectedVariant?.availableForSale}
-              onClick={async () => {
-                if (!selectedVariant) return;
-                await addItem({
-                  product: { node: product },
-                  variantId: selectedVariant.id,
-                  variantTitle: selectedVariant.title,
-                  price: selectedVariant.price,
-                  quantity: 1,
-                  selectedOptions: selectedVariant.selectedOptions || [],
-                });
-                toast.success('Ajouté au panier !', { description: product.title });
-                setCartOpen(true);
-              }}
-            >
-              {isCartLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <ShoppingBag size={18} />
-                  {selectedVariant?.availableForSale ? 'Ajouter au panier' : 'Rupture de stock'}
-                </>
-              )}
-            </button>
 
             {/* CTA — Customiser */}
             <button
