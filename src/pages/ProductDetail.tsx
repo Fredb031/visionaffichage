@@ -189,6 +189,12 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      <ProductCustomizer
+        isOpen={customizerOpen}
+        onClose={() => setCustomizerOpen(false)}
+        product={product}
+        onCartOpen={() => setCartOpen(true)}
+      />
       <BottomNav />
     </div>
   );
