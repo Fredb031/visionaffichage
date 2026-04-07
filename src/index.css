@@ -2,39 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,800&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 5%;
+    --background: 48 20% 97%;
+    --foreground: 228 22% 8%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 228 22% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover-foreground: 228 22% 8%;
 
-    --primary: 0 0% 8%;
+    --primary: 216 59% 26%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 44 22% 93%;
+    --secondary-foreground: 228 22% 8%;
 
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 44 18% 90%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 45 100% 51%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 37 88% 41%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 8%;
+    --border: 40 14% 87%;
+    --input: 40 14% 87%;
+    --ring: 216 59% 26%;
 
-    --radius: 0.5rem;
+    --radius: 0.875rem;
+
+    --navy: 216 59% 26%;
+    --navy2: 216 55% 22%;
+    --navy3: 216 58% 16%;
+    --gold: 37 88% 41%;
+    --gold2: 35 91% 55%;
+    --green: 142 72% 37%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -47,24 +54,24 @@
   }
 
   .dark {
-    --background: 0 0% 5%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 95%;
+    --background: 228 22% 5%;
+    --foreground: 48 20% 95%;
+    --card: 228 22% 8%;
+    --card-foreground: 48 20% 95%;
+    --popover: 228 22% 8%;
+    --popover-foreground: 48 20% 95%;
     --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 45 100% 51%;
-    --accent-foreground: 0 0% 5%;
+    --primary-foreground: 216 59% 26%;
+    --secondary: 228 18% 15%;
+    --secondary-foreground: 48 20% 95%;
+    --muted: 228 18% 15%;
+    --muted-foreground: 240 4% 60%;
+    --accent: 37 88% 41%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
+    --border: 228 18% 18%;
+    --input: 228 18% 18%;
     --ring: 0 0% 80%;
   }
 }
@@ -75,8 +82,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
 
@@ -84,6 +91,22 @@
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--muted-foreground)));
+  }
+
+  .gradient-navy {
+    background: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy2)));
+  }
+
+  .gradient-navy-dark {
+    background: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy3)));
+  }
+
+  .shadow-navy {
+    box-shadow: 0 8px 28px hsla(var(--navy), 0.35);
+  }
+
+  .shadow-navy-lg {
+    box-shadow: 0 14px 36px hsla(var(--navy), 0.45);
   }
 }
 
@@ -109,4 +132,35 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out forwards;
+}
+
+@keyframes mole-hit {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(100%) scale(0.7); }
+}
+
+@keyframes starburst {
+  0% { opacity: 1; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(1.8) translateY(-40px); }
+}
+
+@keyframes bounce-in {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes confetti-fall {
+  to { transform: translateY(110vh) rotate(800deg); opacity: 0; }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.4s ease;
+}
+
+.animate-confetti {
+  animation: confetti-fall 3.5s ease forwards;
+}
+
+.animate-starburst {
+  animation: starburst 0.6s ease forwards;
 }
