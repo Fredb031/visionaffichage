@@ -32,7 +32,7 @@ export type Product = {
   features: string[];
 };
 
-const CDN = 'https://visionaffichage.com/cdn/shop/files';
+const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
 
 // ── Zones d'impression ────────────────────────────────────────────────────────
 const HOODIE_ZONES: PrintZone[] = [
@@ -66,9 +66,7 @@ const BEANIE_ZONES: PrintZone[] = [
 // Source: SanMar Canada catalogue + visionaffichage.com
 
 const ATCF2500_COLORS: ProductColor[] = [
-  { id: 'black',            name: 'Noir',              nameEn: 'Black',            hex: '#141414',
-    imageDevant: `${CDN}/atcf2500_form_front_black_022017.png`,
-    imageDos:    `${CDN}/ATCF2500-Dos.jpg?v=1770866896&width=800` },
+  { id: 'black',            name: 'Noir',              nameEn: 'Black',            hex: '#141414' },
   { id: 'white',            name: 'Blanc',             nameEn: 'White',            hex: '#F2F0EB' },
   { id: 'navy',             name: 'Marine',            nameEn: 'Navy',             hex: '#1D2B4F' },
   { id: 'steel-grey',       name: 'Gris acier',        nameEn: 'Steel Grey',       hex: '#6E7278' },
