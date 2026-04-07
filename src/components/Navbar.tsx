@@ -14,7 +14,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 bg-background/[0.93] backdrop-blur-xl border-b border-border">
       <Link to="/">
-        <img src="https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651" alt="Vision" className="h-6" />
+        <img src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651" alt="Vision" className="h-6" />
       </Link>
 
       <div className="flex items-center gap-2">
