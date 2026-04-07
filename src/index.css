@@ -2,46 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap');
 
 @layer base {
   :root {
-    --background: 48 20% 97%;
-    --foreground: 228 22% 8%;
+    --background: 0 0% 100%;
+    --foreground: 222 30% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 228 22% 8%;
+    --card-foreground: 222 30% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 228 22% 8%;
+    --popover-foreground: 222 30% 9%;
 
     --primary: 216 59% 26%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 44 22% 93%;
-    --secondary-foreground: 228 22% 8%;
+    --secondary: 43 18% 95%;
+    --secondary-foreground: 222 30% 9%;
 
-    --muted: 44 18% 90%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 43 14% 91%;
+    --muted-foreground: 233 5% 63%;
 
-    --accent: 37 88% 41%;
+    --accent: 40 82% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 14% 87%;
-    --input: 40 14% 87%;
+    --border: 40 12% 87%;
+    --input: 40 12% 87%;
     --ring: 216 59% 26%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
     --navy: 216 59% 26%;
     --navy2: 216 55% 22%;
-    --navy3: 216 58% 16%;
-    --gold: 37 88% 41%;
+    --navydark: 218 62% 16%;
+    --gold: 40 82% 40%;
     --gold2: 35 91% 55%;
-    --green: 142 72% 37%;
+    --goldb: 40 82% 40%;
+    --green: 152 62% 29%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -54,24 +55,24 @@
   }
 
   .dark {
-    --background: 228 22% 5%;
-    --foreground: 48 20% 95%;
-    --card: 228 22% 8%;
-    --card-foreground: 48 20% 95%;
-    --popover: 228 22% 8%;
-    --popover-foreground: 48 20% 95%;
+    --background: 222 30% 5%;
+    --foreground: 43 18% 95%;
+    --card: 222 30% 8%;
+    --card-foreground: 43 18% 95%;
+    --popover: 222 30% 8%;
+    --popover-foreground: 43 18% 95%;
     --primary: 0 0% 100%;
     --primary-foreground: 216 59% 26%;
-    --secondary: 228 18% 15%;
-    --secondary-foreground: 48 20% 95%;
-    --muted: 228 18% 15%;
-    --muted-foreground: 240 4% 60%;
-    --accent: 37 88% 41%;
+    --secondary: 222 18% 15%;
+    --secondary-foreground: 43 18% 95%;
+    --muted: 222 18% 15%;
+    --muted-foreground: 233 5% 60%;
+    --accent: 40 82% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 95%;
-    --border: 228 18% 18%;
-    --input: 228 18% 18%;
+    --border: 222 18% 18%;
+    --input: 222 18% 18%;
     --ring: 0 0% 80%;
   }
 }
@@ -98,7 +99,7 @@
   }
 
   .gradient-navy-dark {
-    background: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy3)));
+    background: linear-gradient(140deg, hsl(var(--navy)), hsl(var(--navydark)));
   }
 
   .shadow-navy {
@@ -107,6 +108,10 @@
 
   .shadow-navy-lg {
     box-shadow: 0 14px 36px hsla(var(--navy), 0.45);
+  }
+
+  .font-lora {
+    font-family: 'Lora', serif;
   }
 }
 
@@ -120,28 +125,17 @@
 }
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out forwards;
-}
-
-@keyframes mole-hit {
-  0% { transform: translateY(0) scale(1); }
-  100% { transform: translateY(100%) scale(0.7); }
+  animation: fade-in-up 0.75s ease-out forwards;
 }
 
 @keyframes starburst {
-  0% { opacity: 1; transform: scale(0.5); }
-  100% { opacity: 0; transform: scale(1.8) translateY(-40px); }
+  0% { opacity: 1; transform: scale(0.4) translate(-50%, -50%); }
+  100% { opacity: 0; transform: scale(2) translate(-50%, -130%); }
 }
 
 @keyframes bounce-in {
@@ -150,7 +144,7 @@
 }
 
 @keyframes confetti-fall {
-  to { transform: translateY(110vh) rotate(800deg); opacity: 0; }
+  to { transform: translateY(110vh) rotate(840deg); opacity: 0; }
 }
 
 .animate-bounce-in {
@@ -166,7 +160,7 @@
 }
 
 @keyframes lIn {
-  to { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes lFill {
@@ -176,4 +170,15 @@
 
 @keyframes fadeIn {
   to { opacity: 1; }
+}
+
+/* Intersection observer fade-in */
+.fi {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.75s, transform 0.75s;
+}
+.fi.in {
+  opacity: 1;
+  transform: translateY(0);
 }

@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
+        lora: ['Lora', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -53,7 +54,7 @@ export default {
         navy: {
           DEFAULT: "hsl(var(--navy))",
           light: "hsl(var(--navy2))",
-          dark: "hsl(var(--navy3))",
+          dark: "hsl(var(--navydark))",
         },
         gold: {
           DEFAULT: "hsl(var(--gold))",
