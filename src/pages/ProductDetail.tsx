@@ -6,9 +6,11 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt } from 'lucide-react';
+import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt, ShoppingBag, Loader2 as Spinner } from 'lucide-react';
 import { useState } from 'react';
 import { PRODUCTS } from '@/data/products';
+import { useCartStore } from '@/stores/cartStore';
+import { toast } from 'sonner';
 
 // Map Shopify handle → local product id for customizer
 const HANDLE_TO_PRODUCT_ID: Record<string, string> = {
