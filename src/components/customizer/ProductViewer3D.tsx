@@ -1,34 +1,30 @@
 /**
- * ProductViewer3D — Accurate procedural 3D garment viewer
+ * ProductViewer3D
  *
- * T-Shirt / Hoodie: Real shirt silhouette (body + sleeves) via ShapeGeometry
- * Cap: Dome + brim + button + sweatband
- * Beanie: Ribbed cylinder + rounded crown + cuff + pompom
- *
- * All support:
- * - Real-time colour change via overlay plane
- * - Logo overlay at correct UV position
- * - OrbitControls for drag-to-rotate
- * - View switching (front / back / left / right)
+ * ATCF2500 Hoodie  → pixel-traced real silhouette + hood bump + pocket + cuffs + drawstrings
+ * T-Shirt / Hoodie → accurate shape with sleeves
+ * Cap              → dome + brim + button + sweatband
+ * Beanie           → ribbed cylinder + rounded crown + cuff + pompom
  */
 import { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useTexture, PresentationControls } from '@react-three/drei';
+import { OrbitControls, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Product, ProductColor } from '@/data/products';
 import type { LogoPlacement } from '@/types/customization';
 import {
-  createShirtShape,
-  createCapParts,
-  createBeanieParts,
-  createFabricMaterial,
-  isNeutralColor,
+  createHoodieGeometry, createHoodBumpGeometry,
+  createPocketGeometry, createCuffGeometry, createDrawstringGeometry,
+} from '@/lib/hoodie3D';
+import {
+  createShirtShape, createCapParts, createBeanieParts,
+  createFabricMaterial, isNeutralColor,
 } from '@/lib/garmentGeometry';
 import { useLang } from '@/lib/langContext';
 
-// ── Texture loader with correct colour space ──────────────────────────────────
-function useProdTexture(url: string) {
+// ── Texture helper ──────────────────────────────────────────────────────────
+function useProdTex(url: string) {
   const tex = useTexture(url);
   useEffect(() => {
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -38,10 +34,8 @@ function useProdTexture(url: string) {
   return tex;
 }
 
-// ── Logo overlay (flat surface) ───────────────────────────────────────────────
-function LogoFlat({
-  url, x, y, w, rot = 0,
-}: { url: string; x: number; y: number; w: number; rot?: number }) {
+// ── Logo — flat (shirt / hoodie body) ──────────────────────────────────────
+function LogoFlat({ url, x, y, w, rot = 0 }: { url: string; x: number; y: number; w: number; rot?: number }) {
   const tex = useTexture(url);
   useEffect(() => {
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -49,15 +43,15 @@ function LogoFlat({
     tex.needsUpdate = true;
   }, [tex, url]);
   return (
-    <mesh position={[x, y, 0.03]} rotation={[0, 0, (rot * Math.PI) / 180]}>
-      <planeGeometry args={[w, w * 0.6]} />
+    <mesh position={[x, y, 0.045]} rotation={[0, 0, rot * Math.PI / 180]}>
+      <planeGeometry args={[w, w * 0.62]} />
       <meshBasicMaterial map={tex} transparent alphaTest={0.01} depthWrite={false} />
     </mesh>
   );
 }
 
-// ── Logo on curved surface (cap / beanie front) ───────────────────────────────
-function LogoCurved({ url, z = 0.92 }: { url: string; z?: number }) {
+// ── Logo — curved (cap / beanie front) ─────────────────────────────────────
+function LogoCurved({ url, z = 0.91 }: { url: string; z?: number }) {
   const tex = useTexture(url);
   useEffect(() => {
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -66,49 +60,109 @@ function LogoCurved({ url, z = 0.92 }: { url: string; z?: number }) {
   }, [tex, url]);
   return (
     <mesh position={[0, -0.06, z]}>
-      <planeGeometry args={[0.36, 0.24]} />
+      <planeGeometry args={[0.36, 0.23]} />
       <meshBasicMaterial map={tex} transparent alphaTest={0.01} depthWrite={false} />
     </mesh>
   );
 }
 
-// ── Shirt / Hoodie mesh ───────────────────────────────────────────────────────
-function ShirtMesh({
-  texUrl, colorHex, logoUrl, logoPlacement, rotating, isHoodie,
+// ── ATCF2500 Hoodie — pixel-perfect ────────────────────────────────────────
+function HoodieATCF2500({
+  texUrl, colorHex, logoUrl, logoPlacement, rotating,
 }: {
   texUrl: string; colorHex: string; logoUrl?: string;
-  logoPlacement?: LogoPlacement; rotating: boolean; isHoodie: boolean;
+  logoPlacement?: LogoPlacement; rotating: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const tex = useProdTexture(texUrl);
-  const geo = useMemo(() => createShirtShape(isHoodie), [isHoodie]);
-  const mat = useMemo(() => createFabricMaterial(tex, colorHex), [tex, colorHex]);
+  const tex = useProdTex(texUrl);
+
+  // Memoised geometries
+  const bodyGeo   = useMemo(() => createHoodieGeometry(), []);
+  const hoodGeo   = useMemo(() => createHoodBumpGeometry(), []);
+  const pocketGeo = useMemo(() => createPocketGeometry(), []);
+  const cuffL     = useMemo(() => createCuffGeometry('left'), []);
+  const cuffR     = useMemo(() => createCuffGeometry('right'), []);
+  const dsL       = useMemo(() => createDrawstringGeometry('left'), []);
+  const dsR       = useMemo(() => createDrawstringGeometry('right'), []);
 
   useFrame((_, dt) => {
-    if (groupRef.current && rotating) groupRef.current.rotation.y += dt * 0.36;
+    if (groupRef.current && rotating) groupRef.current.rotation.y += dt * 0.34;
   });
 
-  // Logo position: % coords → world coords (shirt spans ~2.35W × 2.3H in shape space)
-  const W = 1.34; // shape width approx
-  const H = 2.3;  // shape height approx
-  const lx = logoPlacement ? ((logoPlacement.x ?? 50) - 50) / 100 * W * 0.75 : 0;
-  const ly = logoPlacement ? (50 - (logoPlacement.y ?? 32)) / 100 * H * 0.7 : 0.1;
-  const lw = logoPlacement?.width ? (logoPlacement.width / 100) * W * 0.85 : 0.32;
+  const neutral = isNeutralColor(colorHex);
+
+  // Materials
+  const bodyMat = useMemo(() => createFabricMaterial(tex, colorHex, 0.87), [tex, colorHex]);
+
+  const darkShade = useMemo(() => {
+    const c = neutral ? new THREE.Color(0.08, 0.08, 0.08) : new THREE.Color(colorHex).multiplyScalar(0.72);
+    return new THREE.MeshStandardMaterial({ color: c, roughness: 0.92 });
+  }, [colorHex, neutral]);
+
+  const midShade = useMemo(() => {
+    const c = neutral ? new THREE.Color(0.12, 0.12, 0.12) : new THREE.Color(colorHex).multiplyScalar(0.80);
+    return new THREE.MeshStandardMaterial({ color: c, roughness: 0.90 });
+  }, [colorHex, neutral]);
+
+  const cuffMat = useMemo(() => {
+    const c = neutral ? new THREE.Color(0.10, 0.10, 0.10) : new THREE.Color(colorHex).multiplyScalar(0.76);
+    return new THREE.MeshStandardMaterial({ color: c, roughness: 0.94 });
+  }, [colorHex, neutral]);
+
+  // Logo world coords: placement is % of product image → body is ~1.6W × 2.0H
+  const lx = logoPlacement ? ((logoPlacement.x ?? 50) - 50) / 100 * 0.52 : 0;
+  const ly = logoPlacement ? (50 - (logoPlacement.y ?? 33)) / 100 * 0.85 + 0.08 : 0.18;
+  const lw = logoPlacement?.width ? (logoPlacement.width / 100) * 0.72 : 0.26;
 
   return (
-    <group ref={groupRef} position={[0, 0.05, 0]}>
-      {/* Shirt shape */}
-      <mesh geometry={geo} material={mat} castShadow />
+    <group ref={groupRef} position={[0, -0.05, 0]}>
 
-      {/* Colour tint overlay — only for non-white */}
-      {!isNeutralColor(colorHex) && (
-        <mesh position={[0, 0, 0.008]}>
-          <planeGeometry args={[0.88, 2.1]} />
-          <meshBasicMaterial color={colorHex} transparent opacity={0.16} depthWrite={false} />
+      {/* ── Main body silhouette ── */}
+      <mesh geometry={bodyGeo} material={bodyMat} castShadow />
+
+      {/* ── Colour tint overlay (for non-white colours) ── */}
+      {!neutral && (
+        <mesh position={[0, -0.05, 0.012]}>
+          <planeGeometry args={[0.88, 1.80]} />
+          <meshBasicMaterial color={colorHex} transparent opacity={0.17} depthWrite={false} />
         </mesh>
       )}
 
-      {/* Logo */}
+      {/* ── Hood depth bump ── */}
+      <mesh geometry={hoodGeo} material={midShade} castShadow />
+
+      {/* ── Kangaroo pocket ── */}
+      <mesh geometry={pocketGeo} material={darkShade} />
+
+      {/* ── Sleeve cuffs ── */}
+      <mesh geometry={cuffL} material={cuffMat} />
+      <mesh geometry={cuffR} material={cuffMat} />
+
+      {/* ── Drawstrings ── */}
+      <mesh geometry={dsL}>
+        <meshStandardMaterial color="#0a0a0a" roughness={0.96} />
+      </mesh>
+      <mesh geometry={dsR}>
+        <meshStandardMaterial color="#0a0a0a" roughness={0.96} />
+      </mesh>
+
+      {/* ── Metal eyelets ── */}
+      {([-0.068, 0.068] as const).map((ex) => (
+        <mesh key={ex} position={[ex, 0.868, 0.042]}>
+          <torusGeometry args={[0.017, 0.007, 8, 20]} />
+          <meshStandardMaterial color="#e0e0e0" metalness={0.75} roughness={0.25} />
+        </mesh>
+      ))}
+
+      {/* ── Drawstring tips (aglets) ── */}
+      {([-0.044, 0.044] as const).map((ax) => (
+        <mesh key={ax} position={[ax * 0.6, 0.305, 0.038]}>
+          <cylinderGeometry args={[0.009, 0.007, 0.028, 8]} />
+          <meshStandardMaterial color="#e8e8e8" metalness={0.6} roughness={0.35} />
+        </mesh>
+      ))}
+
+      {/* ── Logo overlay ── */}
       {logoUrl && logoPlacement && (
         <LogoFlat url={logoUrl} x={lx} y={ly} w={lw} rot={logoPlacement.rotation ?? 0} />
       )}
@@ -116,114 +170,116 @@ function ShirtMesh({
   );
 }
 
-// ── Cap mesh ──────────────────────────────────────────────────────────────────
-function CapMesh({
-  texUrl, colorHex, logoUrl, rotating,
-}: {
-  texUrl: string; colorHex: string; logoUrl?: string; rotating: boolean;
+// ── Generic T-Shirt ─────────────────────────────────────────────────────────
+function ShirtMesh({ texUrl, colorHex, logoUrl, logoPlacement, rotating }: {
+  texUrl: string; colorHex: string; logoUrl?: string;
+  logoPlacement?: LogoPlacement; rotating: boolean;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const tex = useProdTexture(texUrl);
-  const parts = useMemo(() => createCapParts(), []);
-  const mat = useMemo(() => createFabricMaterial(tex, colorHex, 0.78), [tex, colorHex]);
-  const solidMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: isNeutralColor(colorHex)
-      ? new THREE.Color('#e0ddd8')
-      : new THREE.Color(colorHex).lerp(new THREE.Color('#888'), 0.25),
-    roughness: 0.82,
-  }), [colorHex]);
+  const ref = useRef<THREE.Group>(null);
+  const tex = useProdTex(texUrl);
+  const geo = useMemo(() => createShirtShape(false), []);
+  const mat = useMemo(() => createFabricMaterial(tex, colorHex), [tex, colorHex]);
+  useFrame((_, dt) => { if (ref.current && rotating) ref.current.rotation.y += dt * 0.36; });
 
-  useFrame((_, dt) => {
-    if (groupRef.current && rotating) groupRef.current.rotation.y += dt * 0.36;
-  });
+  const lx = logoPlacement ? ((logoPlacement.x ?? 50) - 50) / 100 * 0.95 : 0;
+  const ly = logoPlacement ? (50 - (logoPlacement.y ?? 32)) / 100 * 1.10 : 0.05;
+  const lw = logoPlacement?.width ? (logoPlacement.width / 100) * 0.88 : 0.28;
 
   return (
-    <group ref={groupRef} rotation={[-0.1, 0, 0]}>
+    <group ref={ref}>
+      <mesh geometry={geo} material={mat} castShadow />
+      {!isNeutralColor(colorHex) && (
+        <mesh position={[0, 0, 0.009]}>
+          <planeGeometry args={[0.72, 1.80]} />
+          <meshBasicMaterial color={colorHex} transparent opacity={0.16} depthWrite={false} />
+        </mesh>
+      )}
+      {logoUrl && logoPlacement && <LogoFlat url={logoUrl} x={lx} y={ly} w={lw} rot={logoPlacement.rotation ?? 0} />}
+    </group>
+  );
+}
+
+// ── Cap ─────────────────────────────────────────────────────────────────────
+function CapMesh({ texUrl, colorHex, logoUrl, rotating }: {
+  texUrl: string; colorHex: string; logoUrl?: string; rotating: boolean;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const tex = useProdTex(texUrl);
+  const parts = useMemo(() => createCapParts(), []);
+  const mat = useMemo(() => createFabricMaterial(tex, colorHex, 0.78), [tex, colorHex]);
+  const solid = useMemo(() => new THREE.MeshStandardMaterial({
+    color: isNeutralColor(colorHex) ? new THREE.Color('#d0cdc8') : new THREE.Color(colorHex).lerp(new THREE.Color('#888'), 0.28),
+    roughness: 0.82,
+  }), [colorHex]);
+  useFrame((_, dt) => { if (ref.current && rotating) ref.current.rotation.y += dt * 0.36; });
+  return (
+    <group ref={ref} rotation={[-0.1, 0, 0]}>
       <mesh geometry={parts.dome} material={mat} castShadow />
-      <mesh geometry={parts.brim} material={solidMat} castShadow />
-      <mesh geometry={parts.button} material={solidMat} />
-      <mesh geometry={parts.sweatband}>
-        <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
-      </mesh>
+      <mesh geometry={parts.brim} material={solid} castShadow />
+      <mesh geometry={parts.button} material={solid} />
+      <mesh geometry={parts.sweatband}><meshStandardMaterial color="#111" roughness={0.9} /></mesh>
       {logoUrl && <LogoCurved url={logoUrl} z={0.91} />}
     </group>
   );
 }
 
-// ── Beanie / Toque mesh ───────────────────────────────────────────────────────
-function BeanieMesh({
-  texUrl, colorHex, logoUrl, rotating,
-}: {
+// ── Beanie ──────────────────────────────────────────────────────────────────
+function BeanieMesh({ texUrl, colorHex, logoUrl, rotating }: {
   texUrl: string; colorHex: string; logoUrl?: string; rotating: boolean;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const tex = useProdTexture(texUrl);
+  const ref = useRef<THREE.Group>(null);
+  const tex = useProdTex(texUrl);
   const parts = useMemo(() => createBeanieParts(), []);
   const mat = useMemo(() => createFabricMaterial(tex, colorHex, 0.92), [tex, colorHex]);
   const cuffMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: isNeutralColor(colorHex)
-      ? new THREE.Color('#d8d5d0')
-      : new THREE.Color(colorHex).multiplyScalar(0.8),
+    color: isNeutralColor(colorHex) ? new THREE.Color('#c8c5c0') : new THREE.Color(colorHex).multiplyScalar(0.80),
     roughness: 0.95,
   }), [colorHex]);
-
-  useFrame((_, dt) => {
-    if (groupRef.current && rotating) groupRef.current.rotation.y += dt * 0.36;
-  });
-
+  useFrame((_, dt) => { if (ref.current && rotating) ref.current.rotation.y += dt * 0.36; });
   return (
-    <group ref={groupRef}>
+    <group ref={ref}>
       <mesh geometry={parts.body} material={mat} castShadow />
       <mesh geometry={parts.crown} material={mat} castShadow />
       <mesh geometry={parts.cuff} material={cuffMat} />
       <mesh geometry={parts.pompom}>
-        <meshStandardMaterial
-          color={isNeutralColor(colorHex) ? '#ccc' : colorHex}
-          roughness={1}
-        />
+        <meshStandardMaterial color={isNeutralColor(colorHex) ? '#ccc' : colorHex} roughness={1} />
       </mesh>
       {logoUrl && <LogoCurved url={logoUrl} z={0.73} />}
     </group>
   );
 }
 
-// ── Skeleton shimmer while texture loads ──────────────────────────────────────
+// ── Skeleton shimmer ────────────────────────────────────────────────────────
 function Skeleton() {
   const ref = useRef<THREE.Mesh>(null);
   useFrame(() => {
-    if (ref.current) {
-      (ref.current.material as THREE.MeshBasicMaterial).opacity =
-        0.28 + Math.sin(Date.now() / 400) * 0.12;
-    }
+    if (ref.current)
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = 0.22 + Math.sin(Date.now() / 420) * 0.10;
   });
   return (
     <mesh ref={ref}>
-      <planeGeometry args={[1.5, 2.1]} />
-      <meshBasicMaterial color="#E3E1DB" transparent opacity={0.35} />
+      <planeGeometry args={[1.65, 2.20]} />
+      <meshBasicMaterial color="#E3E1DB" transparent opacity={0.3} />
     </mesh>
   );
 }
 
-// ── Camera per product category ───────────────────────────────────────────────
-function CameraRig({ category }: { category: string }) {
+// ── Camera per product ──────────────────────────────────────────────────────
+function CameraRig({ cat }: { cat: string }) {
   const { camera } = useThree();
   useEffect(() => {
-    if (category === 'cap') camera.position.set(0, 0.5, 2.3);
-    else if (category === 'toque') camera.position.set(0, 0.25, 2.5);
-    else camera.position.set(0, 0, 3.0);
+    if      (cat === 'cap')    camera.position.set(0,  0.5, 2.2);
+    else if (cat === 'toque')  camera.position.set(0,  0.2, 2.4);
+    else if (cat === 'hoodie') camera.position.set(0,  0.0, 3.0);
+    else                       camera.position.set(0, -0.0, 2.8);
     camera.lookAt(0, 0, 0);
-  }, [category, camera]);
+  }, [cat, camera]);
   return null;
 }
 
-// ── Main exported component ───────────────────────────────────────────────────
+// ── Main exported component ─────────────────────────────────────────────────
 export function ProductViewer3D({
-  product,
-  selectedColor,
-  logoPlacement,
-  activeView,
-  onViewChange,
-  compact = false,
+  product, selectedColor, logoPlacement, activeView, onViewChange, compact = false,
 }: {
   product: Product;
   selectedColor: ProductColor | null;
@@ -233,45 +289,40 @@ export function ProductViewer3D({
   compact?: boolean;
 }) {
   const { t } = useLang();
-  const [autoRotate, setAutoRotate] = useState(false);
+  const [autoRot, setAutoRot]   = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [hint, setHint] = useState(true);
-  const canvasH = compact ? 260 : 350;
+  const [hint, setHint]         = useState(true);
+  const H = compact ? 260 : 360;
 
-  const texUrl = activeView === 'back'
+  const texUrl  = activeView === 'back'
     ? (selectedColor?.imageDos ?? product.imageDos)
     : (selectedColor?.imageDevant ?? product.imageDevant);
-
   const colorHex = selectedColor?.hex ?? '#f5f5f0';
-  const logoUrl = logoPlacement?.previewUrl ?? logoPlacement?.processedUrl;
-  const isHoodie = product.category === 'hoodie';
-  const isShirt = ['tshirt','hoodie','polo','manteau'].includes(product.category);
+  const logoUrl  = logoPlacement?.previewUrl ?? logoPlacement?.processedUrl;
 
-  const sceneProps = {
-    texUrl,
-    colorHex,
-    logoUrl,
+  const sp = {
+    texUrl, colorHex, logoUrl,
     logoPlacement: logoPlacement ?? undefined,
-    rotating: autoRotate && !dragging,
+    rotating: autoRot && !dragging,
   };
 
   const views = [
     { id: 'front' as const, label: t('devant') },
-    { id: 'back' as const, label: t('dos') },
-    { id: 'left' as const, label: t('gauche') },
+    { id: 'back'  as const, label: t('dos') },
+    { id: 'left'  as const, label: t('gauche') },
     { id: 'right' as const, label: t('droite') },
   ];
 
   return (
     <div
       className="relative flex flex-col rounded-2xl overflow-hidden bg-[#F8F7F4] border border-border"
-      style={{ minHeight: canvasH + 52 }}
+      style={{ minHeight: H + 52 }}
     >
-      {/* 3D Canvas */}
+      {/* ── 3D canvas ── */}
       <div
-        style={{ height: canvasH }}
+        style={{ height: H }}
         className="relative select-none"
-        onPointerDown={() => { setDragging(true); setAutoRotate(false); setHint(false); }}
+        onPointerDown={() => { setDragging(true); setAutoRot(false); setHint(false); }}
         onPointerUp={() => setDragging(false)}
         onPointerLeave={() => setDragging(false)}
       >
@@ -281,18 +332,21 @@ export function ProductViewer3D({
           gl={{ antialias: true, alpha: true }}
           style={{ background: 'transparent' }}
         >
-          <CameraRig category={product.category} />
+          <CameraRig cat={product.category} />
 
-          {/* Lighting — soft studio */}
-          <ambientLight intensity={1.3} />
-          <directionalLight position={[3, 6, 4]} intensity={0.9} castShadow shadow-mapSize={[1024,1024]} />
-          <directionalLight position={[-3, 2, -2]} intensity={0.4} />
-          <pointLight position={[0, -5, 3]} intensity={0.25} color="#ede8e0" />
+          {/* Studio lighting */}
+          <ambientLight intensity={1.30} />
+          <directionalLight position={[3, 6, 4]}   intensity={0.92} castShadow shadow-mapSize={[2048, 2048] as [number,number]} />
+          <directionalLight position={[-3, 2, -2]}  intensity={0.40} />
+          <pointLight       position={[0, -5, 3]}   intensity={0.26} color="#ede8e0" />
 
           <Suspense fallback={<Skeleton />}>
-            {isShirt && <ShirtMesh {...sceneProps} isHoodie={isHoodie} />}
-            {product.category === 'cap' && <CapMesh {...sceneProps} />}
-            {product.category === 'toque' && <BeanieMesh {...sceneProps} />}
+            {product.category === 'hoodie'  && <HoodieATCF2500 {...sp} />}
+            {product.category === 'tshirt'  && <ShirtMesh      {...sp} />}
+            {product.category === 'polo'    && <ShirtMesh      {...sp} />}
+            {product.category === 'manteau' && <ShirtMesh      {...sp} />}
+            {product.category === 'cap'     && <CapMesh        {...sp} />}
+            {product.category === 'toque'   && <BeanieMesh     {...sp} />}
           </Suspense>
 
           <OrbitControls
@@ -308,7 +362,7 @@ export function ProductViewer3D({
         <AnimatePresence>
           {hint && (
             <motion.div
-              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 0.7, y: 0 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 0.72, y: 0 }} exit={{ opacity: 0 }}
               transition={{ delay: 1.8 }}
               className="absolute top-3 left-1/2 -translate-x-1/2 bg-foreground/60 backdrop-blur-sm text-background text-[11px] font-semibold px-3 py-1.5 rounded-full pointer-events-none whitespace-nowrap"
             >
@@ -317,7 +371,7 @@ export function ProductViewer3D({
           )}
         </AnimatePresence>
 
-        {/* Live colour chip */}
+        {/* Colour chip */}
         {selectedColor && (
           <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-background/85 backdrop-blur-sm rounded-full px-2.5 py-1.5 border border-border">
             <div className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: selectedColor.hex }} />
@@ -336,10 +390,12 @@ export function ProductViewer3D({
         )}
       </div>
 
-      {/* Controls */}
+      {/* ── Controls bar ── */}
       <div className="flex items-center justify-center gap-1.5 py-2.5 border-t border-border bg-background/70 backdrop-blur-sm flex-wrap px-3">
         {views.map((v) => (
-          <button key={v.id} onClick={() => onViewChange(v.id)}
+          <button
+            key={v.id}
+            onClick={() => onViewChange(v.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
               activeView === v.id
                 ? 'bg-primary text-primary-foreground shadow-sm'
@@ -349,12 +405,13 @@ export function ProductViewer3D({
             {v.label}
           </button>
         ))}
-        <button onClick={() => setAutoRotate(!autoRotate)}
+        <button
+          onClick={() => setAutoRot(!autoRot)}
           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
-            autoRotate ? 'bg-accent text-accent-foreground' : 'bg-background text-muted-foreground border border-border'
+            autoRot ? 'bg-accent text-accent-foreground' : 'bg-background text-muted-foreground border border-border'
           }`}
         >
-          {autoRotate ? '■ Stop' : `▶ ${t('auto')}`}
+          {autoRot ? '■ Stop' : `▶ ${t('auto')}`}
         </button>
       </div>
     </div>
