@@ -151,8 +151,16 @@ export default function ProductDetail() {
               </div>
             ))}
 
+            {/* Customizer button */}
             <button
-              className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all shadow-navy hover:opacity-88 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all shadow-navy hover:opacity-88 flex items-center justify-center gap-2"
+              onClick={() => setCustomizerOpen(true)}
+            >
+              👕 Personnaliser ce produit
+            </button>
+
+            <button
+              className="w-full py-3 bg-secondary text-foreground border border-border rounded-xl text-[13px] font-bold cursor-pointer transition-all hover:bg-muted disabled:opacity-50 flex items-center justify-center gap-2"
               onClick={handleAddToCart}
               disabled={isCartLoading || !selectedVariant?.availableForSale}
             >
@@ -162,7 +170,7 @@ export default function ProductDetail() {
                 'Rupture de stock'
               ) : (
                 <>
-                  <ShoppingCart className="h-5 w-5" /> Ajouter au panier
+                  <ShoppingCart className="h-4 w-4" /> Ajout rapide au panier
                 </>
               )}
             </button>
