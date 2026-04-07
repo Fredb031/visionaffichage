@@ -6,7 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt, ShoppingBag, Loader2 as Spinner } from 'lucide-react';
+import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import { PRODUCTS } from '@/data/products';
 import { useCartStore } from '@/stores/cartStore';
