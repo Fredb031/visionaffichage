@@ -8,7 +8,7 @@ import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowLeft, Lock, Shirt, Check, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { findProductByHandle } from '@/data/products';
+import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 
 export default function ProductDetail() {
@@ -28,7 +28,8 @@ export default function ProductDetail() {
     enabled: !!handle,
   });
 
-  const localProductId = findProductByHandle(handle ?? '')?.id ?? 'atcf2500';
+  const localProduct = findProductByHandle(handle ?? '');
+  const localProductId = localProduct?.id ?? 'atcf2500';
 
   if (isLoading) {
     return (
@@ -166,13 +167,34 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Volume discount callout */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/15 rounded-lg text-xs font-semibold text-primary">
-              <Check className="w-3.5 h-3.5 flex-shrink-0" />
-              {lang === 'en'
-                ? '15% discount automatically applied on 12+ units'
-                : '15% de rabais appliqué automatiquement à 12+ unités'}
-            </div>
+            {/* Pricing tiers table — inspired by CustomInk/RushOrderTees */}
+            {(() => {
+              const shopifyBase = parseFloat(price);
+              const unitWithPrint = shopifyBase + PRINT_PRICE;
+              const discountedUnit = unitWithPrint * (1 - BULK_DISCOUNT_RATE);
+              return (
+                <div className="overflow-hidden rounded-xl border border-border text-sm">
+                  <div className="px-3.5 py-2 bg-secondary border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                    {lang === 'en' ? 'Price per unit (print included)' : 'Prix / unité (impression incluse)'}
+                  </div>
+                  <div className="divide-y divide-border">
+                    <div className="flex items-center justify-between px-3.5 py-2.5">
+                      <span className="text-muted-foreground">1–11 {lang === 'en' ? 'units' : 'unités'}</span>
+                      <span className="font-extrabold text-foreground">{unitWithPrint.toFixed(2)} $</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-green-50/60">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">12+ {lang === 'en' ? 'units' : 'unités'}</span>
+                        <span className="text-[10px] font-extrabold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                          -{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                        </span>
+                      </div>
+                      <span className="font-extrabold text-green-700">{discountedUnit.toFixed(2)} $</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
@@ -223,12 +245,25 @@ export default function ProductDetail() {
 
             {product.description && (
               <div className="pt-3 border-t border-border">
-                <h3 className="font-bold mb-2 text-sm text-foreground">
-                  {lang === 'en' ? 'Description' : 'Description'}
+                <h3 className="font-bold mb-2 text-sm text-foreground">Description</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+              </div>
+            )}
+
+            {/* Product features from local data */}
+            {localProduct?.features && localProduct.features.length > 0 && (
+              <div className="pt-3 border-t border-border">
+                <h3 className="font-bold mb-2.5 text-sm text-foreground">
+                  {lang === 'en' ? 'Features' : 'Caractéristiques'}
                 </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {product.description}
-                </p>
+                <ul className="space-y-1.5">
+                  {localProduct.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -248,3 +283,4 @@ export default function ProductDetail() {
     </div>
   );
 }
+
