@@ -6,10 +6,13 @@ import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { findProductByHandle, matchProductByTitle } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 
+// SKUs marked as popular — shown with badge on product card
+const POPULAR_SKUS = new Set(['ATCF2500', 'ATC1000', 'ATC6606', 'ATCF2400']);
+
 interface ProductCardProps { product: ShopifyProduct; }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const { node } = product;
   const [customizerOpen, setCustomizerOpen] = useState(false);
@@ -19,6 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const price = node.priceRange.minVariantPrice;
 
   const local = findProductByHandle(node.handle) ?? matchProductByTitle(node.title);
+  const isPopular = local ? POPULAR_SKUS.has(local.sku) : false;
 
   const handleCardClick = () => navigate(`/product/${node.handle}`);
   const handleCustomize = (e: React.MouseEvent) => {
@@ -53,7 +57,14 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">Pas d'image</div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">{lang === 'en' ? 'No image' : "Pas d'image"}</div>
+          )}
+
+          {/* Popular badge */}
+          {isPopular && (
+            <div className="absolute top-2.5 left-2.5 z-[5] text-[10px] font-extrabold text-primary-foreground gradient-navy-dark px-2.5 py-[3px] rounded-full shadow-sm">
+              {lang === 'en' ? '⭐ Popular' : '⭐ Populaire'}
+            </div>
           )}
 
           {/* Logo placeholder */}
@@ -98,7 +109,7 @@ export function ProductCard({ product }: ProductCardProps) {
               {parseFloat(price.amount) < 5 ? `Dès ${parseFloat(price.amount).toFixed(2)} $` : `${parseFloat(price.amount).toFixed(2)} $`}
             </span>
             <span className="text-[10px] font-bold text-muted-foreground border border-border px-2 py-0.5 rounded-full group-hover:border-primary/50 group-hover:text-primary transition-colors">
-              Personnaliser
+              {lang === 'en' ? 'Customize' : 'Personnaliser'}
             </span>
           </div>
         </div>
@@ -112,3 +123,4 @@ export function ProductCard({ product }: ProductCardProps) {
     </>
   );
 }
+
