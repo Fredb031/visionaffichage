@@ -1,20 +1,43 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from '@/lib/shopify';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
-import { ProductCustomizer } from '@/components/ProductCustomizer';
-import { useCartStore } from '@/stores/cartStore';
-import { Loader2, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
+import { AnimatePresence } from 'framer-motion';
+import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { PRODUCTS } from '@/data/products';
+
+// Map Shopify handle → local product id for customizer
+const HANDLE_TO_PRODUCT_ID: Record<string, string> = {
+  'hoodie-a-capuche-unisexe': 'atcf2500',
+  'hoodie-avec-zipper': 'atcf2600',
+  't-shirt': 'atc1000',
+  'casquette-trucker': 'atc6606',
+  'tuque-sans-rebords': 'c105',
+  // fallback variants
+  'hoodie': 'atcf2500',
+  'tshirt': 'atc1000',
+  'casquette': 'atc6606',
+  'tuque': 'c105',
+};
+
+function getLocalProductId(handle: string): string {
+  if (HANDLE_TO_PRODUCT_ID[handle]) return HANDLE_TO_PRODUCT_ID[handle];
+  // Try partial match
+  const lower = handle.toLowerCase();
+  if (lower.includes('hoodie') && lower.includes('zip')) return 'atcf2600';
+  if (lower.includes('hoodie')) return 'atcf2500';
+  if (lower.includes('t-shirt') || lower.includes('tshirt')) return 'atc1000';
+  if (lower.includes('casquette') || lower.includes('cap')) return 'atc6606';
+  if (lower.includes('tuque') || lower.includes('toque') || lower.includes('beanie')) return 'c105';
+  return 'atcf2500'; // default
+}
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
-  const addItem = useCartStore(state => state.addItem);
-  const isCartLoading = useCartStore(state => state.isLoading);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
@@ -29,12 +52,16 @@ export default function ProductDetail() {
     enabled: !!handle,
   });
 
+  const localProductId = getLocalProductId(handle ?? '');
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-        <div className="flex justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-32">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </div>
     );
   }
@@ -55,28 +82,21 @@ export default function ProductDetail() {
   }
 
   const images = product.images.edges;
-  const options = product.options.filter((o: { name: string; values: string[] }) => !(o.values.length === 1 && o.values[0] === 'Default Title'));
-  const currentOptions = { ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])), ...selectedOptions };
-
-  const selectedVariant = product.variants.edges.find(
-    (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
-      v.node.selectedOptions.every((so: { name: string; value: string }) => currentOptions[so.name] === so.value)
-  )?.node || product.variants.edges[0]?.node;
-
-  const handleAddToCart = async () => {
-    if (!selectedVariant) return;
-    const wrappedProduct = { node: product };
-    await addItem({
-      product: wrappedProduct,
-      variantId: selectedVariant.id,
-      variantTitle: selectedVariant.title,
-      price: selectedVariant.price,
-      quantity: 1,
-      selectedOptions: selectedVariant.selectedOptions || [],
-    });
-    toast.success(`${product.title} ajouté au panier`, { position: 'top-center' });
-    setCartOpen(true);
+  const options = product.options.filter(
+    (o: { name: string; values: string[] }) => !(o.values.length === 1 && o.values[0] === 'Default Title')
+  );
+  const currentOptions = {
+    ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])),
+    ...selectedOptions,
   };
+
+  const selectedVariant =
+    product.variants.edges.find(
+      (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
+        v.node.selectedOptions.every(
+          (so: { name: string; value: string }) => currentOptions[so.name] === so.value
+        )
+    )?.node || product.variants.edges[0]?.node;
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,14 +104,14 @@ export default function ProductDetail() {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-20 pb-32">
-        <Link to="/products" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux produits
+        <Link to="/products" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Retour aux produits
         </Link>
 
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           {/* Images */}
           <div className="space-y-3">
-            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary">
+            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border">
               {images[selectedImageIndex]?.node ? (
                 <img
                   src={images[selectedImageIndex].node.url}
@@ -103,13 +123,13 @@ export default function ProductDetail() {
               )}
             </div>
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 {images.map((img: { node: { url: string; altText: string | null } }, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImageIndex(i)}
                     className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                      i === selectedImageIndex ? 'border-primary' : 'border-transparent'
+                      i === selectedImageIndex ? 'border-primary' : 'border-transparent hover:border-border'
                     }`}
                   >
                     <img src={img.node.url} alt={img.node.altText || ''} className="w-full h-full object-cover" />
@@ -120,11 +140,13 @@ export default function ProductDetail() {
           </div>
 
           {/* Info */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{product.title}</h1>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">{product.title}</h1>
               <p className="text-2xl font-extrabold text-primary mt-2">
-                {selectedVariant ? parseFloat(selectedVariant.price.amount).toFixed(2) : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}{' '}
+                {selectedVariant
+                  ? parseFloat(selectedVariant.price.amount).toFixed(2)
+                  : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}{' '}
                 {product.priceRange.minVariantPrice.currencyCode}
               </p>
             </div>
@@ -132,15 +154,15 @@ export default function ProductDetail() {
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
               <div key={option.name}>
-                <label className="text-sm font-bold mb-2 block">{option.name}</label>
+                <label className="text-sm font-bold mb-2 block text-foreground">{option.name}</label>
                 <div className="flex flex-wrap gap-2">
                   {option.values.map((value: string) => (
                     <button
                       key={value}
-                      onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                      onClick={() => setSelectedOptions((prev) => ({ ...prev, [option.name]: value }))}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
                         currentOptions[option.name] === value
-                          ? 'gradient-navy text-primary-foreground border-transparent'
+                          ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
                           : 'bg-background text-foreground border-border hover:border-primary'
                       }`}
                     >
@@ -151,37 +173,24 @@ export default function ProductDetail() {
               </div>
             ))}
 
-            {/* Customizer button */}
+            {/* CTA — Customiser */}
             <button
-              className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all shadow-navy hover:opacity-88 flex items-center justify-center gap-2"
+              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2"
+              style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
               onClick={() => setCustomizerOpen(true)}
             >
-              👕 Personnaliser ce produit
+              <Shirt size={18} />
+              Personnaliser ce produit
             </button>
 
-            <button
-              className="w-full py-3 bg-secondary text-foreground border border-border rounded-xl text-[13px] font-bold cursor-pointer transition-all hover:bg-muted disabled:opacity-50 flex items-center justify-center gap-2"
-              onClick={handleAddToCart}
-              disabled={isCartLoading || !selectedVariant?.availableForSale}
-            >
-              {isCartLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : !selectedVariant?.availableForSale ? (
-                'Rupture de stock'
-              ) : (
-                <>
-                  <ShoppingCart className="h-4 w-4" /> Ajout rapide au panier
-                </>
-              )}
-            </button>
-
-            <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1">
-              🔒 Paiement sécurisé · Livré en 5 jours
+            <div className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 py-1">
+              <Lock size={11} />
+              Paiement sécurisé · Livré en 5 jours ouvrables
             </div>
 
             {product.description && (
-              <div>
-                <h3 className="font-bold mb-2">Description</h3>
+              <div className="pt-2 border-t border-border">
+                <h3 className="font-bold mb-2 text-sm text-foreground">Description</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
               </div>
             )}
@@ -189,12 +198,16 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <ProductCustomizer
-        isOpen={customizerOpen}
-        onClose={() => setCustomizerOpen(false)}
-        product={product}
-        onCartOpen={() => setCartOpen(true)}
-      />
+      {/* 3D Customizer modal */}
+      <AnimatePresence>
+        {customizerOpen && (
+          <ProductCustomizer
+            productId={localProductId}
+            onClose={() => setCustomizerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <BottomNav />
     </div>
   );

@@ -1,10 +1,8 @@
-/**
- * Remove background from an image using remove.bg API or local canvas fallback.
- */
-export async function removeBackground(file: File): Promise<Blob | null> {
-  const apiKey = import.meta.env.VITE_REMOVEBG_API_KEY;
+// Fix: unified env var name VITE_REMOVE_BG_API_KEY (was VITE_REMOVEBG_API_KEY in some files)
+export async function removeBackground(file: File): Promise<Blob> {
+  const apiKey = import.meta.env.VITE_REMOVE_BG_API_KEY;
 
-  if (apiKey) {
+  if (apiKey && apiKey !== '') {
     try {
       const formData = new FormData();
       formData.append('image_file', file);
@@ -19,10 +17,12 @@ export async function removeBackground(file: File): Promise<Blob | null> {
       if (!res.ok) throw new Error(`remove.bg error: ${res.status}`);
       return await res.blob();
     } catch (err) {
-      console.error('remove.bg failed, using original:', err);
+      console.warn('remove.bg failed, using original image:', err);
     }
+  } else {
+    console.warn('VITE_REMOVE_BG_API_KEY not set — add it to .env for automatic background removal');
   }
 
-  // Fallback: return original file as-is
+  // Fallback: return original file as Blob
   return file;
 }

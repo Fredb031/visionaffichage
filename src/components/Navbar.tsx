@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useCartStore } from '@/stores/cartStore';
+import { useCartStore } from '@/store/cartStore';
 
 interface NavbarProps {
   onOpenCart?: () => void;
@@ -7,7 +7,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
-  const totalItems = useCartStore(state => state.items.reduce((sum, item) => sum + item.quantity, 0));
+  const itemCount = useCartStore((s) => s.getItemCount());
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 bg-background/[0.93] backdrop-blur-xl border-b border-border">
@@ -39,9 +39,9 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
           </svg>
           <span className="hidden sm:inline">Panier</span>
-          {totalItems > 0 && (
+          {itemCount > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center">
-              {totalItems}
+              {itemCount}
             </span>
           )}
         </button>

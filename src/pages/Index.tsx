@@ -131,7 +131,7 @@ export default function Index() {
 
       {/* Steps — minimal v8 */}
       <FadeIn>
-        <section className="gradient-navy-dark py-0 px-6 md:px-10">
+        <section className="gradient-navy-dark py-12 px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[

@@ -5,8 +5,9 @@ interface MoleGameProps {
   onClose: (won: boolean) => void;
 }
 
+// Realistic brown mole SVG — no emoji, taste-skill compliant
 const MoleSvg = ({ id, onClick }: { id: string; onClick: (e: React.MouseEvent) => void }) => (
-  <svg className="mole-svg block cursor-pointer" width="86" height="90" viewBox="0 0 86 90" onClick={onClick}>
+  <svg className="mole-svg block cursor-pointer select-none" width="86" height="90" viewBox="0 0 86 90" onClick={onClick}>
     <ellipse cx="43" cy="72" rx="31" ry="25" fill="#3D2510"/>
     <ellipse cx="43" cy="74" rx="18" ry="16" fill="#6B4228"/>
     <ellipse cx="43" cy="44" rx="26" ry="24" fill="#3D2510"/>
@@ -35,6 +36,16 @@ const MoleSvg = ({ id, onClick }: { id: string; onClick: (e: React.MouseEvent) =
         <stop offset="100%" stopColor="#000" stopOpacity=".15"/>
       </radialGradient>
     </defs>
+  </svg>
+);
+
+// Sad face SVG icon — replaces banned emoji
+const SadFaceSvg = () => (
+  <svg width="52" height="52" viewBox="0 0 52 52" fill="none" className="mx-auto mb-3">
+    <circle cx="26" cy="26" r="26" fill="hsla(216,59%,26%,0.1)"/>
+    <circle cx="19" cy="22" r="2.5" fill="hsl(216,59%,26%)"/>
+    <circle cx="33" cy="22" r="2.5" fill="hsl(216,59%,26%)"/>
+    <path d="M18 33c2.2-3.2 5.2-4.5 8-4.5s5.8 1.3 8 4.5" stroke="hsl(216,59%,26%)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
   </svg>
 );
 
@@ -109,7 +120,6 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const handleWhack = (idx: number, e: React.MouseEvent) => {
     if (moleStates[idx] !== 'up' || gameOverRef.current) return;
     e.stopPropagation();
-
     if (moleTimers.current[idx]) clearTimeout(moleTimers.current[idx]!);
     setMoleStates(prev => { const n = [...prev]; n[idx] = 'hit'; return n; });
     setHits(prev => prev + 1);
@@ -132,19 +142,33 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const gameLost = timeLeft === 0 && !gameWon;
 
   return (
-    <div className={`fixed inset-0 z-[800] flex items-center justify-center transition-opacity duration-350 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{ background: 'rgba(8,14,32,.78)', backdropFilter: 'blur(16px)' }}>
+    <div
+      className="fixed inset-0 z-[800] flex items-center justify-center"
+      style={{ background: 'rgba(8,14,32,.82)', backdropFilter: 'blur(18px)' }}
+    >
+      {/* Star burst effects */}
       {stars.map(s => (
-        <div key={s.id} className="fixed pointer-events-none z-[910] text-lg animate-starburst font-bold" style={{ left: s.x, top: s.y, color: 'hsl(var(--gold))' }}>✦</div>
+        <div
+          key={s.id}
+          className="fixed pointer-events-none z-[910] text-lg animate-starburst font-bold"
+          style={{ left: s.x, top: s.y, color: 'hsl(var(--gold))' }}
+        >
+          ✦
+        </div>
       ))}
 
-      <div className="bg-card rounded-3xl w-[480px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.3)] transition-transform duration-400">
+      <div className="bg-card rounded-3xl w-[480px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.35)]">
         {/* Header */}
         <div className="gradient-navy-dark p-[26px] pb-5 text-center">
-          <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">MINI-JEU EXCLUSIF</div>
+          <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">
+            MINI-JEU EXCLUSIF
+          </div>
           <h2 className="text-2xl font-extrabold text-primary-foreground leading-[1.2] mb-[5px]">
             Frappe les taupes,<br/>gagne 10% de rabais
           </h2>
-          <p className="text-[13px] text-primary-foreground/50">Frappe {targetHits} taupes avant la fin du temps</p>
+          <p className="text-[13px] text-primary-foreground/50">
+            Frappe {targetHits} taupes avant la fin du temps
+          </p>
         </div>
 
         {!gameWon && !gameLost ? (
@@ -153,14 +177,17 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             <div className="flex justify-between px-5 py-3 bg-secondary border-b border-border">
               {[{ v: hits, l: 'Frappes' }, { v: targetHits, l: 'Objectif' }, { v: timeLeft, l: 'Secondes' }].map((s, i) => (
                 <div key={i} className="text-center">
-                  <div className="text-2xl font-extrabold text-primary">{s.v}</div>
+                  <div className={`text-2xl font-extrabold ${i === 2 && timeLeft <= 5 ? 'text-destructive' : 'text-primary'}`}>{s.v}</div>
                   <div className="text-[10px] font-bold tracking-[1.5px] text-muted-foreground uppercase mt-0.5">{s.l}</div>
                 </div>
               ))}
             </div>
 
             {/* Game field */}
-            <div className="relative min-h-[210px] pt-4 px-7" style={{ background: 'linear-gradient(180deg, #AADCF5 0%, #AADCF5 40%, #7BC67E 40%, #5BA85E 55%, #4A9052 100%)' }}>
+            <div
+              className="relative min-h-[210px] pt-4 px-7"
+              style={{ background: 'linear-gradient(180deg, #AADCF5 0%, #AADCF5 40%, #7BC67E 40%, #5BA85E 55%, #4A9052 100%)' }}
+            >
               <div className="flex justify-around items-end px-1">
                 {[0, 1, 2].map(idx => (
                   <div key={idx} className="flex flex-col items-center relative w-[120px]">
@@ -169,8 +196,14 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                       <div
                         className="transition-transform select-none"
                         style={{
-                          transform: moleStates[idx] === 'up' ? 'translateY(0)' : moleStates[idx] === 'hit' ? 'translateY(100%) scaleX(0.8)' : 'translateY(100%)',
-                          transition: moleStates[idx] === 'hit' ? 'transform 0.08s ease-in' : 'transform 0.2s cubic-bezier(.34,1.2,.64,1)',
+                          transform: moleStates[idx] === 'up'
+                            ? 'translateY(0)'
+                            : moleStates[idx] === 'hit'
+                            ? 'translateY(100%) scaleX(0.8)'
+                            : 'translateY(100%)',
+                          transition: moleStates[idx] === 'hit'
+                            ? 'transform 0.08s ease-in'
+                            : 'transform 0.22s cubic-bezier(.34,1.2,.64,1)',
                         }}
                       >
                         <MoleSvg id={`${idx}`} onClick={(e) => handleWhack(idx, e)} />
@@ -179,35 +212,48 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                     {/* Hole */}
                     <div
                       className="w-[90px] h-[30px] rounded-[50%] relative z-[3]"
-                      style={{ background: 'radial-gradient(ellipse at 50% 35%, #1a0800 0%, #2e1505 55%, #3d2010 100%)', boxShadow: 'inset 0 5px 14px rgba(0,0,0,0.7), 0 5px 10px rgba(0,0,0,0.3)' }}
+                      style={{
+                        background: 'radial-gradient(ellipse at 50% 35%, #1a0800 0%, #2e1505 55%, #3d2010 100%)',
+                        boxShadow: 'inset 0 5px 14px rgba(0,0,0,0.7), 0 5px 10px rgba(0,0,0,0.3)',
+                      }}
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Progress */}
+            {/* Progress bar */}
             <div className="px-7">
-              <div className="h-[5px] bg-muted mt-2.5 mb-1">
-                <div className="h-full rounded-sm transition-all duration-300" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, hsl(var(--navy)), hsl(var(--gold)))' }} />
+              <div className="h-[5px] bg-muted mt-2.5 mb-1 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, hsl(var(--navy)), hsl(var(--gold)))',
+                  }}
+                />
               </div>
               <div className="text-[12px] text-muted-foreground text-center pb-3">
-                {hits >= targetHits ? 'Objectif atteint!' : `${hits}/${targetHits} taupes frappées`}
+                {hits}/{targetHits} taupes frappées
               </div>
             </div>
 
-            <div className="text-center pb-2.5 text-[12px] text-muted-foreground">
-              <button onClick={() => onClose(false)} className="text-foreground/60 underline cursor-pointer bg-transparent border-none text-[12px]">
-                Pas le temps? Passer
+            <div className="text-center pb-3 text-[12px] text-muted-foreground">
+              <button onClick={() => onClose(false)} className="text-foreground/50 underline cursor-pointer bg-transparent border-none text-[12px] hover:text-foreground/80 transition-colors">
+                Pas le temps ? Passer
               </button>
             </div>
           </>
         ) : gameWon ? (
+          /* WIN STATE */
           <div className="p-1 px-7 pb-7 text-center">
-            <div className="mx-auto mb-3 w-14 h-14">
-              <svg viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="28" fill="hsla(var(--navy), 0.1)"/><path d="M18 28l8 8 14-16" stroke="hsl(var(--navy))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="mx-auto mb-3 w-14 h-14 mt-4">
+              <svg viewBox="0 0 56 56" fill="none">
+                <circle cx="28" cy="28" r="28" fill="hsla(216,59%,26%,0.1)"/>
+                <path d="M16 28l9 9 16-18" stroke="hsl(216,59%,26%)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Bravo, tu as gagné!</h3>
+            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Bravo, tu as gagné !</h3>
             <p className="text-[13px] text-muted-foreground mb-4">10% de rabais sur ta première commande</p>
             <div className="bg-secondary border-[1.5px] border-dashed border-accent rounded-xl py-3 px-7 mb-2">
               <span className="text-xl font-extrabold tracking-[4px] text-primary">VISION10</span>
@@ -221,15 +267,17 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             </button>
           </div>
         ) : (
+          /* LOSS STATE — no emoji! */
           <div className="p-7 text-center">
-            <div className="text-[52px] mb-3">😢</div>
-            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Temps écoulé!</h3>
-            <p className="text-[13px] text-muted-foreground mb-5">Tu as frappé {hits}/{targetHits} taupes</p>
+            <SadFaceSvg />
+            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Temps écoulé !</h3>
+            <p className="text-[13px] text-muted-foreground mb-1">Tu as frappé {hits}/{targetHits} taupes</p>
+            <p className="text-[12px] text-muted-foreground mb-5">C'est dur ! Tu peux quand même continuer.</p>
             <button
               onClick={() => onClose(false)}
               className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88"
             >
-              Continuer sans rabais →
+              Continuer sans rabais
             </button>
           </div>
         )}

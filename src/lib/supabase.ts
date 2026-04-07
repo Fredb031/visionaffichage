@@ -1,17 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create client when both env vars are present
+export const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
-export async function uploadLogo(file: File, userId?: string): Promise<string | null> {
-  const fileName = `${userId ?? 'anon'}/${Date.now()}-${file.name}`;
-  const { error } = await supabase.storage.from('logos').upload(fileName, file);
-  if (error) {
-    console.error('Upload failed:', error);
+export const LOGO_BUCKET = 'vision-logos';
+
+export async function uploadLogo(blob: Blob, filename: string): Promise<string | null> {
+  if (!supabase) {
+    console.warn('Supabase not configured — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env');
     return null;
   }
-  const { data } = supabase.storage.from('logos').getPublicUrl(fileName);
+  const path = `logos/${Date.now()}-${filename.replace(/[^a-z0-9.]/gi, '-')}.png`;
+  const { error } = await supabase.storage
+    .from(LOGO_BUCKET)
+    .upload(path, blob, { contentType: 'image/png', upsert: false });
+
+  if (error) {
+    console.error('Logo upload failed:', error.message);
+    return null;
+  }
+
+  const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
