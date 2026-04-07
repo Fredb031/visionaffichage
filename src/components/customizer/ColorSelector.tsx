@@ -1,25 +1,27 @@
 import { useCustomizerStore } from '@/store/customizerStore';
+import { PRODUCTS } from '@/data/products';
 
 export function ColorSelector() {
-  const { product, selectedVariantId, setColor } = useCustomizerStore();
+  const { productId, colorId, setColor } = useCustomizerStore();
+  const product = PRODUCTS.find((p) => p.id === productId);
   if (!product) return null;
 
-  const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
+  const selected = product.colors.find((c) => c.id === colorId);
 
   return (
     <div className="p-5">
       <h3 className="text-sm font-bold text-foreground mb-1">Couleur</h3>
-      <p className="text-xs text-muted-foreground mb-4">{selectedVariant?.color ?? 'Sélectionne une couleur'}</p>
+      <p className="text-xs text-muted-foreground mb-4">{selected?.name ?? 'Sélectionne une couleur'}</p>
       <div className="flex gap-3 flex-wrap">
-        {product.variants.map((v) => (
+        {product.colors.map((c) => (
           <button
-            key={v.id}
-            onClick={() => setColor(v.id, v.color, v.colorHex)}
+            key={c.id}
+            onClick={() => setColor(c.id)}
             className={`w-8 h-8 rounded-full transition-all ${
-              v.id === selectedVariantId ? 'ring-2 ring-navy ring-offset-2' : 'hover:scale-110'
+              c.id === colorId ? 'ring-2 ring-navy ring-offset-2' : 'hover:scale-110'
             }`}
-            style={{ backgroundColor: v.colorHex }}
-            title={v.color}
+            style={{ backgroundColor: c.hex }}
+            title={c.name}
           />
         ))}
       </div>
