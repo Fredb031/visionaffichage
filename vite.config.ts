@@ -25,11 +25,10 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor':    ['react', 'react-dom', 'react-router-dom'],
-          'three':           ['three', '@react-three/fiber', '@react-three/drei'],
-          'fabric':          ['fabric'],
-          'framer':          ['framer-motion'],
-          'tanstack':        ['@tanstack/react-query'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'fabric':       ['fabric'],
+          'framer':       ['framer-motion'],
+          'tanstack':     ['@tanstack/react-query'],
         },
       },
     },

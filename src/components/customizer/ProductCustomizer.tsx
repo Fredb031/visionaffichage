@@ -9,9 +9,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, ChevronRight, ChevronLeft, Check } from 'lucide-react';
-import { ProductViewer3D } from './ProductViewer3D';
+import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
-import { PlacementSelector } from './PlacementSelector';
 import { SizeQuantityPicker } from './SizeQuantityPicker';
 import { ColorPicker } from './ColorPicker';
 import { useCustomizerStore } from '@/store/customizerStore';
@@ -203,14 +202,18 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         {/* ── Body ── */}
         <div className="overflow-auto grid md:grid-cols-[1.4fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border">
 
-          {/* LEFT — 3D viewer + colour palette */}
+          {/* LEFT — Single interactive canvas (CustomInk-style: customize and preview in one) */}
           <div className="p-4 space-y-3 flex flex-col">
-            <ProductViewer3D
+            <ProductCanvas
               product={product}
-              selectedColor={activeColor}
-              logoPlacement={store.logoPlacement}
+              garmentColor={activeColor?.hex}
+              imageDevant={activeColor?.imageDevant ?? product.imageDevant}
+              imageDos={activeColor?.imageDos ?? product.imageDos}
+              logoUrl={store.logoPlacement?.previewUrl ?? null}
+              currentPlacement={store.logoPlacement}
               activeView={store.activeView}
               onViewChange={store.setView}
+              onPlacementChange={p => store.setLogoPlacement(p)}
             />
 
             <div>
@@ -274,18 +277,41 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 3 — Logo placement */}
+              {/* Step 3 — Logo placement instructions (the canvas on the left IS the editor) */}
               {store.step === 3 && store.logoPlacement?.previewUrl && (
-                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
+                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
                   <h3 className="text-sm font-black mb-1">{t('zoneImpression')}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">{t('zonesRecommandees')}</p>
-                  <PlacementSelector
-                    product={product}
-                    selectedColor={activeColor}
-                    logoPreviewUrl={store.logoPlacement.previewUrl}
-                    currentPlacement={store.logoPlacement}
-                    onPlacementChange={p => store.setLogoPlacement(p)}
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    {lang === 'en'
+                      ? 'Drag your logo on the preview to position it. Use the corner handles to resize, the rotation handle to angle it, or pick a preset zone below.'
+                      : "Glisse ton logo sur l'aperçu pour le positionner. Utilise les coins pour le redimensionner, la poignée du haut pour le pivoter, ou choisis une zone prédéfinie ci-dessous."}
+                  </p>
+                  <div className="space-y-1.5">
+                    {product.printZones.map(z => {
+                      const active = store.logoPlacement?.zoneId === z.id;
+                      return (
+                        <button
+                          key={z.id}
+                          onClick={() => store.setLogoPlacement({
+                            ...store.logoPlacement!,
+                            zoneId: z.id,
+                            mode: 'preset',
+                            x: z.x + z.width / 2,
+                            y: z.y + z.height / 2,
+                            width: z.width * 0.85,
+                          })}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-xs font-semibold transition-all ${
+                            active
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : 'border-border text-muted-foreground hover:border-primary/40'
+                          }`}
+                        >
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
+                          {z.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </motion.div>
               )}
 
