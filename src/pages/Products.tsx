@@ -5,25 +5,15 @@ import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 import { findProductByHandle } from '@/data/products';
 import { useLang } from '@/lib/langContext';
-import { ArrowLeft, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
 const CATEGORIES = [
-  { id: 'overview', fr: 'Tout',                en: 'All' },
-  { id: 'tshirts',  fr: 'T-Shirts',            en: 'T-Shirts' },
-  { id: 'hoodies',  fr: 'Hoodies',             en: 'Hoodies' },
-  { id: 'headwear', fr: 'Casquettes & Tuques', en: 'Caps & Beanies' },
-  { id: 'manteaux', fr: 'Manteaux',            en: 'Jackets' },
-  { id: 'enfants',  fr: 'Enfants',             en: 'Youth' },
-  { id: 'kits',     fr: 'Kits',                en: 'Kits' },
-];
-
-const CATEGORY_TILES = [
-  { id: 'tshirts',  fr: 'T-Shirts',             en: 'T-Shirts',        img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATC1000-Devant.jpg?v=1770866927&width=800' },
-  { id: 'hoodies',  fr: 'Hoodies',              en: 'Hoodies',         img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCF2500-Devant.jpg?v=1770866896&width=800' },
-  { id: 'headwear', fr: 'Casquettes & Tuques',  en: 'Caps & Beanies',  img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/yupoong-6606-noir-2_cb488769-745e-41f0-91fd-f317d9787cae.jpg?v=1763598460&width=800' },
-  { id: 'manteaux', fr: 'Manteaux',             en: 'Jackets',         img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCF2600-Devant.jpg?v=1770866896&width=800' },
-  { id: 'enfants',  fr: 'Enfants',              en: 'Youth',           img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCFY2500-Devant.jpg?v=1770866961&width=800' },
+  { id: 'overview',  fr: 'Tout',                 en: 'All' },
+  { id: 'chandails', fr: 'Chandails',            en: 'Sweaters' },
+  { id: 'tshirts',   fr: 'T-Shirts',             en: 'T-Shirts' },
+  { id: 'polos',     fr: 'Polos',                en: 'Polos' },
+  { id: 'headwear',  fr: 'Casquettes & Tuques',  en: 'Caps & Beanies' },
 ];
 
 function matchesCategory(
@@ -34,15 +24,13 @@ function matchesCategory(
   const title = product.node.title.toLowerCase();
   const type  = product.node.productType.toLowerCase();
 
-  if (catId === 'kits') return type === '' || title.includes('pack');
   if (!local) return false;
   switch (catId) {
-    case 'tshirts':  return ['tshirt','longsleeve','polo','sport'].includes(local.category);
-    case 'hoodies':  return ['hoodie','crewneck'].includes(local.category);
-    case 'headwear': return ['cap','toque'].includes(local.category);
-    case 'enfants':  return local.gender === 'enfant';
-    case 'manteaux': return false;
-    default:         return true;
+    case 'chandails': return ['hoodie','crewneck'].includes(local.category);
+    case 'tshirts':   return ['tshirt','longsleeve','sport'].includes(local.category);
+    case 'polos':     return local.category === 'polo';
+    case 'headwear':  return ['cap','toque'].includes(local.category);
+    default:          return true;
   }
 }
 
@@ -73,11 +61,6 @@ export default function Products() {
     }
     return result;
   }, [products, activeCategory, searchQuery]);
-
-  const categoryCount = (catId: string) =>
-    (products ?? []).filter(p => matchesCategory(p, catId)).length;
-
-  const showTiles = activeCategory === 'overview' && !searchQuery.trim();
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,66 +156,17 @@ export default function Products() {
               {lang === 'en' ? 'No products found' : 'Aucun produit trouvé'}
             </p>
           </div>
-        ) : showTiles ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
-            {CATEGORY_TILES.map((tile) => (
-              <div
-                key={tile.id}
-                onClick={() => selectCategory(tile.id)}
-                className="rounded-[18px] overflow-hidden cursor-pointer relative aspect-[4/3] transition-transform hover:scale-[1.02] group"
-              >
-                <img
-                  src={tile.img}
-                  alt={lang === 'en' ? tile.en : tile.fr}
-                  className="w-full h-full object-cover transition-transform duration-350 group-hover:scale-105"
-                />
-                <div
-                  className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(8,14,32,0.75) 0%, transparent 55%)' }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <div className="text-[17px] font-extrabold text-primary-foreground">
-                    {lang === 'en' ? tile.en : tile.fr}
-                  </div>
-                  <div className="text-[12px] text-primary-foreground/60 mt-[3px]">
-                    {categoryCount(tile.id)}{' '}
-                    {lang === 'en'
-                      ? `product${categoryCount(tile.id) !== 1 ? 's' : ''}`
-                      : `produit${categoryCount(tile.id) !== 1 ? 's' : ''}`}
-                  </div>
-                </div>
-                <div className="absolute top-4 right-4 w-7 h-7 bg-primary-foreground/15 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-3 h-3 stroke-primary-foreground fill-none"
-                    strokeWidth="2.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 mb-5 flex-wrap">
-              {activeCategory !== 'overview' && (
-                <button
-                  onClick={() => selectCategory('overview')}
-                  className="flex items-center gap-1.5 text-[13px] font-semibold text-primary cursor-pointer bg-transparent border-none"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {lang === 'en' ? 'Back' : 'Retour'}
-                </button>
-              )}
-              {searchQuery && (
+            {searchQuery && (
+              <div className="flex items-center gap-3 mb-5 flex-wrap">
                 <span className="text-[13px] text-muted-foreground">
                   {lang === 'en'
                     ? `Results for "${searchQuery}"`
-                    : `Résultats pour « ${searchQuery} »`}
+                    : `Résultats pour \u00ab ${searchQuery} \u00bb`}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {activeCategory !== 'overview' && !searchQuery && (
               <h2 className="text-xl font-extrabold text-foreground mb-[18px]">
@@ -254,10 +188,10 @@ export default function Products() {
                   {searchQuery
                     ? lang === 'en'
                       ? `No products match "${searchQuery}"`
-                      : `Aucun produit ne correspond à « ${searchQuery} »`
+                      : `Aucun produit ne correspond \u00e0 \u00ab ${searchQuery} \u00bb`
                     : lang === 'en'
                     ? 'No products in this category yet.'
-                    : 'Aucun produit dans cette catégorie pour l\'instant.'}
+                    : 'Aucun produit dans cette cat\u00e9gorie pour l\'instant.'}
                 </p>
                 {searchQuery && (
                   <button
