@@ -6,7 +6,9 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, Shirt, Check, ChevronRight, Package } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler } from 'lucide-react';
+import { toast } from 'sonner';
+import { SizeGuide } from '@/components/SizeGuide';
 import { useState } from 'react';
 import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { useLang } from '@/lib/langContext';
@@ -19,6 +21,7 @@ export default function ProductDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['shopify-product', handle],
@@ -165,9 +168,22 @@ export default function ProductDetail() {
           {/* Info */}
           <div className="space-y-5">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
-                {product.title}
-              </h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
+                  {product.title}
+                </h1>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
+                  }}
+                  className="flex-shrink-0 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors mt-1"
+                  aria-label={lang === 'en' ? 'Share product' : 'Partager le produit'}
+                  title={lang === 'en' ? 'Copy link' : 'Copier le lien'}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                </button>
+              </div>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-2xl font-extrabold text-primary">
                   {price} {currency}
@@ -225,6 +241,23 @@ export default function ProductDetail() {
                 </span>
               </div>
             ) : null}
+
+            {/* Size guide + delivery estimate */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSizeGuideOpen(true)}
+                className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+              >
+                <Ruler size={13} />
+                {lang === 'en' ? 'Size guide' : 'Guide des tailles'}
+              </button>
+              <span className="text-border">|</span>
+              <span className="text-xs text-muted-foreground">
+                🚚 {lang === 'en'
+                  ? `Order today, receive by ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
+                  : `Commande aujourd'hui, reçu le ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}`}
+              </span>
+            </div>
 
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
@@ -317,6 +350,10 @@ export default function ProductDetail() {
           />
         )}
       </AnimatePresence>
+
+      {localProduct && (
+        <SizeGuide product={localProduct} isOpen={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
+      )}
 
       <BottomNav />
     </div>

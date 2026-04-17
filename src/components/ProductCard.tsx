@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ShopifyProduct } from '@/lib/shopify';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
-import { findProductByHandle, matchProductByTitle } from '@/data/products';
+import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 
 // SKUs marked as popular — shown with badge on product card
@@ -104,10 +104,32 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="p-3.5 pb-4">
           <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5">{local?.sku ?? node.productType ?? ''}</p>
           <div className="text-[13px] font-bold text-foreground leading-tight mb-1">{node.title}</div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-[14px] font-extrabold text-primary">
-              {parseFloat(price.amount) < 5 ? `Dès ${parseFloat(price.amount).toFixed(2)} $` : `${parseFloat(price.amount).toFixed(2)} $`}
-            </span>
+
+          {/* Pricing with quantity breaks */}
+          {local ? (() => {
+            const unit = local.basePrice + PRINT_PRICE;
+            const bulk = unit * (1 - BULK_DISCOUNT_RATE);
+            return (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[14px] font-extrabold text-primary">{unit.toFixed(2)} $</span>
+                  <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'unit' : 'unité'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-green-700">{bulk.toFixed(2)} $</span>
+                  <span className="text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
+                    {BULK_DISCOUNT_THRESHOLD}+ = -{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                  </span>
+                </div>
+              </div>
+            );
+          })() : (
+            <div className="mt-2">
+              <span className="text-[14px] font-extrabold text-primary">{parseFloat(price.amount).toFixed(2)} $</span>
+            </div>
+          )}
+
+          <div className="mt-2.5">
             <span className="text-[10px] font-bold text-muted-foreground border border-border px-2 py-0.5 rounded-full group-hover:border-primary/50 group-hover:text-primary transition-colors">
               {lang === 'en' ? 'Customize' : 'Personnaliser'}
             </span>
