@@ -17,12 +17,20 @@ export function ProductCard({ product }: ProductCardProps) {
   const { node } = product;
   const [customizerOpen, setCustomizerOpen] = useState(false);
 
-  const image = node.images.edges[0]?.node;
-  const backImage = node.images.edges[1]?.node;
+  const shopifyImage = node.images.edges[0]?.node;
+  const shopifyBackImage = node.images.edges[1]?.node;
   const price = node.priceRange.minVariantPrice;
 
   const local = findProductByHandle(node.handle) ?? matchProductByTitle(node.title);
   const isPopular = local ? POPULAR_SKUS.has(local.sku) : false;
+
+  // Use clean Drive images when available, fall back to Shopify CDN
+  const image = local
+    ? { url: local.imageDevant, altText: local.shortName }
+    : shopifyImage;
+  const backImage = local
+    ? { url: local.imageDos, altText: `${local.shortName} dos` }
+    : shopifyBackImage;
 
   const handleCardClick = () => navigate(`/product/${node.handle}`);
   const handleCustomize = (e: React.MouseEvent) => {
@@ -66,14 +74,6 @@ export function ProductCard({ product }: ProductCardProps) {
               {lang === 'en' ? '⭐ Popular' : '⭐ Populaire'}
             </div>
           )}
-
-          {/* Logo placeholder */}
-          <div className="absolute left-1/2 top-[33%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[2] transition-opacity duration-300 group-hover:opacity-0">
-            <svg width="62" height="32" viewBox="0 0 62 32" fill="none">
-              <rect x="0.5" y="0.5" width="61" height="31" rx="5.5" fill="white" fillOpacity="0.72" stroke="rgba(27,58,107,0.28)" strokeDasharray="3 2.5"/>
-              <text x="31" y="19.5" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontSize="8" fontWeight="700" fill="rgba(27,58,107,0.42)" letterSpacing="0.5">VOTRE LOGO</text>
-            </svg>
-          </div>
 
           {/* Customize CTA on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 z-[3]">

@@ -76,7 +76,14 @@ export default function ProductDetail() {
     );
   }
 
-  const images = product.images.edges;
+  // Prefer clean Drive images over Shopify CDN (which has VOTRE LOGO embedded)
+  const shopifyImages = product.images.edges;
+  const images = localProduct
+    ? [
+        { node: { url: localProduct.imageDevant, altText: `${localProduct.shortName} devant` } },
+        { node: { url: localProduct.imageDos, altText: `${localProduct.shortName} dos` } },
+      ]
+    : shopifyImages;
   const options = product.options.filter(
     (o: { name: string; values: string[] }) =>
       !(o.values.length === 1 && o.values[0] === 'Default Title'),

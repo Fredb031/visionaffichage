@@ -40,15 +40,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // Selected colour — single state, either Shopify variant or local
   const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
 
-  // The active ProductColor used by the 3D viewer
+  // The active ProductColor — always uses the clean product images from Drive,
+  // never the Shopify CDN variant images (those have "VOTRE LOGO" embedded)
   const activeColor: ProductColor | null = shopifyColor
     ? {
         id: shopifyColor.variantId,
         name: shopifyColor.colorName,
         nameEn: shopifyColor.colorName,
         hex: shopifyColor.hex,
-        imageDevant: shopifyColor.imageDevant ?? product.imageDevant,
-        imageDos:    shopifyColor.imageDos    ?? product.imageDos,
+        imageDevant: product.imageDevant,
+        imageDos:    product.imageDos,
       }
     : (product.colors.find(c => c.id === store.colorId) ?? product.colors[0] ?? null);
 
@@ -98,7 +99,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             minVariantPrice: { amount: product.basePrice.toFixed(2), currencyCode: 'CAD' },
           },
           images: {
-            edges: [{ node: { url: shopifyColor.imageDevant ?? product.imageDevant, altText: product.shortName } }],
+            edges: [{ node: { url: product.imageDevant, altText: product.shortName } }],
           },
           variants: {
             edges: [{
