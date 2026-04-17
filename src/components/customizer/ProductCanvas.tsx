@@ -138,24 +138,25 @@ export function ProductCanvas({
             canvas.add(img);
             canvas.sendToBack(img);
 
-            // Cover the embedded "VOTRE LOGO" placeholder on the front photo
-            // with a coloured mask sized from the first print zone.
+            // Draw a subtle dashed print-zone outline on the front view
+            // so users know where to place their logo
             if (activeView === 'front') {
               const zone = product.printZones[0];
               if (zone) {
-                const pad = 6;
-                const mask = new fabric.Rect({
-                  left: (zone.x / 100) * W - pad,
-                  top:  (zone.y / 100) * H - pad,
-                  width:  (zone.width  / 100) * W + pad * 2,
-                  height: (zone.height / 100) * H + pad * 2,
-                  fill: garmentColor ?? '#1a1a1a',
-                  rx: 10, ry: 10,
+                const outline = new fabric.Rect({
+                  left: (zone.x / 100) * W,
+                  top:  (zone.y / 100) * H,
+                  width:  (zone.width  / 100) * W,
+                  height: (zone.height / 100) * H,
+                  fill: 'transparent',
+                  stroke: 'rgba(255,255,255,0.45)',
+                  strokeDashArray: [6, 4],
+                  strokeWidth: 1.5,
+                  rx: 8, ry: 8,
                   selectable: false, evented: false,
-                  shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.22)', blur: 6, offsetY: 2 }),
                 });
-                canvas.add(mask);
-                maskRef.current = mask;
+                canvas.add(outline);
+                maskRef.current = outline;
               }
             }
 
@@ -253,14 +254,13 @@ export function ProductCanvas({
     const W = canvas.width as number;
     const H = canvas.height as number;
 
-    // Move the mask too
+    // Move the print-zone outline too
     if (maskRef.current && activeView === 'front') {
-      const pad = 6;
       maskRef.current.set({
-        left: (zone.x / 100) * W - pad,
-        top:  (zone.y / 100) * H - pad,
-        width:  (zone.width  / 100) * W + pad * 2,
-        height: (zone.height / 100) * H + pad * 2,
+        left: (zone.x / 100) * W,
+        top:  (zone.y / 100) * H,
+        width:  (zone.width  / 100) * W,
+        height: (zone.height / 100) * H,
       });
     }
 
