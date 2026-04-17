@@ -1,0 +1,55 @@
+<section class="fc">
+  <div class="fc__inner">
+    <h2 class="fc__title">{{ section.settings.title | default: 'Nos produits' }}</h2>
+    {% assign col = section.settings.collection | default: 'all' %}
+    <div class="fc__grid">
+      {% for product in collections[col].products limit: 20 %}
+        <a href="{{ product.url }}" class="fc__card">
+          {% if product.featured_image %}
+            <img
+              src="{{ product.featured_image | image_url: width: 600 }}"
+              alt="{{ product.featured_image.alt | escape }}"
+              class="fc__img"
+              loading="lazy"
+              width="300" height="375"
+            >
+          {% else %}
+            <div class="fc__img fc__img--placeholder">Pas d'image</div>
+          {% endif %}
+          <div class="fc__info">
+            <h3 class="fc__name">{{ product.title }}</h3>
+            <p class="fc__price">{{ product.price | money }}</p>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<style>
+  .fc { padding: 48px 24px; }
+  .fc__inner { max-width: 1100px; margin: 0 auto; }
+  .fc__title { font-size: 24px; font-weight: 900; margin-bottom: 24px; text-align: center; }
+  .fc__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+  .fc__card {
+    border: 1px solid #e5e5e5; border-radius: 16px; overflow: hidden;
+    background: #fff; transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .fc__card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .fc__img { width: 100%; aspect-ratio: 4/5; object-fit: cover; background: #f4f3ef; display: block; }
+  .fc__img--placeholder { display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px; }
+  .fc__info { padding: 12px 14px; }
+  .fc__name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .fc__price { font-size: 13px; color: var(--navy); font-weight: 800; }
+</style>
+
+{% schema %}
+{
+  "name": "Featured Collection",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Title", "default": "Nos produits" },
+    { "type": "collection", "id": "collection", "label": "Collection" }
+  ],
+  "presets": [{ "name": "Featured Collection" }]
+}
+{% endschema %}

@@ -1,0 +1,57 @@
+<section class="cart-page">
+  <div class="cart-page__inner">
+    <h1>{{ 'cart.general.title' | t | default: 'Panier' }}</h1>
+    {% if cart.item_count > 0 %}
+      <form action="/cart" method="post">
+        {% for item in cart.items %}
+          <div class="cart-item">
+            {% if item.image %}
+              <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.title | escape }}" class="cart-item__img">
+            {% endif %}
+            <div class="cart-item__info">
+              <a href="{{ item.url }}" class="cart-item__title">{{ item.product.title }}</a>
+              <p class="cart-item__variant">{{ item.variant.title }}</p>
+              <p class="cart-item__price">{{ item.final_line_price | money }}</p>
+              <div class="cart-item__qty">
+                <label>Qté:
+                  <input type="number" name="updates[]" value="{{ item.quantity }}" min="0" class="cart-item__qty-input">
+                </label>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        <div class="cart-summary">
+          <p class="cart-summary__total">Total: <strong>{{ cart.total_price | money }}</strong></p>
+          <button type="submit" name="update" class="cart-summary__update">Mettre à jour</button>
+          <button type="submit" name="checkout" class="cart-summary__checkout">Passer à la caisse</button>
+        </div>
+      </form>
+    {% else %}
+      <p>Votre panier est vide.</p>
+      <a href="/collections/all" class="hero__cta" style="display:inline-block;margin-top:16px">Voir les produits</a>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  .cart-page { padding: 40px 24px; }
+  .cart-page__inner { max-width: 700px; margin: 0 auto; }
+  .cart-page__inner h1 { font-size: 24px; font-weight: 900; margin-bottom: 24px; }
+  .cart-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid #eee; }
+  .cart-item__img { width: 80px; height: 100px; object-fit: cover; border-radius: 8px; }
+  .cart-item__title { font-weight: 700; font-size: 14px; }
+  .cart-item__variant { font-size: 12px; color: #888; }
+  .cart-item__price { font-weight: 800; color: var(--navy); margin-top: 4px; }
+  .cart-item__qty-input { width: 50px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
+  .cart-summary { padding-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .cart-summary__total { font-size: 18px; font-weight: 900; flex: 1; }
+  .cart-summary__update { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; font-weight: 700; cursor: pointer; }
+  .cart-summary__checkout { padding: 10px 24px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 800; cursor: pointer; }
+</style>
+
+{% schema %}
+{
+  "name": "Main Cart",
+  "settings": []
+}
+{% endschema %}

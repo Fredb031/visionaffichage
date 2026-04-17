@@ -1,0 +1,36 @@
+<section class="mc">
+  <div class="mc__inner">
+    <h1 class="mc__title">{{ collection.title }}</h1>
+    {% if collection.description != blank %}
+      <p class="mc__desc">{{ collection.description }}</p>
+    {% endif %}
+    <div class="mc__grid">
+      {% for product in collection.products %}
+        <a href="{{ product.url }}" class="fc__card">
+          {% if product.featured_image %}
+            <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.featured_image.alt | escape }}" class="fc__img" loading="lazy">
+          {% endif %}
+          <div class="fc__info">
+            <h3 class="fc__name">{{ product.title }}</h3>
+            <p class="fc__price">{{ product.price | money }}</p>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<style>
+  .mc { padding: 40px 24px; }
+  .mc__inner { max-width: 1100px; margin: 0 auto; }
+  .mc__title { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  .mc__desc { font-size: 14px; color: #666; margin-bottom: 24px; }
+  .mc__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+</style>
+
+{% schema %}
+{
+  "name": "Main Collection",
+  "settings": []
+}
+{% endschema %}

@@ -1,0 +1,91 @@
+<section class="mp">
+  <div class="mp__inner">
+    <div class="mp__gallery">
+      {% for image in product.images limit: 4 %}
+        <img
+          src="{{ image | image_url: width: 800 }}"
+          alt="{{ image.alt | escape }}"
+          class="mp__img{% if forloop.first %} mp__img--main{% endif %}"
+          loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+        >
+      {% endfor %}
+    </div>
+    <div class="mp__info">
+      <h1 class="mp__title">{{ product.title }}</h1>
+      <p class="mp__price">{{ product.price | money }}</p>
+      <div class="mp__desc">{{ product.description }}</div>
+
+      {%- form 'product', product -%}
+        {% for option in product.options_with_values %}
+          <fieldset class="mp__option">
+            <legend class="mp__option-label">{{ option.name }}</legend>
+            <div class="mp__option-values">
+              {% for value in option.values %}
+                <label class="mp__option-btn">
+                  <input
+                    type="radio"
+                    name="{{ option.name }}"
+                    value="{{ value | escape }}"
+                    {% if option.selected_value == value %}checked{% endif %}
+                  >
+                  <span>{{ value }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+        {% endfor %}
+
+        <select name="id" class="mp__variant-select" style="display:none">
+          {% for variant in product.variants %}
+            <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
+              {{ variant.title }} — {{ variant.price | money }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <button type="submit" name="add" class="mp__cta"{% unless product.available %} disabled{% endunless %}>
+          {% if product.available %}
+            Ajouter au panier — {{ product.selected_or_first_available_variant.price | money }}
+          {% else %}
+            Épuisé
+          {% endif %}
+        </button>
+      {%- endform -%}
+    </div>
+  </div>
+</section>
+
+<style>
+  .mp { padding: 40px 24px; }
+  .mp__inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: start; }
+  @media (max-width: 768px) { .mp__inner { grid-template-columns: 1fr; } }
+  .mp__gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mp__img { width: 100%; border-radius: 12px; object-fit: cover; aspect-ratio: 4/5; background: #f4f3ef; }
+  .mp__img--main { grid-column: span 2; aspect-ratio: 4/5; }
+  .mp__title { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  .mp__price { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+  .mp__desc { font-size: 14px; line-height: 1.7; color: #555; margin-bottom: 24px; }
+  .mp__option { border: none; margin-bottom: 16px; }
+  .mp__option-label { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block; }
+  .mp__option-values { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mp__option-btn input { display: none; }
+  .mp__option-btn span {
+    display: inline-block; padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .mp__option-btn input:checked + span { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .mp__cta {
+    width: 100%; padding: 16px; border: none; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: #fff; font-size: 15px; font-weight: 800; transition: opacity 0.2s;
+  }
+  .mp__cta:hover { opacity: 0.9; }
+  .mp__cta:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+
+{% schema %}
+{
+  "name": "Main Product",
+  "settings": []
+}
+{% endschema %}

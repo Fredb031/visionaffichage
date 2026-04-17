@@ -1,0 +1,16 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero-banner",
+      "settings": {}
+    },
+    "products": {
+      "type": "featured-collection",
+      "settings": {
+        "title": "Nos produits",
+        "collection": "all"
+      }
+    }
+  },
+  "order": ["hero", "products"]
+}

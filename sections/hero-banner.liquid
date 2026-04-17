@@ -1,0 +1,52 @@
+<section class="hero">
+  <div class="hero__inner">
+    <p class="hero__kicker">{{ section.settings.kicker | default: 'Vision Affichage' }}</p>
+    <h1 class="hero__title">
+      {{ section.settings.heading | default: 'Vêtements corporatifs personnalisés' }}
+    </h1>
+    <p class="hero__subtitle">
+      {{ section.settings.subheading | default: 'Commande en 3 minutes. Reçue en 5 jours.' }}
+    </p>
+    <a href="/collections/all" class="hero__cta">Voir les produits</a>
+  </div>
+</section>
+
+<style>
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: #fff;
+    text-align: center;
+    padding: 80px 24px;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero__inner { max-width: 640px; }
+  .hero__kicker { font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.7; margin-bottom: 12px; }
+  .hero__title { font-size: clamp(28px, 5vw, 48px); font-weight: 900; line-height: 1.15; margin-bottom: 16px; }
+  .hero__subtitle { font-size: 16px; opacity: 0.85; margin-bottom: 32px; line-height: 1.6; }
+  .hero__cta {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--navy-dark);
+    font-weight: 800;
+    font-size: 15px;
+    padding: 14px 32px;
+    border-radius: 999px;
+    transition: opacity 0.2s;
+  }
+  .hero__cta:hover { opacity: 0.9; }
+</style>
+
+{% schema %}
+{
+  "name": "Hero Banner",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "Vision Affichage" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Vêtements corporatifs personnalisés" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Commande en 3 minutes. Reçue en 5 jours." }
+  ],
+  "presets": [{ "name": "Hero Banner" }]
+}
+{% endschema %}

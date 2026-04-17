@@ -1,0 +1,10 @@
+{
+  "cart": {
+    "general": {
+      "title": "Panier"
+    }
+  },
+  "accessibility": {
+    "skip_to_text": "Passer au contenu"
+  }
+}
