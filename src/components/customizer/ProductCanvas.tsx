@@ -59,6 +59,9 @@ export function ProductCanvas({
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
   );
+  // Ref mirror of zoneId so canvas event listeners always read the current value
+  const zoneIdRef = useRef(zoneId);
+  zoneIdRef.current = zoneId;
 
   // ── Emit placement back to parent ──────────────────────────────────────────
   const emit = useCallback((obj: any, zone: string) => {
@@ -165,7 +168,8 @@ export function ProductCanvas({
       probe.src = photoUrl;
 
       // Wire up modification → emit placement
-      canvas.on('object:modified', () => { if (logoObj.current) emit(logoObj.current, zoneId); });
+      // Use zoneIdRef so the handler always reads the CURRENT zoneId, not the stale closure value
+      canvas.on('object:modified', () => { if (logoObj.current) emit(logoObj.current, zoneIdRef.current); });
       canvas.on('object:moving',   () => { if (logoObj.current) emit(logoObj.current, 'manual'); });
     });
 

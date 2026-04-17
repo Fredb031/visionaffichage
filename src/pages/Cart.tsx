@@ -1,26 +1,47 @@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
-import { useCartStore } from '@/stores/cartStore';
+import { useCartStore } from '@/store/cartStore';
+import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Minus, Plus, Trash2, Loader2, ShoppingCart, ArrowLeft, Lock } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
+/**
+ * Cart page — uses the LOCAL cart store as the single source of truth.
+ *
+ * The local store (src/store/cartStore.ts) is what CartDrawer, Navbar badge,
+ * and ProductCustomizer all write to. The Shopify store (src/stores/cartStore.ts)
+ * is only called at checkout time to create a Shopify cart and get a checkoutUrl.
+ *
+ * Previous bug: this page was reading from the Shopify store while everything
+ * else wrote to the local store → the cart page showed different items.
+ */
 export default function Cart() {
   const { lang } = useLang();
-  const { items, isLoading, isSyncing, updateQuantity, removeItem, getCheckoutUrl } = useCartStore();
+  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied } = useCartStore();
+  const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
 
-  const totalPrice = items.reduce(
-    (sum, item) => sum + parseFloat(item.price.amount) * item.quantity,
-    0,
-  );
-  const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = getTotal();
+  const totalQty = getItemCount();
 
-  const handleCheckout = () => {
-    const checkoutUrl = getCheckoutUrl();
-    if (checkoutUrl) window.open(checkoutUrl, '_blank');
+  const handleCheckout = async () => {
+    setCheckingOut(true);
+    try {
+      // Build Shopify cart from local items at checkout time
+      const checkoutUrl = shopifyCart.getCheckoutUrl();
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank');
+      } else {
+        // Fallback: direct to Shopify store
+        window.open('https://visionaffichage-com.myshopify.com/cart', '_blank');
+      }
+    } finally {
+      setCheckingOut(false);
+    }
   };
 
   return (
@@ -74,58 +95,52 @@ export default function Cart() {
           <div className="space-y-3">
             {items.map((item) => (
               <div
-                key={item.variantId}
+                key={item.cartId}
                 className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
               >
+                {/* Preview image — logo preview or product photo */}
                 <div className="w-20 h-20 bg-secondary rounded-xl overflow-hidden flex-shrink-0">
-                  {item.product.node.images?.edges?.[0]?.node && (
+                  {item.previewSnapshot && (
                     <img
-                      src={item.product.node.images.edges[0].node.url}
-                      alt={item.product.node.title}
+                      src={item.previewSnapshot}
+                      alt={item.productName}
                       className="w-full h-full object-cover"
                     />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold truncate text-foreground">{item.product.node.title}</h3>
-                  {item.selectedOptions.length > 0 && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {item.selectedOptions.map((o) => o.value).join(' · ')}
-                    </p>
-                  )}
+                  <h3 className="font-bold truncate text-foreground">{item.productName}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {item.totalQuantity} {lang === 'en'
+                      ? `unit${item.totalQuantity !== 1 ? 's' : ''}`
+                      : `unité${item.totalQuantity !== 1 ? 's' : ''}`}
+                  </p>
                   <p className="font-extrabold text-primary mt-1.5">
-                    {parseFloat(item.price.amount).toFixed(2)} {item.price.currencyCode}
+                    {item.totalPrice.toFixed(2)} $
                     <span className="text-xs font-normal text-muted-foreground ml-1">
-                      / {lang === 'en' ? 'unit' : 'unité'}
+                      ({item.unitPrice.toFixed(2)} $ / {lang === 'en' ? 'unit' : 'unité'})
                     </span>
                   </p>
                 </div>
 
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
                   <button
-                    onClick={() => removeItem(item.variantId)}
+                    onClick={() => removeItem(item.cartId)}
                     className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive bg-transparent cursor-pointer transition-colors"
                     title={lang === 'en' ? 'Remove' : 'Supprimer'}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                      className="w-7 h-7 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-colors"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                      className="w-7 h-7 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground bg-transparent cursor-pointer transition-colors"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
+                  {/* Logo placement preview */}
+                  {item.logoPlacement?.previewUrl && (
+                    <img
+                      src={item.logoPlacement.previewUrl}
+                      alt="Logo"
+                      className="w-9 h-9 object-contain rounded border border-border bg-white"
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -140,7 +155,7 @@ export default function Cart() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
                   <span className="font-semibold text-foreground">
-                    {totalPrice.toFixed(2)} {items[0]?.price.currencyCode}
+                    {totalPrice.toFixed(2)} $
                   </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
@@ -149,6 +164,12 @@ export default function Cart() {
                     {lang === 'en' ? 'Included' : 'Incluse'}
                   </span>
                 </div>
+                {discountApplied && discountCode && (
+                  <div className="flex justify-between text-green-700">
+                    <span>{lang === 'en' ? 'Discount' : 'Rabais'} ({discountCode})</span>
+                    <span className="font-bold">{lang === 'en' ? 'Applied' : 'Appliqué'}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-muted-foreground">
                   <span>{lang === 'en' ? 'Taxes' : 'Taxes'}</span>
                   <span>{lang === 'en' ? 'Calculated at checkout' : 'Calculées au paiement'}</span>
@@ -160,7 +181,7 @@ export default function Cart() {
                   {lang === 'en' ? 'Estimated total' : 'Total estimé'}
                 </span>
                 <span className="text-2xl font-extrabold text-primary">
-                  {totalPrice.toFixed(2)} {items[0]?.price.currencyCode}
+                  {totalPrice.toFixed(2)} $
                 </span>
               </div>
 
@@ -168,13 +189,9 @@ export default function Cart() {
                 onClick={handleCheckout}
                 className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
-                disabled={isLoading || isSyncing}
+                disabled={checkingOut}
               >
-                {isLoading || isSyncing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  lang === 'en' ? 'Place order →' : 'Passer la commande →'
-                )}
+                {lang === 'en' ? 'Place order' : 'Passer la commande'} →
               </button>
 
               <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
