@@ -162,7 +162,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'atcy2500', sku: 'ATCY2500',
-    name: 'Hoodie à capuche enfant — ATC FY2500', shortName: 'Hoodie enfant',
+    name: 'Hoodie à capuche enfant — ATC FY2500', shortName: 'Hoodie Enfant',
     category: 'hoodie', gender: 'enfant', basePrice: 21.39,
     imageDevant: '/products/ATCY2500-Devant-Clean.jpg',
     imageDos:    '/products/ATCY2500-Dos-Clean.jpg',
@@ -220,7 +220,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'atc1000l', sku: 'ATC1000L',
-    name: 'T-Shirt femme — ATC 1000L', shortName: 'T-Shirt femme',
+    name: 'T-Shirt femme — ATC 1000L', shortName: 'T-Shirt Femme',
     category: 'tshirt', gender: 'femme', basePrice: 6.65,
     imageDevant: '/products/ATC1000L-Devant-Clean.jpg',
     imageDos:    '/products/ATC1000L-Dos-Clean.jpg',
@@ -233,7 +233,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'atc1000y', sku: 'ATC1000Y',
-    name: 'T-Shirt enfant — ATC 1000Y', shortName: 'T-Shirt enfant',
+    name: 'T-Shirt enfant — ATC 1000Y', shortName: 'T-Shirt Enfant',
     category: 'tshirt', gender: 'enfant', basePrice: 4.76,
     imageDevant: `${CDN}/ATCY1000-Devant.jpg?v=1770867607&width=800`,
     imageDos:    `${CDN}/ATCY1000-Dos.jpg?v=1770867606&width=800`,
@@ -259,7 +259,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'atc1015', sku: 'ATC1015',
-    name: 'T-Shirt manches longues — ATC 1015', shortName: 'T-Shirt ML',
+    name: 'T-Shirt manches longues — ATC 1015', shortName: 'Manches Longues',
     category: 'longsleeve', gender: 'unisex', basePrice: 27.54,
     imageDevant: '/products/ATC1015-Devant-Clean.jpg',
     imageDos:    '/products/ATC1015-Dos-Clean.jpg',
@@ -292,7 +292,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'l445', sku: 'L445',
-    name: 'Polo femme à manches courtes — L445', shortName: 'Polo femme',
+    name: 'Polo femme à manches courtes — L445', shortName: 'Polo Femme',
     category: 'polo', gender: 'femme', basePrice: 27.99,
     imageDevant: '/products/L445-Devant-Clean.jpg',
     imageDos:    '/products/L445-Dos-Clean.jpg',
@@ -308,7 +308,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 's445ls', sku: 'S445LS',
-    name: 'Polo manches longues homme — S445LS', shortName: 'Polo ML',
+    name: 'Polo manches longues homme — S445LS', shortName: 'Polo Manches Longues',
     category: 'polo', gender: 'homme', basePrice: 33.59,
     imageDevant: '/products/S445LS-Devant-Clean.jpg',
     imageDos:    '/products/S445LS-Dos-Clean.jpg',
@@ -340,7 +340,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'l350', sku: 'L350',
-    name: 'T-Shirt sport femme — L350', shortName: 'T-Shirt Sport F',
+    name: 'T-Shirt sport femme — L350', shortName: 'T-Shirt Sport Femme',
     category: 'sport', gender: 'femme', basePrice: 13.99,
     imageDevant: '/products/L350-Devant-Clean.jpg',
     imageDos:    '/products/L350-Dos-Clean.jpg',
@@ -353,7 +353,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'y350', sku: 'Y350',
-    name: 'T-Shirt sport enfant — Y350', shortName: 'T-Shirt Sport E',
+    name: 'T-Shirt sport enfant — Y350', shortName: 'T-Shirt Sport Enfant',
     category: 'sport', gender: 'enfant', basePrice: 13.99,
     imageDevant: '/products/Y350-Devant-Clean.jpg',
     imageDos:    '/products/Y350-Dos-Clean.jpg',
@@ -409,7 +409,7 @@ export const PRODUCTS: Product[] = [
   // ── TUQUES ──────────────────────────────────────────────────────────────────
   {
     id: 'c100', sku: 'C100',
-    name: 'Tuque à rebord — C100', shortName: 'Tuque Rebord',
+    name: 'Tuque à rebord — C100', shortName: 'Tuque',
     category: 'toque', gender: 'unisex', basePrice: 4.50,
     imageDevant: '/products/C100-Devant-Clean.jpg',
     imageDos:    '/products/C100-Dos-Clean.jpg',
@@ -422,7 +422,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'c105', sku: 'C105',
-    name: 'Tuque sans rebords — C105', shortName: 'Tuque',
+    name: 'Tuque sans rebords — C105', shortName: 'Tuque Légère',
     category: 'toque', gender: 'unisex', basePrice: 7.13,
     imageDevant: `${CDN}/c105-2_c5d6b8c6-8c32-43f3-851d-f48dd2d35913.jpg?v=1763598172&width=800`,
     imageDos:    `${CDN}/c105-2_c5d6b8c6-8c32-43f3-851d-f48dd2d35913.jpg?v=1763598172&width=800`,

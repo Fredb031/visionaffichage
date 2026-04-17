@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/store/cartStore';
-import { Home, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Home, Store, Palette, ShoppingCart } from 'lucide-react';
 
 export function BottomNav() {
   const location = useLocation();
@@ -10,49 +10,54 @@ export function BottomNav() {
   const itemCount = useCartStore(s => s.getItemCount());
 
   const items = [
-    { label: t('accueil'), path: '/', icon: Home },
-    { label: t('boutique'), path: '/products', icon: ShoppingBag },
+    { id: 'home',      label: t('accueil'),   path: '/',         icon: Home },
+    { id: 'shop',      label: t('boutique'),   path: '/products', icon: Store },
+    { id: 'customize', label: t('personnaliserProduit').split(' ')[0], path: '/products', icon: Palette },
+    { id: 'cart',      label: t('panier'),     path: '/cart',     icon: ShoppingCart },
   ];
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[450] bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full px-1.5 py-1.5 flex gap-1 border border-zinc-200/60 dark:border-zinc-700/60 shadow-lg shadow-black/10">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const active = isActive(item.path);
-        return (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={`flex items-center gap-1.5 text-[12px] px-4 py-2 rounded-full border-none cursor-pointer transition-all font-semibold ${
-              active
-                ? 'bg-[#1D2B4F] text-white'
-                : 'bg-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-            }`}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            {item.label}
-          </button>
-        );
-      })}
-      <button
-        onClick={() => navigate('/cart')}
-        className={`relative flex items-center gap-1.5 text-[12px] px-4 py-2 rounded-full border-none cursor-pointer transition-all font-semibold ${
-          isActive('/cart')
-            ? 'bg-[#1D2B4F] text-white'
-            : 'bg-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-        }`}
-      >
-        <ShoppingCart className="w-3.5 h-3.5" />
-        {t('panier')}
-        {itemCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center px-1">
-            {itemCount > 99 ? '99+' : itemCount}
-          </span>
-        )}
-      </button>
-    </div>
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-[450] bg-white border-t border-zinc-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      role="navigation"
+      aria-label="Bottom navigation"
+    >
+      <div className="flex items-center justify-around h-[60px] max-w-md mx-auto">
+        {items.map(item => {
+          const Icon = item.icon;
+          const active = item.id === 'cart' ? location.pathname === '/cart'
+            : item.id === 'home' ? location.pathname === '/'
+            : location.pathname.startsWith(item.path);
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.path)}
+              className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1 bg-transparent border-none cursor-pointer transition-colors"
+              aria-current={active ? 'page' : undefined}
+            >
+              <span className="relative">
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.2 : 1.5}
+                  className={`transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}
+                />
+                {item.id === 'cart' && itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5">
+                    {itemCount > 99 ? '99+' : itemCount}
+                  </span>
+                )}
+              </span>
+              <span className={`text-[10px] font-semibold transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

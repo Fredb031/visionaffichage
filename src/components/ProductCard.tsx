@@ -7,7 +7,7 @@ import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RA
 import { useLang } from '@/lib/langContext';
 
 // SKUs marked as popular — shown with badge on product card
-const POPULAR_SKUS = new Set(['ATCF2500', 'ATC1000', 'ATC6606', 'ATCF2400']);
+const POPULAR_SKUS = new Set(['ATC1000', 'S445LS', 'L445', 'ATCF2500']);
 
 interface ProductCardProps { product: ShopifyProduct; }
 
