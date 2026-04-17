@@ -138,8 +138,21 @@ export function ProductCanvas({
             canvas.add(img);
             canvas.sendToBack(img);
 
-            // Draw a subtle dashed print-zone outline on the front view
-            // so users know where to place their logo
+            // Colour tint overlay — when the user picks a colour, this
+            // semi-transparent rectangle tints the product photo to match.
+            // Uses 'multiply' blend for dark garments, light overlay for whites.
+            if (garmentColor) {
+              const tint = new fabric.Rect({
+                left: 0, top: 0, width: W, height: H,
+                fill: garmentColor,
+                opacity: 0.35,
+                globalCompositeOperation: 'multiply',
+                selectable: false, evented: false,
+              });
+              canvas.add(tint);
+            }
+
+            // Print-zone outline on the front view
             if (activeView === 'front') {
               const zone = product.printZones[0];
               if (zone) {
@@ -149,7 +162,7 @@ export function ProductCanvas({
                   width:  (zone.width  / 100) * W,
                   height: (zone.height / 100) * H,
                   fill: 'transparent',
-                  stroke: 'rgba(255,255,255,0.45)',
+                  stroke: 'rgba(255,255,255,0.5)',
                   strokeDashArray: [6, 4],
                   strokeWidth: 1.5,
                   rx: 8, ry: 8,
