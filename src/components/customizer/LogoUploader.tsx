@@ -12,7 +12,7 @@ export function LogoUploader({
 }: {
   onLogoReady: (previewUrl: string, processedUrl: string, originalFile: File) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [originalPreview, setOriginalPreview] = useState<string | null>(null);
@@ -24,12 +24,12 @@ export function LogoUploader({
 
   const processFile = useCallback(async (file: File, autoRemoveBg = true) => {
     if (!file.type.startsWith('image/')) {
-      setErrorMsg('Format invalide. PNG, JPG ou SVG requis.');
+      setErrorMsg(lang === 'en' ? 'Invalid format. PNG, JPG, or SVG required.' : 'Format invalide. PNG, JPG ou SVG requis.');
       setStatus('error');
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setErrorMsg('Fichier trop volumineux (max 20MB).');
+      setErrorMsg(lang === 'en' ? 'File too large (max 20MB).' : 'Fichier trop volumineux (max 20MB).');
       setStatus('error');
       return;
     }
@@ -89,7 +89,11 @@ export function LogoUploader({
   }, [processFile]);
 
   const statusLabel: Record<UploadStatus, string> = {
-    idle: '', 'removing-bg': 'Suppression du fond...', saving: 'Sauvegarde...', done: '', error: errorMsg ?? 'Erreur',
+    idle: '',
+    'removing-bg': lang === 'en' ? 'Removing background...' : 'Suppression du fond...',
+    saving: lang === 'en' ? 'Saving...' : 'Sauvegarde...',
+    done: '',
+    error: errorMsg ?? (lang === 'en' ? 'Error' : 'Erreur'),
   };
 
   return (

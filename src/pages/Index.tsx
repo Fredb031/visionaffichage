@@ -58,7 +58,7 @@ function FadeIn({ children, className = '' }: { children: React.ReactNode; class
 }
 
 export default function Index() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [showGame, setShowGame] = useState(false);
@@ -182,21 +182,31 @@ export default function Index() {
         <section className="py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
           <div className="grid md:grid-cols-2 gap-[72px] items-center">
             <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">Notre histoire</div>
+              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">
+                {lang === 'en' ? 'Our story' : 'Notre histoire'}
+              </div>
               <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight mb-[18px]">
-                Pourquoi j'ai fondé Vision en 2021
+                {lang === 'en' ? 'Why I founded Vision in 2021' : "Pourquoi j'ai fondé Vision en 2021"}
               </h2>
               <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                J'ai vu trop souvent de bonnes entreprises perdre des clients — pas parce qu'elles manquaient de talent, mais parce qu'elles <strong className="text-foreground">ne donnaient pas l'image</strong> qu'elles méritaient.
+                {lang === 'en'
+                  ? <>I saw too many great businesses lose clients — not because they lacked talent, but because they <strong className="text-foreground">didn't project the image</strong> they deserved.</>
+                  : <>{"J'ai vu trop souvent de bonnes entreprises perdre des clients — pas parce qu'elles manquaient de talent, mais parce qu'elles "}<strong className="text-foreground">{"ne donnaient pas l'image"}</strong>{" qu'elles méritaient."}</>}
               </p>
               <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                Une équipe mal habillée, c'est une occasion manquée à chaque rencontre. J'ai créé Vision pour que chaque entrepreneur puisse se présenter avec confiance, dès le premier regard.
+                {lang === 'en'
+                  ? "A poorly dressed team is a missed opportunity at every meeting. I created Vision so every entrepreneur can show up with confidence, from the very first glance."
+                  : "Une équipe mal habillée, c'est une occasion manquée à chaque rencontre. J'ai créé Vision pour que chaque entrepreneur puisse se présenter avec confiance, dès le premier regard."}
               </p>
               <p className="text-[15px] text-muted-foreground leading-[1.8]">
-                Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : <strong className="text-foreground">l'image que tu projettes construit la réputation que tu mérites.</strong>
+                {lang === 'en'
+                  ? <>{`Today, we've dressed over 500 teams. And with every order, it's the same conviction: `}<strong className="text-foreground">the image you project builds the reputation you deserve.</strong></>
+                  : <>{"Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : "}<strong className="text-foreground">{"l'image que tu projettes construit la réputation que tu mérites."}</strong></>}
               </p>
               <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
-              <div className="text-[12px] text-muted-foreground mt-[3px]">Fondateur, Vision Affichage</div>
+              <div className="text-[12px] text-muted-foreground mt-[3px]">
+                {lang === 'en' ? 'Founder, Vision Affichage' : 'Fondateur, Vision Affichage'}
+              </div>
             </div>
             <div className="relative">
               <img
@@ -211,8 +221,8 @@ export default function Index() {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[12px] font-bold text-foreground">+33 000 produits livrés</div>
-                  <div className="text-[11px] text-muted-foreground">Depuis 2021</div>
+                  <div className="text-[12px] font-bold text-foreground">{lang === 'en' ? '+33,000 products delivered' : '+33 000 produits livrés'}</div>
+                  <div className="text-[11px] text-muted-foreground">{lang === 'en' ? 'Since 2021' : 'Depuis 2021'}</div>
                 </div>
               </div>
             </div>
@@ -224,9 +234,11 @@ export default function Index() {
       <FadeIn>
         <section className="bg-secondary border-t border-border py-[68px] px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
-            <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">Témoignages</div>
+            <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
+              {lang === 'en' ? 'Testimonials' : 'Témoignages'}
+            </div>
             <h2 className="text-[clamp(24px,3vw,36px)] font-extrabold tracking-[-0.5px] text-foreground mb-8">
-              Ils parlent mieux que nous.
+              {lang === 'en' ? 'They speak better than we do.' : 'Ils parlent mieux que nous.'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {[
@@ -267,11 +279,17 @@ export default function Index() {
               </div>
               <div className="w-px h-14 bg-border" />
               <div>
-                <h3 className="text-xl font-extrabold text-foreground">Ce que nos clients disent</h3>
-                <p className="text-[13px] text-muted-foreground mt-0.5">Entrepreneurs québécois · Avis réels</p>
+                <h3 className="text-xl font-extrabold text-foreground">
+                  {lang === 'en' ? 'What our clients say' : 'Ce que nos clients disent'}
+                </h3>
+                <p className="text-[13px] text-muted-foreground mt-0.5">
+                  {lang === 'en' ? 'Quebec entrepreneurs · Real reviews' : 'Entrepreneurs québécois · Avis réels'}
+                </p>
                 <div className="flex items-center gap-1.5 mt-[7px]">
                   <GoogleIcon />
-                  <span className="text-[12px] font-bold text-primary">Avis Google vérifiés</span>
+                  <span className="text-[12px] font-bold text-primary">
+                    {lang === 'en' ? 'Verified Google reviews' : 'Avis Google vérifiés'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -302,7 +320,9 @@ export default function Index() {
       {/* Logo Marquee — after reviews */}
       <FadeIn>
         <section className="border-t border-b border-border py-7 overflow-hidden bg-background">
-          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">Des entreprises qui nous font confiance</div>
+          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">
+            {lang === 'en' ? 'Companies that trust us' : 'Des entreprises qui nous font confiance'}
+          </div>
           <div className="overflow-hidden relative">
             <div className="absolute top-0 bottom-0 left-0 w-20 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
             <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
@@ -322,13 +342,13 @@ export default function Index() {
         <section className="py-20 px-6 md:px-10 text-center">
           <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
             <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            Rabais 10% disponible — Joue le mini-jeu
+            {lang === 'en' ? '10% discount available — Play the mini-game' : 'Rabais 10% disponible — Joue le mini-jeu'}
           </div>
           <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
-            L'image de ta marque<br />commence ici.
+            {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
           </h2>
           <p className="text-[15px] text-muted-foreground mb-[34px]">
-            Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables
+            {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
           </p>
           <Link
             to="/products"

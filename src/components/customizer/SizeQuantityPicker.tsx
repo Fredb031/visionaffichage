@@ -2,6 +2,7 @@ import { Minus, Plus } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
 import type { SizeQuantity } from '@/types/customization';
+import { useLang } from '@/lib/langContext';
 
 export function SizeQuantityPicker({
   product,
@@ -12,17 +13,25 @@ export function SizeQuantityPicker({
   sizeQuantities: SizeQuantity[];
   onUpdate: (size: string, qty: number) => void;
 }) {
+  const { lang } = useLang();
   const getQty = (size: string) => sizeQuantities.find((s) => s.size === size)?.quantity ?? 0;
   const totalQty = sizeQuantities.reduce((sum, s) => sum + s.quantity, 0);
   const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
+  const pct = Math.round(BULK_DISCOUNT_RATE * 100);
 
   return (
     <div className="space-y-3">
       <div className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
         hasDiscount ? 'bg-green-600/10 text-green-700' : 'bg-secondary text-muted-foreground'
       }`}>
-        <span>{hasDiscount ? `${BULK_DISCOUNT_RATE * 100}% de rabais appliqué !` : `Commande ${BULK_DISCOUNT_THRESHOLD}+ pour -${BULK_DISCOUNT_RATE * 100}%`}</span>
-        <span className="font-black">{totalQty} unité{totalQty !== 1 ? 's' : ''}</span>
+        <span>
+          {hasDiscount
+            ? (lang === 'en' ? `${pct}% discount applied!` : `${pct}% de rabais appliqué !`)
+            : (lang === 'en' ? `Order ${BULK_DISCOUNT_THRESHOLD}+ for -${pct}%` : `Commande ${BULK_DISCOUNT_THRESHOLD}+ pour -${pct}%`)}
+        </span>
+        <span className="font-black">
+          {totalQty} {lang === 'en' ? (totalQty !== 1 ? 'units' : 'unit') : (totalQty !== 1 ? 'unités' : 'unité')}
+        </span>
       </div>
 
       <div className={`grid gap-2 ${product.sizes.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
