@@ -182,6 +182,10 @@ export default function Cart() {
                     <img
                       src={item.previewSnapshot}
                       alt={item.productName}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   )}
@@ -220,6 +224,10 @@ export default function Cart() {
                         src={item.logoPlacement.previewUrl}
                         alt={lang === 'en' ? 'Front logo' : 'Logo devant'}
                         title={lang === 'en' ? 'Front' : 'Devant'}
+                        width={36}
+                        height={36}
+                        loading="lazy"
+                        decoding="async"
                         className="w-9 h-9 object-contain rounded border border-border bg-white"
                       />
                     )}
@@ -228,6 +236,10 @@ export default function Cart() {
                         src={item.logoPlacementBack.previewUrl}
                         alt={lang === 'en' ? 'Back logo' : 'Logo dos'}
                         title={lang === 'en' ? 'Back' : 'Dos'}
+                        width={36}
+                        height={36}
+                        loading="lazy"
+                        decoding="async"
                         className="w-9 h-9 object-contain rounded border border-border bg-white"
                       />
                     )}
