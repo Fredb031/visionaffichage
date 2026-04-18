@@ -22,6 +22,8 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
+const AdminImageGen = lazy(() => import("./pages/admin/AdminImageGen"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 
 // Vendor (lazy)
@@ -73,6 +75,8 @@ const App = () => (
                   <Route path="products" element={<AdminProducts />} />
                   <Route path="vendors" element={<AdminVendors />} />
                   <Route path="quotes" element={<AdminQuotes />} />
+                  <Route path="emails" element={<AdminEmails />} />
+                  <Route path="images" element={<AdminImageGen />} />
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
 

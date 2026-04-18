@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: 'Produits', icon: Package },
   { to: '/admin/quotes', label: 'Soumissions', icon: FileText },
   { to: '/admin/vendors', label: 'Vendeurs', icon: Users },
+  { to: '/admin/emails', label: 'Courriels', icon: Mail },
+  { to: '/admin/images', label: 'Génération d\'images', icon: Sparkles },
   { to: '/admin/settings', label: 'Paramètres', icon: Settings },
 ];
 
