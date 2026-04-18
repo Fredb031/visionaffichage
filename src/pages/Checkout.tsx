@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
@@ -43,6 +43,18 @@ export default function Checkout() {
 
   const [step, setStep] = useState<Step>('info');
   const [form, setForm] = useState<ShippingForm>(empty);
+
+  useEffect(() => {
+    const prev = document.title;
+    const labels: Record<Step, { en: string; fr: string }> = {
+      info:     { en: 'Checkout · Info',     fr: 'Caisse · Informations' },
+      shipping: { en: 'Checkout · Shipping', fr: 'Caisse · Livraison' },
+      payment:  { en: 'Checkout · Payment',  fr: 'Caisse · Paiement' },
+      done:     { en: 'Order confirmed',     fr: 'Commande confirmée' },
+    };
+    document.title = `${lang === 'en' ? labels[step].en : labels[step].fr} — Vision Affichage`;
+    return () => { document.title = prev; };
+  }, [lang, step]);
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [processing, setProcessing] = useState(false);
