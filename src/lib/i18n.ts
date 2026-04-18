@@ -52,7 +52,7 @@ export const translations = {
     impression: 'Impression logo',
     rabaisQuantite: 'Rabais volume (12+)',
     totalEstime: 'Total estimé',
-    taxesNote: "Les taxes s'ajoutent au checkout · Livraison en 5 jours ouvrables",
+    taxesNote: "Les taxes s'ajoutent à la caisse · Livraison en 5 jours ouvrables",
     commanderPlus: 'Commande %d+ pour -%d%',
     rabaisApplique: '%d% de rabais appliqué !',
     chargementCouleurs: 'Chargement depuis Shopify...',
