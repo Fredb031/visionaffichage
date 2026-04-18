@@ -238,12 +238,12 @@ export default function Checkout() {
                     {lang === 'en' ? 'Shipping address' : 'Adresse de livraison'}
                   </h2>
                   <div className="grid grid-cols-2 gap-3">
-                    <Input value={form.firstName} onChange={v => setForm(f => ({ ...f, firstName: v }))} placeholder={lang === 'en' ? 'First name' : 'Prénom'} autoComplete="given-name" required />
-                    <Input value={form.lastName}  onChange={v => setForm(f => ({ ...f, lastName: v }))}  placeholder={lang === 'en' ? 'Last name' : 'Nom'} autoComplete="family-name" required />
-                    <Input value={form.company}   onChange={v => setForm(f => ({ ...f, company: v }))}   placeholder={lang === 'en' ? 'Company (optional)' : 'Entreprise (optionnel)'} autoComplete="organization" className="col-span-2" />
-                    <Input value={form.address}   onChange={v => setForm(f => ({ ...f, address: v }))}   placeholder={lang === 'en' ? 'Street address' : 'Adresse'} autoComplete="street-address" className="col-span-2" required />
-                    <Input value={form.city}      onChange={v => setForm(f => ({ ...f, city: v }))}      placeholder={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" required />
-                    <Input value={form.postalCode}onChange={v => setForm(f => ({ ...f, postalCode: v.toUpperCase() }))}placeholder={lang === 'en' ? 'Postal code' : 'Code postal'} autoComplete="postal-code" required />
+                    <Input value={form.firstName} onChange={v => setForm(f => ({ ...f, firstName: v }))} placeholder={lang === 'en' ? 'First name' : 'Prénom'} autoComplete="given-name" autoCapitalize="words" required />
+                    <Input value={form.lastName}  onChange={v => setForm(f => ({ ...f, lastName: v }))}  placeholder={lang === 'en' ? 'Last name' : 'Nom'} autoComplete="family-name" autoCapitalize="words" required />
+                    <Input value={form.company}   onChange={v => setForm(f => ({ ...f, company: v }))}   placeholder={lang === 'en' ? 'Company (optional)' : 'Entreprise (optionnel)'} autoComplete="organization" autoCapitalize="words" className="col-span-2" />
+                    <Input value={form.address}   onChange={v => setForm(f => ({ ...f, address: v }))}   placeholder={lang === 'en' ? 'Street address' : 'Adresse'} autoComplete="street-address" autoCapitalize="words" className="col-span-2" required />
+                    <Input value={form.city}      onChange={v => setForm(f => ({ ...f, city: v }))}      placeholder={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" autoCapitalize="words" required />
+                    <Input value={form.postalCode}onChange={v => setForm(f => ({ ...f, postalCode: v.toUpperCase() }))}placeholder={lang === 'en' ? 'Postal code' : 'Code postal'} autoComplete="postal-code" autoCapitalize="characters" required />
                     <Input value={form.phone}     onChange={v => setForm(f => ({ ...f, phone: v }))}     placeholder={lang === 'en' ? 'Phone' : 'Téléphone'} autoComplete="tel" className="col-span-2" type="tel" />
                   </div>
                 </div>
@@ -445,7 +445,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel,
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -457,6 +457,8 @@ function Input({
   /** Defaults to the placeholder — override only if you need a more
    * specific a11y label than the visible hint. */
   ariaLabel?: string;
+  /** Mobile keyboard hint — 'words' for names, 'characters' for postal codes. */
+  autoCapitalize?: 'off' | 'sentences' | 'words' | 'characters';
 }) {
   return (
     <input
@@ -470,6 +472,7 @@ function Input({
       aria-label={ariaLabel ?? placeholder}
       aria-required={required}
       autoComplete={autoComplete}
+      autoCapitalize={autoCapitalize}
       required={required}
       className={`border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow ${className}`}
     />
