@@ -84,21 +84,12 @@ export default function Cart() {
   const totalPrice = getTotal();
   const totalQty = getItemCount();
 
-  const handleCheckout = async () => {
-    setCheckingOut(true);
-    try {
-      // Build Shopify cart from local items at checkout time
-      const checkoutUrl = shopifyCart.getCheckoutUrl();
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
-      } else {
-        // Fallback: direct to Shopify store
-        window.open('https://visionaffichage-com.myshopify.com/cart', '_blank');
-      }
-    } finally {
-      setCheckingOut(false);
-    }
+  const handleCheckout = () => {
+    // Send users to our on-site checkout flow (no new tab, no redirect)
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    window.location.href = '/checkout';
   };
+  void shopifyCart;
 
   return (
     <div className="min-h-screen bg-background">

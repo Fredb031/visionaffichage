@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+const Checkout = lazy(() => import("./pages/Checkout"));
 import NotFound from "./pages/NotFound";
 
 // Admin (lazy)
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/products" element={<Products />} />
                 <Route path="/product/:handle" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
 
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route
