@@ -38,11 +38,25 @@ export function ProductCard({ product }: ProductCardProps) {
     else navigate(`/product/${node.handle}`);
   };
 
+  const onCardKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Screen readers announce this as a link, keyboard users expect
+    // Enter/Space to activate. Ignore when a child button has focus
+    // (e.g. Customize) so its own handler runs instead.
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    e.preventDefault();
+    navigate(`/product/${node.handle}`);
+  };
+
   return (
     <>
       <div
         onClick={handleCardClick}
-        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1"
+        onKeyDown={onCardKey}
+        role="link"
+        tabIndex={0}
+        aria-label={`${local ? categoryLabel(local.category, lang) : node.title} — ${local?.sku ?? ''}`}
+        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Image */}
         <div className="relative overflow-hidden bg-secondary" style={{ aspectRatio: '1' }}>
