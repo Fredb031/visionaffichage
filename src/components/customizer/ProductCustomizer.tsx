@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
 import { SizeQuantityPicker } from './SizeQuantityPicker';
+import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
 import { useCustomizerStore } from '@/store/customizerStore';
 import { useCartStore } from '@/store/cartStore';
@@ -40,6 +41,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   // Selected colour — single state, either Shopify variant or local
   const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
+  // Step 4: multi-color × multi-size matrix
+  const [multiVariants, setMultiVariants] = useState<VariantQty[]>([]);
 
   // The active ProductColor — uses per-colour Drive images when available,
   // falls back to the product's default (black) image + tint overlay
@@ -71,7 +74,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     return localColor;
   })();
 
-  const totalQty    = store.getTotalQuantity();
+  const multiTotalQty = multiVariants.reduce((s, v) => s + v.qty, 0);
+  const totalQty    = multiTotalQty > 0 ? multiTotalQty : store.getTotalQuantity();
   const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
   const unitPrice   = product.basePrice + PRINT_PRICE;
   const discount    = hasDiscount ? 1 - BULK_DISCOUNT_RATE : 1;
@@ -419,17 +423,22 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 4 — Sizes */}
+              {/* Step 4 — Multi-color × multi-size matrix */}
               {store.step === 4 && (
                 <motion.div key="s4" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('taillesQuantites')}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">{t('rabaisVolume12')}</p>
-                  <SizeQuantityPicker
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {lang === 'en'
+                      ? 'Pick one or several colors. For each, choose sizes and quantities.'
+                      : 'Choisis une ou plusieurs couleurs. Pour chacune, sélectionne les tailles et quantités.'}
+                  </p>
+                  <MultiVariantPicker
                     product={shopifyColor?.sizeOptions.length
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
                       : product}
-                    sizeQuantities={store.sizeQuantities}
-                    onUpdate={store.setSizeQuantity}
+                    colors={displayColors.map(c => ({ variantId: c.variantId, colorName: c.colorName, hex: c.hex }))}
+                    variants={multiVariants}
+                    onChange={setMultiVariants}
                   />
                 </motion.div>
               )}
