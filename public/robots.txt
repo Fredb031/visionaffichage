@@ -1,8 +1,14 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /quote/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /quote/
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +18,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /quote/
+Disallow: /cart
+
+Sitemap: https://visionaffichage.com/sitemap.xml
