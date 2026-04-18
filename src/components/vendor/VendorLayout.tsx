@@ -1,6 +1,6 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Settings, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
@@ -12,9 +12,19 @@ const NAV_ITEMS = [
 
 export function VendorLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
+
+  // Match AdminLayout's keyboard support: Escape + auto-close on route.
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   const handleLogout = () => {
     signOut();
@@ -26,9 +36,11 @@ export function VendorLayout() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <aside
+        id="vendor-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-zinc-200 flex flex-col transition-transform md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        aria-label="Vendor navigation"
       >
         <div className="px-6 py-6 border-b border-zinc-100">
           <Link to="/vendor" className="font-extrabold text-lg tracking-tight flex items-center gap-2">
@@ -84,10 +96,12 @@ export function VendorLayout() {
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center"
-            aria-label="Toggle sidebar"
+            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+            aria-label={mobileOpen ? 'Fermer le menu latéral' : 'Ouvrir le menu latéral'}
+            aria-expanded={mobileOpen}
+            aria-controls="vendor-sidebar"
           >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
           <div className="text-sm text-zinc-500 hidden md:block font-semibold">Bonjour, {firstName}</div>
           <div className="flex items-center gap-3">
@@ -97,7 +111,7 @@ export function VendorLayout() {
           </div>
         </header>
 
-        <main className="p-4 md:p-8 max-w-[1400px]">
+        <main id="main-content" className="p-4 md:p-8 max-w-[1400px]">
           <Outlet />
         </main>
       </div>
