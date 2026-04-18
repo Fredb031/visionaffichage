@@ -265,7 +265,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               <span className="text-xl font-extrabold tracking-[4px] text-primary">VISION10</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-[18px]">
-              {lang === 'en' ? 'Valid 48h · Automatically applied to cart' : 'Valide 48h · Appliqué automatiquement au panier'}
+              {lang === 'en' ? 'Valid 7 days · Automatically applied to cart' : 'Valide 7 jours · Appliqué automatiquement au panier'}
             </p>
             <button
               onClick={() => onClose(true)}

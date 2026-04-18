@@ -4,6 +4,9 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { MoleGame } from '@/components/MoleGame';
 import { CinematicLoader } from '@/components/CinematicLoader';
 import { LoginModal } from '@/components/LoginModal';
+import { TrustSignalsBar } from '@/components/TrustSignalsBar';
+import { StepsTimeline } from '@/components/StepsTimeline';
+import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
@@ -102,9 +105,12 @@ export default function Index() {
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.08) 0%, transparent 70%)' }} />
         <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
           {/* Kicker */}
-          <p className={`text-sm text-muted-foreground mb-6 max-w-[600px] mx-auto leading-relaxed ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            {t('kicker')}
-          </p>
+          <div className={`mb-6 flex flex-col items-center gap-3 ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            <DeliveryBadge size="md" />
+            <p className="text-sm text-muted-foreground max-w-[600px] leading-relaxed">
+              {t('kicker')}
+            </p>
+          </div>
 
           {/* H1 */}
           <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
@@ -143,6 +149,12 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* Trust signals — right below hero */}
+      <TrustSignalsBar />
+
+      {/* Steps timeline — gamified delivery journey */}
+      <StepsTimeline />
 
       {/* Steps */}
       <FadeIn>
@@ -376,7 +388,7 @@ export default function Index() {
         <section className="py-20 px-6 md:px-10 text-center">
           <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
             <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
-            {lang === 'en' ? 'Rush delivery · 48-72h' : 'Livraison rapide · 48-72h'}
+            {lang === 'en' ? 'Delivered in 5 business days' : 'Livré en 5 jours ouvrables'}
           </div>
           <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
             {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}

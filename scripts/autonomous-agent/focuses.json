@@ -31,15 +31,15 @@
 
   "client-facing — create src/components/LogoUploadDropzone.tsx: drag-drop, preview, file validation (png/svg/pdf/ai, max 20MB), remove button, bilingual labels. Reusable between customizer and QuoteAccept.",
 
-  "visual polish — hero revamp: tighter typography, bigger headline, clearer value prop about 48h delivery. Test 375px + 1440px viewports.",
+  "visual polish — hero revamp: tighter typography, bigger headline, clearer value prop about 5 jours ouvrables delivery. Test 375px + 1440px viewports.",
 
   "visual polish — Boutique grid: premium product card, better price display, fast-delivery badge on all products, improved filter UI on mobile",
 
   "visual polish — CartDrawer: cleaner line item layout, clearer edit/remove actions, better empty state with CTA to boutique",
 
-  "new feature — DeliveryBadge component: reusable '48-72h' badge with bolt icon + subtle gold accent. Use on hero, product cards, cart.",
+  "new feature — DeliveryBadge component: reusable '5 jours ouvrables' badge with bolt icon + subtle gold accent. Use on hero, product cards, cart.",
 
-  "new feature — TrustSignalsBar: thin strip below hero with 4 signals (48-72h delivery / Made in Quebec / Quality guarantee / 500+ companies). Icons from lucide, bilingual.",
+  "new feature — TrustSignalsBar: thin strip below hero with 4 signals (5 jours ouvrables delivery / Made in Quebec / Quality guarantee / 500+ companies). Icons from lucide, bilingual.",
 
   "new feature — StepsTimeline: a premium horizontal timeline on homepage: Day 1 Conception → Day 2 Production → Day 3 Delivery. Icon-driven, clean animations.",
 

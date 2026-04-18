@@ -29,7 +29,7 @@ export function CinematicLoader({ onComplete }: { onComplete: () => void }) {
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  const tagline = lang === 'en' ? 'Premium merch. Delivered in 48h.' : 'Merch premium. Livré en 48h.';
+  const tagline = lang === 'en' ? 'Premium merch. Delivered in 5 business days.' : 'Merch premium. Livré en 5 jours ouvrables.';
 
   return (
     <AnimatePresence>
