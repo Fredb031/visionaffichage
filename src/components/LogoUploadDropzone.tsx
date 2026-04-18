@@ -38,14 +38,17 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         return;
       }
       const url = URL.createObjectURL(f);
+      // Free the previous blob URL if the user is swapping files so we
+      // don't leak object URLs for every re-upload attempt.
+      setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
       setFile(f);
-      setPreview(url);
       onFileReady(f, url);
     },
     [acceptedFormats, lang, maxSizeMB, onFileReady],
   );
 
   const remove = () => {
+    if (preview) URL.revokeObjectURL(preview);
     setFile(null);
     setPreview(null);
     setError(null);

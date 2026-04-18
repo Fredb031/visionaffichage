@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
+import { isValidEmail } from '@/lib/utils';
 
 interface VendorRecord {
   id: string;
@@ -23,6 +24,7 @@ export default function AdminVendors() {
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -33,6 +35,14 @@ export default function AdminVendors() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!showInvite) return;
+    nameInputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowInvite(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showInvite]);
+
   const persist = (next: VendorRecord[]) => {
     setCustomVendors(next);
     try { localStorage.setItem('vision-vendors', JSON.stringify(next)); }
@@ -41,11 +51,13 @@ export default function AdminVendors() {
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmail.trim() || !newName.trim()) return;
+    const name = newName.trim();
+    const email = newEmail.trim().toLowerCase();
+    if (!name || !isValidEmail(email)) return;
     const v: VendorRecord = {
       id: `cus-${Date.now()}`,
-      name: newName.trim(),
-      email: newEmail.trim().toLowerCase(),
+      name,
+      email,
       quotesSent: 0,
       conversionRate: 0,
       revenue: 0,
