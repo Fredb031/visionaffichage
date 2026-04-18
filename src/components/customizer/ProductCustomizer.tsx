@@ -631,22 +631,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   top of this panel, available at every step.) */}
               {store.step === 1 && (
                 <motion.div key="s1" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-black mb-1">{t('tonLogo')}</h3>
-                    <p className="text-xs text-muted-foreground">{t('fondSupprimeAuto')}</p>
-                  </div>
-
-                  {/* Side selector — where should the logo print? */}
+                  {/* Side selector — tighter copy, the paragraph explaining
+                      BG-removal was redundant with the uploader's own
+                      affordance ("Remove background" button). */}
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      {lang === 'en' ? 'Print sides' : 'Côtés à imprimer'}
+                      {lang === 'en' ? 'Where do you want to print?' : 'Où imprimer ?'}
                     </div>
                     <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={lang === 'en' ? 'Print sides' : 'Côtés à imprimer'}>
                       {([
-                        { id: 'front', label: lang === 'en' ? 'Front only'     : 'Devant seulement' },
-                        { id: 'back',  label: lang === 'en' ? 'Back only'      : 'Dos seulement' },
-                        { id: 'both',  label: lang === 'en' ? 'Front + Back'   : 'Devant + Dos' },
-                        { id: 'none',  label: lang === 'en' ? 'Blank (no logo)': 'Vierge (sans logo)' },
+                        { id: 'front', label: lang === 'en' ? 'Front'        : 'Devant' },
+                        { id: 'back',  label: lang === 'en' ? 'Back'         : 'Dos' },
+                        { id: 'both',  label: lang === 'en' ? 'Front + Back' : 'Devant + Dos' },
+                        { id: 'none',  label: lang === 'en' ? 'No logo'      : 'Sans logo' },
                       ] as const).map(opt => {
                         const active = store.placementSides === opt.id;
                         return (

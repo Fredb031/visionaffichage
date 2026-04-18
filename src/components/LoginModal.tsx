@@ -177,6 +177,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 : lang === 'en' ? 'Create my account' : 'Créer mon compte'}
             </button>
 
+            {/* Forgot-password link — only in LOGIN mode. Closes the
+                modal and routes to the dedicated reset page, which
+                sends a magic link via Supabase.auth.resetPasswordForEmail. */}
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (error) clearError();
+                  onClose();
+                  navigate('/admin/forgot-password');
+                }}
+                className="text-[12px] text-muted-foreground font-medium bg-transparent border-none cursor-pointer hover:text-foreground hover:underline mt-1"
+              >
+                {lang === 'en' ? 'Forgot password?' : 'Mot de passe oublié ?'}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {

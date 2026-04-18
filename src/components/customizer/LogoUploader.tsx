@@ -3,6 +3,7 @@ import { Upload, X, Loader2, CheckCircle2, Scissors, AlertTriangle } from 'lucid
 import { motion, AnimatePresence } from 'framer-motion';
 import { removeBackground } from '@/lib/removeBg';
 import { uploadLogo } from '@/lib/supabase';
+import { trimTransparentPadding } from '@/lib/trimLogo';
 import { useLang } from '@/lib/langContext';
 
 type UploadStatus = 'idle' | 'removing-bg' | 'saving' | 'done' | 'error';
@@ -107,12 +108,16 @@ export function LogoUploader({
       setStatus('removing-bg');
       try {
         const noBgBlob = await removeBackground(file);
-        const noBgUrl = trackBlobUrl(URL.createObjectURL(noBgBlob));
+        // Trim transparent padding so fabric centres the VISIBLE logo,
+        // not the raster box. Fixes the "logo lands off-centre even
+        // though the customizer says it's centred" complaint.
+        const trimmedBlob = await trimTransparentPadding(noBgBlob);
+        const noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
         setPreview(noBgUrl);
         setBgRemoved(true);
         setStatus('saving');
         try {
-          const uploadedUrl = await uploadLogo(noBgBlob, file.name);
+          const uploadedUrl = await uploadLogo(trimmedBlob, file.name);
           setStatus('done');
           onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
         } catch (uploadErr) {
@@ -129,12 +134,16 @@ export function LogoUploader({
         }
       } catch (bgErr) {
         // BG-removal failed. Common causes: SVG without rasterization,
-        // network blip, model timeout. Keep the original image so user
-        // can still proceed, and tell them WHY.
+        // network blip, model timeout. Keep the original image (trimmed
+        // if it has transparent padding) so user can still proceed, and
+        // tell them WHY.
         console.warn('[LogoUploader] BG removal failed:', bgErr);
+        let fallbackBlob: Blob = file;
+        try { fallbackBlob = await trimTransparentPadding(file); } catch { /* ignore */ }
+        const fallbackUrl = trackBlobUrl(URL.createObjectURL(fallbackBlob));
         setStatus('done');
-        setPreview(localUrl);
-        onLogoReady(localUrl, localUrl, file);
+        setPreview(fallbackUrl);
+        onLogoReady(fallbackUrl, fallbackUrl, file);
         setErrorMsg(lang === 'en'
           ? 'Couldn\u2019t auto-remove the background. Your logo will print with its original background — tap "Remove background" below to try again.'
           : 'Impossible de supprimer le fond automatiquement. Le logo sera imprimé avec son fond — clique « Supprimer le fond » ci-dessous pour réessayer.');
@@ -151,11 +160,12 @@ export function LogoUploader({
     setStatus('removing-bg');
     try {
       const noBgBlob = await removeBackground(currentFile);
-      const noBgUrl = trackBlobUrl(URL.createObjectURL(noBgBlob));
+      const trimmedBlob = await trimTransparentPadding(noBgBlob);
+      const noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
       setPreview(noBgUrl);
       setBgRemoved(true);
       setStatus('saving');
-      const uploadedUrl = await uploadLogo(noBgBlob, currentFile.name);
+      const uploadedUrl = await uploadLogo(trimmedBlob, currentFile.name);
       setStatus('done');
       onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, currentFile);
     } catch {
