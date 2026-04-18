@@ -35,7 +35,7 @@ export function FeaturedProducts() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {featured.map(p => (
+          {featured.map((p, i) => (
             <Link
               key={p.sku}
               to={`/product/${p.shopifyHandle}`}
@@ -45,8 +45,12 @@ export function FeaturedProducts() {
                 <img
                   src={p.imageDevant}
                   alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                  width={400}
+                  height={400}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
+                  /* First 2 cards above-the-fold on mobile → eager + high priority for faster LCP */
+                  loading={i < 2 ? 'eager' : 'lazy'}
+                  fetchPriority={i === 0 ? 'high' : 'auto'}
                   decoding="async"
                 />
                 <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#1B3A6B] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
