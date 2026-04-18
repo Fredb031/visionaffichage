@@ -27,9 +27,14 @@ export function BottomNav() {
       <div className="flex items-center justify-around h-[60px] max-w-md mx-auto">
         {items.map(item => {
           const Icon = item.icon;
+          // Product detail lives at /product/<handle> (singular), but
+          // that's still 'Shop' in the nav — treat it as part of the
+          // /products tree so the tab actually lights up on PDPs.
           const active = item.path === '/'
             ? location.pathname === '/'
-            : location.pathname.startsWith(item.path);
+            : item.path === '/products'
+              ? location.pathname.startsWith('/products') || location.pathname.startsWith('/product/')
+              : location.pathname.startsWith(item.path);
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? `${item.label} (${itemCount})`
             : item.label;
