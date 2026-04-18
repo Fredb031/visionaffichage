@@ -1,9 +1,18 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigationType } from 'react-router-dom';
 
-/** Scrolls to top whenever the route changes */
+/**
+ * Scroll to top when the user navigates forward to a new route (PUSH /
+ * REPLACE), but leave scroll alone on back/forward (POP) so the browser's
+ * own scroll restoration kicks in — going back to the products grid
+ * lands exactly where the user was, not at the top.
+ */
 export function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  const navType = useNavigationType();
+  useEffect(() => {
+    if (navType === 'POP') return;
+    window.scrollTo(0, 0);
+  }, [pathname, navType]);
   return null;
 }
