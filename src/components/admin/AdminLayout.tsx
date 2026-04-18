@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 
@@ -26,6 +26,17 @@ export function AdminLayout() {
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
 
+  // Close the mobile sidebar when the route changes (user clicked a
+  // link) and when Escape is pressed, so keyboard users can dismiss
+  // the overlay without hunting for the close button.
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     signOut();
     navigate('/');
@@ -34,9 +45,11 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <aside
+        id="admin-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-[#0F2341] text-white flex flex-col transition-transform md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        aria-label="Admin navigation"
       >
         <div className="px-6 py-6 border-b border-white/10">
           <Link to="/admin" className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2">
@@ -98,10 +111,12 @@ export function AdminLayout() {
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center"
-            aria-label="Toggle sidebar"
+            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+            aria-label={mobileOpen ? 'Fermer le menu latéral' : 'Ouvrir le menu latéral'}
+            aria-expanded={mobileOpen}
+            aria-controls="admin-sidebar"
           >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
           <div className="text-sm text-zinc-500 hidden md:block">
             {location.pathname === '/admin' ? 'Vue d\'ensemble' : 'Administration'}
@@ -109,7 +124,9 @@ export function AdminLayout() {
           <div className="flex items-center gap-3">
             <div className="text-right hidden md:block">
               <div className="text-[13px] font-bold leading-tight flex items-center justify-end gap-1">
-                {user?.role === 'president' && <span aria-label="Président" title="Président">👑</span>}
+                {user?.role === 'president' && (
+                  <span role="img" aria-label="Président" title="Président">👑</span>
+                )}
                 {user?.name ?? 'Admin'}
               </div>
               <div className="text-[10px] text-zinc-500 leading-tight uppercase tracking-wider">
@@ -126,7 +143,7 @@ export function AdminLayout() {
           </div>
         </header>
 
-        <main className="p-4 md:p-8 max-w-[1400px]">
+        <main id="main-content" className="p-4 md:p-8 max-w-[1400px]">
           <Outlet />
         </main>
       </div>
