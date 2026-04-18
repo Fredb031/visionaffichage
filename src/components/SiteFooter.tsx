@@ -119,7 +119,7 @@ export function SiteFooter() {
 
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
-              {lang === 'en' ? 'Reach us' : 'Joins-nous'}
+              {lang === 'en' ? 'Reach us' : 'Nous joindre'}
             </h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2 text-white/80"><Phone size={12} className="text-[#E8A838]" /> 367-380-4808</li>
