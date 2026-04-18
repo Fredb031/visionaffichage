@@ -627,6 +627,37 @@ export function ProductCanvas({
     setTextAssets(prev => prev.filter(t => t.id !== id));
   };
 
+  // Delete/Backspace key removes the currently selected canvas object.
+  // (Skips when user is typing in an IText — fabric.js handles editing
+  // mode separately so backspace inside an editing text won't nuke it.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!fc.current) return;
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const active = fc.current.getActiveObject();
+      if (!active) return;
+      // Don't delete the photo, tint, or print-zone outline
+      if (active === photoObj.current || active === tintObj.current || active === maskRef.current) return;
+      // If it's a text we tracked, also remove from our state
+      const textId = Array.from(textObjects.current.entries()).find(([, obj]) => obj === active)?.[0];
+      if (textId) {
+        removeTextAsset(textId);
+      } else if (active === logoObj.current) {
+        fc.current.remove(active);
+        logoObj.current = null;
+        fc.current.renderAll();
+      } else {
+        fc.current.remove(active);
+        fc.current.renderAll();
+      }
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div className="flex flex-col gap-2.5">
       {/* The interactive canvas — premium frame with subtle gradient + drop shadow */}
