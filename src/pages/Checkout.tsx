@@ -168,9 +168,9 @@ export default function Checkout() {
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
         <button
           onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {step === 'info'
             ? lang === 'en' ? 'Back to cart' : 'Retour au panier'
             : lang === 'en' ? 'Previous step' : 'Étape précédente'}
