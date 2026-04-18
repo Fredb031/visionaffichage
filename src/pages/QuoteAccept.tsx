@@ -4,6 +4,7 @@ import { Check, CreditCard, ShieldCheck, MapPin, Mail } from 'lucide-react';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { LogoUploadDropzone } from '@/components/LogoUploadDropzone';
 import { useLang } from '@/lib/langContext';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface MockLineItem {
   id: string;
@@ -54,6 +55,11 @@ export default function QuoteAccept() {
   const { lang } = useLang();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const quoteNumber = id ?? MOCK_QUOTE.number;
+  useDocumentTitle(lang === 'en'
+    ? `Quote ${quoteNumber} — Vision Affichage`
+    : `Soumission ${quoteNumber} — Vision Affichage`);
 
   const subtotal = useMemo(() => MOCK_QUOTE.items.reduce((s, it) => s + it.unit * it.qty, 0), []);
   const discountAmount = (subtotal * MOCK_QUOTE.discount.value) / 100;
