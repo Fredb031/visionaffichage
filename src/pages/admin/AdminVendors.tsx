@@ -35,7 +35,8 @@ export default function AdminVendors() {
 
   const persist = (next: VendorRecord[]) => {
     setCustomVendors(next);
-    try { localStorage.setItem('vision-vendors', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem('vision-vendors', JSON.stringify(next)); }
+    catch (e) { console.warn('[AdminVendors] Could not persist vendors:', e); }
   };
 
   const handleInvite = (e: React.FormEvent) => {
@@ -62,7 +63,7 @@ export default function AdminVendors() {
       `Mot de passe temporaire : vendeur123 (à changer après ta première connexion)\n\n` +
       `À bientôt,\nL'équipe Vision Affichage`,
     );
-    window.location.href = `mailto:${v.email}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${encodeURIComponent(v.email)}?subject=${subject}&body=${body}`;
     setNewName('');
     setNewEmail('');
     setShowInvite(false);

@@ -34,7 +34,17 @@ export default function AdminQuotes() {
   useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
-      const mapped = (Array.isArray(raw) ? raw : []).map((q: any) => {
+      type StoredQuote = {
+        id?: string | number;
+        quoteNumber?: string;
+        clientName?: string;
+        clientEmail?: string;
+        total?: number;
+        status?: string;
+        createdAt: string;
+        items?: unknown[];
+      };
+      const mapped = (Array.isArray(raw) ? (raw as StoredQuote[]) : []).map(q => {
         const created = new Date(q.createdAt);
         const ageMs = Date.now() - created.getTime();
         const days = Math.floor(ageMs / 86400000);

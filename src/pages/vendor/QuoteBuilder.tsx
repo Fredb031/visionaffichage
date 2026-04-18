@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import { PRODUCTS } from '@/data/products';
 
 interface LineItem {
@@ -93,14 +94,17 @@ export default function QuoteBuilder() {
       lang: 'fr',
     };
     list.unshift(quote);
-    try { localStorage.setItem('vision-quotes', JSON.stringify(list.slice(0, 100))); } catch {}
+    try { localStorage.setItem('vision-quotes', JSON.stringify(list.slice(0, 100))); }
+    catch (e) { console.warn('[QuoteBuilder] Quote could not be saved locally:', e); }
     return quote;
   };
 
   const handleSaveDraft = () => {
     if (items.length === 0) return;
     const q = persistQuote('draft');
-    alert(`Brouillon ${q.number} sauvegardé. Visible dans /admin/quotes et /vendor/quotes.`);
+    toast.success(`Brouillon ${q.number} sauvegardé.`, {
+      description: 'Visible dans /admin/quotes et /vendor/quotes.',
+    });
   };
 
   const handleSendToClient = () => {
@@ -122,7 +126,9 @@ export default function QuoteBuilder() {
       `Livraison en 5 jours ouvrables après confirmation.\n\n` +
       `— L'équipe Vision Affichage`,
     );
-    window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+    // Encode the recipient too — merchants occasionally enter an email
+    // with `+alias@…` or spaces that would break the URL otherwise.
+    window.location.href = `mailto:${encodeURIComponent(clientEmail)}?subject=${subject}&body=${body}`;
   };
 
   return (

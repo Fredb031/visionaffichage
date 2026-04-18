@@ -86,7 +86,7 @@ export default function Checkout() {
   };
 
   const infoValid =
-    /^[^@]+@[^@]+\.[^@]+$/.test(form.email) &&
+    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email.trim()) &&
     form.firstName && form.lastName && form.address && form.city && form.postalCode;
 
   const handlePay = async () => {
@@ -115,7 +115,11 @@ export default function Checkout() {
       }
 
       if (checkoutUrl) {
-        try { localStorage.setItem('vision-pending-checkout', JSON.stringify({ ...form, total, ts: Date.now() })); } catch {}
+        try {
+          localStorage.setItem('vision-pending-checkout', JSON.stringify({ ...form, total, ts: Date.now() }));
+        } catch (e) {
+          console.warn('[Checkout] Could not persist pending checkout to localStorage:', e);
+        }
         window.location.href = checkoutUrl;
         return;
       }

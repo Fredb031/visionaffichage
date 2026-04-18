@@ -21,7 +21,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   const handleSetLang = (newLang: Lang) => {
     setLang(newLang);
-    try { localStorage.setItem('vision-lang', newLang); } catch {}
+    try { localStorage.setItem('vision-lang', newLang); } catch { /* quota exceeded, private mode, etc — silent is fine */ }
   };
 
   const tFn = (key: TranslationKey, ...args: (string | number)[]) => translate(lang, key, ...args);

@@ -279,18 +279,37 @@ export const PRODUCT_FULL_QUERY = `
   }
 `;
 
+// Shape of the raw Shopify GraphQL product node used by parseProductColors.
+// Narrow enough to compile-check against query changes without being
+// brittle to extra fields.
+type RawShopifyOption = { name: string; value: string };
+type RawShopifyVariant = {
+  node: {
+    id: string;
+    title: string;
+    availableForSale: boolean;
+    price: { amount: string; currencyCode?: string };
+    selectedOptions: RawShopifyOption[];
+    image?: { url: string; altText?: string | null } | null;
+  };
+};
+type RawShopifyProduct = {
+  variants?: { edges: RawShopifyVariant[] };
+  images?: { edges: Array<{ node: { url: string; altText?: string | null } }> };
+};
+
 // ── Parse Shopify product into organised color structure ───────────────────
-export function parseProductColors(raw: any): ShopifyVariantColor[] {
+export function parseProductColors(raw: RawShopifyProduct | null | undefined): ShopifyVariantColor[] {
   if (!raw?.variants?.edges) return [];
 
   const colorMap = new Map<string, ShopifyVariantColor>();
 
   for (const { node: variant } of raw.variants.edges) {
     const colorOpt = variant.selectedOptions.find(
-      (o: any) => o.name.toLowerCase() === 'color' || o.name.toLowerCase() === 'couleur' || o.name.toLowerCase() === 'colour'
+      o => o.name.toLowerCase() === 'color' || o.name.toLowerCase() === 'couleur' || o.name.toLowerCase() === 'colour'
     );
     const sizeOpt = variant.selectedOptions.find(
-      (o: any) => o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille'
+      o => o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille'
     );
 
     const colorName = colorOpt?.value ?? variant.title;

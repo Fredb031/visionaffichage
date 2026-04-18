@@ -61,7 +61,9 @@ export default function AdminOrders() {
     try {
       const raw = JSON.parse(localStorage.getItem('vision-shipped-orders') ?? '[]');
       setShippedIds(new Set(Array.isArray(raw) ? raw : []));
-    } catch {}
+    } catch (e) {
+      console.warn('[AdminOrders] Failed to parse shipped orders from localStorage:', e);
+    }
   }, []);
 
   const markShipped = (id: number, e: React.MouseEvent) => {
@@ -71,7 +73,9 @@ export default function AdminOrders() {
     setShippedIds(next);
     try {
       localStorage.setItem('vision-shipped-orders', JSON.stringify([...next]));
-    } catch {}
+    } catch (err) {
+      console.warn('[AdminOrders] Could not persist shipped orders:', err);
+    }
   };
 
   const augmented = useMemo(

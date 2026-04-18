@@ -10,7 +10,9 @@ export function SiteFooter() {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return;
+    // Tighter regex than /^[^@]+@[^@]+\.[^@]+$/ — rejects invalid
+    // addresses like "a@b.c" while still accepting valid ones.
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email.trim())) return;
     try {
       const list = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
       if (!list.includes(email)) {

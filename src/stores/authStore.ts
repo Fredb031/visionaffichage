@@ -127,6 +127,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ user: null });
+    // Wipe customer-scoped persisted state so the next user who signs in
+    // on this browser doesn't inherit the previous session's cart / in-
+    // progress customization / admin filters.
+    try {
+      const keys = ['va-customizer', 'vision-cart', 'shopify-cart', 'vision-pending-checkout', 'vision-recently-viewed'];
+      keys.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      console.warn('[authStore] Could not clear persisted stores on signOut:', e);
+    }
   },
 
   sendPasswordReset: async (email) => {

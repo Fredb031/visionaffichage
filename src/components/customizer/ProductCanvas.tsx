@@ -28,6 +28,24 @@ import type { Product, PrintZone } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
 import { useLang } from '@/lib/langContext';
 
+// Fabric.js dynamic import sidesteps its TS types, so we model the
+// subset we use. Keeps ESLint happy without pulling in fabric's heavy
+// type surface.
+type FabricObj = {
+  left?: number;
+  top?: number;
+  width?: number;
+  height?: number;
+  scaleX?: number;
+  scaleY?: number;
+  angle?: number;
+  set: (key: string | Record<string, unknown>, value?: unknown) => void;
+  setCoords?: () => void;
+  dispose?: () => void;
+  getElement?: () => HTMLImageElement | HTMLCanvasElement;
+  _element?: HTMLImageElement | HTMLCanvasElement;
+};
+
 interface Props {
   product: Product;
   garmentColor?: string;        // hex of selected colour
@@ -96,8 +114,7 @@ export function ProductCanvas({
   //    the bright "seamless background" as empty, and take the
   //    min/max of the dark pixels. This is what makes "center on
   //    garment" land on the shirt body instead of canvas whitespace.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const analyzeBboxFromFabricImage = useCallback((fabImg: any) => {
+  const analyzeBboxFromFabricImage = useCallback((fabImg: FabricObj) => {
     try {
       const W = fc.current?.width as number;
       const H = fc.current?.height as number;
@@ -201,7 +218,7 @@ export function ProductCanvas({
     });
   }, [ready, onSnapshotReady]);
 
-  const emit = useCallback((obj: any, zone: string) => {
+  const emit = useCallback((obj: FabricObj, zone: string) => {
     if (!fc.current || !obj) return;
     const W = fc.current.width as number;
     const H = fc.current.height as number;
@@ -261,7 +278,7 @@ export function ProductCanvas({
         setImgError(false);
         fabric.Image.fromURL(
           photoUrl,
-          (img: any) => {
+          (img: FabricObj) => {
             if (disposed || !fc.current) return;
             const sx = W / (img.width ?? W);
             const sy = H / (img.height ?? H);
@@ -389,7 +406,7 @@ export function ProductCanvas({
         if (disposed || !fc.current) return;
         fabric.Image.fromURL(
           photoUrl,
-          (img: any) => {
+          (img: FabricObj) => {
             if (disposed || !fc.current) return;
             // object-contain — never crop the garment
             const sx = W / (img.width ?? W);
@@ -531,7 +548,7 @@ export function ProductCanvas({
       // gives us one emit per frame max, while object:modified (drag end)
       // still fires synchronously so the final position is always exact.
       let moveRafId: number | null = null;
-      canvas.on('object:moving', (e: any) => {
+      canvas.on('object:moving', (e: { target?: FabricObj }) => {
         if (e.target) updateGuides(e.target);
         if (moveRafId != null) return;
         moveRafId = requestAnimationFrame(() => {
@@ -609,7 +626,7 @@ export function ProductCanvas({
 
       fabric.Image.fromURL(
         logoUrl,
-        (img: any) => {
+        (img: FabricObj & { setControlsVisibility?: (v: Record<string, boolean>) => void }) => {
           if (disposed || !fc.current) return;
           const targetW = W * initWidthPct;
           const naturalW = img.width ?? 100;

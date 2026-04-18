@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -25,6 +25,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
+
+  // Clear stale auth errors whenever the modal is closed so the next
+  // open doesn't flash the previous attempt's error message.
+  useEffect(() => {
+    if (!isOpen && error) clearError();
+  }, [isOpen, error, clearError]);
 
   if (!isOpen) return null;
 

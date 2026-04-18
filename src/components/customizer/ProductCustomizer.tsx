@@ -33,6 +33,28 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   const product = PRODUCTS.find(p => p.id === productId);
 
+  // ─── ALL HOOKS MUST STAY ABOVE ANY EARLY RETURN ───────────────────
+  // Rules of Hooks: React tracks hooks by call order. Returning null
+  // above a hook changes the order between renders and causes the
+  // "Maximum update depth exceeded" crash we were seeing. Every
+  // useState/useEffect/custom hook MUST fire on every render.
+
+  // Live Shopify colours (falls back gracefully). Hook is keyed by
+  // handle so passing an empty string when product is missing is safe.
+  const { data: shopifyColors = [], isLoading: colorsLoading } = useProductColors(product?.shopifyHandle ?? '');
+
+  // Selected colour — single state, either Shopify variant or local
+  const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
+  // Step 4: multi-color × multi-size matrix
+  const [multiVariants, setMultiVariants] = useState<VariantQty[]>([]);
+  // Debounce guard against double-click double-add
+  const [adding, setAdding] = useState(false);
+  // Holds the canvas snapshot function once ProductCanvas is ready.
+  const getSnapshotRef = useRef<(() => string | null) | null>(null);
+  // Garment bounding box in percentages of canvas — computed from photo
+  // pixels so "center on garment" lands on the shirt body, not whitespace.
+  const [bbox, setBbox] = useState<{ x: number; y: number; w: number; h: number; cx: number; cy: number } | null>(null);
+
   // Init store when productId changes — use effect to avoid
   // "Cannot update a component while rendering" warnings.
   // NOTE: do NOT include `store` in the deps — Zustand returns a fresh
@@ -44,11 +66,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   }, [productId, product]);
 
   // If the canvas-level trash wiped the current side's logo while we're
-  // on step 3, bounce back to step 2 so the user can re-upload. The
-  // "current side" depends on placementSides + activeView.
+  // on step 2, bounce back to step 1 so the user can re-upload.
   useEffect(() => {
-    // Step 2 = "Where to print". If the canvas-level trash wiped the
-    // current side's logo, bounce back to Step 1 (upload).
     if (store.step !== 2) return;
     if (store.placementSides === 'none') return;
     const currentSideHasLogo =
@@ -74,22 +93,21 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Auto-select the first Shopify color on mount so a default preview is
+  // always shown — users don't need a dedicated "pick color" step with
+  // the palette persistent on the right.
+  useEffect(() => {
+    if (shopifyColor || !shopifyColors.length) return;
+    const first = shopifyColors[0];
+    setShopifyColor(first);
+    store.setColor(first.variantId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopifyColors, shopifyColor]);
+
+  // Early return comes AFTER all hooks so hook call order stays stable
+  // across renders. Critical for React — otherwise it crashes with
+  // "Maximum update depth exceeded" once the product is missing.
   if (!product) return null;
-
-  // Live Shopify colours (falls back gracefully)
-  const { data: shopifyColors = [], isLoading: colorsLoading } = useProductColors(product.shopifyHandle);
-
-  // Selected colour — single state, either Shopify variant or local
-  const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
-  // Step 4: multi-color × multi-size matrix
-  const [multiVariants, setMultiVariants] = useState<VariantQty[]>([]);
-  // Debounce guard against double-click double-add
-  const [adding, setAdding] = useState(false);
-  // Holds the canvas snapshot function once ProductCanvas is ready.
-  const getSnapshotRef = useRef<(() => string | null) | null>(null);
-  // Garment bounding box in percentages of canvas — computed from photo
-  // pixels so "center on garment" lands on the shirt body, not whitespace.
-  const [bbox, setBbox] = useState<{ x: number; y: number; w: number; h: number; cx: number; cy: number } | null>(null);
 
   const handleDownloadMockup = () => {
     const snap = getSnapshotRef.current?.();
@@ -143,17 +161,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const totalPrice  = parseFloat((totalQty * unitPrice * discount).toFixed(2));
 
   const colorChosen = !!(shopifyColor || store.colorId);
-
-  // Auto-select the first Shopify color on mount so a default preview is
-  // always shown — users don't need a dedicated "pick color" step with
-  // the palette persistent on the right.
-  useEffect(() => {
-    if (shopifyColor || !shopifyColors.length) return;
-    const first = shopifyColors[0];
-    setShopifyColor(first);
-    store.setColor(first.variantId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopifyColors, shopifyColor]);
 
   // Side-aware placement routing. Canvas edits the placement that
   // matches the current view when sides='both'; otherwise it edits
@@ -459,7 +466,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             {STEPS.map((s, i) => (
               <div key={s.id} className="flex items-center gap-1 flex-shrink-0">
                 <button
-                  onClick={() => s.done && s.id < store.step && store.setStep(s.id as any)}
+                  onClick={() => s.done && s.id < store.step && store.setStep(s.id as 1 | 2 | 3 | 4)}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                     store.step === s.id ? 'bg-primary text-primary-foreground' :
                     s.done ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200' :

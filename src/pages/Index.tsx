@@ -88,7 +88,9 @@ export default function Index() {
     setShowGame(false);
     try {
       localStorage.setItem('moleGamePlayed', 'true');
-    } catch {}
+    } catch {
+      // Private browsing mode or quota — one-time game, not worth blocking on.
+    }
     if (won) {
       cart.applyDiscount('VISION10');
     }

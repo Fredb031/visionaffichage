@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 
@@ -70,24 +71,30 @@ export default function AdminUsers() {
 
   const updateRole = async (userId: string, newRole: UserRole) => {
     if (userId === me?.id && newRole !== 'president' && me?.role === 'president') {
-      alert('Tu ne peux pas retirer ton propre rôle Président.');
+      toast.error('Tu ne peux pas retirer ton propre rôle Président.');
       return;
     }
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
     if (error) {
-      alert(`Erreur : ${error.message}`);
+      toast.error(`Erreur : ${error.message}`);
       return;
     }
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole } : u)));
+    toast.success('Rôle mis à jour.');
   };
 
   const toggleActive = async (userId: string, current: boolean) => {
+    const confirmMsg = current
+      ? 'Désactiver cet utilisateur ? Il perdra l\u2019accès immédiatement.'
+      : 'Réactiver cet utilisateur ?';
+    if (!window.confirm(confirmMsg)) return;
     const { error } = await supabase.from('profiles').update({ active: !current }).eq('id', userId);
     if (error) {
-      alert(`Erreur : ${error.message}`);
+      toast.error(`Erreur : ${error.message}`);
       return;
     }
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, active: !current } : u)));
+    toast.success(current ? 'Utilisateur désactivé.' : 'Utilisateur réactivé.');
   };
 
   const handleInvite = async (e: React.FormEvent) => {
