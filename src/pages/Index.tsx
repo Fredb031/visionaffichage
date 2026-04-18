@@ -9,6 +9,7 @@ import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
+import { SiteFooter } from '@/components/SiteFooter';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -417,20 +418,7 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Footer */}
-      <footer className="border-t border-border px-6 md:px-10 py-7 flex flex-col md:flex-row items-center justify-between gap-4">
-        <img
-          src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
-          alt="Vision"
-          className="h-5 opacity-35"
-        />
-        <div className="flex gap-6">
-          <Link to="/products" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">{t('boutique')}</Link>
-          <a className="text-[12px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Contact</a>
-          <a href="tel:+13673804808" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">367-380-4808</a>
-        </div>
-        <span className="text-[12px] text-muted-foreground">© {new Date().getFullYear()} Vision Affichage</span>
-      </footer>
+      <SiteFooter />
 
       <StickyHelp />
       <BottomNav />
