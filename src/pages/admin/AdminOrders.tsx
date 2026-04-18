@@ -102,7 +102,7 @@ export default function AdminOrders() {
         String(o.id).includes(q)
       );
     });
-  }, [query, statusFilter]);
+  }, [augmented, query, statusFilter]);
 
   const lastSync = new Date(SHOPIFY_SNAPSHOT_META.syncedAt);
 

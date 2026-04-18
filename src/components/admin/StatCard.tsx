@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -10,7 +11,10 @@ interface StatCardProps {
   accent?: 'blue' | 'gold' | 'green' | 'red';
 }
 
-export function StatCard({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue' }: StatCardProps) {
+// Wrapped in React.memo so that dashboard parent re-renders (sidebar
+// toggles, nav clicks) don't recompute 5+ identical cards. The prop
+// shapes are primitive so the default shallow compare works fine.
+function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue' }: StatCardProps) {
   const accentMap = {
     blue: 'from-[#0052CC]/10 to-[#0052CC]/5 text-[#0052CC]',
     gold: 'from-[#E8A838]/15 to-[#E8A838]/5 text-[#B37D10]',
@@ -47,3 +51,5 @@ export function StatCard({ label, value, delta, deltaLabel, icon: Icon, accent =
     </div>
   );
 }
+
+export const StatCard = memo(StatCardInner);

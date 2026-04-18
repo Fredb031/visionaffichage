@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, ShoppingCart, UserPlus, AlertCircle } from 'lucide-react';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   SHOPIFY_ORDERS_SNAPSHOT,
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
@@ -27,7 +27,7 @@ function relativeTime(ts: number): string {
   return `${Math.floor(h / 24)}j`;
 }
 
-export function ActivityFeed() {
+function ActivityFeedInner() {
   const items = useMemo<ActivityItem[]>(() => {
     const all: ActivityItem[] = [];
 
@@ -117,3 +117,7 @@ export function ActivityFeed() {
     </div>
   );
 }
+
+// React.memo so the feed isn't re-rendered when a sibling widget's
+// state changes. Zero props so the shallow compare is always a hit.
+export const ActivityFeed = memo(ActivityFeedInner);

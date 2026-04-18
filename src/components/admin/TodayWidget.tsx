@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ShoppingCart, Clock, Package, ArrowRight } from 'lucide-react';
 import {
@@ -15,14 +16,19 @@ interface ActionItem {
   priority: 'urgent' | 'normal' | 'low';
 }
 
-export function TodayWidget() {
-  const items: ActionItem[] = [];
+function TodayWidgetInner() {
+  // Data is imported from a static snapshot, so the computation below
+  // has zero runtime inputs — compute once per mount via useMemo and
+  // skip the work on every subsequent render (sidebar toggle, nav,
+  // etc.).
+  const items = useMemo<ActionItem[]>(() => {
+    const acc: ActionItem[] = [];
 
   // Pending payments — urgent
   const pendingOrders = SHOPIFY_ORDERS_SNAPSHOT.filter(o => o.financialStatus === 'pending');
   if (pendingOrders.length > 0) {
     const total = pendingOrders.reduce((s, o) => s + o.total, 0);
-    items.push({
+    acc.push({
       id: 'pending-payments',
       label: `${pendingOrders.length} paiement${pendingOrders.length > 1 ? 's' : ''} en attente`,
       detail: `${total.toFixed(2)} $ à confirmer`,
@@ -34,7 +40,7 @@ export function TodayWidget() {
 
   // Awaiting fulfillment
   if (SHOPIFY_STATS.awaitingFulfillment > 0) {
-    items.push({
+    acc.push({
       id: 'fulfill',
       label: `${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`,
       detail: 'Production prête, à étiqueter',
@@ -48,7 +54,7 @@ export function TodayWidget() {
   const highValueAbandoned = SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => c.total >= 200);
   if (highValueAbandoned.length > 0) {
     const total = highValueAbandoned.reduce((s, c) => s + c.total, 0);
-    items.push({
+    acc.push({
       id: 'recover-abandoned',
       label: `${highValueAbandoned.length} panier${highValueAbandoned.length > 1 ? 's' : ''} à récupérer`,
       detail: `${total.toFixed(0)} $ en valeur (≥ 200 $/panier)`,
@@ -61,7 +67,7 @@ export function TodayWidget() {
   // Inactive prospects (no order in last 7d)
   const inactiveProspects = SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers;
   if (inactiveProspects > 5) {
-    items.push({
+    acc.push({
       id: 'nurture',
       label: `${inactiveProspects} prospects sans commande`,
       detail: 'Considérer une séquence de nurturing',
@@ -70,6 +76,8 @@ export function TodayWidget() {
       priority: 'low',
     });
   }
+    return acc;
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -116,3 +124,8 @@ export function TodayWidget() {
     </div>
   );
 }
+
+// React.memo keeps the dashboard parent from re-rendering the whole
+// action list when an unrelated piece of state flips (sidebar open,
+// nav link click, etc.).
+export const TodayWidget = memo(TodayWidgetInner);
