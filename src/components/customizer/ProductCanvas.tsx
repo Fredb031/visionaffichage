@@ -75,12 +75,17 @@ interface Props {
   /** When true, overlay a pulsing crosshair at the detected garment
    * centre so the user can visually verify "Auto-center" is on target. */
   showBboxCenter?: boolean;
+  /** Called whenever the canvas text list changes (add/remove). The
+   * parent mirrors this into the customizer store so it survives the
+   * trip through the cart + Shopify order metadata. */
+  onTextAssetsChange?: (assets: Array<{ id: string; text: string; color: string; side: ProductView }>) => void;
 }
 
 export function ProductCanvas({
   product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
   currentPlacement, activeView, onViewChange, onPlacementChange, onSnapshotReady,
   showPlacementTools = true, onBboxDetected, hasLogoPerSide, showBboxCenter,
+  onTextAssetsChange,
 }: Props) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,8 +95,16 @@ export function ProductCanvas({
   const [textFont, setTextFont] = useState('Inter, system-ui, sans-serif');
   // Text assets are tagged with the side they belong to so a caption
   // added on the back doesn't render on top of the front photo when
-  // the user toggles the view (and vice-versa).
-  const [textAssets, setTextAssets] = useState<Array<{ id: string; text: string; color: string; side: ProductView }>>([]);
+  // the user toggles the view (and vice-versa). Notifies the parent on
+  // every change via onTextAssetsChange so the list survives the cart.
+  const [textAssets, setTextAssetsInternal] = useState<Array<{ id: string; text: string; color: string; side: ProductView }>>([]);
+  const setTextAssets = useCallback((update: Parameters<typeof setTextAssetsInternal>[0]) => {
+    setTextAssetsInternal(prev => {
+      const next = typeof update === 'function' ? (update as (p: typeof prev) => typeof prev)(prev) : update;
+      onTextAssetsChange?.(next);
+      return next;
+    });
+  }, [onTextAssetsChange]);
   const textObjects = useRef<Map<string, FabricObj & { side: ProductView }>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);

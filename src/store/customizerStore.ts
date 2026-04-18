@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
-import type { CustomizationState, LogoPlacement, PlacementSides, ProductView } from '@/types/customization';
+import type { CustomizationState, LogoPlacement, PlacementSides, ProductView, TextAsset } from '@/types/customization';
 
 interface CustomizerStore extends CustomizationState {
   setProduct: (productId: string) => void;
@@ -9,6 +9,7 @@ interface CustomizerStore extends CustomizationState {
   setLogoPlacement: (placement: LogoPlacement | null) => void;
   setLogoPlacementBack: (placement: LogoPlacement | null) => void;
   setPlacementSides: (sides: PlacementSides) => void;
+  setTextAssets: (assets: TextAsset[]) => void;
   setSizeQuantity: (size: string, quantity: number) => void;
   setView: (view: ProductView) => void;
   setStep: (step: CustomizationState['step']) => void;
@@ -23,6 +24,7 @@ const initialState: CustomizationState = {
   logoPlacement: null,
   logoPlacementBack: null,
   placementSides: 'front',
+  textAssets: [],
   sizeQuantities: [],
   activeView: 'front',
   step: 1,
@@ -37,12 +39,14 @@ export const useCustomizerStore = create<CustomizerStore>()(
         productId, colorId: null,
         logoPlacement: null, logoPlacementBack: null,
         placementSides: 'front',
+        textAssets: [],
         sizeQuantities: [], step: 1,
       }),
       setColor: (colorId) => set({ colorId }),
       setLogoPlacement: (placement) => set({ logoPlacement: placement }),
       setLogoPlacementBack: (placement) => set({ logoPlacementBack: placement }),
       setPlacementSides: (placementSides) => set({ placementSides }),
+      setTextAssets: (textAssets) => set({ textAssets }),
 
       setSizeQuantity: (size, quantity) =>
         set((state) => {
@@ -101,6 +105,7 @@ export const useCustomizerStore = create<CustomizerStore>()(
           ? { ...state.logoPlacementBack, originalFile: undefined }
           : null,
         placementSides: state.placementSides,
+        textAssets: state.textAssets,
         sizeQuantities: state.sizeQuantities,
         activeView: state.activeView,
         step: state.step,

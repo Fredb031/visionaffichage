@@ -301,6 +301,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           logoPlacement: store.logoPlacement,
           logoPlacementBack: store.logoPlacementBack,
           placementSides: store.placementSides,
+          textAssets: store.textAssets,
           sizeQuantities: group.sizes,
           activeView: store.activeView,
           step: store.step,
@@ -404,6 +405,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         logoPlacement: store.logoPlacement,
         logoPlacementBack: store.logoPlacementBack,
         placementSides: store.placementSides,
+        textAssets: store.textAssets,
         sizeQuantities: store.sizeQuantities,
         activeView: store.activeView,
         step: store.step,
@@ -586,6 +588,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               onViewChange={store.setView}
               onPlacementChange={setCurrentPlacement}
               onSnapshotReady={fn => { getSnapshotRef.current = fn; }}
+              onTextAssetsChange={store.setTextAssets}
               // Tools only appear when the user is actively placing the logo.
               // No more leaking into color / sizes / review steps.
               showPlacementTools={store.step === 2 && store.placementSides !== 'none'}
