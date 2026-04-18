@@ -85,6 +85,10 @@ export function ProductCanvas({
   }, []);
 
   // ── Emit placement back to parent ──────────────────────────────────────────
+  // Keep a ref mirror so fabric event listeners (registered ONCE during init)
+  // always call the latest emit — otherwise a stale closure captures the
+  // initial logoUrl / onPlacementChange and drags emit the wrong previewUrl
+  // after the user uploads a second logo.
   const emit = useCallback((obj: any, zone: string) => {
     if (!fc.current || !obj) return;
     const W = fc.current.width as number;
@@ -101,6 +105,8 @@ export function ProductCanvas({
       previewUrl: logoUrl ?? undefined,
     });
   }, [logoUrl, onPlacementChange]);
+  const emitRef = useRef(emit);
+  emitRef.current = emit;
 
   // ── Swap photo + tint in-place when garment color or view changes,
   //    WITHOUT rebuilding canvas. This preserves the user's logo placement
@@ -373,14 +379,16 @@ export function ProductCanvas({
         canvas.requestRenderAll();
       };
 
-      // Wire up modification → emit placement + guides
+      // Wire up modification → emit placement + guides. Use emitRef so
+      // listeners always call the LATEST emit (emit captures logoUrl, so a
+      // stale closure would emit the wrong previewUrl after a re-upload).
       canvas.on('object:moving', (e: any) => {
         if (e.target) updateGuides(e.target);
-        if (logoObj.current) emit(logoObj.current, 'manual');
+        if (logoObj.current) emitRef.current(logoObj.current, 'manual');
       });
       canvas.on('object:modified', () => {
         hideGuides();
-        if (logoObj.current) emit(logoObj.current, zoneIdRef.current);
+        if (logoObj.current) emitRef.current(logoObj.current, zoneIdRef.current);
       });
       canvas.on('mouse:up', hideGuides);
       canvas.on('selection:cleared', hideGuides);
@@ -471,7 +479,12 @@ export function ProductCanvas({
     });
 
     return () => { disposed = true; };
-  }, [ready, logoUrl, zoneId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // NOTE: zoneId is intentionally NOT a dep. When the user picks a zone
+    // preset, selectZone() already moves the logo in place and emits the
+    // new position. Including zoneId here would cause a full remove+re-add
+    // cycle (visible flicker). The init effect sets up the initial zoneId
+    // state and the reposition effect below keeps position/scale in sync.
+  }, [ready, logoUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Re-position existing logo when parent updates placement (e.g. center
   //    button click). Does NOT rebuild — just moves the existing fabric

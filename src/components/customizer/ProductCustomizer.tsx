@@ -6,7 +6,7 @@
  *    images with "VOTRE LOGO" embedded in the actual JPG — causing logo
  *    duplication on step 3). The 3D viewer on the left already shows the garment.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,10 +31,22 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const shopifyCartStore = useShopifyCartStore();
 
   const product = PRODUCTS.find(p => p.id === productId);
-  if (!product) return null;
 
-  // Init store when productId changes
-  if (store.productId !== productId) store.setProduct(productId);
+  // Init store when productId changes — use effect to avoid
+  // "Cannot update a component while rendering" warnings.
+  useEffect(() => {
+    if (product && store.productId !== productId) store.setProduct(productId);
+  }, [productId, product, store]);
+
+  // If the canvas-level trash removed the logo while we're on step 3
+  // (preview gone), bounce back to step 2 so the user can re-upload.
+  useEffect(() => {
+    if (store.step === 3 && !store.logoPlacement?.previewUrl) {
+      store.setStep(2);
+    }
+  }, [store.step, store.logoPlacement?.previewUrl, store]);
+
+  if (!product) return null;
 
   // Live Shopify colours (falls back gracefully)
   const { data: shopifyColors = [], isLoading: colorsLoading } = useProductColors(product.shopifyHandle);
@@ -390,7 +402,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         zoneId: zone?.id ?? 'centre',
                         mode: 'preset',
                         previewUrl, processedUrl, originalFile: file,
-                        x: zone?.x, y: zone?.y, width: zone?.width,
+                        // Zone center — NOT top-left. Top-left would put
+                        // the logo at the corner of the print zone, not
+                        // visually inside it.
+                        x: zone ? zone.x + zone.width / 2 : undefined,
+                        y: zone ? zone.y + zone.height / 2 : undefined,
+                        width: zone ? zone.width * 0.85 : undefined,
                       });
                       goNext();
                     }}
@@ -547,7 +564,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       : 'Choisis une ou plusieurs couleurs. Pour chacune, sélectionne les tailles et quantités.'}
                   </p>
                   <MultiVariantPicker
-                    product={shopifyColor?.sizeOptions.length
+                    product={shopifyColor?.sizeOptions?.length
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
                       : product}
                     colors={displayColors}
@@ -577,7 +594,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     {hasDiscount && (
                       <div className="flex justify-between text-sm text-green-700">
                         <span>{t('rabaisQuantite')}</span>
-                        <span className="font-bold">−15%</span>
+                        <span className="font-bold">−{Math.round(BULK_DISCOUNT_RATE * 100)}%</span>
                       </div>
                     )}
                     <div className="border-t border-border pt-2.5 flex justify-between">
