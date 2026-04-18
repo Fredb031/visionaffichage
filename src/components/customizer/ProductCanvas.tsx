@@ -219,6 +219,20 @@ export function ProductCanvas({
   // always call the latest emit — otherwise a stale closure captures the
   // initial logoUrl / onPlacementChange and drags emit the wrong previewUrl
   // after the user uploads a second logo.
+  // Toggle logo interactivity when the step changes without rebuilding
+  // the fabric object. Locks dragging/resizing when the customer is on
+  // the colour or size step — they shouldn't be able to move the logo
+  // off the garment outside of the placement step.
+  useEffect(() => {
+    if (!fc.current || !logoObj.current) return;
+    logoObj.current.set('selectable', showPlacementTools);
+    logoObj.current.set('evented',    showPlacementTools);
+    logoObj.current.set('hasControls', showPlacementTools);
+    logoObj.current.set('hasBorders',  showPlacementTools);
+    if (!showPlacementTools) fc.current.discardActiveObject?.();
+    fc.current.requestRenderAll?.();
+  }, [showPlacementTools]);
+
   // Expose PNG export to parent once the canvas is ready. Parent holds the
   // function so Step 5 "Download mockup" can call it on demand.
   useEffect(() => {
@@ -674,8 +688,13 @@ export function ProductCanvas({
             top:  cy - (img.height ?? 0) * s / 2,
             scaleX: s, scaleY: s,
             angle: currentPlacement?.rotation ?? 0,
-            selectable: true, evented: true,
-            hasControls: true, hasBorders: true,
+            // Logo is only draggable / selectable during the placement
+            // step ("Where to print"). On other steps it's locked so
+            // the user can't accidentally shove it off the garment.
+            selectable: showPlacementTools,
+            evented:    showPlacementTools,
+            hasControls: showPlacementTools,
+            hasBorders:  showPlacementTools,
             cornerStyle: 'circle', cornerSize: 12,
             cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
             borderScaleFactor: 2, transparentCorners: false,

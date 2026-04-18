@@ -505,10 +505,20 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
     // Put black first, then the rest in their original catalog order.
     const isBlack = (name: string) => /^noir|^black/i.test(name.trim());
-    return [
+    const ordered = [
       ...merged.filter(c => isBlack(c.colorName)),
       ...merged.filter(c => !isBlack(c.colorName)),
     ];
+
+    // Final dedup pass: keep the FIRST entry for each normalized name.
+    // Prevents the "Noir / Black" double-listing the user reported.
+    const seen = new Set<string>();
+    return ordered.filter(c => {
+      const key = norm(c.colorName);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   })();
 
   return (
