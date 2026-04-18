@@ -128,7 +128,7 @@ const COLOUR_HEX_MAP: Record<string, string> = {
   'Orange sécurité': '#ff4500',
 };
 
-function colorNameToHex(name: string): string {
+export function colorNameToHex(name: string): string {
   if (!name || name === '-') return '#888888';
   if (COLOUR_HEX_MAP[name]) return COLOUR_HEX_MAP[name];
   // For compound names like "Noir/Blanc", use first part

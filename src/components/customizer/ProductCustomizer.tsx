@@ -236,7 +236,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         initial={{ y: 80, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
         className="bg-background w-full md:rounded-2xl md:max-w-5xl border border-border/50 shadow-[0_32px_80px_rgba(0,0,0,0.35)] overflow-hidden"
-        style={{ maxHeight: '96dvh', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}
+        style={{ maxHeight: '92dvh', height: '92dvh', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto' }}
       >
         {/* ── Header ── */}
         <div className="px-5 py-3 border-b border-border flex items-center gap-3">
@@ -271,10 +271,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         </div>
 
         {/* ── Body ── */}
-        <div className="overflow-auto grid md:grid-cols-[1.4fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border">
+        <div className="overflow-auto grid md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
 
           {/* LEFT — Single interactive canvas (CustomInk-style: customize and preview in one) */}
-          <div className="p-4 space-y-3 flex flex-col">
+          <div className="p-3 md:p-4 space-y-2.5 flex flex-col min-h-0">
             <ProductCanvas
               product={product}
               garmentColor={activeColor?.hex}

@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from '@/lib/shopify';
+import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, colorNameToHex } from '@/lib/shopify';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -139,60 +139,47 @@ export default function ProductDetail() {
               if (!value) return null;
               return findColorImage(localProduct.sku, value);
             })();
-            const swappedFront = pickedColor?.front;
-            const swappedBack = pickedColor?.back;
-            const mainImg = (() => {
-              if (selectedImageIndex === 0 && swappedFront) {
-                return { url: swappedFront, alt: product.title };
-              }
-              if (selectedImageIndex === 1 && swappedBack) {
-                return { url: swappedBack, alt: `${product.title} dos` };
-              }
-              const node = images[selectedImageIndex]?.node;
-              return node ? { url: node.url, alt: node.altText || product.title } : null;
-            })();
+
+            // Front always reflects the picked color when available
+            const frontUrl = pickedColor?.front ?? images[0]?.node?.url ?? localProduct?.imageDevant;
+            const backUrl = pickedColor?.back ?? images[1]?.node?.url ?? localProduct?.imageDos;
 
             return (
-              <div className="space-y-3">
-                <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group cursor-zoom-in">
-                  {mainImg ? (
-                    <img
-                      src={mainImg.url}
-                      alt={mainImg.alt}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
-                      key={mainImg.url}
-                    />
+              <div>
+                <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group relative">
+                  {frontUrl ? (
+                    <>
+                      <img
+                        src={frontUrl}
+                        alt={product.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
+                        key={`front-${frontUrl}`}
+                        loading="eager"
+                        decoding="async"
+                      />
+                      {backUrl && (
+                        <img
+                          src={backUrl}
+                          alt={`${product.title} — dos`}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                          key={`back-${backUrl}`}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      )}
+                      <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none transition-opacity duration-300 opacity-100 group-hover:opacity-0">
+                        {lang === 'en' ? 'Hover for back' : 'Survol pour dos'}
+                      </div>
+                      <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-foreground/90 text-background shadow-sm pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                        {lang === 'en' ? 'Back' : 'Dos'}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      {lang === 'en' ? 'No image' : 'Pas d\'image'}
+                      {lang === 'en' ? 'No image' : "Pas d'image"}
                     </div>
                   )}
                 </div>
-                {images.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                    {images.map(
-                      (img: { node: { url: string; altText: string | null } }, i: number) => (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedImageIndex(i)}
-                          className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                            i === selectedImageIndex
-                              ? 'border-primary'
-                              : 'border-transparent hover:border-border'
-                          }`}
-                        >
-                          <img
-                            src={img.node.url}
-                            alt={img.node.altText || ''}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </button>
-                      ),
-                    )}
-                  </div>
-                )}
               </div>
             );
           })()}
@@ -308,7 +295,9 @@ export default function ProductDetail() {
                           const match = localProduct.colors.find(
                             c => c.name === value || c.nameEn === value || c.id === value.toLowerCase().replace(/\s+/g, '-'),
                           );
-                          const hex = match?.hex ?? '#888888';
+                          // Fallback: use the FR/EN→hex map from shopify.ts so colors
+                          // never end up gray when the local catalog doesn't list them.
+                          const hex = match?.hex ?? colorNameToHex(value);
                           const isSelected = currentOptions[option.name] === value;
                           return (
                             <button

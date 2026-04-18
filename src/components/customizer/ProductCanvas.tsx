@@ -196,7 +196,9 @@ export function ProductCanvas({
       if (fc.current) { fc.current.dispose(); fc.current = null; }
 
       const W = containerRef.current!.clientWidth || 360;
-      const H = Math.round(W * 1.18);
+      // Smaller aspect on mobile so the customizer footer (Continue/Add to cart)
+      // stays visible without scrolling. 1.05 ≈ near-square, was 1.18 before.
+      const H = Math.round(W * 1.05);
 
       const canvas = new fabric.Canvas(canvasElRef.current!, {
         width: W, height: H,
@@ -452,6 +454,34 @@ export function ProductCanvas({
     return () => { disposed = true; };
   }, [ready, logoUrl, zoneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Re-position existing logo when parent updates placement (e.g. center
+  //    button click). Does NOT rebuild — just moves the existing fabric
+  //    object so center/zone presets work in real time.
+  useEffect(() => {
+    if (!fc.current || !logoObj.current || !currentPlacement) return;
+    if (currentPlacement.x == null || currentPlacement.y == null) return;
+    const canvas = fc.current;
+    const W = canvas.width as number;
+    const H = canvas.height as number;
+    const img = logoObj.current;
+    const targetX = (currentPlacement.x / 100) * W;
+    const targetY = (currentPlacement.y / 100) * H;
+
+    if (currentPlacement.width != null) {
+      const targetW = (currentPlacement.width / 100) * W;
+      const naturalW = img.width ?? 100;
+      const newScale = targetW / naturalW;
+      img.set({ scaleX: newScale, scaleY: newScale });
+    }
+    img.set({
+      left: targetX - (img.width ?? 0) * (img.scaleX ?? 1) / 2,
+      top:  targetY - (img.height ?? 0) * (img.scaleY ?? 1) / 2,
+      angle: currentPlacement.rotation ?? img.angle ?? 0,
+    });
+    img.setCoords?.();
+    canvas.requestRenderAll?.();
+  }, [currentPlacement?.x, currentPlacement?.y, currentPlacement?.width, currentPlacement?.rotation]);
+
   // ── Zone preset selector ──────────────────────────────────────────────────
   const selectZone = useCallback((zone: PrintZone) => {
     setZoneId(zone.id);
@@ -584,7 +614,7 @@ export function ProductCanvas({
       <div
         ref={containerRef}
         className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)]"
-        style={{ aspectRatio: '0.85' }}
+        style={{ aspectRatio: '0.95' }}
       >
         {/* Subtle radial accent in the corner — looks like studio lighting */}
         <div
