@@ -82,18 +82,26 @@
 @keyframes staggerUp { to { opacity: 1; transform: translateY(0); } }
 @keyframes heroLogoScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@keyframes ldGridIn { to { opacity: 1; } }
-@keyframes ldLogoUp { to { opacity: 1; transform: translateY(0); } }
-@keyframes ldLineDraw { to { width: 280px; } }
-@keyframes ldTagIn { to { color: rgba(255,255,255,.25); } }
-@keyframes ldCornerIn { to { opacity: 1; } }
-@keyframes ldCurtain { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
-@keyframes ldScan { 0% { transform: translateX(-100%); } 100% { transform: translateX(100vw); } }
 
 /* Utility classes */
 .animate-marquee { animation: marquee 20s linear infinite; }
 .animate-fade-in-up { animation: fade-in-up 0.75s ease-out forwards; }
 .animate-starburst { animation: starburst 0.6s ease forwards; }
+
+/* Respect the OS reduced-motion preference — collapse all page-level
+   animations and marquees to near-zero duration so users prone to
+   motion sickness don't get hit by the hero logo scroll, the mole
+   game's starburst, or the timeline's rotating rings. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 .animate-bounce-in { animation: bounce-in 0.4s ease; }
 .animate-confetti { animation: confetti-fall 3.5s ease forwards; }
 

@@ -5,11 +5,37 @@ interface DeliveryBadgeProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'gold' | 'navy' | 'inline';
   className?: string;
+  /** When true, show the actual arrival date instead of the generic
+   * "5 business days" string. Useful on product cards / PDPs where the
+   * commitment is more persuasive than the count. */
+  showDate?: boolean;
 }
 
-export function DeliveryBadge({ size = 'md', variant = 'gold', className = '' }: DeliveryBadgeProps) {
+/** Compute today + N business days (skip Sat/Sun). Pure function so
+ * it's cheap to call in any render. */
+function addBusinessDays(from: Date, days: number): Date {
+  const out = new Date(from);
+  let added = 0;
+  while (added < days) {
+    out.setDate(out.getDate() + 1);
+    const d = out.getDay();
+    if (d !== 0 && d !== 6) added++;
+  }
+  return out;
+}
+
+export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', showDate = false }: DeliveryBadgeProps) {
   const { lang } = useLang();
-  const label = lang === 'en' ? '5 business days' : '5 jours ouvrables';
+  const label = (() => {
+    if (!showDate) return lang === 'en' ? '5 business days' : '5 jours ouvrables';
+    const eta = addBusinessDays(new Date(), 5);
+    const dateStr = eta.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+      weekday: 'short', day: 'numeric', month: 'short',
+    });
+    // Capitalize first letter — both locales return lowercase weekdays.
+    const cap = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    return lang === 'en' ? `Arrives ${cap}` : `Arrivée ${cap}`;
+  })();
 
   const sizeCls = {
     sm: 'text-[10px] px-2 py-0.5 gap-1',

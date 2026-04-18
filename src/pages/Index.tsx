@@ -133,29 +133,12 @@ export default function Index() {
             >
               {t('heroCta')}
             </Link>
-            <p className="text-[11px] text-muted-foreground mt-3 font-medium">
-              {(() => {
-                // Compute the delivery ETA live: 5 business days from
-                // today, skipping weekends. If today is a weekday, the
-                // clock starts tomorrow (business day +1).
-                const eta = new Date();
-                let added = 0;
-                while (added < 5) {
-                  eta.setDate(eta.getDate() + 1);
-                  const d = eta.getDay();
-                  if (d !== 0 && d !== 6) added++;
-                }
-                const fmt = (l: 'fr-CA' | 'en-CA') =>
-                  eta.toLocaleDateString(l, { weekday: 'long', day: 'numeric', month: 'long' });
-                return lang === 'en'
-                  ? `⚡ No minimum · Order today, receive by ${fmt('en-CA')}`
-                  : `⚡ Aucun minimum · Commande aujourd\u2019hui, reçu le ${fmt('fr-CA')}`;
-              })()}
-            </p>
           </div>
 
-          {/* Logo marquee */}
-          <div className={`w-full max-w-[680px] mx-auto mb-7 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+          {/* Logo marquee — promoted ABOVE the "Aucun minimum" line per
+              user feedback ("les logos en-dessus"). Reads visually as
+              social proof → commitment pitch. */}
+          <div className={`w-full max-w-[680px] mx-auto mt-6 mb-4 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
             <div className="absolute top-0 bottom-0 left-0 w-16 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
             <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
             <div className="flex w-max" style={{ animation: 'heroLogoScroll 24s linear infinite' }}>
@@ -164,6 +147,32 @@ export default function Index() {
               ))}
             </div>
           </div>
+
+          {/* "Aucun minimum + Receive by …" — sits directly under the
+              marquee so the commitment (ETA) reads right after the social
+              proof. Date is live: today + 5 business days, skipping weekends. */}
+          <p className={`text-[12px] text-foreground/80 font-semibold mb-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.58s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
+            {(() => {
+              const eta = new Date();
+              let added = 0;
+              while (added < 5) {
+                eta.setDate(eta.getDate() + 1);
+                const d = eta.getDay();
+                if (d !== 0 && d !== 6) added++;
+              }
+              const fmtRaw = (l: 'fr-CA' | 'en-CA') =>
+                eta.toLocaleDateString(l, { weekday: 'long', day: 'numeric', month: 'long' });
+              // Capitalize first letter for visual polish — French
+              // locale returns lowercase weekdays ("vendredi 24 avril")
+              // but uppercased reads cleaner in a pill.
+              const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+              const dateEn = cap(fmtRaw('en-CA'));
+              const dateFr = cap(fmtRaw('fr-CA'));
+              return lang === 'en'
+                ? <>⚡ No minimum order · Ordered today, arriving <span className="text-[#0052CC]">{dateEn}</span></>
+                : <>⚡ Aucun minimum · Commande aujourd'hui, reçu le <span className="text-[#0052CC]">{dateFr}</span></>;
+            })()}
+          </p>
 
           {/* Google row */}
           <div className={`flex items-center justify-center gap-2 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>

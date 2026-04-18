@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { ShopifyProduct } from '@/lib/shopify';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
@@ -60,9 +59,12 @@ export function ProductCard({ product }: ProductCardProps) {
               {backImage && (
                 <img
                   src={backImage.url}
-                  alt="Dos"
+                  alt={lang === 'en'
+                    ? `${local?.shortName ?? node.title} — back view`
+                    : `${local?.shortName ?? node.title} — vue arrière`}
                   className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105"
                   loading="lazy"
+                  decoding="async"
                 />
               )}
             </>
