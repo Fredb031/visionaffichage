@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Lang } from './i18n';
 import { t as translate, TranslationKey } from './i18n';
 
@@ -23,6 +23,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
     setLang(newLang);
     try { localStorage.setItem('vision-lang', newLang); } catch { /* quota exceeded, private mode, etc — silent is fine */ }
   };
+
+  // Keep <html lang="..."> in sync so screen readers pronounce text in the
+  // right language and Chrome's "translate this page" prompt behaves.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
 
   const tFn = (key: TranslationKey, ...args: (string | number)[]) => translate(lang, key, ...args);
 
