@@ -20,6 +20,14 @@ export default function Account() {
     if (!loading) setHydrated(true);
   }, [loading]);
 
+  useEffect(() => {
+    const prev = document.title;
+    document.title = lang === 'en'
+      ? 'My account — Vision Affichage'
+      : 'Mon compte — Vision Affichage';
+    return () => { document.title = prev; };
+  }, [lang]);
+
   // Match orders by customer email (best-effort with the snapshot)
   const myOrders = useMemo(() => {
     if (!user?.email) return [];

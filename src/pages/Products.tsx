@@ -44,6 +44,14 @@ export default function Products() {
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const prev = document.title;
+    document.title = lang === 'en'
+      ? 'Products — Vision Affichage'
+      : 'Produits — Vision Affichage';
+    return () => { document.title = prev; };
+  }, [lang]);
+
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —
   // standard power-user shortcut on commerce sites (Linear, Vercel, etc.)
   useEffect(() => {
