@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCTS_QUERY, ShopifyProduct } from '@/lib/shopify';
 
-export function useProducts(first = 22) {
+// Default 50 — slightly over-fetches today's 22-product catalog so new
+// SKUs uploaded to Shopify surface automatically instead of silently
+// getting truncated past the hardcoded limit. Storefront caps at 250
+// per page regardless; anything higher should paginate.
+export function useProducts(first = 50) {
   return useQuery({
     queryKey: ['shopify-products', first],
     queryFn: async (): Promise<ShopifyProduct[]> => {
