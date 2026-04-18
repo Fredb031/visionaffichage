@@ -168,8 +168,8 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           </svg>
           <span className="hidden sm:inline">{t('panier')}</span>
           {itemCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center">
-              {itemCount}
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center">
+              {itemCount > 99 ? '99+' : itemCount}
             </span>
           )}
         </button>
