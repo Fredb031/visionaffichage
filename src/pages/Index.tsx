@@ -1,8 +1,12 @@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
-import { MoleGame } from '@/components/MoleGame';
-import { IntroAnimation } from '@/components/IntroAnimation';
+// MoleGame and IntroAnimation are one-off, first-visit chrome that
+// most returning visitors never see — keep them out of the initial
+// home-page bundle and fetch on demand.
+import { lazy, Suspense } from 'react';
+const MoleGame = lazy(() => import('@/components/MoleGame').then(m => ({ default: m.MoleGame })));
+const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m => ({ default: m.IntroAnimation })));
 import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
@@ -101,8 +105,10 @@ export default function Index() {
 
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background pb-20 focus:outline-none">
-      {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
-      <MoleGame isOpen={showGame} onClose={handleGameClose} />
+      <Suspense fallback={null}>
+        {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
+        {showGame && <MoleGame isOpen={showGame} onClose={handleGameClose} />}
+      </Suspense>
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
