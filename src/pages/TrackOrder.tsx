@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Package, CheckCircle2, Truck, Mail, AlertCircle, Search } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
@@ -47,6 +47,14 @@ export default function TrackOrder() {
       return matchNumber && matchEmail;
     }) ?? null;
   }, [searchInput, emailInput]);
+
+  useEffect(() => {
+    const prev = document.title;
+    document.title = lang === 'en'
+      ? 'Track an order — Vision Affichage'
+      : 'Suivre une commande — Vision Affichage';
+    return () => { document.title = prev; };
+  }, [lang]);
 
   const currentStage: Stage | null = order ? deriveStage(order) : null;
   const currentIdx = currentStage ? STAGES.findIndex(s => s.id === currentStage) : -1;
