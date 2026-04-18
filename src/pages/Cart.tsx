@@ -64,7 +64,7 @@ function PromoCodeInput({
   );
 }
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Cart page — uses the LOCAL cart store as the single source of truth.
@@ -85,6 +85,15 @@ export default function Cart() {
 
   const totalPrice = getTotal();
   const totalQty = getItemCount();
+
+  useEffect(() => {
+    const prev = document.title;
+    const count = totalQty > 0 ? ` (${totalQty})` : '';
+    document.title = lang === 'en'
+      ? `Cart${count} — Vision Affichage`
+      : `Panier${count} — Vision Affichage`;
+    return () => { document.title = prev; };
+  }, [lang, totalQty]);
 
   const handleCheckout = () => {
     // Send users to our on-site checkout flow (no new tab, no redirect)
