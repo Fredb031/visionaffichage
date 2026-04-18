@@ -182,7 +182,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // on this browser doesn't inherit the previous session's cart / in-
     // progress customization / admin filters.
     try {
-      const keys = ['va-customizer', 'vision-cart', 'shopify-cart', 'vision-pending-checkout', 'vision-recently-viewed'];
+      const keys = ['va-customizer', 'vision-cart', 'shopify-cart', 'vision-pending-checkout', 'vision-recently-viewed', 'vision-wishlist'];
       keys.forEach(k => localStorage.removeItem(k));
     } catch (e) {
       console.warn('[authStore] Could not clear persisted stores on signOut:', e);

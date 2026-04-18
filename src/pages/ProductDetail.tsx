@@ -20,6 +20,7 @@ import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { useWishlist } from '@/hooks/useWishlist';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -51,6 +52,9 @@ export default function ProductDetail() {
   useEffect(() => {
     if (handle) trackRecentlyViewed(handle);
   }, [handle, trackRecentlyViewed]);
+
+  const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
+  const saved = handle ? isWishlisted(handle) : false;
 
   // Set a product-specific document title so browser tabs, bookmarks,
   // and shared links reflect the actual product instead of the default
@@ -287,6 +291,24 @@ export default function ProductDetail() {
                     </div>
                   )}
                 </div>
+                <div className="flex items-center gap-2 mt-1 flex-shrink-0">
+                <button
+                  onClick={() => handle && toggleWishlist(handle)}
+                  aria-label={saved
+                    ? (lang === 'en' ? 'Remove from wishlist' : 'Retirer des favoris')
+                    : (lang === 'en' ? 'Save to wishlist' : 'Ajouter aux favoris')}
+                  aria-pressed={saved}
+                  title={saved
+                    ? (lang === 'en' ? 'Saved' : 'Enregistré')
+                    : (lang === 'en' ? 'Save' : 'Enregistrer')}
+                  className={`w-11 h-11 rounded-full border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                    saved
+                      ? 'border-[#E8A838] bg-[#E8A838]/10 text-[#B37D10]'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-primary'
+                  }`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
                 <button
                   onClick={async () => {
                     // Prefer the native Web Share sheet on mobile (iOS Safari,
@@ -305,12 +327,13 @@ export default function ProductDetail() {
                       toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
                     } catch { /* user cancelled share sheet — no toast needed */ }
                   }}
-                  className="flex-shrink-0 w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                  className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   aria-label={lang === 'en' ? 'Share product' : 'Partager le produit'}
                   title={lang === 'en' ? 'Share' : 'Partager'}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
                 </button>
+                </div>
               </div>
               <div className="flex items-baseline gap-2 mt-3">
                 <span className="text-2xl font-extrabold text-primary">
