@@ -148,7 +148,7 @@ export default function Checkout() {
   };
 
   return (
-    <div id="main-content" className="min-h-screen bg-gradient-to-b from-secondary/30 to-background">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
       <Navbar />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">

@@ -111,7 +111,7 @@ export function VendorLayout() {
           </div>
         </header>
 
-        <main id="main-content" className="p-4 md:p-8 max-w-[1400px]">
+        <main id="main-content" tabIndex={-1} className="p-4 md:p-8 max-w-[1400px] focus:outline-none">
           <Outlet />
         </main>
       </div>

@@ -105,7 +105,7 @@ export default function Cart() {
   };
 
   return (
-    <div id="main-content" className="min-h-screen bg-background">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 

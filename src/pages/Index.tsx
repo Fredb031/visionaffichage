@@ -100,7 +100,7 @@ export default function Index() {
   const allLogos = [...HERO_LOGOS, ...HERO_LOGOS];
 
   return (
-    <div id="main-content" className="min-h-screen bg-background pb-20">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-background pb-20 focus:outline-none">
       {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
