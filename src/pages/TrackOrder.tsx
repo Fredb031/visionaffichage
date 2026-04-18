@@ -110,6 +110,7 @@ export default function TrackOrder() {
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 placeholder="1570"
+                aria-label={lang === 'en' ? 'Order number' : 'Numéro de commande'}
                 className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
               />
             </label>
@@ -122,7 +123,8 @@ export default function TrackOrder() {
                 autoComplete="email"
                 value={emailInput}
                 onChange={e => setEmailInput(e.target.value)}
-                placeholder="toi@entreprise.ca"
+                placeholder={lang === 'en' ? 'you@company.com' : 'toi@entreprise.ca'}
+                aria-label={lang === 'en' ? 'Email used at checkout' : 'Courriel utilisé à la commande'}
                 className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
               />
             </label>
