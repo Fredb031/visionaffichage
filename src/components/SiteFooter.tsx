@@ -141,7 +141,7 @@ export function SiteFooter() {
             />
           </div>
           <div className="text-[11px] text-white/40">
-            © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fait au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
+            © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
           </div>
         </div>
       </div>
