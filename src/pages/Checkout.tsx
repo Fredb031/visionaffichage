@@ -162,8 +162,12 @@ export default function Checkout() {
             : lang === 'en' ? 'Previous step' : 'Étape précédente'}
         </button>
 
-        {/* Step indicator */}
-        <div className="flex items-center justify-center mb-8">
+        {/* Step indicator — role=progressbar so screen readers announce
+            "Step X of 3" without relying on the visual dot count. */}
+        <ol
+          className="flex items-center justify-center mb-8"
+          aria-label={lang === 'en' ? 'Checkout progress' : 'Progression de la commande'}
+        >
           {(['info', 'shipping', 'payment'] as const).map((s, i) => {
             const isActive = step === s;
             const isDone = stepIndex > i;
@@ -172,23 +176,36 @@ export default function Checkout() {
               shipping: { fr: 'Livraison', en: 'Shipping' },
               payment: { fr: 'Paiement', en: 'Payment' },
             };
+            const stateLabel = isDone
+              ? (lang === 'en' ? 'completed' : 'complété')
+              : isActive
+                ? (lang === 'en' ? 'current step' : 'étape courante')
+                : (lang === 'en' ? 'upcoming' : 'à venir');
             return (
-              <div key={s} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
-                  isDone ? 'bg-emerald-500 text-white'
-                    : isActive ? 'bg-[#0052CC] text-white scale-110'
-                    : 'bg-zinc-200 text-zinc-500'
-                }`}>
+              <li
+                key={s}
+                className="flex items-center"
+                aria-current={isActive ? 'step' : undefined}
+                aria-label={`${labels[s][lang]} — ${stateLabel}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
+                    isDone ? 'bg-emerald-500 text-white'
+                      : isActive ? 'bg-[#0052CC] text-white scale-110'
+                      : 'bg-zinc-200 text-zinc-500'
+                  }`}
+                  aria-hidden="true"
+                >
                   {isDone ? <CheckCircle2 size={14} /> : i + 1}
                 </div>
                 <span className={`ml-2 text-xs font-bold uppercase tracking-wider ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {labels[s][lang]}
                 </span>
-                {i < 2 && <div className={`w-12 md:w-20 h-0.5 mx-3 ${isDone ? 'bg-emerald-500' : 'bg-zinc-200'}`} />}
-              </div>
+                {i < 2 && <div className={`w-12 md:w-20 h-0.5 mx-3 ${isDone ? 'bg-emerald-500' : 'bg-zinc-200'}`} aria-hidden="true" />}
+              </li>
             );
           })}
-        </div>
+        </ol>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           {/* Main step content */}
@@ -206,7 +223,9 @@ export default function Checkout() {
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     autoComplete="email"
                     placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                    className="w-full mt-2 border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                    aria-required="true"
+                    className="w-full mt-2 border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
                     required
                   />
                 </div>
@@ -424,7 +443,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '',
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -433,6 +452,9 @@ function Input({
   type?: string;
   required?: boolean;
   className?: string;
+  /** Defaults to the placeholder — override only if you need a more
+   * specific a11y label than the visible hint. */
+  ariaLabel?: string;
 }) {
   return (
     <input
@@ -440,9 +462,14 @@ function Input({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
+      // Placeholder is not a label per WCAG. Use it as an accessible
+      // name when no explicit one is provided so screen readers
+      // announce the field correctly when focused.
+      aria-label={ariaLabel ?? placeholder}
+      aria-required={required}
       autoComplete={autoComplete}
       required={required}
-      className={`border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary ${className}`}
+      className={`border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow ${className}`}
     />
   );
 }
