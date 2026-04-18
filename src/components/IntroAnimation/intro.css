@@ -1,0 +1,81 @@
+/* Vision Affichage cinematic intro — pure CSS scaffolding.
+ * GSAP handles all timing; CSS sets initial state and visual style.
+ */
+
+#va-intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: #080808;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  will-change: opacity;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#va-intro-overlay .intro-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 1px;
+  background: #FFFFFF;
+  width: 0px;
+  transform: translateX(-50%) translateY(0px);
+  will-change: width, transform, opacity;
+  pointer-events: none;
+}
+
+#va-intro-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+#va-intro-logo path,
+#va-intro-logo polygon {
+  fill: #FFFFFF;
+}
+
+#va-intro-logo .va-mark {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  /* Initial state: invisible, will scale up via GSAP */
+  transform: scale(0);
+}
+
+#va-intro-hint {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.25);
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#va-intro-hint.show {
+  animation: vaHintPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes vaHintPulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #va-intro-overlay {
+    transition: opacity 200ms linear;
+  }
+}

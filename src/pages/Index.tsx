@@ -2,7 +2,7 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { MoleGame } from '@/components/MoleGame';
-import { CinematicLoader } from '@/components/CinematicLoader';
+import { IntroAnimation } from '@/components/IntroAnimation';
 import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
@@ -96,7 +96,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
+      {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
