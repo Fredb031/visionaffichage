@@ -57,7 +57,9 @@ export const useCartStore = create<CartStore>()(
 
       getTotal: () => {
         const { items, discountApplied, discountCode } = get();
-        const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+        // Guard against corrupted localStorage from older app versions
+        // that might have items missing totalPrice (NaN propagates through reduce).
+        const subtotal = items.reduce((sum, item) => sum + (Number.isFinite(item.totalPrice) ? item.totalPrice : 0), 0);
         if (discountApplied && discountCode) {
           const rate = VALID_DISCOUNT_CODES[discountCode] ?? 0;
           return parseFloat((subtotal * (1 - rate)).toFixed(2));
@@ -65,7 +67,7 @@ export const useCartStore = create<CartStore>()(
         return parseFloat(subtotal.toFixed(2));
       },
 
-      getItemCount: () => get().items.reduce((sum, i) => sum + i.totalQuantity, 0),
+      getItemCount: () => get().items.reduce((sum, i) => sum + (Number.isFinite(i.totalQuantity) ? i.totalQuantity : 0), 0),
       clear: () => set({ items: [], discountCode: null, discountApplied: false }),
     }),
     { name: 'vision-cart' }
