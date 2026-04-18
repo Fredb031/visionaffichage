@@ -269,7 +269,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[50] flex items-end md:items-center justify-center p-0 md:p-4"
+      className="fixed inset-0 z-[600] flex items-end md:items-center justify-center p-0 md:p-4"
       style={{ background: 'rgba(8,14,32,.75)', backdropFilter: 'blur(18px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
