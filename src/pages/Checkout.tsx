@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCir
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
+import { isValidEmail } from '@/lib/utils';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
@@ -86,7 +87,7 @@ export default function Checkout() {
   };
 
   const infoValid =
-    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email.trim()) &&
+    isValidEmail(form.email) &&
     form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
     form.city.trim() && form.postalCode.trim();
 

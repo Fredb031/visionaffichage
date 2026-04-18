@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
+import { isValidEmail } from '@/lib/utils';
 
 export function SiteFooter() {
   const { lang } = useLang();
@@ -11,9 +12,7 @@ export function SiteFooter() {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = email.trim().toLowerCase();
-    // Tighter regex than /^[^@]+@[^@]+\.[^@]+$/ — rejects invalid
-    // addresses like "a@b.c" while still accepting valid ones.
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalized)) return;
+    if (!isValidEmail(normalized)) return;
     try {
       const raw = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
       // Defensive: older versions stored strings here; force to array.
