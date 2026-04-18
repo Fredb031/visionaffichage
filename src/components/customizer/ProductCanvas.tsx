@@ -170,9 +170,28 @@ export function ProductCanvas({
             }
           }
 
+          // Show/hide overlays based on view. Most customizers place
+          // logo+text on the FRONT zone — when user toggles to back, hide
+          // them so they don't render confusingly on top of the back photo.
+          const isFront = activeView === 'front';
+          if (logoObj.current) {
+            logoObj.current.set('visible', isFront);
+            logoObj.current.set('selectable', isFront);
+            logoObj.current.set('evented', isFront);
+          }
+          textObjects.current.forEach((t) => {
+            t.set('visible', isFront);
+            t.set('selectable', isFront);
+            t.set('evented', isFront);
+          });
+          if (maskRef.current) {
+            maskRef.current.set('visible', isFront);
+          }
+
           // Layer order: photo → tint → outline → logo
           if (maskRef.current) canvas.bringToFront(maskRef.current);
           if (logoObj.current) canvas.bringToFront(logoObj.current);
+          textObjects.current.forEach((t) => canvas.bringToFront(t));
           canvas.renderAll();
         },
         { crossOrigin: 'anonymous' },

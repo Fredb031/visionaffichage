@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { PRODUCTS } from '@/data/products';
 import type { CartItemCustomization } from '@/types/customization';
@@ -68,6 +69,20 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const cart = useCartStore();
+  const shopifyCart = useShopifyCartStore();
+
+  // Mirror remove to Shopify cart so the checkout reflects what the user
+  // actually has (was a P0 in the audit — local removal alone left ghost
+  // items at pay).
+  const handleRemoveItem = async (cartId: string) => {
+    const item = cart.items.find(i => i.cartId === cartId);
+    cart.removeItem(cartId);
+    if (item?.shopifyVariantIds && item.shopifyVariantIds.length > 0) {
+      for (const variantId of item.shopifyVariantIds) {
+        try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
+      }
+    }
+  };
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -165,7 +180,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
                     </div>
 
-                    <button onClick={() => cart.removeItem(item.cartId)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 self-start mt-0.5">
+                    <button onClick={() => handleRemoveItem(item.cartId)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 self-start mt-0.5">
                       <Trash2 size={14} />
                     </button>
                   </motion.div>

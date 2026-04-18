@@ -140,24 +140,41 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
         </div>
       </div>
 
-      {/* Size quantity stepper for the ACTIVE color */}
+      {/* Size quantity stepper for the ACTIVE color — uses the COLOR's own
+          sizeOptions when available so we never show a size that doesn't
+          exist for this color (which would mean no Shopify variantId). */}
       <div>
-        <div className={`grid gap-2 ${product.sizes.length === 1 ? 'grid-cols-1' : 'grid-cols-3 sm:grid-cols-4'}`}>
-          {product.sizes.map(size => {
+        {(() => {
+          const sizes = activeColor.sizeOptions?.length
+            ? activeColor.sizeOptions
+            : product.sizes.map(s => ({ variantId: '', size: s, available: true }));
+          return (
+            <div className={`grid gap-2 ${sizes.length === 1 ? 'grid-cols-1' : 'grid-cols-3 sm:grid-cols-4'}`}>
+              {sizes.map(sizeOpt => {
+            const size = sizeOpt.size;
             const qty = getQty(activeColor.variantId, size);
+            const unavailable = sizeOpt.available === false;
             return (
               <div
                 key={size}
                 className={`rounded-xl border p-2 transition-all ${
+                  unavailable ? 'border-border opacity-40 bg-secondary/40' :
                   qty > 0 ? 'border-primary bg-primary/5' : 'border-border'
                 }`}
               >
-                <div className="text-xs font-black text-foreground mb-1.5 text-center">{size}</div>
+                <div className="text-xs font-black text-foreground mb-1.5 text-center">
+                  {size}
+                  {unavailable && (
+                    <div className="text-[8px] text-muted-foreground font-normal normal-case">
+                      {lang === 'en' ? 'Sold out' : 'Épuisé'}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setQty(activeColor, size, Math.max(0, qty - 1))}
-                    disabled={qty === 0}
+                    disabled={qty === 0 || unavailable}
                     className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
                   >
                     <Minus size={10} />
@@ -168,7 +185,8 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                   <button
                     type="button"
                     onClick={() => setQty(activeColor, size, qty + 1)}
-                    className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-all"
+                    disabled={unavailable}
+                    className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
                   >
                     <Plus size={10} />
                   </button>
@@ -176,7 +194,9 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
               </div>
             );
           })}
-        </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Summary of all picked color × size combinations */}
