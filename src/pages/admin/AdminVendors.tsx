@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface VendorRecord {
   id: string;
@@ -38,10 +39,8 @@ export default function AdminVendors() {
   useEffect(() => {
     if (!showInvite) return;
     nameInputRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowInvite(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
   }, [showInvite]);
+  useEscapeKey(showInvite, useCallback(() => setShowInvite(false), []));
 
   const persist = (next: VendorRecord[]) => {
     setCustomVendors(next);

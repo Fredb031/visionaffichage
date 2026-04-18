@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { Product } from '@/data/products';
 
 // Size measurements in cm — standard SanMar/ATC sizing
@@ -43,12 +43,7 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   const chart = SIZE_CHARTS[chartKey];
   const isCap = chartKey === 'cap';
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  useEscapeKey(isOpen, onClose);
 
   return (
     <AnimatePresence>

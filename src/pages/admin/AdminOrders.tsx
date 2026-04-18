@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 
@@ -94,12 +95,7 @@ export default function AdminOrders() {
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
 
-  useEffect(() => {
-    if (!selected) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selected]);
+  useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
 
   useEffect(() => {
     try {

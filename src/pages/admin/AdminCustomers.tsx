@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -8,6 +8,7 @@ import {
   type ShopifyCustomerSnapshot,
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { TablePagination } from '@/components/admin/TablePagination';
 
 function initials(c: ShopifyCustomerSnapshot): string {
@@ -38,12 +39,7 @@ export default function AdminCustomers() {
   // filtering to 3 prospects while on page 5 shows an empty table.
   useEffect(() => { setPage(0); }, [query, filter]);
 
-  useEffect(() => {
-    if (!selected) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selected]);
+  useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
 
   const filtered = useMemo(() => {
     return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface ProfileRow {
   id: string;
@@ -50,12 +51,11 @@ export default function AdminUsers() {
   useEffect(() => {
     if (!showInvite) return;
     inviteNameRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setShowInvite(false); setInviteResult(null); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
   }, [showInvite]);
+  useEscapeKey(showInvite, useCallback(() => {
+    setShowInvite(false);
+    setInviteResult(null);
+  }, []));
 
   const fetchUsers = async () => {
     setLoading(true);
