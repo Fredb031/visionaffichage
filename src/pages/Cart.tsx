@@ -115,12 +115,12 @@ export default function Cart() {
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          {lang === 'en' ? 'Continue shopping' : 'Continuer vos achats'}
+          {lang === 'en' ? 'Continue shopping' : 'Continuer tes achats'}
         </Link>
 
         <div className="flex items-baseline gap-3 mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight">
-            {lang === 'en' ? 'Your cart' : 'Votre panier'}
+            {lang === 'en' ? 'Your cart' : 'Ton panier'}
           </h1>
           {totalQty > 0 && (
             <span className="text-lg font-semibold text-muted-foreground">
