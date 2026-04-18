@@ -1,6 +1,7 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
   { to: '/vendor', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -11,6 +12,16 @@ const NAV_ITEMS = [
 
 export function VendorLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
+  const signOut = useAuthStore(s => s.signOut);
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/');
+  };
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Vendeur';
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -53,14 +64,18 @@ export function VendorLayout() {
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-zinc-100">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
-          >
-            <LogOut size={17} strokeWidth={1.8} />
+        <div className="px-3 py-4 border-t border-zinc-100 space-y-1">
+          <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors">
             Retour au site
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors bg-transparent border-none cursor-pointer text-left"
+          >
+            <LogOut size={17} strokeWidth={1.8} />
+            Déconnexion
+          </button>
         </div>
       </aside>
 
@@ -74,10 +89,10 @@ export function VendorLayout() {
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <div className="text-sm text-zinc-500 hidden md:block font-semibold">Bonjour, Sophie</div>
+          <div className="text-sm text-zinc-500 hidden md:block font-semibold">Bonjour, {firstName}</div>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-sm font-bold">
-              ST
+              {user?.initials ?? '?'}
             </div>
           </div>
         </header>

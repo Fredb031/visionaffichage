@@ -1,6 +1,7 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -14,6 +15,14 @@ const NAV_ITEMS = [
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
+  const signOut = useAuthStore(s => s.signOut);
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -54,14 +63,21 @@ export function AdminLayout() {
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/10">
+        <div className="px-3 py-4 border-t border-white/10 space-y-1">
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors"
           >
-            <LogOut size={18} strokeWidth={1.8} />
             Retour au site
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left"
+          >
+            <LogOut size={18} strokeWidth={1.8} />
+            Déconnexion
+          </button>
         </div>
       </aside>
 
@@ -79,8 +95,12 @@ export function AdminLayout() {
             {location.pathname === '/admin' ? 'Vue d\'ensemble' : 'Administration'}
           </div>
           <div className="flex items-center gap-3">
+            <div className="text-right hidden md:block">
+              <div className="text-[13px] font-bold leading-tight">{user?.name ?? 'Admin'}</div>
+              <div className="text-[10px] text-zinc-500 leading-tight uppercase tracking-wider">{user?.role}</div>
+            </div>
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-sm font-bold">
-              FB
+              {user?.initials ?? '?'}
             </div>
           </div>
         </header>

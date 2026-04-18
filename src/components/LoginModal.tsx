@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
+import { useAuthStore } from '@/stores/authStore';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -10,8 +13,18 @@ type Mode = 'login' | 'signup';
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const { lang } = useLang();
+  const navigate = useNavigate();
+  const signIn = useAuthStore(s => s.signIn);
+  const signUp = useAuthStore(s => s.signUp);
+  const error = useAuthStore(s => s.error);
+  const clearError = useAuthStore(s => s.clearError);
+
   const [accountType, setAccountType] = useState<'client' | 'admin' | null>(null);
   const [mode, setMode] = useState<Mode>('login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
 
   if (!isOpen) return null;
 
@@ -24,6 +37,25 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     mode === 'login'
       ? lang === 'en' ? 'Choose your account type' : 'Choisissez votre type de compte'
       : lang === 'en' ? 'Sign up in 30 seconds' : "Inscris-toi en 30 secondes";
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'signup') {
+      if (password !== password2) {
+        return;
+      }
+      const res = signUp(email, password, name);
+      if (!res.ok) return;
+      onClose();
+      navigate('/');
+      return;
+    }
+    const res = signIn(email, password);
+    if (!res.ok) return;
+    onClose();
+    if (res.role === 'admin') navigate('/admin');
+    else if (res.role === 'vendor') navigate('/vendor');
+  };
 
   return (
     <div
@@ -46,26 +78,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         <div className="grid grid-cols-2 gap-2.5 px-6 pb-5">
           {[
-            {
-              id: 'client' as const,
-              icon: (
-                <svg className="w-[18px] h-[18px] stroke-primary fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
-                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
-                </svg>
-              ),
-              name: 'Client',
-              desc: lang === 'en' ? 'Order tracking' : 'Suivi de commandes',
-            },
-            {
-              id: 'admin' as const,
-              icon: (
-                <svg className="w-[18px] h-[18px] stroke-primary fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              ),
-              name: 'Admin',
-              desc: lang === 'en' ? 'Management & orders' : 'Gestion & commandes',
-            },
+            { id: 'client' as const, name: 'Client', desc: lang === 'en' ? 'Order tracking' : 'Suivi de commandes' },
+            { id: 'admin'  as const, name: 'Équipe', desc: lang === 'en' ? 'Admin & vendors' : 'Admin & vendeurs' },
           ].map(t => (
             <button
               key={t.id}
@@ -78,9 +92,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               }`}
               aria-pressed={accountType === t.id}
             >
-              <div className="w-[38px] h-[38px] rounded-[10px] bg-secondary flex items-center justify-center mx-auto mb-2.5">
-                {t.icon}
-              </div>
               <div className="text-[13px] font-bold text-foreground">{t.name}</div>
               <div className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</div>
             </button>
@@ -88,38 +99,73 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </div>
 
         {accountType ? (
-          <div className="px-6 pb-6 flex flex-col gap-2.5">
+          <form onSubmit={handleSubmit} className="px-6 pb-6 flex flex-col gap-2.5">
+            {error && (
+              <div className="flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
             {mode === 'signup' && (
               <input
                 className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
                 placeholder={lang === 'en' ? 'Full name' : 'Nom complet'}
                 type="text"
                 autoComplete="name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
               />
             )}
+
             <input
               className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
               placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
               type="email"
               autoComplete="email"
+              value={email}
+              onChange={e => {
+                setEmail(e.target.value);
+                if (error) clearError();
+              }}
+              required
             />
+
             <input
               className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
               placeholder={lang === 'en' ? 'Password' : 'Mot de passe'}
               type="password"
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={e => {
+                setPassword(e.target.value);
+                if (error) clearError();
+              }}
+              required
             />
+
             {mode === 'signup' && (
-              <input
-                className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
-                placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
-                type="password"
-                autoComplete="new-password"
-              />
+              <>
+                <input
+                  className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
+                  placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                  type="password"
+                  autoComplete="new-password"
+                  value={password2}
+                  onChange={e => setPassword2(e.target.value)}
+                  required
+                />
+                {password && password2 && password !== password2 && (
+                  <p className="text-[11px] text-rose-600 font-semibold">
+                    {lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas'}
+                  </p>
+                )}
+              </>
             )}
 
             <button
-              type="button"
+              type="submit"
               className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity"
             >
               {mode === 'login'
@@ -129,16 +175,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             <button
               type="button"
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                if (error) clearError();
+              }}
               className="text-[12px] text-primary font-semibold bg-transparent border-none cursor-pointer hover:underline mt-1"
             >
               {mode === 'login'
-                ? lang === 'en'
-                  ? "Don't have an account? Sign up"
-                  : "Pas de compte? S'inscrire"
-                : lang === 'en'
-                  ? 'Already have an account? Log in'
-                  : 'Déjà un compte? Se connecter'}
+                ? lang === 'en' ? "Don't have an account? Sign up" : "Pas de compte? S'inscrire"
+                : lang === 'en' ? 'Already have an account? Log in' : 'Déjà un compte? Se connecter'}
             </button>
 
             <button
@@ -148,7 +193,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             >
               {lang === 'en' ? 'Cancel' : 'Annuler'}
             </button>
-          </div>
+          </form>
         ) : (
           <div className="px-6 pb-5 text-center">
             <span className="text-[12px] text-muted-foreground">

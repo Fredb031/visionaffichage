@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LangProvider } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { AuthGuard } from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -59,7 +60,14 @@ const App = () => (
                 <Route path="/cart" element={<Cart />} />
 
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route
+                  path="/admin"
+                  element={
+                    <AuthGuard requiredRole="admin">
+                      <AdminLayout />
+                    </AuthGuard>
+                  }
+                >
                   <Route index element={<AdminDashboard />} />
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="products" element={<AdminProducts />} />
@@ -68,11 +76,25 @@ const App = () => (
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
 
-                <Route path="/vendor" element={<VendorLayout />}>
+                <Route
+                  path="/vendor"
+                  element={
+                    <AuthGuard requiredRole={["vendor", "admin"]}>
+                      <VendorLayout />
+                    </AuthGuard>
+                  }
+                >
                   <Route index element={<VendorDashboard />} />
                   <Route path="quotes" element={<QuoteList />} />
                 </Route>
-                <Route path="/vendor/quotes/new" element={<QuoteBuilder />} />
+                <Route
+                  path="/vendor/quotes/new"
+                  element={
+                    <AuthGuard requiredRole={["vendor", "admin"]}>
+                      <QuoteBuilder />
+                    </AuthGuard>
+                  }
+                />
 
                 <Route path="/quote/:id" element={<QuoteAccept />} />
 
