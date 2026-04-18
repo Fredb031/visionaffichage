@@ -81,7 +81,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     </Link>
                   )}
                   <Link
-                    to="/cart"
+                    to="/account"
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors"
                   >

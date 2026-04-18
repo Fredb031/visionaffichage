@@ -14,6 +14,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 const Checkout = lazy(() => import("./pages/Checkout"));
 const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+const Account = lazy(() => import("./pages/Account"));
 import NotFound from "./pages/NotFound";
 
 // Admin (lazy)
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/track" element={<TrackOrder />} />
                 <Route path="/track/:orderNumber" element={<TrackOrder />} />
+                <Route path="/account" element={<Account />} />
 
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/signup" element={<Signup />} />
