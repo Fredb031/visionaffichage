@@ -38,22 +38,20 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       ? lang === 'en' ? 'Choose your account type' : 'Choisissez votre type de compte'
       : lang === 'en' ? 'Sign up in 30 seconds' : "Inscris-toi en 30 secondes";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'signup') {
-      if (password !== password2) {
-        return;
-      }
-      const res = signUp(email, password, name);
+      if (password !== password2) return;
+      const res = await signUp(email, password, name);
       if (!res.ok) return;
       onClose();
       navigate('/');
       return;
     }
-    const res = signIn(email, password);
+    const res = await signIn(email, password);
     if (!res.ok) return;
     onClose();
-    if (res.role === 'admin') navigate('/admin');
+    if (res.role === 'admin' || res.role === 'president') navigate('/admin');
     else if (res.role === 'vendor') navigate('/vendor');
   };
 

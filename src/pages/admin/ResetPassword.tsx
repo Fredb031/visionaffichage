@@ -1,0 +1,130 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Lock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/integrations/supabase/client';
+
+export default function ResetPassword() {
+  const navigate = useNavigate();
+  const updatePassword = useAuthStore(s => s.updatePassword);
+  const error = useAuthStore(s => s.error);
+
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [tokenReady, setTokenReady] = useState(false);
+
+  // Supabase parses recovery token from URL hash automatically when client loads.
+  // We check that there's an active session before allowing the form.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setTokenReady(Boolean(session));
+    });
+  }, []);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPwd !== confirmPwd) {
+      useAuthStore.getState().setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+    if (newPwd.length < 8) {
+      useAuthStore.getState().setError('Mot de passe trop court (minimum 8 caractères)');
+      return;
+    }
+    setSubmitting(true);
+    const result = await updatePassword(newPwd);
+    setSubmitting(false);
+    if (result.ok) {
+      setDone(true);
+      setTimeout(() => navigate('/admin/login', { replace: true }), 2200);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img
+            src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
+            alt="Vision Affichage"
+            className="h-9 mx-auto mb-6 opacity-90"
+          />
+          <h1 className="text-2xl font-extrabold text-white mb-1">Nouveau mot de passe</h1>
+          <p className="text-sm text-white/60">Choisis un mot de passe fort (min 8 caractères)</p>
+        </div>
+
+        {done ? (
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={28} strokeWidth={2.5} />
+            </div>
+            <h2 className="text-lg font-extrabold mb-2">Mot de passe mis à jour</h2>
+            <p className="text-sm text-zinc-600">Redirection vers la connexion…</p>
+          </div>
+        ) : !tokenReady ? (
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
+            <AlertCircle size={28} className="text-amber-500 mx-auto mb-3" />
+            <h2 className="text-lg font-extrabold mb-2">Lien invalide ou expiré</h2>
+            <p className="text-sm text-zinc-600 mb-4">
+              Ce lien de réinitialisation n'est plus valide. Demande-en un nouveau.
+            </p>
+            <Link to="/admin/forgot-password" className="text-sm font-bold text-[#0052CC] hover:underline">
+              Recommencer
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
+            {error && (
+              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <label className="block">
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nouveau mot de passe</span>
+              <div className="mt-1.5 relative">
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="password"
+                  value={newPwd}
+                  onChange={e => setNewPwd(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
+                />
+              </div>
+            </label>
+
+            <label className="block">
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Confirmer</span>
+              <div className="mt-1.5 relative">
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="password"
+                  value={confirmPwd}
+                  onChange={e => setConfirmPwd(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
+                />
+              </div>
+            </label>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all"
+            >
+              {submitting ? 'Mise à jour…' : 'Confirmer'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

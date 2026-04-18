@@ -16,16 +16,25 @@ export default function AdminLogin() {
 
   const redirectTo = (location.state as { from?: string } | null)?.from;
 
-  const onSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = signIn(email, password);
+    setSubmitting(true);
+    const result = await signIn(email, password);
+    setSubmitting(false);
     if (!result.ok) return;
-    if (redirectTo && redirectTo.startsWith(result.role === 'admin' ? '/admin' : '/vendor')) {
+    const role = result.role;
+    if (redirectTo && (
+      (role === 'president') ||
+      (role === 'admin' && redirectTo.startsWith('/admin')) ||
+      ((role === 'vendor' || role === 'admin' || role === 'president') && redirectTo.startsWith('/vendor'))
+    )) {
       navigate(redirectTo, { replace: true });
       return;
     }
-    if (result.role === 'admin') navigate('/admin', { replace: true });
-    else if (result.role === 'vendor') navigate('/vendor', { replace: true });
+    if (role === 'admin' || role === 'president') navigate('/admin', { replace: true });
+    else if (role === 'vendor') navigate('/vendor', { replace: true });
     else navigate('/', { replace: true });
   };
 
@@ -100,24 +109,24 @@ export default function AdminLogin() {
               <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#0052CC]" />
               <span className="text-xs text-zinc-600">Rester connecté</span>
             </label>
-            <button type="button" className="text-xs font-bold text-[#0052CC] hover:underline">
+            <Link to="/admin/forgot-password" className="text-xs font-bold text-[#0052CC] hover:underline">
               Mot de passe oublié ?
-            </button>
+            </Link>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all"
+            disabled={submitting}
+            className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-60"
           >
-            Se connecter
-            <ArrowRight size={16} />
+            {submitting ? 'Connexion…' : 'Se connecter'}
+            {!submitting && <ArrowRight size={16} />}
           </button>
 
           <div className="bg-zinc-50 rounded-lg p-3 text-[11px] text-zinc-600 leading-relaxed">
-            <div className="font-bold text-zinc-700 mb-1">Comptes</div>
-            <div>👑 Président : <code className="bg-white px-1 rounded">contact@fredbouchard.ca</code> / <code className="bg-white px-1 rounded">president</code></div>
-            <div>Admin : <code className="bg-white px-1 rounded">admin@visionaffichage.com</code> / <code className="bg-white px-1 rounded">admin123</code></div>
-            <div>Vendeur : <code className="bg-white px-1 rounded">sophie@visionaffichage.com</code> / <code className="bg-white px-1 rounded">vendeur123</code></div>
+            <div className="font-bold text-zinc-700 mb-1">Première connexion</div>
+            <div>👑 Si tu es <strong>Frederick</strong>, crée ton compte : <Link to="/admin/signup" className="text-[#0052CC] font-bold hover:underline">Créer mon compte Président</Link></div>
+            <div className="text-zinc-500 mt-1">Le compte avec courriel <code className="bg-white px-1 rounded">contact@fredbouchard.ca</code> reçoit automatiquement le rôle Président avec accès total.</div>
           </div>
 
           <div className="text-center pt-2 border-t border-zinc-100">

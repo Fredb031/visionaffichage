@@ -29,6 +29,11 @@ const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
 const AdminImageGen = lazy(() => import("./pages/admin/AdminImageGen"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const Signup = lazy(() => import("./pages/admin/Signup"));
+const ForgotPassword = lazy(() => import("./pages/admin/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/admin/ResetPassword"));
+const AcceptInvite = lazy(() => import("./pages/admin/AcceptInvite"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 
 // Vendor (lazy)
 const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(m => ({ default: m.VendorLayout })));
@@ -67,6 +72,10 @@ const App = () => (
                 <Route path="/checkout" element={<Checkout />} />
 
                 <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/signup" element={<Signup />} />
+                <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+                <Route path="/admin/reset-password" element={<ResetPassword />} />
+                <Route path="/admin/accept-invite/:token" element={<AcceptInvite />} />
                 <Route
                   path="/admin"
                   element={
@@ -79,6 +88,7 @@ const App = () => (
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="products" element={<AdminProducts />} />
                   <Route path="vendors" element={<AdminVendors />} />
+                  <Route path="users" element={<AdminUsers />} />
                   <Route path="customers" element={<AdminCustomers />} />
                   <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
