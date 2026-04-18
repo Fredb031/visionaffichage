@@ -261,7 +261,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <span className="text-xs font-bold text-green-700">
                   {lang === 'en' ? `Code ${cart.discountCode} applied` : `Code ${cart.discountCode} appliqué`}
                 </span>
-                <button onClick={() => cart.clearDiscount()} className="ml-auto text-green-500"><X size={11} /></button>
+                <button
+                  onClick={() => cart.clearDiscount()}
+                  aria-label={lang === 'en' ? 'Remove discount code' : 'Retirer le code de rabais'}
+                  className="ml-auto w-8 h-8 flex items-center justify-center text-green-500 hover:text-green-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
               </div>
             )}
             {codeMsg && <p className={`text-xs font-bold px-1 ${codeMsg.ok ? 'text-green-700' : 'text-destructive'}`}>{codeMsg.text}</p>}
