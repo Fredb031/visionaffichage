@@ -1,0 +1,16 @@
+{
+  "name": "vision-autonomous-agent",
+  "version": "1.0.0",
+  "description": "Autonomous Claude agent that audits and improves the Vision Affichage site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx agent.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "zod": "^3.23.8"
+  }
+}

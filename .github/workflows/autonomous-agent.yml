@@ -1,0 +1,83 @@
+name: Autonomous Site Agent
+
+# Runs Claude Opus 4.7 on a cron schedule to audit the site, find improvements,
+# and commit small incremental fixes to the autonomous-improvements branch.
+#
+# Triggered by:
+#   - Schedule:     every 6 hours (UTC)
+#   - Manual:       workflow_dispatch (run anytime from the Actions tab)
+#
+# Required secrets:
+#   - ANTHROPIC_API_KEY — for Claude API calls
+#   - GITHUB_TOKEN      — built-in, used to push commits
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      focus:
+        description: 'Focus area for this run (optional)'
+        required: false
+        default: ''
+      max_changes:
+        description: 'Max files to change (default 3)'
+        required: false
+        default: '3'
+
+concurrency:
+  group: autonomous-agent
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install site dependencies
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Install agent dependencies
+        working-directory: scripts/autonomous-agent
+        run: npm install --no-audit --no-fund
+
+      - name: Configure git
+        run: |
+          git config user.name "Vision Autonomous Agent"
+          git config user.email "noreply@anthropic.com"
+
+      - name: Run autonomous agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FOCUS: ${{ github.event.inputs.focus }}
+          MAX_CHANGES: ${{ github.event.inputs.max_changes || '3' }}
+          RUN_ID: ${{ github.run_id }}
+        working-directory: scripts/autonomous-agent
+        run: npx tsx agent.ts
+
+      - name: Push improvements
+        run: |
+          # Check if anything was committed
+          BRANCH="autonomous-improvements"
+          if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+            echo "Pushing $BRANCH..."
+            git push origin "$BRANCH" --force-with-lease
+          else
+            echo "No improvements branch created this run."
+          fi
