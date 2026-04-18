@@ -114,7 +114,8 @@ export default function AdminLogin() {
           </button>
 
           <div className="bg-zinc-50 rounded-lg p-3 text-[11px] text-zinc-600 leading-relaxed">
-            <div className="font-bold text-zinc-700 mb-1">Comptes de test</div>
+            <div className="font-bold text-zinc-700 mb-1">Comptes</div>
+            <div>👑 Président : <code className="bg-white px-1 rounded">contact@fredbouchard.ca</code> / <code className="bg-white px-1 rounded">president</code></div>
             <div>Admin : <code className="bg-white px-1 rounded">admin@visionaffichage.com</code> / <code className="bg-white px-1 rounded">admin123</code></div>
             <div>Vendeur : <code className="bg-white px-1 rounded">sophie@visionaffichage.com</code> / <code className="bg-white px-1 rounded">vendeur123</code></div>
           </div>

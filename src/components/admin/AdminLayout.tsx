@@ -107,10 +107,19 @@ export function AdminLayout() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden md:block">
-              <div className="text-[13px] font-bold leading-tight">{user?.name ?? 'Admin'}</div>
-              <div className="text-[10px] text-zinc-500 leading-tight uppercase tracking-wider">{user?.role}</div>
+              <div className="text-[13px] font-bold leading-tight flex items-center justify-end gap-1">
+                {user?.role === 'president' && <span aria-label="Président" title="Président">👑</span>}
+                {user?.name ?? 'Admin'}
+              </div>
+              <div className="text-[10px] text-zinc-500 leading-tight uppercase tracking-wider">
+                {user?.title ?? user?.role}
+              </div>
             </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-sm font-bold">
+            <div className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-bold ${
+              user?.role === 'president'
+                ? 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] ring-2 ring-[#E8A838]/30'
+                : 'bg-gradient-to-br from-[#0052CC] to-[#1B3A6B]'
+            }`}>
               {user?.initials ?? '?'}
             </div>
           </div>

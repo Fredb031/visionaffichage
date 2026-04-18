@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
+import { filterRealColors } from '@/lib/colorFilter';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
 import { useLang } from '@/lib/langContext';
@@ -119,7 +120,7 @@ export default function ProductDetail() {
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-20 pb-32">
+      <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
         <Link
           to="/products"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
@@ -128,7 +129,7 @@ export default function ProductDetail() {
           {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
         </Link>
 
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 lg:gap-14 items-start">
           {/* Images */}
           <div className="space-y-3">
             <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group cursor-zoom-in">
@@ -173,9 +174,27 @@ export default function ProductDetail() {
           <div className="space-y-5">
             <div>
               <div className="flex items-start justify-between gap-3">
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
-                  {product.title}
-                </h1>
+                <div className="min-w-0">
+                  {/* SKU as small gray subtitle ABOVE the title */}
+                  {localProduct && (
+                    <div
+                      className="text-[11px] font-mono uppercase tracking-[2px] text-muted-foreground/70 mb-1"
+                      data-sku={localProduct.sku}
+                    >
+                      {localProduct.sku}
+                    </div>
+                  )}
+                  {/* Type as the main title */}
+                  <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+                    {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
+                  </h1>
+                  {/* Garment line in muted */}
+                  {localProduct && localProduct.gender !== 'unisex' && (
+                    <div className="text-xs text-muted-foreground mt-1 capitalize">
+                      {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
@@ -188,7 +207,7 @@ export default function ProductDetail() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
                 </button>
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
+              <div className="flex items-baseline gap-2 mt-3">
                 <span className="text-2xl font-extrabold text-primary">
                   {price} {currency}
                 </span>
@@ -196,106 +215,139 @@ export default function ProductDetail() {
                   {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
                 </span>
               </div>
+
+              {/* Visual color swatches — like the customizer */}
+              {localProduct && (() => {
+                const realColors = filterRealColors(localProduct.sku, localProduct.colors);
+                if (realColors.length === 0) return null;
+                return (
+                  <div className="mt-4">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      {lang === 'en' ? 'Colors' : 'Couleurs'} · {realColors.length}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {realColors.map(c => (
+                        <span
+                          key={c.id}
+                          className="w-6 h-6 rounded-full ring-1 ring-border shadow-sm"
+                          style={{ background: c.hex }}
+                          title={lang === 'en' ? (c.nameEn ?? c.name) : c.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Pricing tiers table — inspired by CustomInk/RushOrderTees */}
+            {/* Live quantity calculator (replaces static pricing tier table) */}
             {(() => {
               const shopifyBase = parseFloat(price);
               const unitWithPrint = shopifyBase + PRINT_PRICE;
               const discountedUnit = unitWithPrint * (1 - BULK_DISCOUNT_RATE);
-              return (
-                <div className="space-y-3">
-                  <div className="overflow-hidden rounded-xl border border-border text-sm">
-                    <div className="px-3.5 py-2 bg-secondary border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                      {lang === 'en' ? 'Price per unit (print included)' : 'Prix / unité (impression incluse)'}
-                    </div>
-                    <div className="divide-y divide-border">
-                      <div className="flex items-center justify-between px-3.5 py-2.5">
-                        <span className="text-muted-foreground">1–11 {lang === 'en' ? 'units' : 'unités'}</span>
-                        <span className="font-extrabold text-foreground">{unitWithPrint.toFixed(2)} $</span>
-                      </div>
-                      <div className="flex items-center justify-between px-3.5 py-2.5 bg-green-50/60">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">12+ {lang === 'en' ? 'units' : 'unités'}</span>
-                          <span className="text-[10px] font-extrabold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
-                            -{Math.round(BULK_DISCOUNT_RATE * 100)}%
-                          </span>
-                        </div>
-                        <span className="font-extrabold text-green-700">{discountedUnit.toFixed(2)} $</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Live quantity calculator */}
-                  <BulkCalculator unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />
-                </div>
-              );
+              return <BulkCalculator unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />;
             })()}
 
-            {/* Live SanMar stock — only shows when the edge function returns real data */}
-            {stockLoading ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-xs text-muted-foreground">
-                <Package className="w-3.5 h-3.5 animate-pulse" />
-                {lang === 'en' ? 'Checking live inventory…' : 'Vérification du stock en direct…'}
-              </div>
-            ) : stock.totalAvailable > 0 ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-green-200 bg-green-50 text-xs">
-                <Package className="w-3.5 h-3.5 text-green-700" />
-                <span className="font-bold text-green-800">
-                  {stock.totalAvailable.toLocaleString()} {lang === 'en' ? 'units in stock' : 'unités en stock'}
+            {/* Compact info row: stock + size guide + delivery */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              {!stockLoading && stock.totalAvailable > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold">
+                  <Package size={11} />
+                  {lang === 'en' ? 'In stock' : 'En stock'}
                 </span>
-                <span className="text-green-700">
-                  · {stock.byColor.size} {lang === 'en' ? 'colors' : 'couleurs'}
-                  · {stock.bySize.size} {lang === 'en' ? 'sizes' : 'tailles'}
-                </span>
-              </div>
-            ) : null}
-
-            {/* Size guide + delivery estimate */}
-            <div className="flex items-center gap-3">
+              )}
               <button
                 onClick={() => setSizeGuideOpen(true)}
-                className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-primary hover:underline font-bold"
               >
-                <Ruler size={13} />
+                <Ruler size={11} />
                 {lang === 'en' ? 'Size guide' : 'Guide des tailles'}
               </button>
-              <span className="text-border">|</span>
-              <span className="text-xs text-muted-foreground">
-                🚚 {lang === 'en'
-                  ? `Order today, receive by ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
-                  : `Commande aujourd'hui, reçu le ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}`}
+              <span className="text-muted-foreground">
+                · {lang === 'en'
+                  ? `Receive by ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
+                  : `Reçu le ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}`}
               </span>
             </div>
 
-            {/* Options */}
-            {options.map((option: { name: string; values: string[] }) => (
-              <div key={option.name}>
-                <label className="text-sm font-bold mb-2 block text-foreground">
-                  {option.name}
-                  {currentOptions[option.name] && (
-                    <span className="font-normal text-muted-foreground ml-2">
-                      — {currentOptions[option.name]}
-                    </span>
-                  )}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {option.values.map((value: string) => (
-                    <button
-                      key={value}
-                      onClick={() => setSelectedOptions((prev) => ({ ...prev, [option.name]: value }))}
-                      className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
-                        currentOptions[option.name] === value
-                          ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
-                          : 'bg-background text-foreground border-border hover:border-primary'
-                      }`}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {/* Options — Color shown as swatches in header above; render Color here too with FR label, hide if a single value */}
+            {options
+              .filter((opt: { name: string; values: string[] }) => opt.values.length > 1)
+              .map((option: { name: string; values: string[] }) => {
+                const isColor = /color|colour|couleur/i.test(option.name);
+                const localizedName = (() => {
+                  if (lang === 'fr') {
+                    if (isColor) return 'Couleur';
+                    if (/size/i.test(option.name)) return 'Taille';
+                    return option.name;
+                  }
+                  if (isColor) return 'Color';
+                  return option.name;
+                })();
+
+                return (
+                  <div key={option.name}>
+                    <label className="text-sm font-bold mb-2 block text-foreground">
+                      {localizedName}
+                      {currentOptions[option.name] && (
+                        <span className="font-normal text-muted-foreground ml-2">
+                          — {currentOptions[option.name]}
+                        </span>
+                      )}
+                    </label>
+
+                    {isColor && localProduct ? (
+                      /* Color: visual swatches like the customizer */
+                      <div className="flex flex-wrap gap-2">
+                        {option.values.map((value: string) => {
+                          const match = localProduct.colors.find(
+                            c => c.name === value || c.nameEn === value || c.id === value.toLowerCase().replace(/\s+/g, '-'),
+                          );
+                          const hex = match?.hex ?? '#888888';
+                          const isSelected = currentOptions[option.name] === value;
+                          return (
+                            <button
+                              key={value}
+                              onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                              className={`relative w-9 h-9 rounded-full transition-all ${
+                                isSelected
+                                  ? 'ring-2 ring-primary ring-offset-2 scale-110'
+                                  : 'ring-1 ring-border hover:ring-primary/50'
+                              }`}
+                              style={{ background: hex }}
+                              aria-label={value}
+                              title={value}
+                            >
+                              {isSelected && (
+                                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <Check size={14} className="text-white drop-shadow" strokeWidth={3} />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* Size + others: text pills */
+                      <div className="flex flex-wrap gap-2">
+                        {option.values.map((value: string) => (
+                          <button
+                            key={value}
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                            className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                              currentOptions[option.name] === value
+                                ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
+                                : 'bg-background text-foreground border-border hover:border-primary'
+                            }`}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
             {/* CTA */}
             <button

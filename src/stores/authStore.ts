@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type UserRole = 'admin' | 'vendor' | 'client';
+export type UserRole = 'president' | 'admin' | 'vendor' | 'client';
 
 export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
   initials: string;
+  title?: string;
 }
 
 interface AuthState {
@@ -21,8 +22,10 @@ interface AuthState {
 
 // Dev accounts — replace with Supabase Auth wiring when credentials provided.
 // These let the full role-based UI flow be tested end-to-end without a backend.
-const DEV_ACCOUNTS: Record<string, { password: string; role: UserRole; name: string }> = {
-  'admin@visionaffichage.com': { password: 'admin123', role: 'admin',  name: 'Frederick Bouchard' },
+const DEV_ACCOUNTS: Record<string, { password: string; role: UserRole; name: string; title?: string }> = {
+  // Owner / ultimate admin — full access to everything
+  'contact@fredbouchard.ca':    { password: 'president', role: 'president', name: 'Frederick Bouchard', title: 'Président' },
+  'admin@visionaffichage.com':  { password: 'admin123', role: 'admin',  name: 'Frederick Bouchard' },
   'sophie@visionaffichage.com': { password: 'vendeur123', role: 'vendor', name: 'Sophie Tremblay' },
   'marc@visionaffichage.com':   { password: 'vendeur123', role: 'vendor', name: 'Marc-André Pelletier' },
 };
@@ -52,6 +55,7 @@ export const useAuthStore = create<AuthState>()(
             name: account.name,
             role: account.role,
             initials: toInitials(account.name),
+            title: account.title,
           };
           set({ user, error: null });
           return { ok: true, role: account.role };

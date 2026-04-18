@@ -17,7 +17,8 @@ export function AuthGuard({ children, requiredRole, redirectTo = '/admin/login' 
     return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  // President has access to everything — bypass role check.
+  if (user.role !== 'president' && !allowedRoles.includes(user.role)) {
     // Wrong role — send to their natural home.
     const home = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/vendor' : '/';
     return <Navigate to={home} replace />;
