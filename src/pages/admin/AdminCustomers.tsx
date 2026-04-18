@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
   SHOPIFY_STATS,
@@ -70,8 +71,15 @@ export default function AdminCustomers() {
             </span>
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
-          <RefreshCw size={15} />
+        <button
+          type="button"
+          onClick={() => {
+            toast.info('Synchronisation en cours…');
+            setTimeout(() => window.location.reload(), 400);
+          }}
+          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        >
+          <RefreshCw size={15} aria-hidden="true" />
           Resync
         </button>
       </header>

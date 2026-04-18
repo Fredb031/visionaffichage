@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { SkipLink } from "@/components/SkipLink";
 import { LangProvider } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -60,6 +61,7 @@ const App = () => (
       <Sonner />
       <ErrorBoundary>
           <BrowserRouter>
+            <SkipLink />
             <ScrollToTop />
             <Suspense fallback={<LazyFallback />}>
               <Routes>
