@@ -10,13 +10,16 @@ export function SiteFooter() {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
+    const normalized = email.trim().toLowerCase();
     // Tighter regex than /^[^@]+@[^@]+\.[^@]+$/ — rejects invalid
     // addresses like "a@b.c" while still accepting valid ones.
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email.trim())) return;
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalized)) return;
     try {
-      const list = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
-      if (!list.includes(email)) {
-        list.push(email);
+      const raw = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
+      // Defensive: older versions stored strings here; force to array.
+      const list: string[] = Array.isArray(raw) ? raw : [];
+      if (!list.includes(normalized)) {
+        list.push(normalized);
         localStorage.setItem('vision-newsletter', JSON.stringify(list));
       }
     } catch { /* noop */ }
