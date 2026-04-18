@@ -46,15 +46,18 @@ export function useLang() { return useContext(LangContext); }
 // Language toggle button component
 export function LangToggle() {
   const { lang, setLang } = useLang();
+  const switchLabel = lang === 'fr' ? 'Switch to English' : 'Passer en français';
   return (
     <button
       onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-      className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground border border-border rounded-full px-3 py-1.5 hover:border-muted-foreground transition-all"
-      title={lang === 'fr' ? 'Switch to English' : 'Passer en français'}
+      className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground border border-border rounded-full px-3 py-1.5 hover:border-muted-foreground transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+      title={switchLabel}
+      aria-label={switchLabel}
+      lang={lang === 'fr' ? 'en' : 'fr'}
     >
-      <span className={lang === 'fr' ? 'text-foreground font-black' : ''}>FR</span>
-      <span className="text-border">|</span>
-      <span className={lang === 'en' ? 'text-foreground font-black' : ''}>EN</span>
+      <span className={lang === 'fr' ? 'text-foreground font-black' : ''} aria-hidden="true">FR</span>
+      <span className="text-border" aria-hidden="true">|</span>
+      <span className={lang === 'en' ? 'text-foreground font-black' : ''} aria-hidden="true">EN</span>
     </button>
   );
 }
