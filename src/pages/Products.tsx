@@ -173,14 +173,17 @@ export default function Products() {
             </div>
 
             {/* Category tabs — pill style */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1" role="tablist" aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}>
               {CATEGORIES.map((cat) => {
                 const isActive = activeCategory === cat.id && !searchQuery;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => selectCategory(cat.id)}
-                    className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full ${
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
                       isActive
                         ? 'bg-white text-[#1B3A6B] shadow-md'
                         : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
