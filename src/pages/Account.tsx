@@ -7,6 +7,7 @@ import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { WishlistGrid } from '@/components/WishlistGrid';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 
 export default function Account() {
@@ -148,6 +149,9 @@ export default function Account() {
             </div>
           </Link>
         </div>
+
+        {/* Saved products — renders nothing when the wishlist is empty */}
+        <WishlistGrid />
 
         {/* Orders */}
         <div className="bg-white border border-border rounded-2xl overflow-hidden">
