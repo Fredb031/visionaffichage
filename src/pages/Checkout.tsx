@@ -97,18 +97,42 @@ export default function Checkout() {
     // domain without Shopify Plus checkout extensibility). Everything before
     // this — shipping/email/method — stays on-site.
     try {
-      const checkoutUrl = shopifyCart.getCheckoutUrl();
+      // Wait briefly for Shopify cart to be ready (it's populated async
+      // when items are added in the customizer; if the user is fast they
+      // can hit Pay before the last line resolves).
+      let checkoutUrl = shopifyCart.getCheckoutUrl();
+      let retries = 0;
+      while (!checkoutUrl && retries < 6 && shopifyCart.isLoading) {
+        await new Promise(r => setTimeout(r, 350));
+        checkoutUrl = shopifyCart.getCheckoutUrl();
+        retries++;
+      }
+
       if (checkoutUrl) {
-        // Persist a marker so we can show 'done' state if the user returns
         try { localStorage.setItem('vision-pending-checkout', JSON.stringify({ ...form, total, ts: Date.now() })); } catch {}
-        // Same-window redirect, full-screen Shopify-hosted card form
         window.location.href = checkoutUrl;
         return;
       }
-      // Fallback
+
+      // Last resort: rebuild Shopify cart from local items if any
+      // shopifyVariantIds were captured.
+      const localLines = cart.items.flatMap(it =>
+        (it.shopifyVariantIds ?? []).map(vid => ({ vid, qty: 1 })),
+      );
+      if (localLines.length === 0) {
+        alert(lang === 'en'
+          ? 'Your cart could not be synced to Shopify. Please refresh and try again, or contact us at 367-380-4808.'
+          : "Le panier n'a pas pu être synchronisé avec Shopify. Rafraîchis la page ou appelle-nous au 367-380-4808.");
+        setProcessing(false);
+        return;
+      }
+      // Fallback to the Shopify-hosted cart page
       window.location.href = 'https://visionaffichage-com.myshopify.com/cart';
     } catch (err) {
       console.error('Checkout error:', err);
+      alert(lang === 'en'
+        ? 'Something went wrong. Please try again or call us.'
+        : 'Une erreur est survenue. Réessaie ou appelle-nous.');
       setProcessing(false);
     }
   };

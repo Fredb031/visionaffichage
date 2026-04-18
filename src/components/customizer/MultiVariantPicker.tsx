@@ -11,12 +11,16 @@ export interface VariantQty {
   hex: string;
   size: string;
   qty: number;
+  /** The actual Shopify variant ID for this (color, size) combo — needed
+   * for cartLinesAdd at checkout. */
+  shopifyVariantId?: string;
+  unitPrice?: string;
 }
 
 interface Props {
   product: Product;
   /** Colors from Shopify (preferred) or local. Always show all. */
-  colors: Pick<ShopifyVariantColor, 'variantId' | 'colorName' | 'hex'>[];
+  colors: ShopifyVariantColor[];
   /** Already-picked variants (color × size cells). */
   variants: VariantQty[];
   onChange: (next: VariantQty[]) => void;
@@ -42,9 +46,26 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
   const setQty = (color: typeof activeColor, size: string, qty: number) => {
     if (!color) return;
     const filtered = variants.filter(v => !(v.colorId === color.variantId && v.size === size));
-    const next = qty > 0
-      ? [...filtered, { colorId: color.variantId, colorName: color.colorName, hex: color.hex, size, qty }]
-      : filtered;
+    if (qty <= 0) {
+      onChange(filtered);
+      return;
+    }
+    // Look up the actual Shopify size variant for this (color, size) combo.
+    // This ID is what cartLinesAdd needs at checkout — without it the order
+    // never reaches Shopify.
+    const sizeOpt = (color as ShopifyVariantColor).sizeOptions?.find(s => s.size === size);
+    const next = [
+      ...filtered,
+      {
+        colorId: color.variantId,
+        colorName: color.colorName,
+        hex: color.hex,
+        size,
+        qty,
+        shopifyVariantId: sizeOpt?.variantId,
+        unitPrice: (color as ShopifyVariantColor).price,
+      },
+    ];
     onChange(next);
   };
 

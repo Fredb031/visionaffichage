@@ -108,9 +108,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   };
 
   const handleAddToCart = async () => {
-    // ── Multi-variant flow: emit ONE cart line item per (color × all sizes) group ──
+    // ── Multi-variant flow: emit ONE local cart line per color group AND
+    //    push each (color × size) Shopify variant to the Shopify cart store
+    //    so checkoutUrl resolves at /checkout. Without this push, the local
+    //    UI shows items but Shopify never sees them → checkout = null.
     if (multiVariants.length > 0) {
-      // Group variants by color so each color becomes a single cart line
       const byColor = new Map<string, { color: VariantQty; sizes: { size: string; qty: number }[]; total: number }>();
       for (const v of multiVariants) {
         const existing = byColor.get(v.colorId);
@@ -126,10 +128,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         }
       }
 
-      for (const group of byColor.values()) {
+      // 1) Local cart lines (for cart UI display) — track shopifyVariantIds
+      //    so removing the line later also removes from Shopify.
+      for (const [colorId, group] of byColor.entries()) {
         const colorImg = findColorImage(product.sku, group.color.colorName);
         const linePreview = store.logoPlacement?.previewUrl ?? colorImg?.front ?? product.imageDevant;
-
+        const variantIdsForLine = multiVariants
+          .filter(v => v.colorId === colorId && v.shopifyVariantId)
+          .map(v => v.shopifyVariantId as string);
         cartStore.addItem({
           productId: product.id,
           colorId: group.color.colorId,
@@ -142,6 +148,41 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           unitPrice: unitPrice * discount,
           totalQuantity: group.total,
           totalPrice: parseFloat((group.total * unitPrice * discount).toFixed(2)),
+          shopifyVariantIds: variantIdsForLine,
+        });
+      }
+
+      // 2) Shopify cart sync — one line per (color × size) Shopify variant
+      const minimalProduct: ShopifyProduct = {
+        node: {
+          id: product.id,
+          title: product.name,
+          description: product.description,
+          handle: product.shopifyHandle,
+          productType: '',
+          tags: [],
+          priceRange: { minVariantPrice: { amount: product.basePrice.toFixed(2), currencyCode: 'CAD' } },
+          images: { edges: [{ node: { url: product.imageDevant, altText: product.shortName } }] },
+          variants: { edges: [] },
+          options: [{ name: 'Couleur', values: [] }],
+        },
+      };
+
+      for (const v of multiVariants) {
+        if (!v.shopifyVariantId) {
+          console.warn('Skipping Shopify sync — no variantId for', v.colorName, v.size);
+          continue;
+        }
+        await shopifyCartStore.addItem({
+          product: minimalProduct,
+          variantId: v.shopifyVariantId,
+          variantTitle: `${v.colorName} / ${v.size}`,
+          price: { amount: (unitPrice * discount).toFixed(2), currencyCode: 'CAD' },
+          quantity: v.qty,
+          selectedOptions: [
+            { name: 'Couleur', value: v.colorName },
+            { name: 'Taille', value: v.size },
+          ],
         });
       }
     } else if (shopifyColor && totalQty > 0) {
@@ -475,7 +516,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     product={shopifyColor?.sizeOptions.length
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
                       : product}
-                    colors={displayColors.map(c => ({ variantId: c.variantId, colorName: c.colorName, hex: c.hex }))}
+                    colors={displayColors}
                     variants={multiVariants}
                     onChange={setMultiVariants}
                   />

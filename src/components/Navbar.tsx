@@ -4,13 +4,17 @@ import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
+import { LoginModal } from '@/components/LoginModal';
 
 interface NavbarProps {
   onOpenCart?: () => void;
+  /** Optional override — by default Navbar manages its own LoginModal */
   onOpenLogin?: () => void;
 }
 
 export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
+  const [internalLoginOpen, setInternalLoginOpen] = useState(false);
+  const openLogin = onOpenLogin ?? (() => setInternalLoginOpen(true));
   const itemCount = useCartStore((s) => s.getItemCount());
   const { t } = useLang();
   const user = useAuthStore(s => s.user);
@@ -105,25 +109,23 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             )}
           </div>
         ) : (
-          onOpenLogin && (
-            <button
-              onClick={onOpenLogin}
-              className="hidden sm:flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground"
+          <button
+            onClick={openLogin}
+            className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground"
+          >
+            <svg
+              className="w-[13px] h-[13px]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
             >
-              <svg
-                className="w-[13px] h-[13px]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
-              </svg>
-              {t('connexion')}
-            </button>
-          )
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
+            </svg>
+            <span className="hidden sm:inline">{t('connexion')}</span>
+          </button>
         )}
 
         <button
@@ -159,6 +161,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           {t('voirProduits')}
         </Link>
       </div>
+
+      {/* Internal LoginModal — every page that uses Navbar gets login for free */}
+      {!user && !onOpenLogin && (
+        <LoginModal isOpen={internalLoginOpen} onClose={() => setInternalLoginOpen(false)} />
+      )}
     </nav>
   );
 }

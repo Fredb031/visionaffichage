@@ -89,7 +89,18 @@ export default function Cart() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     window.location.href = '/checkout';
   };
-  void shopifyCart;
+
+  // Remove from BOTH local + Shopify cart so Shopify checkout reflects the
+  // user's actual basket. Without this, deleted items still appear at pay.
+  const handleRemoveItem = async (cartId: string) => {
+    const item = items.find(i => i.cartId === cartId);
+    removeItem(cartId);
+    if (item?.shopifyVariantIds && item.shopifyVariantIds.length > 0) {
+      for (const variantId of item.shopifyVariantIds) {
+        try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,7 +193,7 @@ export default function Cart() {
 
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
                   <button
-                    onClick={() => removeItem(item.cartId)}
+                    onClick={() => handleRemoveItem(item.cartId)}
                     className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive bg-transparent cursor-pointer transition-colors"
                     title={lang === 'en' ? 'Remove' : 'Supprimer'}
                   >

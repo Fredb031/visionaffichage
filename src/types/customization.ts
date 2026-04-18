@@ -34,4 +34,8 @@ export type CartItemCustomization = CustomizationState & {
   totalQuantity: number;
   totalPrice: number;
   addedAt: Date;
+  /** Shopify variant IDs for each (color, size) sub-line that was synced
+   * to the Shopify cart. Used to remove from Shopify when this local
+   * cart line is removed. */
+  shopifyVariantIds?: string[];
 };
