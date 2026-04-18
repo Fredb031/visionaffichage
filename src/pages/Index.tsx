@@ -293,7 +293,7 @@ export default function Index() {
                           className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play"
                           aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
                         >
-                          <img src={v.img} alt="" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
+                          <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover/play:scale-110 shadow-xl">
                               <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -382,7 +382,7 @@ export default function Index() {
             <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
               {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
                 <div key={i} className="px-10 flex items-center justify-center h-[88px]">
-                  <img src={logo.src} alt={logo.alt} className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all" />
+                  <img src={logo.src} alt={logo.alt} loading="lazy" decoding="async" className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all" />
                 </div>
               ))}
             </div>

@@ -120,7 +120,7 @@ export default function QuoteAccept() {
               <div className="space-y-3">
                 {MOCK_QUOTE.items.map(it => (
                   <div key={it.id} className="flex gap-4 items-center p-3 bg-secondary/30 rounded-xl">
-                    <img src={it.image} alt="" className="w-20 h-20 rounded-lg object-cover bg-white flex-shrink-0 border border-border" />
+                    <img src={it.image} alt="" loading="lazy" decoding="async" className="w-20 h-20 rounded-lg object-cover bg-white flex-shrink-0 border border-border" />
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-sm">{it.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">

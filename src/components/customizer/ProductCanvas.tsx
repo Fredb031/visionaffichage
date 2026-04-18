@@ -22,7 +22,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
-  ImageOff, Move, Trash2, Type,
+  ImageOff, Move, Trash2, Type, X,
 } from 'lucide-react';
 import type { Product, PrintZone } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
@@ -51,6 +51,9 @@ export function ProductCanvas({
   const [textInput, setTextInput] = useState('');
   const [textColor, setTextColor] = useState('#FFFFFF');
   const [textFont, setTextFont] = useState('Inter, system-ui, sans-serif');
+  const [textAssets, setTextAssets] = useState<Array<{ id: string; text: string; color: string }>>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const textObjects = useRef<Map<string, any>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -433,6 +436,7 @@ export function ProductCanvas({
       const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
       const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
 
+      const id = `txt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const t = new fabric.IText(text, {
         left: cx, top: cy,
         originX: 'center', originY: 'center',
@@ -454,7 +458,19 @@ export function ProductCanvas({
       canvas.setActiveObject(t);
       canvas.bringToFront(t);
       canvas.renderAll();
+      textObjects.current.set(id, t);
+      setTextAssets(prev => [...prev, { id, text, color }]);
     });
+  };
+
+  const removeTextAsset = (id: string) => {
+    const obj = textObjects.current.get(id);
+    if (obj && fc.current) {
+      fc.current.remove(obj);
+      fc.current.renderAll();
+    }
+    textObjects.current.delete(id);
+    setTextAssets(prev => prev.filter(t => t.id !== id));
   };
 
   return (
@@ -576,6 +592,29 @@ export function ProductCanvas({
           >
             <Trash2 size={13} />
           </button>
+        </div>
+      )}
+
+      {/* Assets panel — shows added texts with delete */}
+      {textAssets.length > 0 && (
+        <div className="bg-secondary/60 border border-border rounded-xl p-2 space-y-1">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
+            {lang === 'en' ? `${textAssets.length} text element${textAssets.length > 1 ? 's' : ''}` : `${textAssets.length} élément${textAssets.length > 1 ? 's' : ''} texte`}
+          </div>
+          {textAssets.map(a => (
+            <div key={a.id} className="flex items-center gap-2 bg-background rounded-lg px-2 py-1.5">
+              <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: a.color }} />
+              <span className="flex-1 text-xs font-semibold truncate text-foreground" title={a.text}>{a.text}</span>
+              <button
+                type="button"
+                onClick={() => removeTextAsset(a.id)}
+                className="w-6 h-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                aria-label={lang === 'en' ? `Remove text ${a.text}` : `Retirer le texte ${a.text}`}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

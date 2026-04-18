@@ -175,7 +175,7 @@ export default function QuoteBuilder() {
                 className="text-left border border-zinc-200 rounded-lg overflow-hidden hover:border-[#0052CC] hover:shadow-md transition-all bg-white group"
               >
                 <div className="aspect-square bg-zinc-100 relative">
-                  {p.imageDevant && <img src={p.imageDevant} alt="" className="w-full h-full object-cover" />}
+                  {p.imageDevant && <img src={p.imageDevant} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
                       <Plus size={16} className="text-[#0052CC]" />
