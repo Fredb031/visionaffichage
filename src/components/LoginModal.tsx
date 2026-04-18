@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -41,13 +42,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  // Lock body scroll while the modal is open.
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 

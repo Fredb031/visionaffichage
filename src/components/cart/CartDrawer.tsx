@@ -9,6 +9,7 @@ import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { PRODUCTS } from '@/data/products';
 import type { CartItemCustomization } from '@/types/customization';
 
@@ -126,12 +127,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // Lock body scroll while the drawer is open — otherwise scroll wheel
   // over the overlay keeps moving the page underneath, which reads as
   // broken on mobile especially.
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   const applyCode = () => {
     const ok = cart.applyDiscount(codeInput.toUpperCase());
