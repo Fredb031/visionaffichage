@@ -1,6 +1,10 @@
 import { Search, Plus, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
+import { TablePagination } from '@/components/admin/TablePagination';
+
+const PAGE_SIZE = 32;
 
 function formatPrice(min: number, max: number): string {
   if (min === max) return `${min.toFixed(2)} $`;
@@ -10,6 +14,9 @@ function formatPrice(min: number, max: number): string {
 export default function AdminProducts() {
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [page, setPage] = useState(0);
+
+  useEffect(() => { setPage(0); }, [query, typeFilter]);
 
   const productTypes = useMemo(() => {
     const set = new Set(SHOPIFY_PRODUCTS_SNAPSHOT.map(p => p.productType).filter(Boolean));
@@ -29,6 +36,11 @@ export default function AdminProducts() {
     });
   }, [query, typeFilter]);
 
+  const pageProducts = useMemo(
+    () => products.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [products, page],
+  );
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
@@ -44,8 +56,15 @@ export default function AdminProducts() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
-            <RefreshCw size={15} />
+          <button
+            type="button"
+            onClick={() => {
+              toast.info('Synchronisation en cours…');
+              setTimeout(() => window.location.reload(), 400);
+            }}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <RefreshCw size={15} aria-hidden="true" />
             Resynchroniser
           </button>
           <a
@@ -83,7 +102,7 @@ export default function AdminProducts() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
-          {products.map(p => {
+          {pageProducts.map(p => {
             const lowStock = p.totalInventory <= 0;
             return (
               <a
@@ -132,6 +151,14 @@ export default function AdminProducts() {
         {products.length === 0 && (
           <div className="p-12 text-center text-zinc-400 text-sm">Aucun produit trouvé</div>
         )}
+
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={products.length}
+          onPageChange={setPage}
+          itemLabel="produits"
+        />
       </div>
     </div>
   );
