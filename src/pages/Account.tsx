@@ -90,8 +90,8 @@ export default function Account() {
       <Navbar />
 
       <main className="max-w-[920px] mx-auto px-4 md:px-8 pt-20 pb-16">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" />
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {lang === 'en' ? 'Back home' : "Retour à l'accueil"}
         </Link>
 
@@ -117,9 +117,9 @@ export default function Account() {
           <button
             type="button"
             onClick={handleLogout}
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 border border-border rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 border border-border rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
           >
-            <LogOut size={13} />
+            <LogOut size={13} aria-hidden="true" />
             {lang === 'en' ? 'Sign out' : 'Déconnexion'}
           </button>
         </div>
@@ -140,7 +140,7 @@ export default function Account() {
               {totalSpent.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 0 })} $
             </div>
           </div>
-          <Link to="/products" className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-2xl p-4 hover:shadow-lg transition-shadow">
+          <Link to="/products" className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-2xl p-4 hover:shadow-lg transition-shadow focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2">
             <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
               {lang === 'en' ? 'Reorder' : 'Recommander'}
             </div>
@@ -157,17 +157,17 @@ export default function Account() {
         <div className="bg-white border border-border rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-border flex items-center justify-between">
             <h2 className="font-bold flex items-center gap-2">
-              <Package size={16} className="text-primary" />
+              <Package size={16} className="text-primary" aria-hidden="true" />
               {lang === 'en' ? 'My orders' : 'Mes commandes'}
             </h2>
-            <Link to="/track" className="text-xs font-bold text-[#0052CC] hover:underline">
+            <Link to="/track" className="text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded">
               {lang === 'en' ? 'Track an order →' : 'Suivre une commande →'}
             </Link>
           </div>
 
           {myOrders.length === 0 ? (
             <div className="p-10 md:p-12 text-center">
-              <ShoppingBag size={36} className="text-[#0052CC]/30 mx-auto mb-3" />
+              <ShoppingBag size={36} className="text-[#0052CC]/30 mx-auto mb-3" aria-hidden="true" />
               <h3 className="text-base font-extrabold text-foreground mb-1">
                 {lang === 'en' ? 'No orders yet' : 'Pas encore de commande'}
               </h3>
@@ -178,7 +178,7 @@ export default function Account() {
               </p>
               <Link
                 to="/products"
-                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full hover:-translate-y-0.5 transition-transform"
+                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Start your first order →' : 'Commencer ma première commande →'}
               </Link>
@@ -203,10 +203,10 @@ export default function Account() {
                   <Link
                     key={o.id}
                     to={`/track/${o.name.replace('#', '')}`}
-                    className="flex items-center gap-4 p-4 hover:bg-zinc-50 transition-colors group"
+                    className="flex items-center gap-4 p-4 hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                   >
                     <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-                      <Package size={16} className="text-primary" />
+                      <Package size={16} className="text-primary" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -216,13 +216,13 @@ export default function Account() {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
-                        <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(o.createdAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</span>
+                        <span className="flex items-center gap-1"><Calendar size={10} aria-hidden="true" /> {new Date(o.createdAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</span>
                         <span>{o.itemsCount} {lang === 'en' ? 'items' : 'articles'}</span>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-extrabold">{o.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { minimumFractionDigits: 2 })} $</div>
-                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] inline-block" />
+                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] inline-block" aria-hidden="true" />
                     </div>
                   </Link>
                 );

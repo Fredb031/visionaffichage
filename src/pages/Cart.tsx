@@ -38,7 +38,7 @@ function PromoCodeInput({
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1.5">
-        <Tag size={13} className="text-muted-foreground flex-shrink-0" />
+        <Tag size={13} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
         <input
           type="text"
           value={code}
@@ -46,7 +46,9 @@ function PromoCodeInput({
           onKeyDown={e => { if (e.key === 'Enter') submit(); }}
           placeholder={placeholder}
           aria-label={placeholder}
-          className={`flex-1 bg-secondary border rounded-lg px-2.5 py-1.5 text-xs uppercase tracking-wider outline-none transition-colors ${
+          aria-invalid={error || undefined}
+          autoComplete="off"
+          className={`flex-1 bg-secondary border rounded-lg px-2.5 py-1.5 text-xs uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/25 ${
             error ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
           }`}
         />
@@ -54,13 +56,13 @@ function PromoCodeInput({
           type="button"
           onClick={submit}
           disabled={!code.trim()}
-          className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:opacity-90 disabled:opacity-30"
+          className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:opacity-90 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
           {applyLabel}
         </button>
       </div>
       {error && (
-        <p className="text-[10px] text-rose-600 font-semibold pl-5">{invalidLabel}</p>
+        <p className="text-[10px] text-rose-600 font-semibold pl-5" role="alert">{invalidLabel}</p>
       )}
     </div>
   );
@@ -123,9 +125,9 @@ export default function Cart() {
       <div className="max-w-3xl mx-auto px-6 pt-20 pb-32">
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {lang === 'en' ? 'Continue shopping' : 'Continuer tes achats'}
         </Link>
 
@@ -291,7 +293,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={clearDiscount}
-                        className="text-[11px] font-bold underline hover:no-underline"
+                        aria-label={lang === 'en' ? `Remove promo code ${discountCode}` : `Retirer le code promo ${discountCode}`}
+                        className="text-[11px] font-bold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 rounded"
                       >
                         {lang === 'en' ? 'Remove' : 'Retirer'}
                       </button>
@@ -335,7 +338,7 @@ export default function Cart() {
               </button>
 
               <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
-                <Lock className="w-3 h-3" />
+                <Lock className="w-3 h-3" aria-hidden="true" />
                 {lang === 'en'
                   ? 'Secure Shopify checkout · Delivered in 5 business days'
                   : 'Paiement sécurisé Shopify · Livré en 5 jours ouvrables'}
