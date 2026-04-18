@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ShopifyProduct } from '@/lib/shopify';
-import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
+// Customizer pulls in fabric.js (~310kB) and its own siblings — lazy-
+// load so just rendering the grid doesn't eagerly fetch it. The
+// customizer only opens when the user clicks the inline 'Personnaliser'.
+const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD, POPULAR_SKUS } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
@@ -179,7 +182,9 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
 
       <AnimatePresence>
         {customizerOpen && local && (
-          <ProductCustomizer productId={local.id} onClose={() => setCustomizerOpen(false)} />
+          <Suspense fallback={null}>
+            <ProductCustomizer productId={local.id} onClose={() => setCustomizerOpen(false)} />
+          </Suspense>
         )}
       </AnimatePresence>
     </>
