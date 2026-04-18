@@ -317,7 +317,7 @@ export default function Cart() {
 
               <button
                 onClick={handleCheckout}
-                className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                 style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
                 disabled={checkingOut}
               >
