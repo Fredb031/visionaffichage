@@ -172,12 +172,23 @@ export default function AdminVendors() {
       </div>
 
       {showInvite && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowInvite(false)}>
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-vendor-title"
+          onClick={() => setShowInvite(false)}
+        >
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-extrabold">Inviter un vendeur</h2>
-              <button onClick={() => setShowInvite(false)} className="text-zinc-400 hover:text-zinc-700">
-                <X size={18} />
+              <h2 id="invite-vendor-title" className="text-lg font-extrabold">Inviter un vendeur</h2>
+              <button
+                type="button"
+                onClick={() => setShowInvite(false)}
+                aria-label="Fermer"
+                className="text-zinc-400 hover:text-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
+              >
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p className="text-sm text-zinc-500 mb-4">
@@ -187,10 +198,12 @@ export default function AdminVendors() {
               <label className="block">
                 <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nom complet</span>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   required
+                  autoComplete="name"
                   placeholder="Marie Tremblay"
                   className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]"
                 />
@@ -202,6 +215,7 @@ export default function AdminVendors() {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   placeholder="marie@visionaffichage.com"
                   className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]"
                 />
