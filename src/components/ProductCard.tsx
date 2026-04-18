@@ -2,13 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ShopifyProduct } from '@/lib/shopify';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
-import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
+import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD, POPULAR_SKUS } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
 import { filterRealColors } from '@/lib/colorFilter';
-
-// SKUs marked as popular — shown with badge on product card
-const POPULAR_SKUS = new Set(['ATC1000', 'S445LS', 'L445', 'ATCF2500']);
 
 interface ProductCardProps { product: ShopifyProduct; }
 

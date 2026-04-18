@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
-import { PRODUCTS } from '@/data/products';
+import { PRODUCTS, FEATURED_SKUS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
-
-const FEATURED_SKUS = ['ATC1000', 'ATCF2500', 'L445', 'ATC6606'];
 
 export function FeaturedProducts() {
   const { lang } = useLang();

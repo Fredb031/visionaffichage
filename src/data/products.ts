@@ -1064,3 +1064,11 @@ export function findColorImage(sku: string, colorName: string): { front?: string
 
   return null;
 }
+// ── Curation lists ──────────────────────────────────────────────────────────
+// Centralized so editors can update featured/popular products in one place.
+
+/** SKUs shown in the homepage "Most ordered" hero grid (4 max). */
+export const FEATURED_SKUS = ['ATC1000', 'ATCF2500', 'L445', 'ATC6606'] as const;
+
+/** SKUs that get a "⭐ Populaire" badge on catalog cards. */
+export const POPULAR_SKUS = new Set(['ATC1000', 'S445LS', 'L445', 'ATCF2500']);
