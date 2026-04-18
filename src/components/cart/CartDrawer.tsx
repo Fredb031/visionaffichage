@@ -204,8 +204,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
                     </div>
 
-                    <button onClick={() => handleRemoveItem(item.cartId)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 self-start mt-0.5">
-                      <Trash2 size={14} />
+                    <button
+                      onClick={() => handleRemoveItem(item.cartId)}
+                      aria-label={lang === 'en' ? `Remove ${item.productName}` : `Retirer ${item.productName}`}
+                      title={lang === 'en' ? 'Remove' : 'Retirer'}
+                      className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/5 active:bg-destructive/10 transition-colors flex-shrink-0 -mr-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </motion.div>
                 );
