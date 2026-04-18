@@ -282,8 +282,10 @@ export default function Products() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.node.id} product={product} />
+                {filteredProducts.map((product, i) => (
+                  // First row is above the fold (2-col mobile, 4-col desktop)
+                  // — mark those eager so the LCP image isn't lazy-loaded.
+                  <ProductCard key={product.node.id} product={product} eager={i < 4} />
                 ))}
               </div>
             )}

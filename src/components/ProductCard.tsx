@@ -8,9 +8,14 @@ import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
 import { filterRealColors } from '@/lib/colorFilter';
 
-interface ProductCardProps { product: ShopifyProduct; }
+interface ProductCardProps {
+  product: ShopifyProduct;
+  /** Set true for the handful of above-the-fold cards so their image
+   *  competes for LCP instead of being lazy-loaded. */
+  eager?: boolean;
+}
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, eager = false }: ProductCardProps) {
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const { node } = product;
@@ -68,7 +73,8 @@ export function ProductCard({ product }: ProductCardProps) {
                 width={400}
                 height={400}
                 className={`w-full h-full object-cover transition-all duration-500 ${backImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
-                loading="lazy"
+                loading={eager ? 'eager' : 'lazy'}
+                fetchPriority={eager ? 'high' : 'auto'}
                 decoding="async"
               />
               {backImage && (
