@@ -38,6 +38,14 @@ export default function TrackOrder() {
   const [searchInput, setSearchInput] = useState(paramOrder ?? '');
   const [emailInput, setEmailInput] = useState('');
 
+  // Sync input to the route param when it changes (e.g. if another link
+  // navigates /track/1570 → /track/1580). Without this the stale useState
+  // initializer from the first mount would keep showing the old value.
+  useEffect(() => {
+    if (paramOrder && paramOrder !== searchInput) setSearchInput(paramOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramOrder]);
+
   const order = useMemo(() => {
     const q = searchInput.trim().toLowerCase().replace(/^#/, '');
     if (!q) return null;
