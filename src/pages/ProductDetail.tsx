@@ -380,7 +380,8 @@ export default function ProductDetail() {
                               <button
                                 key={value}
                                 onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }))}
-                                className={`relative w-9 h-9 rounded-full transition-all ${
+                                aria-pressed={isSelected}
+                                className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                   isSelected
                                     ? 'ring-2 ring-primary ring-offset-2 scale-110'
                                     : 'ring-1 ring-border hover:ring-primary/50'
