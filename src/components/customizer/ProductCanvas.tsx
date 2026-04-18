@@ -192,10 +192,71 @@ export function ProductCanvas({
       };
       probe.src = photoUrl;
 
-      // Wire up modification → emit placement
-      // Use zoneIdRef so the handler always reads the CURRENT zoneId, not the stale closure value
-      canvas.on('object:modified', () => { if (logoObj.current) emit(logoObj.current, zoneIdRef.current); });
-      canvas.on('object:moving',   () => { if (logoObj.current) emit(logoObj.current, 'manual'); });
+      // ── Photoshop-style alignment guides + snap-to-center ───────────────
+      const SNAP_TOLERANCE = 8; // pixels
+      const guideX = new fabric.Line([W / 2, 0, W / 2, H], {
+        stroke: '#0052CC',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+        opacity: 0,
+        excludeFromExport: true,
+      });
+      const guideY = new fabric.Line([0, H / 2, W, H / 2], {
+        stroke: '#0052CC',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+        opacity: 0,
+        excludeFromExport: true,
+      });
+      canvas.add(guideX);
+      canvas.add(guideY);
+
+      const updateGuides = (target: { left?: number; top?: number; setCoords?: () => void }) => {
+        const cx = W / 2;
+        const cy = H / 2;
+        const left = target.left ?? 0;
+        const top = target.top ?? 0;
+
+        const snapToX = Math.abs(left - cx) <= SNAP_TOLERANCE;
+        const snapToY = Math.abs(top - cy) <= SNAP_TOLERANCE;
+
+        if (snapToX) {
+          target.left = cx;
+          guideX.set('opacity', 1);
+        } else {
+          guideX.set('opacity', 0);
+        }
+        if (snapToY) {
+          target.top = cy;
+          guideY.set('opacity', 1);
+        } else {
+          guideY.set('opacity', 0);
+        }
+
+        target.setCoords?.();
+      };
+
+      const hideGuides = () => {
+        guideX.set('opacity', 0);
+        guideY.set('opacity', 0);
+        canvas.requestRenderAll();
+      };
+
+      // Wire up modification → emit placement + guides
+      canvas.on('object:moving', (e: any) => {
+        if (e.target) updateGuides(e.target);
+        if (logoObj.current) emit(logoObj.current, 'manual');
+      });
+      canvas.on('object:modified', () => {
+        hideGuides();
+        if (logoObj.current) emit(logoObj.current, zoneIdRef.current);
+      });
+      canvas.on('mouse:up', hideGuides);
+      canvas.on('selection:cleared', hideGuides);
     });
 
     return () => {

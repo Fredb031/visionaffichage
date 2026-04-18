@@ -6,6 +6,7 @@ import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
+import { filterRealColors } from '@/lib/colorFilter';
 
 // SKUs marked as popular — shown with badge on product card
 const POPULAR_SKUS = new Set(['ATC1000', 'S445LS', 'L445', 'ATCF2500']);
@@ -86,19 +87,23 @@ export function ProductCard({ product }: ProductCardProps) {
             </button>
           </div>
 
-          {/* Colour dots */}
-          {local && local.colors.length > 0 && (
-            <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
-              {local.colors.slice(0, 8).map(c => (
-                <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
-              ))}
-              {local.colors.length > 8 && (
-                <div className="w-3.5 h-3.5 rounded-full bg-white/85 ring-1 ring-white/50 flex items-center justify-center text-[7px] font-black text-foreground">
-                  +{local.colors.length - 8}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Colour dots — only colors with real per-color images */}
+          {local && (() => {
+            const realColors = filterRealColors(local.sku, local.colors);
+            if (realColors.length === 0) return null;
+            return (
+              <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
+                {realColors.slice(0, 8).map(c => (
+                  <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
+                ))}
+                {realColors.length > 8 && (
+                  <div className="w-3.5 h-3.5 rounded-full bg-white/85 ring-1 ring-white/50 flex items-center justify-center text-[7px] font-black text-foreground">
+                    +{realColors.length - 8}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Info */}

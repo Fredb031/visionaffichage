@@ -19,6 +19,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage } from '@/data/products';
+import { hasRealColorImage } from '@/lib/colorFilter';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import { useLang } from '@/lib/langContext';
@@ -168,16 +169,31 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     );
   };
 
-  const displayColors: ShopifyVariantColor[] = shopifyColors.length > 0
-    ? shopifyColors
-    : product.colors.map(c => ({
-        variantId: c.id, colorName: c.name, hex: c.hex,
-        imageDevant: c.imageDevant ?? product.imageDevant,
-        imageDos: c.imageDos ?? product.imageDos,
-        price: product.basePrice.toString(),
-        availableForSale: true,
-        sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
-      }));
+  // Filter to only colors that have a real per-color image — hides phantom
+  // variants that exist in Shopify but don't have proper imagery.
+  const filteredShopifyColors = shopifyColors.filter(sc =>
+    hasRealColorImage(product.sku, {
+      id: sc.variantId,
+      name: sc.colorName,
+      nameEn: sc.colorName,
+      hex: sc.hex,
+    }),
+  );
+
+  const usableShopifyColors = filteredShopifyColors.length > 0 ? filteredShopifyColors : shopifyColors;
+
+  const displayColors: ShopifyVariantColor[] = usableShopifyColors.length > 0
+    ? usableShopifyColors
+    : product.colors
+        .filter(c => hasRealColorImage(product.sku, c))
+        .map(c => ({
+          variantId: c.id, colorName: c.name, hex: c.hex,
+          imageDevant: c.imageDevant ?? product.imageDevant,
+          imageDos: c.imageDos ?? product.imageDos,
+          price: product.basePrice.toString(),
+          availableForSale: true,
+          sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
+        }));
 
   return (
     <motion.div
