@@ -18,7 +18,7 @@ name: Autonomous Site Agent
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '*/20 * * * *'
   workflow_dispatch:
     inputs:
       focus:
