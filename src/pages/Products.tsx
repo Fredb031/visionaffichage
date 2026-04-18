@@ -46,20 +46,30 @@ export default function Products() {
   // refresh or back-nav preserves the selected category.
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCat = searchParams.get('cat') ?? 'overview';
+  const SORT_VALUES = ['default', 'name', 'price-asc', 'price-desc'] as const;
+  type SortMode = typeof SORT_VALUES[number];
+  const initialSort: SortMode = (() => {
+    const raw = searchParams.get('sort');
+    return (SORT_VALUES as readonly string[]).includes(raw ?? '') ? (raw as SortMode) : 'default';
+  })();
   const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortMode, setSortMode] = useState<'default' | 'name' | 'price-asc' | 'price-desc'>('default');
+  const [sortMode, setSortMode] = useState<SortMode>(initialSort);
 
-  // Keep the URL in sync when the user clicks a category pill — without
-  // pushing history entries so Back still returns to the previous page.
+  // Keep the URL in sync with category + sort — replace history so
+  // Back still returns to the previous page. Combines both params in
+  // a single pass so we don't fire two consecutive history replaces.
   useEffect(() => {
-    const current = searchParams.get('cat') ?? 'overview';
-    if (activeCategory === current) return;
+    const curCat = searchParams.get('cat') ?? 'overview';
+    const curSort = searchParams.get('sort') ?? 'default';
+    if (activeCategory === curCat && sortMode === curSort) return;
     const next = new URLSearchParams(searchParams);
     if (activeCategory === 'overview') next.delete('cat');
     else next.set('cat', activeCategory);
+    if (sortMode === 'default') next.delete('sort');
+    else next.set('sort', sortMode);
     setSearchParams(next, { replace: true });
-  }, [activeCategory, searchParams, setSearchParams]);
+  }, [activeCategory, sortMode, searchParams, setSearchParams]);
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
@@ -292,7 +302,7 @@ export default function Products() {
                   {lang === 'en' ? 'Sort:' : 'Trier :'}
                   <select
                     value={sortMode}
-                    onChange={e => setSortMode(e.target.value as typeof sortMode)}
+                    onChange={e => setSortMode(e.target.value as SortMode)}
                     className="text-[12px] font-semibold text-foreground bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 cursor-pointer"
                     aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
                   >
