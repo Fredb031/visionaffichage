@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
@@ -42,6 +43,13 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   const chart = SIZE_CHARTS[chartKey];
   const isCap = chartKey === 'cap';
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -49,6 +57,9 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-[600] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="size-guide-title"
           onClick={e => e.target === e.currentTarget && onClose()}
         >
           <motion.div
@@ -56,11 +67,16 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
             className="bg-background rounded-2xl border border-border shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
           >
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-              <h3 className="text-sm font-black text-foreground">
+              <h3 id="size-guide-title" className="text-sm font-black text-foreground">
                 {lang === 'en' ? 'Size Guide' : 'Guide des tailles'} — {product.shortName}
               </h3>
-              <button onClick={onClose} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary">
-                <X size={12} />
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={lang === 'en' ? 'Close size guide' : 'Fermer le guide des tailles'}
+                className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+              >
+                <X size={12} aria-hidden="true" />
               </button>
             </div>
 
