@@ -1,71 +1,108 @@
 import { useMemo, useState } from 'react';
-import { Search, Filter, Download } from 'lucide-react';
-import type { OrderStatus } from '@/types/admin';
+import { Search, Filter, Download, RefreshCw, ExternalLink } from 'lucide-react';
+import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 
-interface MockOrder {
-  id: string;
-  number: string;
-  client: string;
-  email: string;
-  items: number;
-  total: number;
-  status: OrderStatus;
-  date: string;
-  shopifyId: string;
+type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
+
+const FIN_COLOR: Record<string, string> = {
+  paid: 'bg-emerald-100 text-emerald-800',
+  pending: 'bg-amber-50 text-amber-700',
+  partially_paid: 'bg-blue-50 text-blue-700',
+  refunded: 'bg-rose-50 text-rose-700',
+  partially_refunded: 'bg-rose-50 text-rose-700',
+  voided: 'bg-zinc-100 text-zinc-700',
+  authorized: 'bg-blue-50 text-blue-700',
+};
+
+const FUL_COLOR: Record<string, string> = {
+  fulfilled: 'bg-emerald-50 text-emerald-700',
+  partial: 'bg-amber-50 text-amber-700',
+  restocked: 'bg-zinc-100 text-zinc-700',
+};
+
+const FIN_LABEL: Record<string, string> = {
+  paid: 'Payé',
+  pending: 'En attente',
+  partially_paid: 'Partiel',
+  refunded: 'Remboursé',
+  partially_refunded: 'Rembours. partiel',
+  voided: 'Annulé',
+  authorized: 'Autorisé',
+};
+
+const FUL_LABEL: Record<string, string> = {
+  fulfilled: 'Expédié',
+  partial: 'Partiel',
+  restocked: 'Retourné',
+};
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-const MOCK_ORDERS: MockOrder[] = [
-  { id: '1', number: 'VA-1048', client: 'Sous Pression', email: 'anthony@souspression.ca', items: 24, total: 1840, status: 'processing', date: '2026-04-17', shopifyId: '#8043210' },
-  { id: '2', number: 'VA-1047', client: 'Perfocazes', email: 'hubert@perfocazes.com', items: 8, total: 620, status: 'shipped', date: '2026-04-17', shopifyId: '#8043209' },
-  { id: '3', number: 'VA-1046', client: 'Extreme Fab', email: 'info@extremefab.ca', items: 48, total: 3450, status: 'printing', date: '2026-04-16', shopifyId: '#8043208' },
-  { id: '4', number: 'VA-1045', client: 'Sports Experts', email: 'commandes@sportsexperts.ca', items: 30, total: 2100, status: 'delivered', date: '2026-04-16', shopifyId: '#8043207' },
-  { id: '5', number: 'VA-1044', client: 'Lacasse', email: 'marie@lacasse.com', items: 12, total: 840, status: 'pending', date: '2026-04-15', shopifyId: '#8043206' },
-  { id: '6', number: 'VA-1043', client: 'Uni', email: 'contact@uni-ca.com', items: 18, total: 1260, status: 'cancelled', date: '2026-04-15', shopifyId: '#8043205' },
-];
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: 'En attente',
-  processing: 'En traitement',
-  printing: 'Impression',
-  shipped: 'Expédié',
-  delivered: 'Livré',
-  cancelled: 'Annulé',
-};
-
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  pending: 'bg-zinc-100 text-zinc-700',
-  processing: 'bg-blue-50 text-blue-700',
-  printing: 'bg-amber-50 text-amber-700',
-  shipped: 'bg-purple-50 text-purple-700',
-  delivered: 'bg-emerald-50 text-emerald-700',
-  cancelled: 'bg-rose-50 text-rose-700',
-};
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `il y a ${days}j`;
+}
 
 export default function AdminOrders() {
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
-  const [selected, setSelected] = useState<MockOrder | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
 
   const filtered = useMemo(() => {
-    return MOCK_ORDERS.filter(o => {
-      if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+    return SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
+      if (statusFilter === 'paid' && o.financialStatus !== 'paid') return false;
+      if (statusFilter === 'pending' && o.financialStatus !== 'pending') return false;
+      if (statusFilter === 'fulfilled' && o.fulfillmentStatus !== 'fulfilled') return false;
+      if (statusFilter === 'awaiting_fulfillment' && !(o.financialStatus === 'paid' && !o.fulfillmentStatus)) return false;
       if (!query.trim()) return true;
       const q = query.toLowerCase();
-      return o.client.toLowerCase().includes(q) || o.number.toLowerCase().includes(q) || o.email.toLowerCase().includes(q);
+      return (
+        o.customerName.toLowerCase().includes(q) ||
+        o.name.toLowerCase().includes(q) ||
+        o.email.toLowerCase().includes(q) ||
+        String(o.id).includes(q)
+      );
     });
   }, [query, statusFilter]);
+
+  const lastSync = new Date(SHOPIFY_SNAPSHOT_META.syncedAt);
 
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Commandes</h1>
-          <p className="text-sm text-zinc-500 mt-1">{MOCK_ORDERS.length} commandes total · synchronisées avec Shopify</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Commandes Shopify</h1>
+          <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Connecté à {SHOPIFY_SNAPSHOT_META.shop}
+            </span>
+            <span className="text-zinc-400">·</span>
+            <span>Synchronisé il y a {formatRelativeTime(SHOPIFY_SNAPSHOT_META.syncedAt)}</span>
+          </p>
         </div>
-        <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
-          <Download size={15} />
-          Exporter CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white"
+            title="Resynchroniser via Zapier"
+          >
+            <RefreshCw size={15} />
+            Resync
+          </button>
+          <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
+            <Download size={15} />
+            Exporter
+          </button>
+        </div>
       </header>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
@@ -75,7 +112,7 @@ export default function AdminOrders() {
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher par client, #commande, courriel"
+              placeholder="Rechercher par client, numéro, courriel"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
@@ -83,13 +120,14 @@ export default function AdminOrders() {
             <Filter size={14} className="text-zinc-400" />
             <select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as OrderStatus | 'all')}
+              onChange={e => setStatusFilter(e.target.value as StatusFilter)}
               className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC]"
             >
               <option value="all">Tous les statuts</option>
-              {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
+              <option value="paid">Payées</option>
+              <option value="pending">En attente de paiement</option>
+              <option value="awaiting_fulfillment">À expédier</option>
+              <option value="fulfilled">Expédiées</option>
             </select>
           </div>
         </div>
@@ -102,9 +140,9 @@ export default function AdminOrders() {
                 <th className="text-left px-4 py-3">Client</th>
                 <th className="text-right px-4 py-3">Articles</th>
                 <th className="text-right px-4 py-3">Total</th>
-                <th className="text-left px-4 py-3">Statut</th>
+                <th className="text-left px-4 py-3">Paiement</th>
+                <th className="text-left px-4 py-3">Expédition</th>
                 <th className="text-left px-4 py-3">Date</th>
-                <th className="text-right px-4 py-3">Shopify</th>
               </tr>
             </thead>
             <tbody>
@@ -121,20 +159,30 @@ export default function AdminOrders() {
                     onClick={() => setSelected(o)}
                     className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 font-bold">{o.number}</td>
+                    <td className="px-4 py-3 font-bold">{o.name}</td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold">{o.client}</div>
+                      <div className="font-semibold">{o.customerName.trim() || '—'}</div>
                       <div className="text-xs text-zinc-500">{o.email}</div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">{o.items}</td>
-                    <td className="px-4 py-3 text-right font-bold">{o.total.toLocaleString('fr-CA')} $</td>
+                    <td className="px-4 py-3 text-right font-semibold">{o.itemsCount}</td>
+                    <td className="px-4 py-3 text-right font-bold">
+                      {o.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[o.status]}`}>
-                        {STATUS_LABEL[o.status]}
+                      <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${FIN_COLOR[o.financialStatus ?? ''] ?? 'bg-zinc-100 text-zinc-700'}`}>
+                        {FIN_LABEL[o.financialStatus ?? ''] ?? '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">{o.date}</td>
-                    <td className="px-4 py-3 text-right text-[11px] text-zinc-400 font-mono">{o.shopifyId}</td>
+                    <td className="px-4 py-3">
+                      {o.fulfillmentStatus ? (
+                        <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${FUL_COLOR[o.fulfillmentStatus]}`}>
+                          {FUL_LABEL[o.fulfillmentStatus]}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-zinc-400">À expédier</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-500 text-xs">{formatDate(o.createdAt)}</td>
                   </tr>
                 ))
               )}
@@ -149,32 +197,48 @@ export default function AdminOrders() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-xs text-zinc-500">Commande</div>
-                  <h2 className="text-xl font-extrabold">{selected.number}</h2>
+                  <div className="text-xs text-zinc-500">Commande Shopify</div>
+                  <h2 className="text-xl font-extrabold">{selected.name}</h2>
                 </div>
                 <button onClick={() => setSelected(null)} className="text-zinc-400 hover:text-zinc-700 text-sm">Fermer</button>
               </div>
-              <div className="space-y-3 text-sm">
+              <div className="space-y-4 text-sm">
                 <div>
                   <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Client</div>
-                  <div className="font-semibold">{selected.client}</div>
+                  <div className="font-semibold">{selected.customerName.trim() || '—'}</div>
                   <div className="text-zinc-500">{selected.email}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Total</div>
-                  <div className="text-2xl font-extrabold">{selected.total.toLocaleString('fr-CA')} $ CAD</div>
-                  <div className="text-xs text-zinc-500">{selected.items} articles</div>
+                  <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Montant</div>
+                  <div className="text-2xl font-extrabold">{selected.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $ {selected.currency}</div>
+                  <div className="text-xs text-zinc-500">{selected.itemsCount} articles</div>
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Statut</div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-md ${STATUS_COLOR[selected.status]}`}>
-                    {STATUS_LABEL[selected.status]}
-                  </span>
+                  <div className="flex gap-2">
+                    <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${FIN_COLOR[selected.financialStatus ?? ''] ?? 'bg-zinc-100'}`}>
+                      {FIN_LABEL[selected.financialStatus ?? ''] ?? '—'}
+                    </span>
+                    {selected.fulfillmentStatus && (
+                      <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${FUL_COLOR[selected.fulfillmentStatus]}`}>
+                        {FUL_LABEL[selected.fulfillmentStatus]}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Shopify</div>
-                  <a className="text-[#0052CC] font-mono text-xs hover:underline">{selected.shopifyId} ↗</a>
+                  <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Passée le</div>
+                  <div>{new Date(selected.createdAt).toLocaleString('fr-CA')}</div>
                 </div>
+                <a
+                  href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/orders/${selected.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2"
+                >
+                  Voir dans Shopify Admin
+                  <ExternalLink size={13} />
+                </a>
               </div>
             </div>
           </div>
