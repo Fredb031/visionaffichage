@@ -32,8 +32,8 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
       if (f.size > maxSizeMB * 1024 * 1024) {
         setError(
           lang === 'en'
-            ? `File too large (max ${maxSizeMB}MB)`
-            : `Fichier trop volumineux (max ${maxSizeMB}Mo)`,
+            ? `File too large (max ${maxSizeMB} MB)`
+            : `Fichier trop volumineux (max ${maxSizeMB}\u00A0Mo)`,
         );
         return;
       }
@@ -122,7 +122,7 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
             {lang === 'en' ? 'Drag & drop or click to browse' : 'Glisse-dépose ou clique pour choisir'}
           </div>
           <div className="text-[10px] text-muted-foreground/70 mt-1.5 uppercase tracking-wider">
-            {acceptedFormats.join(' · ')} · max {maxSizeMB}Mo
+            {acceptedFormats.join(' · ')} · max {maxSizeMB}{'\u00A0'}Mo
           </div>
         </div>
       </button>
