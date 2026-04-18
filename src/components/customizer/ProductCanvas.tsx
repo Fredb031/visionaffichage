@@ -39,11 +39,14 @@ interface Props {
   activeView: ProductView;
   onViewChange: (v: ProductView) => void;
   onPlacementChange: (p: LogoPlacement) => void;
+  /** Called once the canvas is ready — gives parent a snapshot function
+   * so Step 5 "Download mockup" can export the current preview as PNG. */
+  onSnapshotReady?: (getDataUrl: () => string | null) => void;
 }
 
 export function ProductCanvas({
   product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
-  currentPlacement, activeView, onViewChange, onPlacementChange,
+  currentPlacement, activeView, onViewChange, onPlacementChange, onSnapshotReady,
 }: Props) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,6 +92,23 @@ export function ProductCanvas({
   // always call the latest emit — otherwise a stale closure captures the
   // initial logoUrl / onPlacementChange and drags emit the wrong previewUrl
   // after the user uploads a second logo.
+  // Expose PNG export to parent once the canvas is ready. Parent holds the
+  // function so Step 5 "Download mockup" can call it on demand.
+  useEffect(() => {
+    if (!ready || !onSnapshotReady) return;
+    onSnapshotReady(() => {
+      if (!fc.current) return null;
+      try {
+        // Clear active selection so no corner handles end up baked into the PNG
+        fc.current.discardActiveObject?.();
+        fc.current.renderAll();
+        return fc.current.toDataURL({ format: 'png', quality: 0.95, multiplier: 2 });
+      } catch {
+        return null;
+      }
+    });
+  }, [ready, onSnapshotReady]);
+
   const emit = useCallback((obj: any, zone: string) => {
     if (!fc.current || !obj) return;
     const W = fc.current.width as number;
@@ -309,6 +329,8 @@ export function ProductCanvas({
                   stroke: isLightGarment ? 'rgba(0, 82, 204, 0.55)' : 'rgba(255, 255, 255, 0.65)',
                   strokeDashArray: [6, 4],
                   strokeWidth: 1.5,
+                  // Keeps stroke crisp at 1.5px even if outline is scaled later
+                  strokeUniform: true,
                   rx: 8, ry: 8,
                   selectable: false, evented: false,
                 });
@@ -603,6 +625,14 @@ export function ProductCanvas({
       const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
       const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
 
+      // Auto-contrast stroke so text stays readable on any garment.
+      // Light text gets a subtle dark halo, dark text a light halo.
+      const hex = color.replace('#', '');
+      const isLightText = hex.length >= 6
+        ? (parseInt(hex.slice(0, 2), 16) * 299 +
+           parseInt(hex.slice(2, 4), 16) * 587 +
+           parseInt(hex.slice(4, 6), 16) * 114) / 1000 > 160
+        : false;
       const id = `txt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const t = new fabric.IText(text, {
         left: cx, top: cy,
@@ -611,6 +641,10 @@ export function ProductCanvas({
         fontSize: Math.round(W * 0.06),
         fontWeight: 'bold',
         fill: color,
+        stroke: isLightText ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
+        strokeWidth: 1,
+        strokeUniform: true,
+        paintFirst: 'stroke',
         textAlign: 'center',
         editable: true,
         selectable: true,

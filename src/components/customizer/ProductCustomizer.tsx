@@ -6,13 +6,12 @@
  *    images with "VOTRE LOGO" embedded in the actual JPG — causing logo
  *    duplication on step 3). The 3D viewer on the left already shows the garment.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, ShoppingBag, ChevronRight, ChevronLeft, Check, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
-import { SizeQuantityPicker } from './SizeQuantityPicker';
 import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
 import { useCustomizerStore } from '@/store/customizerStore';
@@ -46,6 +45,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     }
   }, [store.step, store.logoPlacement?.previewUrl, store]);
 
+  // Escape closes the modal (but only when not focused in a text field
+  // — fabric IText editing uses Escape to exit text mode).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   if (!product) return null;
 
   // Live Shopify colours (falls back gracefully)
@@ -57,6 +69,22 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const [multiVariants, setMultiVariants] = useState<VariantQty[]>([]);
   // Debounce guard against double-click double-add
   const [adding, setAdding] = useState(false);
+  // Holds the canvas snapshot function once ProductCanvas is ready.
+  const getSnapshotRef = useRef<(() => string | null) | null>(null);
+
+  const handleDownloadMockup = () => {
+    const snap = getSnapshotRef.current?.();
+    if (!snap) {
+      toast.error(lang === 'en' ? 'Mockup not ready yet' : 'Aperçu pas encore prêt');
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = snap;
+    a.download = `vision-affichage-${product.sku.toLowerCase()}-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
   // The active ProductColor — uses per-colour Drive images when available,
   // falls back to the product's default (black) image + tint overlay
@@ -97,12 +125,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   const colorChosen = !!(shopifyColor || store.colorId);
 
+  // Full label for sm+, shortLabel for mobile where horizontal room is tight.
   const STEPS = [
-    { id: 1, label: t('couleur'),         done: colorChosen },
-    { id: 2, label: t('tonLogo'),         done: !!store.logoPlacement?.previewUrl },
-    { id: 3, label: t('zoneImpression'),  done: !!store.logoPlacement?.zoneId },
-    { id: 4, label: t('taillesQuantites'),done: totalQty > 0 },
-    { id: 5, label: t('resume'),          done: false },
+    { id: 1, label: t('couleur'),         shortLabel: lang === 'en' ? 'Color'  : 'Couleur',  done: colorChosen },
+    { id: 2, label: t('tonLogo'),         shortLabel: lang === 'en' ? 'Logo'   : 'Logo',     done: !!store.logoPlacement?.previewUrl },
+    { id: 3, label: t('zoneImpression'),  shortLabel: lang === 'en' ? 'Zone'   : 'Zone',     done: !!store.logoPlacement?.zoneId },
+    { id: 4, label: t('taillesQuantites'),shortLabel: lang === 'en' ? 'Sizes'  : 'Tailles',  done: totalQty > 0 },
+    { id: 5, label: t('resume'),          shortLabel: lang === 'en' ? 'Recap'  : 'Récap',    done: false },
   ];
 
   const canNext = () => {
@@ -319,6 +348,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   }`}
                 >
                   {s.done && store.step !== s.id ? <Check size={9} /> : <span>{s.id}</span>}
+                  {/* Always show a compact label so mobile users know what each step is */}
+                  <span className="sm:hidden">{s.shortLabel}</span>
                   <span className="hidden sm:inline">{s.label}</span>
                 </button>
                 {i < STEPS.length - 1 && <div className="w-1.5 h-px bg-border flex-shrink-0" />}
@@ -347,6 +378,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               activeView={store.activeView}
               onViewChange={store.setView}
               onPlacementChange={p => store.setLogoPlacement(p)}
+              onSnapshotReady={fn => { getSnapshotRef.current = fn; }}
             />
 
             <div>
@@ -385,8 +417,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     colors={displayColors}
                     loading={colorsLoading}
                     selectedColorName={shopifyColor?.colorName ?? null}
-                    onSelect={c => { handleSelectColor(c); goNext(); }}
+                    onSelect={handleSelectColor}
                   />
+                  {colorChosen && (
+                    <p className="text-[11px] text-muted-foreground mt-3">
+                      {lang === 'en'
+                        ? 'Great pick. Tap Next to upload your logo, or try other colors above.'
+                        : 'Excellent choix. Clique Suivant pour téléverser ton logo, ou essaie d\u2019autres couleurs ci-dessus.'}
+                    </p>
+                  )}
                 </motion.div>
               )}
 
@@ -527,6 +566,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         mode: 'manual',
                         zoneId: 'manual',
                       });
+                      toast.info(
+                        lang === 'en'
+                          ? 'Drag the logo on the preview to place it anywhere.'
+                          : 'Glisse le logo sur l\u2019aperçu pour le placer où tu veux.',
+                        { duration: 2800 },
+                      );
                     }}
                     className={`w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-all ${
                       store.logoPlacement?.mode === 'manual'
@@ -577,11 +622,55 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {/* Step 5 — Summary */}
               {store.step === 5 && (
                 <motion.div key="s5" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
-                  <h3 className="text-sm font-black">{t('resume')}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black">{t('resume')}</h3>
+                    <button
+                      type="button"
+                      onClick={handleDownloadMockup}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline"
+                      aria-label={lang === 'en' ? 'Download mockup PNG' : 'Télécharger le visuel PNG'}
+                    >
+                      <Download size={12} />
+                      {lang === 'en' ? 'Download PNG' : 'Télécharger PNG'}
+                    </button>
+                  </div>
+
+                  {/* Per-color breakdown — only when multi-variant flow was used */}
+                  {multiVariants.length > 0 && (
+                    <div className="bg-secondary/70 rounded-xl p-3 border border-border">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        {lang === 'en' ? 'Your selection' : 'Ta sélection'}
+                      </div>
+                      <div className="space-y-1.5">
+                        {Array.from(
+                          multiVariants.reduce<Map<string, { name: string; hex: string; lines: string[]; qty: number }>>((acc, v) => {
+                            const existing = acc.get(v.colorId);
+                            if (existing) {
+                              existing.lines.push(`${v.size}×${v.qty}`);
+                              existing.qty += v.qty;
+                            } else {
+                              acc.set(v.colorId, { name: v.colorName, hex: v.hex, lines: [`${v.size}×${v.qty}`], qty: v.qty });
+                            }
+                            return acc;
+                          }, new Map()).values(),
+                        ).map(g => (
+                          <div key={g.name} className="flex items-center gap-2 text-xs">
+                            <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: g.hex }} />
+                            <span className="font-bold flex-shrink-0">{g.name}</span>
+                            <span className="text-muted-foreground truncate">{g.lines.join(' · ')}</span>
+                            <span className="ml-auto font-extrabold text-primary">{g.qty}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-secondary rounded-xl p-4 space-y-2.5">
                     {[
                       [t('produit'),        product.shortName],
-                      [t('couleurLabel'),   activeColor?.name ?? '—'],
+                      [t('couleurLabel'),   multiVariants.length > 0
+                        ? `${new Set(multiVariants.map(v => v.colorName)).size} ${lang === 'en' ? 'colors' : 'couleurs'}`
+                        : activeColor?.name ?? '—'],
                       [t('quantiteTotale'), `${totalQty} ${t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}`],
                       [t('prixUnitaire'),   `${product.basePrice.toFixed(2)} $`],
                       [t('impression'),     `${PRINT_PRICE.toFixed(2)} $`],
@@ -602,18 +691,32 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       <span className="font-black text-primary text-lg">{totalPrice.toFixed(2)} $</span>
                     </div>
                   </div>
+
+                  {/* Larger preview card — replaces the cramped 48px thumbnail */}
                   {store.logoPlacement?.previewUrl && (
-                    <div className="flex gap-3 items-center p-3 bg-secondary rounded-xl border border-border">
-                      <img src={store.logoPlacement.previewUrl} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-border bg-white" />
-                      <div>
-                        <p className="text-xs font-bold">{product.shortName} · {activeColor?.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')} · {totalPrice.toFixed(2)} $
-                        </p>
+                    <div className="p-3 bg-secondary rounded-xl border border-border">
+                      <div className="flex gap-3 items-center">
+                        <div className="relative w-20 h-20 rounded-lg border border-border bg-white overflow-hidden flex-shrink-0">
+                          <div
+                            className="absolute inset-0"
+                            style={{ backgroundImage: 'repeating-conic-gradient(#eee 0% 25%, white 0% 50%)', backgroundSize: '10px 10px' }}
+                            aria-hidden="true"
+                          />
+                          <img src={store.logoPlacement.previewUrl} alt="Logo" className="relative w-full h-full object-contain p-1.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">{product.shortName}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')} · {totalPrice.toFixed(2)} $
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {lang === 'en' ? 'Zone' : 'Zone'}: <span className="font-semibold text-foreground">{store.logoPlacement.zoneId}</span>
+                          </p>
+                        </div>
+                        {activeColor && multiVariants.length === 0 && (
+                          <div className="w-6 h-6 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: activeColor.hex }} />
+                        )}
                       </div>
-                      {activeColor && (
-                        <div className="ml-auto w-6 h-6 rounded-full ring-1 ring-border" style={{ background: activeColor.hex }} />
-                      )}
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground text-center">{t('taxesNote')}</p>
