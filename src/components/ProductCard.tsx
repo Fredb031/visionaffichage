@@ -77,11 +77,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Customize CTA on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 z-[3]">
+          {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
             <button
               onClick={handleCustomize}
-              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white/95 text-primary shadow-lg border border-primary/15 translate-y-3 group-hover:translate-y-0 transition-transform duration-300"
+              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 hover:scale-105"
             >
               {t('personnaliserProduit')} →
             </button>
