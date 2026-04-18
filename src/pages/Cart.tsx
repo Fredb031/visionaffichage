@@ -166,7 +166,7 @@ export default function Cart() {
               {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
             </Link>
             <p className="text-[11px] text-muted-foreground/70 mt-4">
-              {lang === 'en' ? 'Made in Québec · Free shipping over $200' : 'Fabriqué au Québec · Livraison gratuite à 200 $+'}
+              {lang === 'en' ? 'Made in Québec · Free standard shipping' : 'Fabriqué au Québec · Livraison standard gratuite'}
             </p>
           </div>
         ) : (
