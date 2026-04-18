@@ -4,6 +4,7 @@ import { AlertCircle } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -33,14 +34,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     if (!isOpen && error) clearError();
   }, [isOpen, error, clearError]);
 
-  // Escape closes the modal. Matches the cart drawer and is what
-  // keyboard users expect from any overlay.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  useEscapeKey(isOpen, onClose);
 
   useBodyScrollLock(isOpen);
 

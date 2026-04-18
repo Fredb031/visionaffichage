@@ -10,6 +10,7 @@ import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { PRODUCTS } from '@/data/products';
 import type { CartItemCustomization } from '@/types/customization';
 
@@ -109,20 +110,10 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Escape key closes drawer (standard modal pattern). Skip if user is
-  // typing in an input — Esc should clear/blur the field instead of
-  // killing the whole drawer mid-edit.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // Escape closes drawer — skipInTextInputs so a stray Esc while the
+  // user is typing a discount code clears the field instead of killing
+  // the whole drawer mid-edit.
+  useEscapeKey(isOpen, onClose, { skipInTextInputs: true });
 
   // Lock body scroll while the drawer is open — otherwise scroll wheel
   // over the overlay keeps moving the page underneath, which reads as
