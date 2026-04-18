@@ -22,7 +22,7 @@ const NotFound = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background flex flex-col pb-20">
       <Navbar />
-      <div className="flex-1 flex items-center justify-center px-6 py-20 pt-24">
+      <div id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center px-6 py-20 pt-24 focus:outline-none">
         <div className="text-center max-w-md">
           <div className="relative w-32 h-32 mx-auto mb-6">
             <div
