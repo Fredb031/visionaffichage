@@ -332,7 +332,7 @@ export default function Index() {
                         <button
                           type="button"
                           onClick={() => setPlayingVideo(i)}
-                          className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play"
+                          className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
                           aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
                         >
                           <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
