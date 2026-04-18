@@ -3,12 +3,20 @@ Allow: /
 Disallow: /admin/
 Disallow: /vendor/
 Disallow: /quote/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /track
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin/
 Disallow: /vendor/
 Disallow: /quote/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /track
 
 User-agent: Twitterbot
 Allow: /
@@ -21,6 +29,9 @@ Allow: /
 Disallow: /admin/
 Disallow: /vendor/
 Disallow: /quote/
+Disallow: /checkout
 Disallow: /cart
+Disallow: /account
+Disallow: /track
 
 Sitemap: https://visionaffichage.com/sitemap.xml
