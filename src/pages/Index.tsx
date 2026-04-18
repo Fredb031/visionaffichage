@@ -83,7 +83,7 @@ export default function Index() {
   const allLogos = [...HERO_LOGOS, ...HERO_LOGOS];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
@@ -164,7 +164,7 @@ export default function Index() {
           <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
             {[
               { num: '33 000+', key: 'produitLivres' as const },
-              { num: '5 jours',  key: 'delaiLivraison' as const },
+              { num: lang === 'en' ? '5 days' : '5 jours',  key: 'delaiLivraison' as const },
               { num: '500+',     key: 'entreprisesSatisfaites' as const },
               { num: '5,0',      key: 'noteGoogle' as const },
             ].map((item, i) => (
@@ -275,7 +275,7 @@ export default function Index() {
               <div className="text-center">
                 <div className="text-[48px] font-extrabold text-primary leading-none">5,0</div>
                 <div className="flex gap-[3px] justify-center my-1">{[...Array(5)].map((_, i) => <StarSvg key={i} />)}</div>
-                <div className="text-[11px] text-muted-foreground">41 avis</div>
+                <div className="text-[11px] text-muted-foreground">{lang === 'en' ? '41 reviews' : '41 avis'}</div>
               </div>
               <div className="w-px h-14 bg-border" />
               <div>

@@ -163,13 +163,13 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
         {/* Header */}
         <div className="gradient-navy-dark p-[26px] pb-5 text-center">
           <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">
-            MINI-JEU EXCLUSIF
+            {lang === 'en' ? 'EXCLUSIVE MINI-GAME' : 'MINI-JEU EXCLUSIF'}
           </div>
           <h2 className="text-2xl font-extrabold text-primary-foreground leading-[1.2] mb-[5px]">
-            Frappe les taupes,<br/>gagne 10% de rabais
+            {lang === 'en' ? <>Whack the moles,<br/>win 10% off</> : <>Frappe les taupes,<br/>gagne 10% de rabais</>}
           </h2>
           <p className="text-[13px] text-primary-foreground/50">
-            Frappe {targetHits} taupes avant la fin du temps
+            {lang === 'en' ? `Hit ${targetHits} moles before time runs out` : `Frappe ${targetHits} taupes avant la fin du temps`}
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
           <>
             {/* Stats */}
             <div className="flex justify-between px-5 py-3 bg-secondary border-b border-border">
-              {[{ v: hits, l: 'Frappes' }, { v: targetHits, l: 'Objectif' }, { v: timeLeft, l: 'Secondes' }].map((s, i) => (
+              {[{ v: hits, l: lang === 'en' ? 'Hits' : 'Frappes' }, { v: targetHits, l: lang === 'en' ? 'Target' : 'Objectif' }, { v: timeLeft, l: lang === 'en' ? 'Seconds' : 'Secondes' }].map((s, i) => (
                 <div key={i} className="text-center">
                   <div className={`text-2xl font-extrabold ${i === 2 && timeLeft <= 5 ? 'text-destructive' : 'text-primary'}`}>{s.v}</div>
                   <div className="text-[10px] font-bold tracking-[1.5px] text-muted-foreground uppercase mt-0.5">{s.l}</div>
@@ -236,13 +236,13 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                 />
               </div>
               <div className="text-[12px] text-muted-foreground text-center pb-3">
-                {hits}/{targetHits} taupes frappées
+                {lang === 'en' ? `${hits}/${targetHits} moles hit` : `${hits}/${targetHits} taupes frappées`}
               </div>
             </div>
 
             <div className="text-center pb-3 text-[12px] text-muted-foreground">
               <button onClick={() => onClose(false)} className="text-foreground/50 underline cursor-pointer bg-transparent border-none text-[12px] hover:text-foreground/80 transition-colors">
-                Pas le temps ? Passer
+                {lang === 'en' ? 'No time? Skip' : 'Pas le temps ? Passer'}
               </button>
             </div>
           </>
@@ -255,31 +255,43 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                 <path d="M16 28l9 9 16-18" stroke="hsl(216,59%,26%)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Bravo, tu as gagné !</h3>
-            <p className="text-[13px] text-muted-foreground mb-4">10% de rabais sur ta première commande</p>
+            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">
+              {lang === 'en' ? 'Nice, you won!' : 'Bravo, tu as gagné !'}
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              {lang === 'en' ? '10% off your first order' : '10% de rabais sur ta première commande'}
+            </p>
             <div className="bg-secondary border-[1.5px] border-dashed border-accent rounded-xl py-3 px-7 mb-2">
               <span className="text-xl font-extrabold tracking-[4px] text-primary">VISION10</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mb-[18px]">Valide 48h · Appliqué automatiquement au panier</p>
+            <p className="text-[11px] text-muted-foreground mb-[18px]">
+              {lang === 'en' ? 'Valid 48h · Automatically applied to cart' : 'Valide 48h · Appliqué automatiquement au panier'}
+            </p>
             <button
               onClick={() => onClose(true)}
               className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88"
             >
-              Commencer à magasiner
+              {lang === 'en' ? 'Start shopping' : 'Commencer à magasiner'}
             </button>
           </div>
         ) : (
           /* LOSS STATE — no emoji! */
           <div className="p-7 text-center">
             <SadFaceSvg />
-            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">Temps écoulé !</h3>
-            <p className="text-[13px] text-muted-foreground mb-1">Tu as frappé {hits}/{targetHits} taupes</p>
-            <p className="text-[12px] text-muted-foreground mb-5">C'est dur ! Tu peux quand même continuer.</p>
+            <h3 className="text-[26px] font-extrabold text-primary mb-1.5">
+              {lang === 'en' ? 'Time\'s up!' : 'Temps écoulé !'}
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-1">
+              {lang === 'en' ? `You hit ${hits}/${targetHits} moles` : `Tu as frappé ${hits}/${targetHits} taupes`}
+            </p>
+            <p className="text-[12px] text-muted-foreground mb-5">
+              {lang === 'en' ? 'Tough one! You can still continue.' : 'C\'est dur ! Tu peux quand même continuer.'}
+            </p>
             <button
               onClick={() => onClose(false)}
               className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88"
             >
-              Continuer sans rabais
+              {lang === 'en' ? 'Continue without discount' : 'Continuer sans rabais'}
             </button>
           </div>
         )}
