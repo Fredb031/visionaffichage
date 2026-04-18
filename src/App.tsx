@@ -53,8 +53,9 @@ const queryClient = new QueryClient({
 });
 
 const LazyFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-    <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+  <div className="min-h-screen flex items-center justify-center bg-zinc-50" role="status" aria-live="polite">
+    <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+    <span className="sr-only">Loading</span>
   </div>
 );
 
