@@ -315,10 +315,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     </p>
                   </div>
 
-                  {/* Visual preset grid — garment silhouette icons */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Zone grid with pricing */}
+                  <div className="space-y-1.5">
                     {product.printZones.map(z => {
                       const active = store.logoPlacement?.zoneId === z.id;
+                      const isFree = !z.extraPrice || z.extraPrice === 0;
                       return (
                         <button
                           key={z.id}
@@ -330,30 +331,28 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             y: z.y + z.height / 2,
                             width: z.width * 0.85,
                           })}
-                          className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border text-center transition-all ${
+                          className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${
                             active
                               ? 'border-primary bg-primary/5 text-primary shadow-sm'
                               : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/50'
                           }`}
                         >
-                          {/* Mini garment icon with placement dot */}
-                          <div className="relative w-8 h-10 rounded border border-current/20">
-                            <div
-                              className={`absolute w-2 h-2 rounded-full ${active ? 'bg-primary' : 'bg-current/40'}`}
-                              style={{
-                                left: `${z.x + z.width / 2 - 12}%`,
-                                top: `${z.y + z.height / 2 - 12}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-bold leading-tight">{z.label}</span>
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
+                          <span className="text-xs font-bold flex-1">
+                            {lang === 'en' ? (z.labelEn ?? z.label) : z.label}
+                          </span>
+                          <span className={`text-[11px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {isFree
+                              ? (lang === 'en' ? 'Included' : 'Inclus')
+                              : `+${z.extraPrice?.toFixed(2)} $`}
+                          </span>
                         </button>
                       );
                     })}
                   </div>
 
                   {/* Manual placement hint */}
-                  <p className="text-[10px] text-muted-foreground text-center">
+                  <p className="text-[10px] text-muted-foreground text-center mt-2">
                     {lang === 'en'
                       ? 'Or drag the logo directly on the product preview'
                       : 'Ou glisse le logo directement sur le produit'}
