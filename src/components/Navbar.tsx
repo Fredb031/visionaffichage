@@ -39,7 +39,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       role="navigation"
       aria-label="Main navigation"
     >
-      <Link to="/" aria-label="Vision Affichage — Home">
+      <Link
+        to="/"
+        aria-label="Vision Affichage — Home"
+        className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+      >
         <img
           src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
           alt="Vision Affichage"
