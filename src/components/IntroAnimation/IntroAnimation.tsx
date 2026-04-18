@@ -213,7 +213,9 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       <div id="va-intro-accent" />
 
       <div id="va-intro-hint" className={showHint ? 'show' : ''}>
-        Touche pour commencer
+        {typeof navigator !== 'undefined' && /^en/.test(navigator.language)
+          ? 'Tap to begin'
+          : 'Touche pour commencer'}
       </div>
     </div>
   );

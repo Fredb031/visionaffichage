@@ -320,6 +320,32 @@ export default function Checkout() {
                   </span>
                 </label>
 
+                {/* Urgency: ship-by promise. Calculated client-side from
+                    today's date. Past-3pm orders bump one business day. */}
+                {(() => {
+                  const now = new Date();
+                  const cutoff = new Date(now);
+                  cutoff.setHours(15, 0, 0, 0);
+                  const after3pm = now > cutoff;
+                  const ship = new Date(now.getTime() + (after3pm ? 6 : 5) * 86400000);
+                  return (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
+                      <span className="text-emerald-600 text-base leading-none">⚡</span>
+                      <span className="text-emerald-900">
+                        {lang === 'en'
+                          ? <>
+                              <strong>{after3pm ? 'Order today —' : 'Order before 3pm —'}</strong> delivered by{' '}
+                              <strong>{ship.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                            </>
+                          : <>
+                              <strong>{after3pm ? 'Commande aujourd\'hui —' : 'Commande avant 15h —'}</strong> livrée d'ici le{' '}
+                              <strong>{ship.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                            </>}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 <button
                   type="button"
                   disabled={!acceptedTerms || processing}

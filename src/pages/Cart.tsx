@@ -6,6 +6,7 @@ import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
+import { CartRecommendations } from '@/components/CartRecommendations';
 
 function PromoCodeInput({
   onApply,
@@ -211,6 +212,12 @@ export default function Cart() {
                 </div>
               </div>
             ))}
+
+            {/* Cross-sell — placed between cart lines and totals so it
+                catches the eye right before the customer commits to pay. */}
+            <div className="mt-6">
+              <CartRecommendations />
+            </div>
 
             {/* Order summary */}
             <div className="rounded-2xl border border-border bg-card p-5 mt-6 space-y-3">
