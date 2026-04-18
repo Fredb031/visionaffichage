@@ -64,14 +64,36 @@ export default function QuoteAccept() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background">
-      <header className="bg-white border-b border-border px-4 md:px-8 py-5 flex items-center justify-between">
+      <header className="bg-white border-b border-border px-4 md:px-8 py-5 flex items-center justify-between print:border-b-2 print:border-zinc-900">
         <img
           src="https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
           alt="Vision Affichage"
           className="h-6"
         />
-        <DeliveryBadge size="sm" />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors print:hidden"
+          >
+            🖨️ {lang === 'en' ? 'Print' : 'Imprimer'}
+          </button>
+          <DeliveryBadge size="sm" />
+        </div>
       </header>
+
+      <style>{`
+        @media print {
+          body { background: white !important; }
+          .print\\:hidden { display: none !important; }
+          .lg\\:sticky { position: static !important; }
+          aside { page-break-inside: avoid; }
+          section { page-break-inside: avoid; }
+          .min-h-screen { min-height: auto !important; }
+          .shadow-2xl, .shadow-xl, .shadow-md { box-shadow: none !important; }
+          button { display: none !important; }
+        }
+      `}</style>
 
       <main className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-6">
         <div className="text-center">

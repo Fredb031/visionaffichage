@@ -49,6 +49,8 @@ export function ProductCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasElRef  = useRef<HTMLCanvasElement>(null);
   const [textInput, setTextInput] = useState('');
+  const [textColor, setTextColor] = useState('#FFFFFF');
+  const [textFont, setTextFont] = useState('Inter, system-ui, sans-serif');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -416,7 +418,11 @@ export function ProductCanvas({
   };
 
   // ── Add text to garment ──────────────────────────────────────────────────
-  const addText = (text: string, color = '#FFFFFF') => {
+  const addText = (
+    text: string,
+    color = '#FFFFFF',
+    fontFamily = 'Inter, system-ui, sans-serif',
+  ) => {
     if (!fc.current || !text.trim()) return;
     import('fabric').then(({ fabric }) => {
       if (!fc.current) return;
@@ -430,7 +436,7 @@ export function ProductCanvas({
       const t = new fabric.IText(text, {
         left: cx, top: cy,
         originX: 'center', originY: 'center',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily,
         fontSize: Math.round(W * 0.06),
         fontWeight: 'bold',
         fill: color,
@@ -575,25 +581,71 @@ export function ProductCanvas({
 
       {/* Add text to garment */}
       {activeView === 'front' && ready && (
-        <div className="flex gap-1.5">
-          <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
-            <Type size={13} className="text-muted-foreground flex-shrink-0" />
-            <input
-              type="text"
-              value={textInput}
-              onChange={e => setTextInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && textInput.trim()) { addText(textInput); setTextInput(''); } }}
-              placeholder={lang === 'en' ? 'Add text to garment...' : 'Ajouter du texte...'}
-              className="flex-1 bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
-            />
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
+              <Type size={13} className="text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && textInput.trim()) { addText(textInput, textColor, textFont); setTextInput(''); } }}
+                placeholder={lang === 'en' ? 'Add text to garment...' : 'Ajouter du texte...'}
+                className="flex-1 bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
+                maxLength={40}
+              />
+            </div>
+            <button
+              onClick={() => { if (textInput.trim()) { addText(textInput, textColor, textFont); setTextInput(''); } }}
+              disabled={!textInput.trim()}
+              className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-xl disabled:opacity-30 hover:opacity-90 transition-all"
+            >
+              {lang === 'en' ? 'Add' : 'Ajouter'}
+            </button>
           </div>
-          <button
-            onClick={() => { if (textInput.trim()) { addText(textInput); setTextInput(''); } }}
-            disabled={!textInput.trim()}
-            className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-xl disabled:opacity-30 hover:opacity-90 transition-all"
-          >
-            {lang === 'en' ? 'Add' : 'Ajouter'}
-          </button>
+
+          {/* Text styling row — only shown when there's something to add */}
+          {textInput && (
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex gap-1" role="radiogroup" aria-label={lang === 'en' ? 'Text font' : 'Police'}>
+                {[
+                  { id: 'sans',   label: 'Aa', font: 'Inter, system-ui, sans-serif',   style: { fontFamily: 'Inter, sans-serif' } },
+                  { id: 'serif',  label: 'Aa', font: 'Georgia, serif',                   style: { fontFamily: 'Georgia, serif', fontStyle: 'italic' } },
+                  { id: 'impact', label: 'AA', font: 'Impact, "Arial Black", sans-serif', style: { fontFamily: 'Impact, sans-serif', letterSpacing: '0.05em' } },
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setTextFont(f.font)}
+                    className={`w-7 h-7 rounded-md border text-xs font-bold transition-all ${
+                      textFont === f.font ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border hover:border-primary'
+                    }`}
+                    style={f.style}
+                    aria-pressed={textFont === f.font}
+                    title={f.id}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div className="w-px h-5 bg-border" />
+              <div className="flex gap-1" role="radiogroup" aria-label={lang === 'en' ? 'Text color' : 'Couleur du texte'}>
+                {['#FFFFFF', '#000000', '#1B3A6B', '#E8A838', '#B91C1C'].map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setTextColor(c)}
+                    className={`w-5 h-5 rounded-full border-2 transition-all ${
+                      textColor === c ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'border-border hover:scale-105'
+                    }`}
+                    style={{ background: c, borderColor: c === '#FFFFFF' ? '#cbd5e1' : c }}
+                    aria-pressed={textColor === c}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
