@@ -163,15 +163,20 @@ export default function ProductDetail() {
                       <img
                         src={frontUrl}
                         alt={product.title}
+                        width={800}
+                        height={800}
                         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
                         key={`front-${frontUrl}`}
                         loading="eager"
+                        fetchPriority="high"
                         decoding="async"
                       />
                       {backUrl && (
                         <img
                           src={backUrl}
                           alt={`${product.title} — dos`}
+                          width={800}
+                          height={800}
                           className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                           key={`back-${backUrl}`}
                           loading="lazy"
