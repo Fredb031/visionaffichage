@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, X, Send, Sparkles, ChevronLeft } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
-import { answerQuestion, KB_TOPICS, type KBTopic, type Lang } from '@/lib/aiKnowledgeBase';
+import type { KBTopic, Lang } from '@/lib/aiKnowledgeBase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -11,6 +11,16 @@ interface ChatMessage {
 
 type ViewMode = 'menu' | 'topic' | 'chat';
 
+/** Dynamically load the knowledge base the first time the chat opens.
+ * Keeps ~15 KB of bilingual Q&A out of the initial page bundle — it's
+ * only relevant if the user actually talks to the bot. */
+type KbModule = typeof import('@/lib/aiKnowledgeBase');
+let kbPromise: Promise<KbModule> | null = null;
+const loadKb = () => {
+  if (!kbPromise) kbPromise = import('@/lib/aiKnowledgeBase');
+  return kbPromise;
+};
+
 export function AIChat() {
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
@@ -19,7 +29,14 @@ export function AIChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [topics, setTopics] = useState<KBTopic[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Warm-up: start loading the KB the first time the panel opens.
+  useEffect(() => {
+    if (!open) return;
+    loadKb().then(mod => setTopics(mod.KB_TOPICS));
+  }, [open]);
 
   // Auto-scroll on new message
   useEffect(() => {
@@ -39,6 +56,7 @@ export function AIChat() {
     setView('chat');
     // Natural pause so it doesn't feel like a form POST.
     await new Promise(r => setTimeout(r, 350 + Math.random() * 400));
+    const { answerQuestion } = await loadKb();
     const { answer } = answerQuestion(trimmed, lang as Lang);
     setMessages(m => [...m, { role: 'assistant', text: answer, ts: Date.now() }]);
     setThinking(false);
@@ -129,7 +147,7 @@ export function AIChat() {
                     {lang === 'en' ? 'Browse by topic' : 'Parcourir par sujet'}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {KB_TOPICS.map(topic => (
+                    {topics.map(topic => (
                       <button
                         key={topic.id}
                         type="button"

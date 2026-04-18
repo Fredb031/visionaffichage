@@ -435,9 +435,12 @@ export function ProductCanvas({
       if (fc.current) { fc.current.dispose(); fc.current = null; }
 
       const W = containerRef.current!.clientWidth || 360;
-      // Smaller aspect on mobile so the customizer footer (Continue/Add to cart)
-      // stays visible without scrolling. 1.05 ≈ near-square, was 1.18 before.
-      const H = Math.round(W * 1.05);
+      // Adaptive aspect ratio — on narrow phones the canvas stays
+      // portrait (tall) so the garment isn't squashed into a square;
+      // on desktop it's closer to 4:3 so the footer fits without
+      // scrolling. Threshold is ~tablet width.
+      const ratio = W < 500 ? 1.2 : W < 900 ? 1.05 : 0.78;
+      const H = Math.round(W * ratio);
 
       const canvas = new fabric.Canvas(canvasElRef.current!, {
         width: W, height: H,
@@ -953,10 +956,12 @@ export function ProductCanvas({
   return (
     <div className="flex flex-col gap-2.5">
       {/* The interactive canvas — premium frame with subtle gradient + drop shadow */}
+      {/* aspectRatio syncs with the JS ratio above: narrow = 1/1.2 (tall)
+          on phones, widescreen on desktop. CSS-only so there's no flash
+          before JS kicks in. */}
       <div
         ref={containerRef}
-        className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)]"
-        style={{ aspectRatio: '0.95' }}
+        className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] aspect-[5/6] md:aspect-[1/1.05] lg:aspect-[1.28/1]"
       >
         {/* Subtle radial accent in the corner — looks like studio lighting */}
         <div
