@@ -30,6 +30,17 @@ export interface ShopifyProductSnapshot {
   maxPrice: number;
 }
 
+export interface ShopifyAbandonedCheckoutSnapshot {
+  id: number;
+  total: number;
+  currency: string;
+  email: string;
+  customerName: string;
+  createdAt: string;
+  recoveryUrl: string;
+  itemsCount: number;
+}
+
 export interface ShopifyCustomerSnapshot {
   id: number;
   firstName: string | null;
@@ -138,6 +149,31 @@ export const SHOPIFY_CUSTOMERS_SNAPSHOT: ShopifyCustomerSnapshot[] = [
   { id: 9969780949107, firstName: 'Christian',               lastName: null,               email: 'cvien27@gmail.com',             phone: '+14383455824',   ordersCount: 0, totalSpent: 0.00,    currency: 'CAD', tags: 'EcomSend, 10$ OFF',                                 createdAt: '2026-04-09T08:07:54-04:00', city: 'Montreal',               province: null },
 ];
 
+// ───────────── Abandoned checkouts (20 most recent) ─────────────
+
+export const SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT: ShopifyAbandonedCheckoutSnapshot[] = [
+  { id: 33770452844659, total: 53.01,  currency: 'CAD', email: 'jordangoyette1999@hotmail.com', customerName: 'Jordan Goyette',           createdAt: '2026-03-02T09:57:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33770452844659/recover', itemsCount: 1 },
+  { id: 33750630858867, total: 52.88,  currency: 'CAD', email: 'samuelcharland23@hotmail.com',  customerName: 'Samuel Charland',           createdAt: '2026-02-27T10:41:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33750630858867/recover', itemsCount: 1 },
+  { id: 33734027411571, total: 680.59, currency: 'CAD', email: 'jeremy@visionaffichage.com',    customerName: 'Jeremy Marois',             createdAt: '2026-02-24T15:16:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33734027411571/recover', itemsCount: 1 },
+  { id: 33716137459827, total: 76.79,  currency: 'CAD', email: 'fredericgoulet13@gmail.com',    customerName: 'Frederic Goulet',           createdAt: '2026-02-21T12:06:03-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33716137459827/recover', itemsCount: 2 },
+  { id: 33715400933491, total: 86.31,  currency: 'CAD', email: 'fredericgoulet13@gmail.com',    customerName: 'Frederic Goulet',           createdAt: '2026-02-21T09:29:32-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33715400933491/recover', itemsCount: 2 },
+  { id: 33704609284211, total: 224.43, currency: 'CAD', email: 'atmmultiservices@hotmail.com',  customerName: '9442-8711 Quebec inc Meloche', createdAt: '2026-02-19T09:40:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33704609284211/recover', itemsCount: 1 },
+  { id: 33697227735155, total: 101.63, currency: 'CAD', email: 'mantoine1000@gmail.com',        customerName: 'Marc-Antoine Guay',         createdAt: '2026-02-17T21:01:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33697227735155/recover', itemsCount: 1 },
+  { id: 33683877331059, total: 290.71, currency: 'CAD', email: 'lemjo624@gmail.com',            customerName: 'Jonathan Lemaire',          createdAt: '2026-02-15T12:08:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33683877331059/recover', itemsCount: 3 },
+  { id: 33678275379315, total: 252.95, currency: 'CAD', email: 'gasper_lambert@hotmail.com',    customerName: 'Jonathan Lambert',          createdAt: '2026-02-14T10:32:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33678275379315/recover', itemsCount: 1 },
+  { id: 33666018771059, total: 60.34,  currency: 'CAD', email: 'lemjo624@gmail.com',            customerName: 'Jonathan Lemaire',          createdAt: '2026-02-11T23:13:03-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33666018771059/recover', itemsCount: 1 },
+  { id: 33660973711475, total: 379.54, currency: 'CAD', email: 'jerome.labbe@live.ca',          customerName: 'Jerome Labbe',              createdAt: '2026-02-10T23:09:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33660973711475/recover', itemsCount: 1 },
+  { id: 33659949121651, total: 91.03,  currency: 'CAD', email: 'vigelizabeth13@gmail.com',      customerName: 'Condos vacances MSA',       createdAt: '2026-02-10T18:34:32-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33659949121651/recover', itemsCount: 5 },
+  { id: 33657425002611, total: 33.02,  currency: 'CAD', email: 'baroni.jp@videotron.ca',        customerName: '',                          createdAt: '2026-02-10T08:04:01-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33657425002611/recover', itemsCount: 1 },
+  { id: 33654913826931, total: 299.60, currency: 'CAD', email: 'samuelt.0403@gmail.com',        customerName: 'Samuel Turgeon',            createdAt: '2026-03-05T17:04:01-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33654913826931/recover', itemsCount: 1 },
+  { id: 33607144570995, total: 38.90,  currency: 'CAD', email: 'samuelt.0403@gmail.com',        customerName: 'Samuel Turgeon',            createdAt: '2026-01-30T21:54:01-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33607144570995/recover', itemsCount: 1 },
+  { id: 33606320455795, total: 36.13,  currency: 'CAD', email: 'seifalila1@gmail.com',          customerName: 'Seif Alila',                createdAt: '2026-01-30T18:05:31-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33606320455795/recover', itemsCount: 1 },
+  { id: 33598642094195, total: 107.33, currency: 'CAD', email: 'fredmalou12@gmail.com',         customerName: 'Frederick Bouchard',        createdAt: '2026-01-29T08:31:34-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33598642094195/recover', itemsCount: 4 },
+  { id: 33592648335475, total: 78.63,  currency: 'CAD', email: 'magz.qc@gmail.com',             customerName: '',                          createdAt: '2026-01-27T22:31:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33592648335475/recover', itemsCount: 1 },
+  { id: 33587354927219, total: 0.00,   currency: 'CAD', email: 'seifalila1@gmail.com',          customerName: 'Seif Alila',                createdAt: '2026-01-26T16:39:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33587354927219/recover', itemsCount: 2 },
+  { id: 33578084040819, total: 377.45, currency: 'CAD', email: 'info@visionaffichage.com',      customerName: 'Vision Affichage',          createdAt: '2026-01-31T01:42:32-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33578084040819/recover', itemsCount: 4 },
+];
+
 // ───────────── Aggregated stats ─────────────
 
 const NOW = new Date('2026-04-18');
@@ -157,5 +193,9 @@ export const SHOPIFY_STATS = {
   payingCustomers: SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => c.ordersCount > 0).length,
   totalLifetimeRevenue: Math.round(
     SHOPIFY_CUSTOMERS_SNAPSHOT.reduce((s, c) => s + c.totalSpent, 0) * 100,
+  ) / 100,
+  abandonedCheckoutsCount: SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.length,
+  abandonedCheckoutsValue: Math.round(
+    SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.reduce((s, c) => s + c.total, 0) * 100,
   ) / 100,
 };

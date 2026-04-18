@@ -32,7 +32,13 @@ export default function AdminDashboard() {
         <StatCard label="Commandes (7j)" value={String(SHOPIFY_STATS.ordersLast7Days)} delta={12} deltaLabel="vs. sem. dernière" icon={ShoppingBag} accent="blue" />
         <StatCard label="Revenus (7j)" value={`${revenueFmt} $`} delta={8} deltaLabel="vs. sem. dernière" icon={DollarSign} accent="green" />
         <StatCard label="À expédier" value={String(SHOPIFY_STATS.awaitingFulfillment)} icon={FileText} accent="gold" />
-        <StatCard label="Produits actifs" value={String(SHOPIFY_STATS.totalActiveProducts)} icon={Package} accent="blue" />
+        <StatCard
+          label="Paniers à récupérer"
+          value={`${SHOPIFY_STATS.abandonedCheckoutsValue.toFixed(0)} $`}
+          deltaLabel={`${SHOPIFY_STATS.abandonedCheckoutsCount} paniers`}
+          icon={Package}
+          accent="gold"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
