@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useLang } from '@/lib/langContext';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 
 type Stage = 'pending' | 'production' | 'shipped' | 'delivered';
@@ -56,13 +57,7 @@ export default function TrackOrder() {
     }) ?? null;
   }, [searchInput, emailInput]);
 
-  useEffect(() => {
-    const prev = document.title;
-    document.title = lang === 'en'
-      ? 'Track an order — Vision Affichage'
-      : 'Suivre une commande — Vision Affichage';
-    return () => { document.title = prev; };
-  }, [lang]);
+  useDocumentTitle(lang === 'en' ? 'Track an order — Vision Affichage' : 'Suivre une commande — Vision Affichage');
 
   const currentStage: Stage | null = order ? deriveStage(order) : null;
   const currentIdx = currentStage ? STAGES.findIndex(s => s.id === currentStage) : -1;

@@ -4,6 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 import { findProductByHandle, PRODUCTS } from '@/data/products';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
@@ -61,13 +62,7 @@ export default function Products() {
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const prev = document.title;
-    document.title = lang === 'en'
-      ? 'Products — Vision Affichage'
-      : 'Produits — Vision Affichage';
-    return () => { document.title = prev; };
-  }, [lang]);
+  useDocumentTitle(lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage');
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —
   // standard power-user shortcut on commerce sites (Linear, Vercel, etc.)
