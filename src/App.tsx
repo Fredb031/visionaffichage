@@ -9,12 +9,15 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { AuthGuard } from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
+// Cart, ProductDetail, NotFound used to be eager — there's no reason
+// the home page should bundle them. Lazy-split so only the page that
+// actually gets navigated to pulls its chunk.
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const Account = lazy(() => import("./pages/Account"));
-import NotFound from "./pages/NotFound";
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin (lazy)
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
