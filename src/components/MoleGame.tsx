@@ -103,9 +103,13 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
         return prev - 1;
       });
     }, 1000);
+    // Snapshot the timer array at effect-setup time — React may have
+    // reassigned .current by cleanup-time, which is exactly what the
+    // react-hooks/exhaustive-deps rule warns about.
+    const timers = moleTimers.current;
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      moleTimers.current.forEach(t => { if (t) clearTimeout(t); });
+      timers.forEach(t => { if (t) clearTimeout(t); });
     };
   }, [gameStarted, gameWon, scheduleMole]);
 
