@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useLang } from '@/lib/langContext';
 import { BottomNav } from '@/components/BottomNav';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { ArrowLeft, Home, Compass } from 'lucide-react';
 
 const NotFound = () => {
@@ -62,7 +62,7 @@ const NotFound = () => {
           </p>
         </div>
       </div>
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

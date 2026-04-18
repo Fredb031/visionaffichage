@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ExternalLink, ShoppingBag } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
@@ -245,7 +245,7 @@ export default function Account() {
         </button>
       </main>
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

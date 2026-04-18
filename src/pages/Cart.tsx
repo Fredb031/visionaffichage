@@ -5,7 +5,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 
 function PromoCodeInput({
   onApply,
@@ -276,7 +276,7 @@ export default function Cart() {
         )}
       </div>
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

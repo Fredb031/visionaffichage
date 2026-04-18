@@ -7,7 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -420,7 +420,7 @@ export default function Index() {
 
       <SiteFooter />
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

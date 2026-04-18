@@ -14,7 +14,7 @@ import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } 
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 
@@ -431,7 +431,7 @@ export default function ProductDetail() {
         <SizeGuide product={localProduct} isOpen={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
       )}
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Package, CheckCircle2, Truck, Mail, AlertCircle, Search } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useLang } from '@/lib/langContext';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
@@ -206,7 +206,7 @@ export default function TrackOrder() {
         </div>
       </main>
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );

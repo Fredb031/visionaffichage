@@ -6,7 +6,7 @@ import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
-import { StickyHelp } from '@/components/StickyHelp';
+import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
@@ -357,7 +357,7 @@ export default function Checkout() {
         </div>
       </div>
 
-      <StickyHelp />
+      <AIChat />
       <BottomNav />
     </div>
   );
