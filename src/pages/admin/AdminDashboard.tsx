@@ -49,7 +49,11 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-zinc-900">Commandes récentes <span className="text-xs text-zinc-400 font-normal">(Shopify live)</span></h2>
-            <Link to="/admin/orders" className="text-xs font-semibold text-[#0052CC] hover:underline">
+            <Link
+              to="/admin/orders"
+              aria-label="Voir toutes les commandes"
+              className="text-xs font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Voir tout →
             </Link>
           </div>
@@ -95,7 +99,7 @@ export default function AdminDashboard() {
           <div className="bg-white border border-zinc-200 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-zinc-900 text-sm">Zapier ⇄ Shopify</h2>
-              <TrendingUp size={16} className="text-emerald-600" />
+              <TrendingUp size={16} className="text-emerald-600" aria-hidden="true" />
             </div>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
@@ -120,12 +124,15 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                <AlertCircle size={18} />
+                <AlertCircle size={18} aria-hidden="true" />
               </div>
               <div>
                 <div className="font-bold text-sm mb-1">Stock faible</div>
                 <div className="text-xs text-white/70 mb-3">3 produits ont un inventaire sous 10 unités.</div>
-                <Link to="/admin/products?filter=low-stock" className="text-[11px] font-bold text-[#E8A838] hover:underline">
+                <Link
+                  to="/admin/products?filter=low-stock"
+                  className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+                >
                   Voir les produits →
                 </Link>
               </div>
