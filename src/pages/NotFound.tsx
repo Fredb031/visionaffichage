@@ -15,6 +15,18 @@ const NotFound = () => {
     console.error('404 Error: User attempted to access non-existent route:', location.pathname);
   }, [location.pathname]);
 
+  // Tell crawlers not to index the 404 page itself. Without it, Google
+  // can end up storing random non-existent URLs as 'soft 404s' tied to
+  // our domain, which dilutes trust. robots meta takes precedence over
+  // robots.txt for per-page directives.
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, follow';
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
+
   // Browser tab + SERP label reflect the 404 state. Restore on unmount
   // is handled by useDocumentTitle.
   useDocumentTitle(lang === 'en' ? 'Page not found (404) — Vision Affichage' : 'Page introuvable (404) — Vision Affichage');
