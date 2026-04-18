@@ -232,6 +232,17 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   const handleAddToCart = async () => {
     if (adding) return;
+    // Guard: if the single-color fallback flow is in play but we have no
+    // resolvable color (Shopify empty + no local colors defined), block
+    // add-to-cart instead of sending an empty colorId to the server.
+    if (multiVariants.length === 0 && !activeColor && !shopifyColor) {
+      toast.error(
+        lang === 'en'
+          ? 'Pick a color before adding to cart.'
+          : 'Choisis une couleur avant d\u2019ajouter au panier.',
+      );
+      return;
+    }
     setAdding(true);
     try {
     // ── Multi-variant flow: emit ONE local cart line per color group AND
@@ -443,7 +454,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               <div key={s.id} className="flex items-center gap-1 flex-shrink-0">
                 <button
                   onClick={() => s.done && s.id < store.step && store.setStep(s.id as any)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                     store.step === s.id ? 'bg-primary text-primary-foreground' :
                     s.done ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200' :
                     'text-muted-foreground cursor-default'
@@ -552,9 +563,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             aria-checked={active}
                             onClick={() => {
                               store.setPlacementSides(opt.id as PlacementSides);
-                              // Keep the visible side consistent with the pick.
+                              // Keep the visible side consistent with the
+                              // pick. "both" / "none" → default to front
+                              // so the canvas shows something meaningful.
                               if (opt.id === 'back') store.setView('back');
-                              else if (opt.id === 'front') store.setView('front');
+                              else store.setView('front');
                             }}
                             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left text-[11px] font-bold transition-all ${
                               active
@@ -856,7 +869,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       [t('produit'),        product.shortName],
                       [t('couleurLabel'),   multiVariants.length > 0
                         ? `${new Set(multiVariants.map(v => v.colorName)).size} ${lang === 'en' ? 'colors' : 'couleurs'}`
-                        : activeColor?.name ?? '—'],
+                        : (shopifyColor?.colorName ?? activeColor?.name ?? '—')],
                       [lang === 'en' ? 'Print sides' : 'Côtés imprimés',
                         store.placementSides === 'none' ? (lang === 'en' ? 'Blank (no print)' : 'Vierge (aucune impression)')
                         : store.placementSides === 'front' ? (lang === 'en' ? 'Front only' : 'Devant seulement')
@@ -929,6 +942,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             <button
                               type="button"
                               onClick={() => {
+                                const confirmMsg = lang === 'en'
+                                  ? `Remove the ${s.label.toLowerCase()} logo? You\u2019ll need to re-upload it to add it back.`
+                                  : `Retirer le logo ${s.label.toLowerCase()} ? Tu devras le téléverser à nouveau pour le remettre.`;
+                                if (!window.confirm(confirmMsg)) return;
                                 if (s.key === 'front') store.setLogoPlacement(null);
                                 else store.setLogoPlacementBack(null);
                                 // Downgrade placementSides so "both" with

@@ -234,9 +234,12 @@ export function ProductCanvas({
       const H = canvas.height as number;
       const photoUrl = activeView === 'front' ? imageDevant : imageDos;
 
-      // Replace existing photo
+      // Replace existing photo. Dispose the fabric object too so the
+      // underlying HTMLImageElement can be garbage-collected; otherwise
+      // repeated color swaps accumulate DOM nodes.
       if (photoObj.current) {
         canvas.remove(photoObj.current);
+        try { photoObj.current.dispose?.(); } catch { /* noop */ }
         photoObj.current = null;
       }
       if (tintObj.current) {
@@ -965,8 +968,9 @@ export function ProductCanvas({
       {/* Alignment & transform toolbar — only while the user is actively
           placing the logo (Step "Where") and there IS a logo. Buttons use
           w-10 h-10 (40px) to meet WCAG touch-target guidance; each has
-          aria-label for screen readers. */}
-      {showPlacementTools && logoUrl && activeView === 'front' && (
+          aria-label for screen readers. Shown on BOTH front and back —
+          back-side placements need the same alignment tools. */}
+      {showPlacementTools && logoUrl && (
         <div className="flex items-center justify-between bg-secondary rounded-xl px-2 py-1.5 border border-border">
           <div className="flex gap-0.5">
             {[
@@ -1042,8 +1046,8 @@ export function ProductCanvas({
         </div>
       )}
 
-      {/* Add text to garment — only during placement, front view */}
-      {showPlacementTools && activeView === 'front' && ready && (
+      {/* Add text to garment — during placement, both views. */}
+      {showPlacementTools && ready && (
         <div className="space-y-1.5">
           <div className="flex gap-1.5">
             <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
@@ -1081,9 +1085,9 @@ export function ProductCanvas({
             <div className="flex items-center gap-2 px-1">
               <div className="flex gap-1" role="radiogroup" aria-label={lang === 'en' ? 'Text font' : 'Police'}>
                 {[
-                  { id: 'sans',   label: 'Aa', font: 'Inter, system-ui, sans-serif',   style: { fontFamily: 'Inter, sans-serif' } },
-                  { id: 'serif',  label: 'Aa', font: 'Georgia, serif',                   style: { fontFamily: 'Georgia, serif', fontStyle: 'italic' } },
-                  { id: 'impact', label: 'AA', font: 'Impact, "Arial Black", sans-serif', style: { fontFamily: 'Impact, sans-serif', letterSpacing: '0.05em' } },
+                  { id: 'sans',   label: 'Aa', font: 'Inter, system-ui, sans-serif',        readable: 'Sans-serif',      style: { fontFamily: 'Inter, sans-serif' } },
+                  { id: 'serif',  label: 'Aa', font: 'Georgia, serif',                      readable: 'Serif',           style: { fontFamily: 'Georgia, serif', fontStyle: 'italic' } },
+                  { id: 'impact', label: 'AA', font: 'Impact, "Arial Black", sans-serif',   readable: 'Impact',          style: { fontFamily: 'Impact, sans-serif', letterSpacing: '0.05em' } },
                 ].map(f => (
                   <button
                     key={f.id}
@@ -1094,7 +1098,8 @@ export function ProductCanvas({
                     }`}
                     style={f.style}
                     aria-pressed={textFont === f.font}
-                    title={f.id}
+                    aria-label={`${lang === 'en' ? 'Font' : 'Police'}: ${f.readable}`}
+                    title={f.readable}
                   >
                     {f.label}
                   </button>
@@ -1102,19 +1107,29 @@ export function ProductCanvas({
               </div>
               <div className="w-px h-5 bg-border" />
               <div className="flex gap-1" role="radiogroup" aria-label={lang === 'en' ? 'Text color' : 'Couleur du texte'}>
-                {['#FFFFFF', '#000000', '#1B3A6B', '#E8A838', '#B91C1C'].map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setTextColor(c)}
-                    className={`w-5 h-5 rounded-full border-2 transition-all ${
-                      textColor === c ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'border-border hover:scale-105'
-                    }`}
-                    style={{ background: c, borderColor: c === '#FFFFFF' ? '#cbd5e1' : c }}
-                    aria-pressed={textColor === c}
-                    aria-label={c}
-                  />
-                ))}
+                {([
+                  { hex: '#FFFFFF', nameFr: 'Blanc',      nameEn: 'White' },
+                  { hex: '#000000', nameFr: 'Noir',       nameEn: 'Black' },
+                  { hex: '#1B3A6B', nameFr: 'Marine',     nameEn: 'Navy' },
+                  { hex: '#E8A838', nameFr: 'Or',         nameEn: 'Gold' },
+                  { hex: '#B91C1C', nameFr: 'Rouge',      nameEn: 'Red' },
+                ]).map(c => {
+                  const label = lang === 'en' ? c.nameEn : c.nameFr;
+                  return (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      onClick={() => setTextColor(c.hex)}
+                      className={`w-5 h-5 rounded-full border-2 transition-all ${
+                        textColor === c.hex ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'border-border hover:scale-105'
+                      }`}
+                      style={{ background: c.hex, borderColor: c.hex === '#FFFFFF' ? '#cbd5e1' : c.hex }}
+                      aria-pressed={textColor === c.hex}
+                      aria-label={label}
+                      title={label}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

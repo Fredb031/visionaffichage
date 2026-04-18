@@ -40,9 +40,10 @@ function PromoCodeInput({
         <input
           type="text"
           value={code}
-          onChange={e => { setCode(e.target.value); setError(false); }}
+          onChange={e => { setCode(e.target.value.toUpperCase()); setError(false); }}
           onKeyDown={e => { if (e.key === 'Enter') submit(); }}
           placeholder={placeholder}
+          aria-label={placeholder}
           className={`flex-1 bg-secondary border rounded-lg px-2.5 py-1.5 text-xs uppercase tracking-wider outline-none transition-colors ${
             error ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
           }`}
@@ -201,14 +202,26 @@ export default function Cart() {
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
 
-                  {/* Logo placement preview */}
-                  {item.logoPlacement?.previewUrl && (
-                    <img
-                      src={item.logoPlacement.previewUrl}
-                      alt="Logo"
-                      className="w-9 h-9 object-contain rounded border border-border bg-white"
-                    />
-                  )}
+                  {/* Logo placement previews — both sides when user ordered
+                      Front + Back so they see the full design in the cart. */}
+                  <div className="flex gap-1">
+                    {item.logoPlacement?.previewUrl && (
+                      <img
+                        src={item.logoPlacement.previewUrl}
+                        alt={lang === 'en' ? 'Front logo' : 'Logo devant'}
+                        title={lang === 'en' ? 'Front' : 'Devant'}
+                        className="w-9 h-9 object-contain rounded border border-border bg-white"
+                      />
+                    )}
+                    {item.logoPlacementBack?.previewUrl && (
+                      <img
+                        src={item.logoPlacementBack.previewUrl}
+                        alt={lang === 'en' ? 'Back logo' : 'Logo dos'}
+                        title={lang === 'en' ? 'Back' : 'Dos'}
+                        className="w-9 h-9 object-contain rounded border border-border bg-white"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

@@ -97,15 +97,21 @@ export default function Checkout() {
     // domain without Shopify Plus checkout extensibility). Everything before
     // this — shipping/email/method — stays on-site.
     try {
-      // Wait briefly for Shopify cart to be ready (it's populated async
-      // when items are added in the customizer; if the user is fast they
-      // can hit Pay before the last line resolves).
+      // Wait up to ~5s for Shopify cart to be ready. The old logic
+      // stopped polling as soon as isLoading was false, which exited
+      // prematurely when the cart hadn't even started syncing yet
+      // (race: user hits Pay before addItem's first fetch kicks off).
       let checkoutUrl = shopifyCart.getCheckoutUrl();
       let retries = 0;
-      while (!checkoutUrl && retries < 6 && shopifyCart.isLoading) {
-        await new Promise(r => setTimeout(r, 350));
+      const MAX_RETRIES = 20;       // 20 × 250ms = 5s max wait
+      const IDLE_GIVE_UP_AFTER = 8; // 2s with no activity = give up
+      while (!checkoutUrl && retries < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 250));
         checkoutUrl = shopifyCart.getCheckoutUrl();
         retries++;
+        // If Shopify isn't currently syncing AND we've waited a bit,
+        // bail out to the fallback path instead of stalling the full 5s.
+        if (!shopifyCart.isLoading && retries >= IDLE_GIVE_UP_AFTER && !checkoutUrl) break;
       }
 
       if (checkoutUrl) {

@@ -59,7 +59,6 @@ export function LogoUploader({
   const { t, lang } = useLang();
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [preview, setPreview] = useState<string | null>(null);
-  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
@@ -103,7 +102,6 @@ export function LogoUploader({
     void checkImageQuality(file, lang === 'en' ? 'en' : 'fr').then(setQuality);
     const localUrl = trackBlobUrl(URL.createObjectURL(file));
     setPreview(localUrl);
-    setOriginalPreview(localUrl);
 
     if (autoRemoveBg) {
       setStatus('removing-bg');

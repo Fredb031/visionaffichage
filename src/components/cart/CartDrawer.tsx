@@ -12,51 +12,73 @@ import { useLang } from '@/lib/langContext';
 import { PRODUCTS } from '@/data/products';
 import type { CartItemCustomization } from '@/types/customization';
 
-// ── Cart item preview — product image + logo overlaid ──────────────────────
-function CartItemPreview({ item }: { item: CartItemCustomization }) {
-  const product = PRODUCTS.find(p => p.id === item.productId);
-  const color = product?.colors.find(c => c.id === item.colorId);
-
-  // Use colour-specific front image, fallback to product default
-  const frontImg = color?.imageDevant ?? product?.imageDevant ?? item.previewSnapshot;
-  const logoUrl  = item.logoPlacement?.previewUrl ?? item.logoPlacement?.processedUrl;
-
-  // Logo position as CSS % over the image
-  const lx = item.logoPlacement?.x ?? 50;
-  const ly = item.logoPlacement?.y ?? 32;
-  const lw = item.logoPlacement?.width ?? 28;
-
+// ── Cart item preview — shows front AND back when ordered with both sides ──
+function SideThumb({
+  img, color, placement, alt,
+}: {
+  img?: string;
+  color?: { hex: string } | null;
+  placement?: { previewUrl?: string; processedUrl?: string; x?: number; y?: number; width?: number } | null;
+  alt: string;
+}) {
+  const logoUrl = placement?.previewUrl ?? placement?.processedUrl;
+  const lx = placement?.x ?? 50;
+  const ly = placement?.y ?? 32;
+  const lw = placement?.width ?? 28;
   return (
     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-border bg-secondary flex-shrink-0">
-      {/* Product image */}
-      {frontImg && (
-        <img src={frontImg} alt="" className="w-full h-full object-cover" />
-      )}
-
-      {/* Colour overlay */}
+      {img && <img src={img} alt={alt} className="w-full h-full object-cover" />}
       {color && color.hex !== '#F2F0EB' && (
         <div
           className="absolute inset-0"
           style={{ background: color.hex, opacity: 0.15, mixBlendMode: 'multiply' }}
+          aria-hidden="true"
         />
       )}
-
-      {/* Logo overlay */}
       {logoUrl && (
         <img
           src={logoUrl}
-          alt="Logo"
+          alt=""
           className="absolute object-contain pointer-events-none"
           style={{
-            left:   `${Math.max(0, lx - lw / 2)}%`,
-            top:    `${Math.max(0, ly - lw * 0.3)}%`,
-            width:  `${lw}%`,
+            left: `${Math.max(0, lx - lw / 2)}%`,
+            top:  `${Math.max(0, ly - lw * 0.3)}%`,
+            width: `${lw}%`,
             maxWidth: '80%',
           }}
         />
       )}
+    </div>
+  );
+}
 
-      {/* Colour dot */}
+function CartItemPreview({ item }: { item: CartItemCustomization }) {
+  const product = PRODUCTS.find(p => p.id === item.productId);
+  const color = product?.colors.find(c => c.id === item.colorId);
+  const frontImg = color?.imageDevant ?? product?.imageDevant ?? item.previewSnapshot;
+  const backImg  = color?.imageDos    ?? product?.imageDos;
+
+  const hasFront = !!item.logoPlacement?.previewUrl || item.placementSides === 'front' || item.placementSides === 'both';
+  const hasBack  = !!item.logoPlacementBack?.previewUrl || item.placementSides === 'back'  || item.placementSides === 'both';
+
+  // Single-side: just show that side. Both-sides: show a small stacked pair.
+  if (hasBack && !hasFront) {
+    return <SideThumb img={backImg} color={color ?? null} placement={item.logoPlacementBack} alt="back" />;
+  }
+  if (hasFront && hasBack) {
+    return (
+      <div className="relative flex gap-0.5 flex-shrink-0">
+        <SideThumb img={frontImg} color={color ?? null} placement={item.logoPlacement}     alt="front" />
+        <SideThumb img={backImg}  color={color ?? null} placement={item.logoPlacementBack} alt="back"  />
+        {color && (
+          <div className="absolute bottom-1 right-1 z-10 w-2.5 h-2.5 rounded-full ring-1 ring-white/80 shadow-sm" style={{ background: color.hex }} />
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="relative flex-shrink-0">
+      <SideThumb img={frontImg} color={color ?? null} placement={item.logoPlacement} alt="front" />
       {color && (
         <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full ring-1 ring-white/80 shadow-sm" style={{ background: color.hex }} />
       )}
@@ -141,7 +163,9 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 </div>
                 <h3 className="text-lg font-extrabold text-foreground mb-1">{t('panierVide')}</h3>
                 <p className="text-xs text-muted-foreground mb-5 max-w-[240px] leading-relaxed">
-                  {t('explorerProduits')} — livré en 5 jours, aucun minimum.
+                  {t('explorerProduits')}
+                  {' — '}
+                  {lang === 'en' ? 'delivered in 5 days, no minimum.' : 'livré en 5 jours, aucun minimum.'}
                 </p>
                 <button
                   onClick={onClose}
