@@ -18,7 +18,7 @@ export const translations = {
     googleReviews: '50+ avis Google',
     // Steps
     step1: 'Choisis ton produit',
-    step2: 'Upload ton logo',
+    step2: 'Téléverse ton logo',
     step3: 'Reçois en 5 jours',
     // Stats
     produitLivres: 'Produits livrés',
