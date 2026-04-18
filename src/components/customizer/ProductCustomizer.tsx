@@ -486,6 +486,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               // No more leaking into color / sizes / review steps.
               showPlacementTools={store.step === 2 && store.placementSides !== 'none'}
               onBboxDetected={setBbox}
+              hasLogoPerSide={{
+                front: !!store.logoPlacement?.previewUrl,
+                back:  !!store.logoPlacementBack?.previewUrl,
+              }}
             />
           </div>
 

@@ -50,12 +50,16 @@ interface Props {
    * as percentages of canvas dimensions (0-100) so the parent can feed
    * the values straight into placement { x, y, width }. */
   onBboxDetected?: (bboxPct: { x: number; y: number; w: number; h: number; cx: number; cy: number } | null) => void;
+  /** Per-side indicator: shows a dot on the Front/Back toggle tab when
+   * that side already has artwork (competitor pattern — CustomInk +
+   * Printful both do this). */
+  hasLogoPerSide?: { front: boolean; back: boolean };
 }
 
 export function ProductCanvas({
   product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
   currentPlacement, activeView, onViewChange, onPlacementChange, onSnapshotReady,
-  showPlacementTools = true, onBboxDetected,
+  showPlacementTools = true, onBboxDetected, hasLogoPerSide,
 }: Props) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -892,25 +896,39 @@ export function ProductCanvas({
           role="tablist"
           aria-label={lang === 'en' ? 'Garment view' : 'Vue du vêtement'}
         >
-          {(['front', 'back'] as const).map(v => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              aria-selected={activeView === v}
-              aria-label={v === 'front'
-                ? (lang === 'en' ? 'Show front' : 'Voir le devant')
-                : (lang === 'en' ? 'Show back'  : 'Voir le dos')}
-              onClick={() => onViewChange(v)}
-              className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full transition-all ${
-                activeView === v
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {v === 'front' ? t('devant') : t('dos')}
-            </button>
-          ))}
+          {(['front', 'back'] as const).map(v => {
+            const hasArt = v === 'front' ? hasLogoPerSide?.front : hasLogoPerSide?.back;
+            const sideLabel = v === 'front'
+              ? (lang === 'en' ? 'Show front' : 'Voir le devant')
+              : (lang === 'en' ? 'Show back'  : 'Voir le dos');
+            return (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={activeView === v}
+                aria-label={hasArt
+                  ? `${sideLabel} (${lang === 'en' ? 'has artwork' : 'avec art'})`
+                  : sideLabel}
+                onClick={() => onViewChange(v)}
+                className={`relative text-[10px] font-extrabold px-2.5 py-1 rounded-full transition-all ${
+                  activeView === v
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {v === 'front' ? t('devant') : t('dos')}
+                {hasArt && (
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white ${
+                      activeView === v ? 'bg-emerald-300' : 'bg-emerald-500'
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Color-sync badge — confirms the photo really matches the picked
@@ -1038,7 +1056,16 @@ export function ProductCanvas({
                 placeholder={lang === 'en' ? 'Add text to garment...' : 'Ajouter du texte...'}
                 className="flex-1 bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
                 maxLength={40}
+                aria-label={lang === 'en' ? 'Text to add to garment' : 'Texte à ajouter au vêtement'}
               />
+              <span
+                className={`text-[10px] font-mono flex-shrink-0 ${
+                  textInput.length >= 35 ? 'text-amber-600' : 'text-muted-foreground/60'
+                }`}
+                aria-hidden="true"
+              >
+                {textInput.length}/40
+              </span>
             </div>
             <button
               onClick={() => { if (textInput.trim()) { addText(textInput, textColor, textFont); setTextInput(''); } }}

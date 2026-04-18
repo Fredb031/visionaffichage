@@ -113,19 +113,39 @@ export function LogoUploader({
         setPreview(noBgUrl);
         setBgRemoved(true);
         setStatus('saving');
-        const uploadedUrl = await uploadLogo(noBgBlob, file.name);
-        setStatus('done');
-        onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
-      } catch {
+        try {
+          const uploadedUrl = await uploadLogo(noBgBlob, file.name);
+          setStatus('done');
+          onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
+        } catch (uploadErr) {
+          // Supabase upload failed but BG-removal worked — surface a soft
+          // warning and keep using the local blob so the user can still
+          // preview + order. The edge function will get a re-upload on
+          // checkout.
+          console.warn('[LogoUploader] Supabase upload failed:', uploadErr);
+          setStatus('done');
+          onLogoReady(noBgUrl, noBgUrl, file);
+          setErrorMsg(lang === 'en'
+            ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
+            : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
+        }
+      } catch (bgErr) {
+        // BG-removal failed. Common causes: SVG without rasterization,
+        // network blip, model timeout. Keep the original image so user
+        // can still proceed, and tell them WHY.
+        console.warn('[LogoUploader] BG removal failed:', bgErr);
         setStatus('done');
         setPreview(localUrl);
         onLogoReady(localUrl, localUrl, file);
+        setErrorMsg(lang === 'en'
+          ? 'Couldn\u2019t auto-remove the background. Your logo will print with its original background — tap "Remove background" below to try again.'
+          : 'Impossible de supprimer le fond automatiquement. Le logo sera imprimé avec son fond — clique « Supprimer le fond » ci-dessous pour réessayer.');
       }
     } else {
       setStatus('done');
       onLogoReady(localUrl, localUrl, file);
     }
-  }, [onLogoReady]);
+  }, [onLogoReady, lang]);
 
   // Manual remove bg button — for when user uploads first then removes bg
   const handleManualRemoveBg = useCallback(async () => {
@@ -220,6 +240,16 @@ export function LogoUploader({
               <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
                 <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
                 <span>{quality.warning}</span>
+              </div>
+            )}
+
+            {/* Soft-error notice (BG removal or upload failed but we still
+                have a usable logo). Shown on the "done" state so the user
+                knows why their logo still has a background. */}
+            {errorMsg && status === 'done' && (
+              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
+                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
               </div>
             )}
           </motion.div>
