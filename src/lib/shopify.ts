@@ -227,9 +227,15 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
   });
 
   if (response.status === 402) {
-    toast.error("Shopify: Paiement requis", {
-      description: "Votre boutique Shopify nécessite un plan actif.",
-    });
+    // Read lang from localStorage since this isn't a React component
+    let isEn = false;
+    try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+    toast.error(
+      isEn ? 'Shopify: Payment required' : 'Shopify : Paiement requis',
+      { description: isEn
+          ? 'Your Shopify store needs an active plan.'
+          : 'Votre boutique Shopify nécessite un plan actif.' },
+    );
     return;
   }
 
