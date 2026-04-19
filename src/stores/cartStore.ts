@@ -158,9 +158,16 @@ export const useCartStore = create<CartStore>()(
             } else if (result.cartNotFound) clearCart();
           } else {
             const result = await addLineToShopifyCart(cartId, { ...item, lineId: null });
-            if (result.success) {
-              set({ items: [...get().items, { ...item, lineId: result.lineId ?? null }] });
-            } else if (result.cartNotFound) clearCart();
+            if (result.success && result.lineId) {
+              // Only commit to local state when we got a real lineId back —
+              // without it the item can't be updated/removed later, leaving
+              // the cart in a state where users see the item but can't touch it.
+              set({ items: [...get().items, { ...item, lineId: result.lineId }] });
+            } else if (result.cartNotFound) {
+              clearCart();
+            } else if (result.success && !result.lineId) {
+              console.warn('[cartStore] Shopify addLine succeeded but returned no lineId — refusing to add orphan item.');
+            }
           }
         } catch (error) {
           console.error('Failed to add item:', error);
