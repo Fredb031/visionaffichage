@@ -37,12 +37,27 @@ function toInitials(name: string): string {
 }
 
 function friendlyError(msg: string): string {
+  // Read the user's active language from the same localStorage key
+  // langContext writes to — avoids having to thread `lang` through every
+  // auth call. Falls back to French (the default Québec audience).
+  let isEn = false;
+  try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
   const m = msg.toLowerCase();
-  if (m.includes('invalid login') || m.includes('invalid_credentials')) return 'Courriel ou mot de passe invalide';
-  if (m.includes('email not confirmed')) return 'Confirme ton courriel avant de te connecter';
-  if (m.includes('user already registered')) return 'Un compte existe déjà avec ce courriel';
-  if (m.includes('rate limit')) return 'Trop de tentatives. Réessaie dans quelques minutes.';
-  if (m.includes('weak password') || m.includes('password should')) return 'Mot de passe trop faible (minimum 6 caractères)';
+  if (m.includes('invalid login') || m.includes('invalid_credentials')) {
+    return isEn ? 'Invalid email or password' : 'Courriel ou mot de passe invalide';
+  }
+  if (m.includes('email not confirmed')) {
+    return isEn ? 'Please confirm your email before signing in' : 'Confirme ton courriel avant de te connecter';
+  }
+  if (m.includes('user already registered')) {
+    return isEn ? 'An account already exists with this email' : 'Un compte existe déjà avec ce courriel';
+  }
+  if (m.includes('rate limit')) {
+    return isEn ? 'Too many attempts. Try again in a few minutes.' : 'Trop de tentatives. Réessaie dans quelques minutes.';
+  }
+  if (m.includes('weak password') || m.includes('password should')) {
+    return isEn ? 'Password too weak (minimum 6 characters)' : 'Mot de passe trop faible (minimum 6 caractères)';
+  }
   return msg;
 }
 
