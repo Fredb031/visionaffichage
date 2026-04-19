@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 
 const KEY = 'vision-wishlist';
+// Hard cap so a bored user smashing hearts on every product doesn't
+// push the wishlist into the multi-KB range and blow localStorage
+// quota for the cart + customizer state that shares it.
+const MAX = 50;
 
 function readStorage(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string').slice(0, MAX) : [];
   } catch {
     return [];
   }
@@ -24,7 +28,7 @@ export function useWishlist() {
     if (!handle) return;
     setHandles(prev => {
       const without = prev.filter(h => h !== handle);
-      const next = without.length === prev.length ? [handle, ...prev] : without;
+      const next = (without.length === prev.length ? [handle, ...prev] : without).slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
       return next;
     });
