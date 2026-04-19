@@ -15,6 +15,14 @@
  */
 
 const API_URL = 'https://api.remove.bg/v1.0/removebg';
+// Hard timeout on the remote BG-removal call. Without it a hung
+// connection (mobile data dropout, captive portal swallowing the
+// request, remove.bg degradation) leaves the customizer's
+// "removing-bg" status spinning indefinitely — the user sees
+// "Suppression du fond…" forever and can't proceed. 30s is well
+// above the typical 1-3s response, short enough to fall back to
+// the canvas strategy and unblock the user.
+const REMOTE_BG_TIMEOUT_MS = 30_000;
 
 export async function removeBackground(file: File): Promise<Blob> {
   // SVGs are already transparent
@@ -24,6 +32,8 @@ export async function removeBackground(file: File): Promise<Blob> {
 
   // ── Strategy 1: remove.bg API (best quality) ─────────────────────────────
   if (apiKey && apiKey !== '') {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REMOTE_BG_TIMEOUT_MS);
     try {
       const formData = new FormData();
       formData.append('image_file', file);
@@ -33,12 +43,19 @@ export async function removeBackground(file: File): Promise<Blob> {
         method: 'POST',
         headers: { 'X-Api-Key': apiKey },
         body: formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timer);
       if (res.ok) return await res.blob();
       console.warn(`remove.bg returned ${res.status} — falling back to canvas`);
     } catch (err) {
-      console.warn('remove.bg request failed — falling back to canvas:', err);
+      clearTimeout(timer);
+      if ((err as Error)?.name === 'AbortError') {
+        console.warn(`remove.bg timed out after ${REMOTE_BG_TIMEOUT_MS}ms — falling back to canvas`);
+      } else {
+        console.warn('remove.bg request failed — falling back to canvas:', err);
+      }
     }
   }
 
