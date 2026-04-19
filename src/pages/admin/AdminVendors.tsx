@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
-import { isValidEmail } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -66,8 +66,11 @@ export default function AdminVendors() {
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    const name = newName.trim();
-    const email = newEmail.trim().toLowerCase();
+    // Strip invisible chars before storing — a Slack/Notion paste of the
+    // invitee's email with a ZWSP attached would otherwise live in the
+    // vision-vendors localStorage row and fail any future strict compare.
+    const name = normalizeInvisible(newName).trim();
+    const email = normalizeInvisible(newEmail).trim().toLowerCase();
     if (!name || !isValidEmail(email)) return;
     const v: VendorRecord = {
       id: `cus-${Date.now()}`,
