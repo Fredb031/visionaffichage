@@ -8,6 +8,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
+import { normalizeInvisible } from '@/lib/utils';
 
 type Stage = 'pending' | 'production' | 'shipped' | 'delivered';
 
@@ -48,11 +49,17 @@ export default function TrackOrder() {
   }, [paramOrder]);
 
   const order = useMemo(() => {
-    const q = searchInput.trim().toLowerCase().replace(/^#/, '');
+    // Scrub invisible chars before normalizing so a customer who
+    // pastes an order number or email out of Slack/Notion (which
+    // can drag ZWSP/BOM along) still matches. Without this they
+    // saw "Commande introuvable" for a perfectly correct-looking
+    // order number.
+    const q = normalizeInvisible(searchInput).trim().toLowerCase().replace(/^#/, '');
     if (!q) return null;
+    const emailQ = normalizeInvisible(emailInput).trim().toLowerCase();
     return SHOPIFY_ORDERS_SNAPSHOT.find(o => {
       const matchNumber = o.name.toLowerCase().replace('#', '') === q;
-      const matchEmail = !emailInput.trim() || o.email.toLowerCase() === emailInput.trim().toLowerCase();
+      const matchEmail = !emailQ || o.email.toLowerCase() === emailQ;
       return matchNumber && matchEmail;
     }) ?? null;
   }, [searchInput, emailInput]);
