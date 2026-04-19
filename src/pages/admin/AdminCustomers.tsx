@@ -270,13 +270,21 @@ export default function AdminCustomers() {
 
               <div className="space-y-3 text-sm">
                 <InfoRow icon={Mail} label="Courriel">
-                  <a href={`mailto:${selected.email}`} className="text-[#0052CC] hover:underline">
+                  <a
+                    href={`mailto:${selected.email}`}
+                    aria-label={`Envoyer un courriel à ${selected.email}`}
+                    className="text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded break-all"
+                  >
                     {selected.email}
                   </a>
                 </InfoRow>
                 {selected.phone && (
                   <InfoRow icon={Phone} label="Téléphone">
-                    <a href={`tel:${selected.phone}`} className="text-[#0052CC] hover:underline">
+                    <a
+                      href={`tel:${selected.phone}`}
+                      aria-label={`Appeler ${selected.phone}`}
+                      className="text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                    >
                       {selected.phone}
                     </a>
                   </InfoRow>
