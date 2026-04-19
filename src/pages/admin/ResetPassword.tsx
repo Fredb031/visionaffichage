@@ -25,6 +25,7 @@ export default function ResetPassword() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (newPwd !== confirmPwd) {
       useAuthStore.getState().setError('Les mots de passe ne correspondent pas');
       return;
@@ -34,14 +35,21 @@ export default function ResetPassword() {
       return;
     }
     setSubmitting(true);
-    const result = await updatePassword(newPwd);
-    setSubmitting(false);
-    if (result.ok) {
-      setDone(true);
-      // No auto-redirect — the success view now has an explicit
-      // "Continue to dashboard" button (see below). Auto-redirects
-      // interrupted users reading the confirmation and were flagged
-      // as an accessibility issue.
+    try {
+      const result = await updatePassword(newPwd);
+      if (result.ok) {
+        setDone(true);
+        // No auto-redirect — the success view now has an explicit
+        // "Continue to dashboard" button (see below). Auto-redirects
+        // interrupted users reading the confirmation and were flagged
+        // as an accessibility issue.
+      }
+    } catch (err) {
+      // Without a try/finally, a thrown updatePassword (network reject)
+      // left the Confirmer button disabled forever. Surface + release.
+      console.error('[ResetPassword] updatePassword threw:', err);
+    } finally {
+      setSubmitting(false);
     }
   };
 

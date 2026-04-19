@@ -12,10 +12,19 @@ export default function ForgotPassword() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
-    const result = await sendPasswordReset(email);
-    setSubmitting(false);
-    if (result.ok) setSent(true);
+    try {
+      const result = await sendPasswordReset(email);
+      if (result.ok) setSent(true);
+    } catch (err) {
+      // Supabase normally traps its own errors and returns {ok:false}.
+      // A thrown network exception would otherwise leave the button
+      // disabled with no feedback — log + release so the user can retry.
+      console.error('[ForgotPassword] sendPasswordReset threw:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
