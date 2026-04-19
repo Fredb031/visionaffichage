@@ -485,6 +485,17 @@ export function ProductCanvas({
 
       const photoUrl = activeView === 'front' ? imageDevant : imageDos;
 
+      // Bail early if we don't have a photo URL at all. Setting
+      // probe.src = '' or undefined resolves as the current page
+      // URL in Chrome — which then "loads" successfully and leads
+      // to fabric.Image.fromURL being called with nonsense. Show
+      // the error state immediately instead.
+      if (!photoUrl) {
+        setImgError(true);
+        setReady(true);
+        return;
+      }
+
       // Pre-load with a regular Image so we can detect failures fast
       const probe = new Image();
       probe.crossOrigin = 'anonymous';
