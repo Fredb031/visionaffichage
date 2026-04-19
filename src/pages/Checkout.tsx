@@ -122,11 +122,17 @@ export default function Checkout() {
       const IDLE_GIVE_UP_AFTER = 8; // 2s with no activity = give up
       while (!checkoutUrl && retries < MAX_RETRIES) {
         await new Promise(r => setTimeout(r, 250));
-        checkoutUrl = shopifyCart.getCheckoutUrl();
+        // Read LIVE state from the store, not the stale `shopifyCart`
+        // value captured at render time. Without this, a fetch that
+        // kicks off mid-loop (shopifyCart.isLoading flips true AFTER
+        // handlePay started) would still read the pre-loop snapshot
+        // and trigger the early-bail branch below, aborting the wait.
+        const live = useShopifyCartStore.getState();
+        checkoutUrl = live.getCheckoutUrl();
         retries++;
         // If Shopify isn't currently syncing AND we've waited a bit,
         // bail out to the fallback path instead of stalling the full 5s.
-        if (!shopifyCart.isLoading && retries >= IDLE_GIVE_UP_AFTER && !checkoutUrl) break;
+        if (!live.isLoading && retries >= IDLE_GIVE_UP_AFTER && !checkoutUrl) break;
       }
 
       if (checkoutUrl) {
