@@ -267,6 +267,27 @@ export const useCartStore = create<CartStore>()(
       name: 'shopify-cart',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items, cartId: state.cartId, checkoutUrl: state.checkoutUrl }),
+      // Drop items missing a lineId on hydration. Pre-iter-173 builds
+      // could persist orphan items (a Shopify addLine that succeeded
+      // without returning an id), and once hydrated those items were
+      // undeletable: both removeItem and updateQuantity early-return
+      // when !item.lineId, so the user was stuck looking at a cart
+      // line they couldn't touch.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (Array.isArray(state.items)) {
+          const clean = state.items.filter(i => !!i?.lineId);
+          if (clean.length !== state.items.length) {
+            state.items = clean;
+            // If the whole cart was orphan lines, also clear cartId so
+            // the next addItem takes the fresh-cart path cleanly.
+            if (clean.length === 0) {
+              state.cartId = null;
+              state.checkoutUrl = null;
+            }
+          }
+        }
+      },
     }
   )
 );
