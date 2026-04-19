@@ -175,10 +175,17 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
 
       {/* Color picker row — pick which color you're adding sizes to */}
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+        <div
+          id="color-picker-label"
+          className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2"
+        >
           {lang === 'en' ? 'Choose color, then add sizes below' : 'Choisis la couleur, puis ajoute les tailles'}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        {/* role='radiogroup' wires the inner role='radio' buttons into a
+            proper grouped control — without it screen readers announced
+            each colour as a standalone radio with no group context, and
+            the activeColor selection didn't read as a single-of-N. */}
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="color-picker-label">
           {colors.map(c => {
             const isActive = c.variantId === activeColorId;
             const colorTotal = variants.filter(v => v.colorId === c.variantId).reduce((s, v) => s + v.qty, 0);
