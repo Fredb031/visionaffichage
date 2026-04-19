@@ -8,6 +8,7 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const updatePassword = useAuthStore(s => s.updatePassword);
   const error = useAuthStore(s => s.error);
+  const user = useAuthStore(s => s.user);
 
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
@@ -93,10 +94,23 @@ export default function ResetPassword() {
             <p className="text-sm text-zinc-600 mb-5">Tu peux maintenant te connecter avec ton nouveau mot de passe.</p>
             <button
               type="button"
-              onClick={() => navigate('/admin/login', { replace: true })}
+              onClick={() => {
+                // Supabase's recovery flow leaves the session ACTIVE
+                // after updatePassword, so routing to /admin/login just
+                // bounced the user straight back to their dashboard
+                // (or nowhere if they're role=client). Route based on
+                // the live role so the button label matches what
+                // actually happens.
+                const dest = user?.role === 'president' || user?.role === 'admin'
+                  ? '/admin'
+                  : user?.role === 'vendor' ? '/vendor' : '/';
+                navigate(dest, { replace: true });
+              }}
               className="w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
-              Continuer vers la connexion
+              {user?.role === 'president' || user?.role === 'admin'
+                ? 'Continuer vers le tableau de bord'
+                : user?.role === 'vendor' ? 'Continuer vers mon espace' : 'Retour au site'}
             </button>
           </div>
         ) : !tokenReady ? (
