@@ -49,7 +49,18 @@ const QuoteList = lazy(() => import("./pages/vendor/QuoteList"));
 const QuoteAccept = lazy(() => import("./pages/QuoteAccept"));
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 5 * 60 * 1000 } },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+      // refetchOnWindowFocus defaults to true, which re-fires every Shopify
+      // Storefront query (products, PDP) on every tab focus — needless
+      // Shopify traffic when the catalog barely changes, and flashes
+      // skeletons for no reason. staleTime still controls freshness;
+      // window focus just stops auto-retriggering.
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 const LazyFallback = () => (
