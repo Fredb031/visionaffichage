@@ -32,21 +32,30 @@ export default function AcceptInvite() {
       return;
     }
     (async () => {
-      const { data, error } = await supabase
-        .from('vendor_invites')
-        .select('email, full_name, role, expires_at, used_at')
-        .eq('token', token)
-        .maybeSingle();
-      if (error || !data) {
-        setError('Cette invitation n\'existe pas ou a déjà été utilisée');
-      } else if (data.used_at) {
-        setError('Cette invitation a déjà été utilisée');
-      } else if (new Date(data.expires_at) < new Date()) {
-        setError('Cette invitation est expirée. Demande à un admin de t\'en envoyer une nouvelle.');
-      } else {
-        setInvite(data as InviteRow);
+      try {
+        const { data, error } = await supabase
+          .from('vendor_invites')
+          .select('email, full_name, role, expires_at, used_at')
+          .eq('token', token)
+          .maybeSingle();
+        if (error || !data) {
+          setError('Cette invitation n\'existe pas ou a déjà été utilisée');
+        } else if (data.used_at) {
+          setError('Cette invitation a déjà été utilisée');
+        } else if (new Date(data.expires_at) < new Date()) {
+          setError('Cette invitation est expirée. Demande à un admin de t\'en envoyer une nouvelle.');
+        } else {
+          setInvite(data as InviteRow);
+        }
+      } catch (err) {
+        // Supabase client can reject on network / auth / RLS changes.
+        // Without this catch, setLoading(false) never fires and the
+        // user stares at the loading spinner indefinitely.
+        console.error('[AcceptInvite] Failed to fetch invite:', err);
+        setError('Erreur réseau. Vérifie ta connexion et recharge la page.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [token]);
 
