@@ -227,8 +227,9 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   {lang === 'en' ? 'delivered in 5 days, no minimum.' : 'livré en 5 jours, aucun minimum.'}
                 </p>
                 <button
-                  onClick={onClose}
-                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy"
+                  type="button"
+                  onClick={() => { onClose(); navigate('/products'); }}
+                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                 >
                   {t('explorerProduits')}
                 </button>
