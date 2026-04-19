@@ -40,7 +40,15 @@ export const useCustomizerStore = create<CustomizerStore>()(
         logoPlacement: null, logoPlacementBack: null,
         placementSides: 'front',
         textAssets: [],
-        sizeQuantities: [], step: 1,
+        sizeQuantities: [],
+        // Reset the view + step too — otherwise opening product B
+        // after customizing the BACK of product A showed product B's
+        // back view (wrong default), and if user was at step 3 on
+        // product A, the step indicator started at 3 on product B
+        // with no logo uploaded. Both are surface-level glitches
+        // that go away once the view/step derive from the fresh state.
+        activeView: 'front',
+        step: 1,
       }),
       setColor: (colorId) => set({ colorId }),
       setLogoPlacement: (placement) => set({ logoPlacement: placement }),
