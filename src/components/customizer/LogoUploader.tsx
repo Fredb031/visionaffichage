@@ -179,36 +179,40 @@ export function LogoUploader({
   // showed correctly but the printed logo still had its original fill.
   const handleManualRemoveBg = useCallback(async () => {
     if (!currentFile) return;
-    setStatus('removing-bg');
+    safeSetStatus('removing-bg');
     let noBgUrl: string | null = null;
     let trimmedBlob: Blob | null = null;
     try {
       const noBgBlob = await removeBackground(currentFile);
       trimmedBlob = await trimTransparentPadding(noBgBlob);
+      if (!isMountedRef.current) return;
       noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
-      setPreview(noBgUrl);
-      setBgRemoved(true);
+      safeSetPreview(noBgUrl);
+      safeSetBgRemoved(true);
     } catch (bgErr) {
       console.warn('[LogoUploader] Manual BG removal failed:', bgErr);
-      setStatus('done');
-      setErrorMsg(lang === 'en'
+      if (!isMountedRef.current) return;
+      safeSetStatus('done');
+      safeSetErrorMsg(lang === 'en'
         ? 'Couldn\u2019t remove the background this time. Try a higher-contrast image or keep the original.'
         : 'Impossible de supprimer le fond cette fois. Essaie une image plus contrastée ou garde l\u2019originale.');
       return;
     }
 
-    setStatus('saving');
+    safeSetStatus('saving');
     try {
       const uploadedUrl = await uploadLogo(trimmedBlob, currentFile.name);
-      setStatus('done');
+      if (!isMountedRef.current) return;
+      safeSetStatus('done');
       onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, currentFile);
     } catch (uploadErr) {
       // Upload failed but BG-removal worked — commit the BG-removed URL
       // to the store anyway so the printed logo matches the preview.
       console.warn('[LogoUploader] Supabase upload (manual BG) failed:', uploadErr);
-      setStatus('done');
+      if (!isMountedRef.current) return;
+      safeSetStatus('done');
       onLogoReady(noBgUrl, noBgUrl, currentFile);
-      setErrorMsg(lang === 'en'
+      safeSetErrorMsg(lang === 'en'
         ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
         : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
     }
