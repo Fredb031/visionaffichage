@@ -27,7 +27,13 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   // without having to click outside.
   useEscapeKey(menuOpen, useCallback(() => setMenuOpen(false), []));
 
-  const dashboardPath = user?.role === 'admin' ? '/admin' : user?.role === 'vendor' ? '/vendor' : null;
+  // President is the highest admin tier — route it to the same admin
+  // dashboard as 'admin'. Before this, owners signed in as 'president'
+  // saw no Dashboard link in the navbar menu and had to type /admin
+  // into the URL bar to reach their own console.
+  const dashboardPath = user?.role === 'president' || user?.role === 'admin'
+    ? '/admin'
+    : user?.role === 'vendor' ? '/vendor' : null;
 
   return (
     <nav
