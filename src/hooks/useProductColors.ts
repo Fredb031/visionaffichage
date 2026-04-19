@@ -20,5 +20,11 @@ export function useProductColors(handle: string | undefined) {
     },
     enabled: !!handle,
     staleTime: 5 * 60 * 1000, // 5 min cache
+    // Retry transient Shopify blips with exponential backoff before
+    // locking in an empty list for the 5-min staleTime. Without this,
+    // a dropped fetch during PDP load showed no colour swatches for
+    // five full minutes even if Shopify was up the whole time after.
+    retry: 2,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
   });
 }
