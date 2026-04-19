@@ -86,7 +86,7 @@ export default function AdminAnalytics() {
         <StatCard
           label="Clients actifs"
           value={String(SHOPIFY_STATS.payingCustomers)}
-          deltaLabel={`sur ${SHOPIFY_STATS.totalCustomers} inscrits`}
+          deltaLabel={`sur ${SHOPIFY_STATS.totalCustomers} inscrit${SHOPIFY_STATS.totalCustomers > 1 ? 's' : ''}`}
           icon={Users}
           accent="blue"
         />
