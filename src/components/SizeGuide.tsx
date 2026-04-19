@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import type { Product } from '@/data/products';
 
 // Size measurements in cm — standard SanMar/ATC sizing
@@ -46,6 +47,7 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
 
   useEscapeKey(isOpen, onClose);
   useBodyScrollLock(isOpen);
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   return (
     <AnimatePresence>
@@ -60,8 +62,10 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
           onClick={e => e.target === e.currentTarget && onClose()}
         >
           <motion.div
+            ref={trapRef}
+            tabIndex={-1}
             initial={{ y: 30, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }}
-            className="bg-background rounded-2xl border border-border shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            className="bg-background rounded-2xl border border-border shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden focus:outline-none"
           >
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
               <h3 id="size-guide-title" className="text-sm font-black text-foreground">
