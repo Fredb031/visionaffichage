@@ -3,6 +3,13 @@ import { useCallback, useEffect, useState } from 'react';
 const KEY = 'vision-recently-viewed';
 const MAX = 8;
 
+// Same-tab sync channel — native 'storage' event doesn't fire in the
+// tab that wrote, so two instances of this hook in the same tab
+// (RecentlyViewed empty-cart strip + PDP tracker on a tab where both
+// are visible momentarily) can get out of sync. Bounce a custom
+// event on every write so siblings re-read storage.
+const SAME_TAB_EVENT = 'vision-recently-viewed-change';
+
 function readStorage(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
@@ -43,18 +50,25 @@ export function useRecentlyViewed() {
     setHandles(prev => {
       const next = [handle, ...prev.filter(h => h !== handle)].slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return next;
     });
   }, []);
 
   // Re-read when another tab / authStore clears the list so the in-
-  // memory view stays in sync.
+  // memory view stays in sync. Also listen for the same-tab event
+  // so sibling hook instances pick up track() calls immediately.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === KEY) setHandles(readStorage());
     };
+    const onLocal = () => setHandles(readStorage());
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(SAME_TAB_EVENT, onLocal);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(SAME_TAB_EVENT, onLocal);
+    };
   }, []);
 
   return { handles, track };
