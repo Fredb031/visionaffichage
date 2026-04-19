@@ -351,8 +351,23 @@ export default function AdminUsers() {
               </label>
               <label className="block">
                 <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Courriel</span>
-                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required autoComplete="email" placeholder="marie@visionaffichage.com"
-                  className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]" />
+                {(() => {
+                  const invalid = inviteEmail.trim().length > 0 && !isValidEmail(inviteEmail);
+                  return (
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      placeholder="marie@visionaffichage.com"
+                      aria-invalid={invalid || undefined}
+                      className={`mt-1 w-full border rounded-lg px-3 py-2.5 text-sm outline-none ${
+                        invalid ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
+                      }`}
+                    />
+                  );
+                })()}
               </label>
               <div>
                 <span id="invite-role-label" className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Rôle</span>
