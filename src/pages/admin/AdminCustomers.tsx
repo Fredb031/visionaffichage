@@ -193,7 +193,10 @@ export default function AdminCustomers() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[11px] font-extrabold flex-shrink-0">
+                        <div
+                          className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+                          aria-hidden="true"
+                        >
                           {initials(c)}
                         </div>
                         <div className="font-semibold">{fullName(c)}</div>
@@ -248,7 +251,10 @@ export default function AdminCustomers() {
                 Fermer
               </button>
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-lg font-extrabold">
+                <div
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-lg font-extrabold"
+                  aria-hidden="true"
+                >
                   {initials(selected)}
                 </div>
                 <div>
@@ -323,7 +329,7 @@ export default function AdminCustomers() {
 function InfoRow({ icon: Icon, label, children }: { icon: typeof Mail; label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2.5">
-      <Icon size={15} className="text-zinc-400 mt-0.5 flex-shrink-0" />
+      <Icon size={15} className="text-zinc-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
       <div>
         <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{label}</div>
         <div className="text-sm">{children}</div>
