@@ -6,6 +6,7 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { normalizeInvisible } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 
@@ -149,17 +150,21 @@ export default function AdminOrders() {
   );
 
   const filtered = useMemo(() => {
+    // Scrub invisible chars before comparing so a query pasted from
+    // Slack/email with a ZWSP attached still matches. Also strip from
+    // the order's own email — a Shopify export could carry one through.
+    const q = normalizeInvisible(query).trim().toLowerCase();
     return augmented.filter(o => {
       if (statusFilter === 'paid' && o.financialStatus !== 'paid') return false;
       if (statusFilter === 'pending' && o.financialStatus !== 'pending') return false;
       if (statusFilter === 'fulfilled' && o.fulfillmentStatus !== 'fulfilled') return false;
       if (statusFilter === 'awaiting_fulfillment' && !(o.financialStatus === 'paid' && !o.fulfillmentStatus)) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
+      if (!q) return true;
+      const email = normalizeInvisible(o.email).toLowerCase();
       return (
         o.customerName.toLowerCase().includes(q) ||
         o.name.toLowerCase().includes(q) ||
-        o.email.toLowerCase().includes(q) ||
+        email.includes(q) ||
         String(o.id).includes(q)
       );
     });
