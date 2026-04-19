@@ -67,8 +67,8 @@ export default function AdminLogin() {
 
         <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
           {error && (
-            <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+            <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
@@ -111,7 +111,9 @@ export default function AdminLogin() {
               <button
                 type="button"
                 onClick={() => setShowPwd(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0052CC] hover:underline"
+                aria-label={showPwd ? 'Cacher le mot de passe' : 'Afficher le mot de passe'}
+                aria-pressed={showPwd}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded px-1"
               >
                 {showPwd ? 'Cacher' : 'Voir'}
               </button>
@@ -122,7 +124,10 @@ export default function AdminLogin() {
             {/* The "Stay connected" checkbox used to live here but did
                 nothing — Supabase persists sessions via localStorage by
                 default. Removed to avoid misleading the user. */}
-            <Link to="/admin/forgot-password" className="text-xs font-bold text-[#0052CC] hover:underline">
+            <Link
+              to="/admin/forgot-password"
+              className="text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Mot de passe oublié ?
             </Link>
           </div>
@@ -130,21 +135,33 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-60"
+            className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
           >
             {submitting ? 'Connexion…' : 'Se connecter'}
-            {!submitting && <ArrowRight size={16} />}
+            {!submitting && <ArrowRight size={16} aria-hidden="true" />}
           </button>
 
           <div className="bg-zinc-50 rounded-lg p-3 text-[11px] text-zinc-600 leading-relaxed">
             <div className="font-bold text-zinc-700 mb-1">Première connexion</div>
-            <div>👑 Si tu es <strong>Frederick</strong>, crée ton compte : <Link to="/admin/signup" className="text-[#0052CC] font-bold hover:underline">Créer mon compte Président</Link></div>
+            <div>
+              <span aria-hidden="true">👑 </span>
+              Si tu es <strong>Frederick</strong>, crée ton compte :{' '}
+              <Link
+                to="/admin/signup"
+                className="text-[#0052CC] font-bold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+              >
+                Créer mon compte Président
+              </Link>
+            </div>
             <div className="text-zinc-500 mt-1">Le compte avec courriel <code className="bg-white px-1 rounded">contact@fredbouchard.ca</code> reçoit automatiquement le rôle Président avec accès total.</div>
           </div>
 
           <div className="text-center pt-2 border-t border-zinc-100">
             <span className="text-xs text-zinc-500">Pas d'accès admin ? </span>
-            <Link to="/" className="text-xs font-bold text-[#0052CC] hover:underline">
+            <Link
+              to="/"
+              className="text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Retour au site
             </Link>
           </div>
