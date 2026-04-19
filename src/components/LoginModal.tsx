@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { isValidEmail } from '@/lib/utils';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -61,6 +62,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Pre-validate so the user gets our friendly message instead of
+    // Supabase's generic 'invalid credentials' when they typo a@b.
+    if (!isValidEmail(email)) {
+      useAuthStore.getState().setError(
+        lang === 'en' ? 'Please enter a valid email address' : 'Courriel invalide',
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       if (mode === 'signup') {
