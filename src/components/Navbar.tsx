@@ -120,9 +120,15 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => {
-                      signOut();
+                    onClick={async () => {
+                      // Close the menu immediately for perceived speed,
+                      // then await signOut so its async in-memory store
+                      // clears (cart/customizer reset via dynamic imports)
+                      // finish BEFORE we navigate. Without the await, the
+                      // / home page rendered briefly with the ex-user's
+                      // cart badge still populated until the clears landed.
                       setMenuOpen(false);
+                      await signOut();
                       navigate('/');
                     }}
                     role="menuitem"
