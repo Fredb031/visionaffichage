@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
@@ -114,6 +114,17 @@ export default function AdminOrders() {
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
 
+  // Cancel the resync delay if the admin clicks through to a sibling
+  // route in the 400ms before the reload fires — otherwise it yanks
+  // them back here from /admin/customers etc. Same pattern as the other
+  // admin tables.
+  const resyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+    };
+  }, []);
+
   useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
   // Side-drawer modal: stop the underlying table from scrolling while
   // the detail is open (iOS/mobile especially — the scroll wheel
@@ -212,7 +223,8 @@ export default function AdminOrders() {
               // really a hard reload — best we can do until this moves
               // behind a live Shopify edge function.
               toast.info('Synchronisation en cours…');
-              setTimeout(() => window.location.reload(), 400);
+              if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+              resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
             }}
             className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors"
             title="Recharger depuis Shopify"

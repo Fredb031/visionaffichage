@@ -1,5 +1,5 @@
 import { Search, Plus, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
@@ -18,6 +18,16 @@ export default function AdminProducts() {
   const [page, setPage] = useState(0);
 
   useEffect(() => { setPage(0); }, [query, typeFilter]);
+
+  // Cancel the resync delay if the admin navigates away in the 400ms
+  // before the reload — same pattern as AdminOrders / AdminCustomers,
+  // otherwise the reload yanks them back here mid-navigation.
+  const resyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+    };
+  }, []);
 
   const productTypes = useMemo(() => {
     const set = new Set(SHOPIFY_PRODUCTS_SNAPSHOT.map(p => p.productType).filter(Boolean));
@@ -63,7 +73,8 @@ export default function AdminProducts() {
             type="button"
             onClick={() => {
               toast.info('Synchronisation en cours…');
-              setTimeout(() => window.location.reload(), 400);
+              if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+              resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
             }}
             className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
