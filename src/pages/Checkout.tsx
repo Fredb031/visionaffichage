@@ -146,7 +146,11 @@ export default function Checkout() {
       }
 
       // Last resort: rebuild Shopify cart from local items if any
-      // shopifyVariantIds were captured.
+      // shopifyVariantIds were captured. Uses Shopify's cart permalink
+      // syntax (/cart/{variantId}:{qty},{variantId}:{qty},...) so the
+      // destination page arrives pre-populated. Without this the
+      // previous fallback just redirected to an empty /cart page —
+      // which is exactly the problem we were trying to recover from.
       const localLines = cart.items.flatMap(it =>
         (it.shopifyVariantIds ?? []).map(vid => ({ vid, qty: 1 })),
       );
@@ -157,8 +161,23 @@ export default function Checkout() {
         setProcessing(false);
         return;
       }
-      // Fallback to the Shopify-hosted cart page
-      window.location.href = 'https://visionaffichage-com.myshopify.com/cart';
+      // Strip the "gid://shopify/ProductVariant/" prefix — cart
+      // permalinks need the bare numeric ID. Skip anything malformed
+      // rather than including it and producing a 400 at Shopify.
+      const permalinkParts = localLines
+        .map(({ vid, qty }) => {
+          const numericId = vid.split('/').pop();
+          return numericId ? `${numericId}:${qty}` : null;
+        })
+        .filter((s): s is string => s !== null);
+      if (permalinkParts.length === 0) {
+        toast.error(lang === 'en'
+          ? 'Your cart could not be synced to Shopify. Please refresh and try again.'
+          : "Le panier n'a pas pu être synchronisé avec Shopify. Rafraîchis la page et réessaie.");
+        setProcessing(false);
+        return;
+      }
+      window.location.href = `https://visionaffichage-com.myshopify.com/cart/${permalinkParts.join(',')}`;
     } catch (err) {
       console.error('Checkout error:', err);
       toast.error(lang === 'en'
