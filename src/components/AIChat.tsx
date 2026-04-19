@@ -14,11 +14,22 @@ type ViewMode = 'menu' | 'topic' | 'chat';
 
 /** Dynamically load the knowledge base the first time the chat opens.
  * Keeps ~15 KB of bilingual Q&A out of the initial page bundle — it's
- * only relevant if the user actually talks to the bot. */
+ * only relevant if the user actually talks to the bot.
+ *
+ * Retries on failure: we cache only successful modules. If the first
+ * import rejects (chunk 404, network blip, captive portal), subsequent
+ * calls used to return the same rejected promise forever — the chat
+ * was permanently broken until page reload. Now a rejection clears the
+ * cache so the next open can retry. */
 type KbModule = typeof import('@/lib/aiKnowledgeBase');
 let kbPromise: Promise<KbModule> | null = null;
 const loadKb = () => {
-  if (!kbPromise) kbPromise = import('@/lib/aiKnowledgeBase');
+  if (!kbPromise) {
+    kbPromise = import('@/lib/aiKnowledgeBase').catch(err => {
+      kbPromise = null;
+      throw err;
+    });
+  }
   return kbPromise;
 };
 
