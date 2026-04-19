@@ -225,12 +225,23 @@ export function ProductCanvas({
   }, []);
 
   // Resize listener — rebuild canvas when container width changes (phone rotation, etc.)
+  // Debounced because ResizeObserver fires continuously while a desktop
+  // user drags the window edge. Without the debounce, canvasKey+1'd on
+  // every frame and the fabric canvas got torn down + rebuilt 30-60
+  // times a second — visible flicker, thrashed GPU, lost logo placement.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setCanvasKey(k => k + 1));
+    let debounceId: ReturnType<typeof setTimeout> | null = null;
+    const ro = new ResizeObserver(() => {
+      if (debounceId != null) clearTimeout(debounceId);
+      debounceId = setTimeout(() => { setCanvasKey(k => k + 1); debounceId = null; }, 150);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      if (debounceId != null) clearTimeout(debounceId);
+      ro.disconnect();
+    };
   }, []);
 
   // ── Emit placement back to parent ──────────────────────────────────────────
