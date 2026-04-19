@@ -207,11 +207,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signUp: async (email, password, name) => {
     set({ error: null });
+    // Strip invisibles on the name for the same reason as the email
+    // path — a Slack/Notion paste could carry a ZWSP that nobody can
+    // see but which lives in the Supabase auth user_metadata + the
+    // profiles row forever and breaks strict name comparisons later.
+    const cleanName = normalizeInvisible(name).trim();
     const { data, error } = await supabase.auth.signUp({
       email: normalizeEmail(email),
       password,
       options: {
-        data: { full_name: name.trim() },
+        data: { full_name: cleanName },
         emailRedirectTo: `${SITE_URL}/admin/login`,
       },
     });
@@ -223,7 +228,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // project requires email confirmation, data.user is still returned
     // but the session isn't live yet — syncOwnerProfile writes are
     // idempotent so it's fine.
-    if (data?.user) await syncOwnerProfile(data.user, name.trim());
+    if (data?.user) await syncOwnerProfile(data.user, cleanName);
     return { ok: true };
   },
 
