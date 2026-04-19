@@ -79,13 +79,24 @@ export default function Index() {
   const [heroStaggered, setHeroStaggered] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
+  // Track timers kicked off by the loader so route change (user clicks
+  // through to /products before the game popup appears) doesn't fire
+  // state updates on an unmounted page.
+  const loaderTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  useEffect(() => {
+    return () => {
+      loaderTimersRef.current.forEach(t => clearTimeout(t));
+      loaderTimersRef.current = [];
+    };
+  }, []);
+
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
-    setTimeout(() => setHeroStaggered(true), 100);
+    loaderTimersRef.current.push(setTimeout(() => setHeroStaggered(true), 100));
     // Auto-open the mini-game on first site visit only (once per browser)
     const alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
     if (!alreadyPlayed) {
-      setTimeout(() => setShowGame(true), 650);
+      loaderTimersRef.current.push(setTimeout(() => setShowGame(true), 650));
     }
   }, []);
 
