@@ -20,23 +20,36 @@
  * Returns null when the image is entirely transparent (shouldn't
  * happen in practice but we bail rather than crop to 0×0). */
 function findVisibleBbox(img: HTMLImageElement): { x: number; y: number; w: number; h: number } | null {
+  // Cap the analysis canvas so a huge user upload (8k × 8k is ~250 MB
+  // of RGBA in one getImageData call) can't OOM lower-end phones /
+  // older Safari. Downsample to fit within MAX_DIM on the longest
+  // edge — the bbox result is scaled back up to native pixel coords
+  // at the end, so this is lossless in terms of what gets cropped.
+  const MAX_DIM = 2000;
+  const natW = img.naturalWidth;
+  const natH = img.naturalHeight;
+  if (natW === 0 || natH === 0) return null;
+  const scale = Math.min(1, MAX_DIM / Math.max(natW, natH));
+  const sw = Math.max(1, Math.round(natW * scale));
+  const sh = Math.max(1, Math.round(natH * scale));
+
   const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
+  canvas.width = sw;
+  canvas.height = sh;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  ctx.drawImage(img, 0, 0, sw, sh);
+  const data = ctx.getImageData(0, 0, sw, sh).data;
 
   // Alpha threshold — anything less than this is treated as padding.
   // 16 is permissive enough to keep anti-aliased edges while dropping
   // fully-transparent fill.
   const ALPHA_MIN = 16;
 
-  let minX = canvas.width, maxX = -1, minY = canvas.height, maxY = -1;
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const i = (y * canvas.width + x) * 4 + 3;
+  let minX = sw, maxX = -1, minY = sh, maxY = -1;
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4 + 3;
       if (data[i] < ALPHA_MIN) continue;
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
@@ -47,12 +60,15 @@ function findVisibleBbox(img: HTMLImageElement): { x: number; y: number; w: numb
 
   if (maxX < 0 || maxY < 0) return null; // fully transparent
 
-  return {
-    x: minX,
-    y: minY,
-    w: maxX - minX + 1,
-    h: maxY - minY + 1,
-  };
+  // Scale the bbox back to native pixel coordinates. Add 1 px margin
+  // each side before scaling up so rounding can't clip the edge of
+  // the visible pixels.
+  const upscale = 1 / scale;
+  const x = Math.max(0, Math.floor((minX - 1) * upscale));
+  const y = Math.max(0, Math.floor((minY - 1) * upscale));
+  const x2 = Math.min(natW, Math.ceil((maxX + 2) * upscale));
+  const y2 = Math.min(natH, Math.ceil((maxY + 2) * upscale));
+  return { x, y, w: x2 - x, h: y2 - y };
 }
 
 /** Load a Blob as an HTMLImageElement (needed because we want to
