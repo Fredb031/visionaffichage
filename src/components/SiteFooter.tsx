@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -8,6 +8,15 @@ export function SiteFooter() {
   const { lang } = useLang();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  // Track the pending reset timer so we can cancel it on unmount — without
+  // this, users who submit and then navigate away within 3.5s trigger a
+  // state update on an unmounted component (React dev warning + wasted work).
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +32,12 @@ export function SiteFooter() {
       }
     } catch { /* noop */ }
     setSubscribed(true);
-    setTimeout(() => { setSubscribed(false); setEmail(''); }, 3500);
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
+      setSubscribed(false);
+      setEmail('');
+      resetTimerRef.current = null;
+    }, 3500);
   };
 
   return (
