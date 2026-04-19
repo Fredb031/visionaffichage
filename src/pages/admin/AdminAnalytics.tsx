@@ -146,28 +146,32 @@ export default function AdminAnalytics() {
         </section>
       </div>
 
-      <section className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <section className="bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="catalog-breakdown-heading">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold">Catalogue par type de produit</h2>
+          <h2 id="catalog-breakdown-heading" className="font-bold">Catalogue par type de produit</h2>
           <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{SHOPIFY_PRODUCTS_SNAPSHOT.length} produit{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''} actif{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''}</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 list-none">
           {productTypeRevenue.map(t => (
-            <div key={t.type} className="bg-zinc-50 rounded-xl p-3">
+            <li
+              key={t.type}
+              className="bg-zinc-50 rounded-xl p-3"
+              aria-label={`${t.type} : ${t.count} produit${t.count > 1 ? 's' : ''}, à partir de ${(t.revenue / t.count).toFixed(2)} $`}
+            >
               <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider truncate">{t.type}</div>
               <div className="text-2xl font-extrabold mt-1">{t.count}</div>
               <div className="text-[11px] text-zinc-500 mt-1">
                 à partir de {(t.revenue / t.count).toFixed(2)} $
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
       <section className="bg-gradient-to-br from-[#1B3A6B] to-[#0F2341] text-white rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-            <Package size={18} />
+            <Package size={18} aria-hidden="true" />
           </div>
           <div>
             <div className="font-bold text-sm mb-1">Opportunité de revenue</div>
