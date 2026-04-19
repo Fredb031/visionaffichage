@@ -192,7 +192,7 @@ export default function ProductDetail() {
             )}
             <Link
               to="/products"
-              className="text-sm font-bold text-muted-foreground hover:text-foreground"
+              className="text-sm font-bold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
             >
               {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
             </Link>

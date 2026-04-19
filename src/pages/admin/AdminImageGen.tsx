@@ -224,10 +224,15 @@ export default function AdminImageGen() {
           maxLength={4000}
           placeholder="Décris l'image que tu veux générer. Soit précis : style, cadrage, éclairage, ambiance…"
           aria-label="Prompt de génération"
+          aria-describedby="imagegen-prompt-count"
           className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none"
         />
-        <div className="text-[10px] text-zinc-400 mt-1 text-right font-mono">
-          {prompt.length}/4000
+        <div
+          id="imagegen-prompt-count"
+          className="text-[10px] text-zinc-400 mt-1 text-right font-mono"
+          aria-live="polite"
+        >
+          <span className="sr-only">Caractères utilisés : </span>{prompt.length}/4000
         </div>
 
         <div className="mt-3 flex items-center gap-3 flex-wrap">
