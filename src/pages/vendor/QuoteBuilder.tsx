@@ -3,6 +3,7 @@ import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-re
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PRODUCTS } from '@/data/products';
+import { isValidEmail } from '@/lib/utils';
 
 interface LineItem {
   id: string;
@@ -68,7 +69,12 @@ export default function QuoteBuilder() {
   const tax = (subtotal - discountAmount) * 0.14975;
   const total = subtotal - discountAmount + tax;
 
-  const canSend = clientEmail.includes('@') && items.length > 0;
+  // Mirror the checkout email validation so a vendor can't "Send to
+  // client" a quote addressed to "@" or "foo@" — those silently bounce
+  // and the vendor thinks the client received it. Also require every
+  // line to have a positive quantity so a stray 0 doesn't go out.
+  const everyItemValid = items.length > 0 && items.every(it => it.quantity > 0);
+  const canSend = isValidEmail(clientEmail) && everyItemValid;
 
   const persistQuote = (status: 'draft' | 'sent') => {
     // Defensive: older builds may have stored vision-quotes as non-array
