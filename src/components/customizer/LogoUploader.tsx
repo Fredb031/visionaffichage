@@ -112,7 +112,12 @@ export function LogoUploader({
     // Inspect resolution so we can warn the customer BEFORE they commit
     // to an order that'll print blurry. Runs in parallel with the BG
     // removal so there's no extra wait.
-    void checkImageQuality(file, lang === 'en' ? 'en' : 'fr').then(setQuality);
+    // Gate setQuality on mount — the image-load promise can resolve
+    // after the customizer modal closes, and the raw setter would
+    // otherwise fire on a dead component.
+    void checkImageQuality(file, lang === 'en' ? 'en' : 'fr').then(q => {
+      if (isMountedRef.current) setQuality(q);
+    });
     const localUrl = trackBlobUrl(URL.createObjectURL(file));
     setPreview(localUrl);
 
