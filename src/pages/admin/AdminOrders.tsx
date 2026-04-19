@@ -108,7 +108,15 @@ export default function AdminOrders() {
   useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('vision-shipped-orders') ?? '[]');
-      setShippedIds(new Set(Array.isArray(raw) ? raw : []));
+      // Coerce to numbers and drop non-numeric entries. Old builds
+      // (and manual admin edits in Supabase Studio) could have
+      // persisted string IDs — Set's identity-based `has()` would
+      // then fail to match the numeric o.id column and the Shipped
+      // badge wouldn't render on orders the admin had marked.
+      const numeric = Array.isArray(raw)
+        ? (raw as unknown[]).map(x => (typeof x === 'number' ? x : Number(x))).filter(n => Number.isFinite(n))
+        : [];
+      setShippedIds(new Set(numeric));
     } catch (e) {
       console.warn('[AdminOrders] Failed to parse shipped orders from localStorage:', e);
     }
