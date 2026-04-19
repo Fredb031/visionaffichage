@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ExternalLink, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
@@ -231,7 +231,9 @@ export default function Account() {
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
                         <span className="flex items-center gap-1"><Calendar size={10} aria-hidden="true" /> {new Date(o.createdAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</span>
-                        <span>{o.itemsCount} {lang === 'en' ? 'items' : 'articles'}</span>
+                        <span>{o.itemsCount} {lang === 'en'
+                          ? `item${o.itemsCount !== 1 ? 's' : ''}`
+                          : `article${o.itemsCount !== 1 ? 's' : ''}`}</span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -254,7 +256,7 @@ export default function Account() {
           <div className="space-y-2 text-sm">
             <Row icon={UserIcon} label={lang === 'en' ? 'Name' : 'Nom'} value={user.name} />
             <Row icon={Mail} label={lang === 'en' ? 'Email' : 'Courriel'} value={user.email} />
-            <Row icon={Calendar} label={lang === 'en' ? 'Role' : 'Rôle'} value={user.title ?? user.role} />
+            <Row icon={ShieldCheck} label={lang === 'en' ? 'Role' : 'Rôle'} value={user.title ?? user.role} />
           </div>
           <Link
             to="/admin/reset-password"
