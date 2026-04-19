@@ -84,6 +84,27 @@ export const useCartStore = create<CartStore>()(
       getItemCount: () => get().items.reduce((sum, i) => sum + (Number.isFinite(i.totalQuantity) ? i.totalQuantity : 0), 0),
       clear: () => set({ items: [], discountCode: null, discountApplied: false }),
     }),
-    { name: 'vision-cart' }
+    {
+      name: 'vision-cart',
+      // Dedup + drop malformed rows on hydration. A corrupted localStorage
+      // (crash during a write, devtools tweak, older build without
+      // crypto.randomUUID fallback) could persist items with duplicate
+      // or missing cartIds. React's list-key warning fires on the
+      // duplicates, and downstream code that maps by cartId silently
+      // operates on only the first match. Scrub at load time so the
+      // rest of the app sees a clean invariant.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (!Array.isArray(state.items)) { state.items = []; return; }
+        const seen = new Set<string>();
+        state.items = state.items.filter(it => {
+          if (!it || typeof it !== 'object') return false;
+          if (typeof it.cartId !== 'string' || !it.cartId) return false;
+          if (seen.has(it.cartId)) return false;
+          seen.add(it.cartId);
+          return true;
+        });
+      },
+    }
   )
 );
