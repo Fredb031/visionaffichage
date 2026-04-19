@@ -189,8 +189,12 @@ export default function AdminQuotes() {
                   </td>
                   <td className="px-4 py-3 text-zinc-500 text-xs">{q.age}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link to={`/quote/${q.id}`} className="text-zinc-500 hover:text-zinc-900">
-                      <Eye size={14} className="inline" />
+                    <Link
+                      to={`/quote/${q.id}`}
+                      aria-label={`Voir la soumission ${q.number} pour ${q.client}`}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                    >
+                      <Eye size={14} aria-hidden="true" />
                     </Link>
                   </td>
                 </tr>
