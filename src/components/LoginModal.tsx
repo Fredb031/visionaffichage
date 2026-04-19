@@ -5,6 +5,7 @@ import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   useEscapeKey(isOpen, onClose);
 
   useBodyScrollLock(isOpen);
+
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   if (!isOpen) return null;
 
@@ -74,10 +77,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       aria-hidden="true"
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
-        className="bg-background rounded-[22px] w-[420px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.15)] animate-[staggerUp_0.35s_cubic-bezier(.34,1.4,.64,1)_forwards]"
+        tabIndex={-1}
+        className="bg-background rounded-[22px] w-[420px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.15)] animate-[staggerUp_0.35s_cubic-bezier(.34,1.4,.64,1)_forwards] focus:outline-none"
         onClick={e => e.stopPropagation()}
       >
         <div className="pt-7 px-7 text-center">
