@@ -1,5 +1,6 @@
 import { Search, Plus, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
@@ -14,12 +15,30 @@ function formatPrice(min: number, max: number): string {
 }
 
 export default function AdminProducts() {
-  const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  // URL-backed filter state — same pattern as the other admin tables.
+  // typeFilter accepts any product-type string (validated against the
+  // snapshot's productTypes set on init).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialTypeFilter = searchParams.get('filter') ?? 'all';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [typeFilter, setTypeFilter] = useState<string>(initialTypeFilter);
   const [page, setPage] = useState(0);
 
   useEffect(() => { setPage(0); }, [query, typeFilter]);
   useDocumentTitle('Produits — Admin Vision Affichage');
+
+  // State → URL sync (replace history so each keystroke doesn't append).
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
+    if (typeFilter !== 'all') next.set('filter', typeFilter); else next.delete('filter');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, typeFilter, searchParams, setSearchParams]);
 
   // Cancel the resync delay if the admin navigates away in the 400ms
   // before the reload — same pattern as AdminOrders / AdminCustomers,
