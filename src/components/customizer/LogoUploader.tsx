@@ -73,14 +73,26 @@ export function LogoUploader({
     blobUrlsRef.current.push(url);
     return url;
   };
+  // Track mount state so the long-running processFile / handleManualRemoveBg
+  // chains don't setState on an unmounted component when the customizer
+  // modal closes mid-upload (React dev warning + wasted renders).
+  const isMountedRef = useRef(true);
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       blobUrlsRef.current.forEach(u => {
         try { URL.revokeObjectURL(u); } catch { /* already revoked */ }
       });
       blobUrlsRef.current = [];
     };
   }, []);
+  // Helpers that respect unmount — used inside await chains so a closed
+  // modal doesn't flash state on a dead component.
+  const safeSetStatus = (s: UploadStatus) => { if (isMountedRef.current) setStatus(s); };
+  const safeSetPreview = (u: string | null) => { if (isMountedRef.current) setPreview(u); };
+  const safeSetBgRemoved = (v: boolean) => { if (isMountedRef.current) setBgRemoved(v); };
+  const safeSetErrorMsg = (m: string | null) => { if (isMountedRef.current) setErrorMsg(m); };
 
   const processFile = useCallback(async (file: File, autoRemoveBg = true) => {
     if (!file.type.startsWith('image/')) {
@@ -105,20 +117,22 @@ export function LogoUploader({
     setPreview(localUrl);
 
     if (autoRemoveBg) {
-      setStatus('removing-bg');
+      safeSetStatus('removing-bg');
       try {
         const noBgBlob = await removeBackground(file);
         // Trim transparent padding so fabric centres the VISIBLE logo,
         // not the raster box. Fixes the "logo lands off-centre even
         // though the customizer says it's centred" complaint.
         const trimmedBlob = await trimTransparentPadding(noBgBlob);
+        if (!isMountedRef.current) return;
         const noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
-        setPreview(noBgUrl);
-        setBgRemoved(true);
-        setStatus('saving');
+        safeSetPreview(noBgUrl);
+        safeSetBgRemoved(true);
+        safeSetStatus('saving');
         try {
           const uploadedUrl = await uploadLogo(trimmedBlob, file.name);
-          setStatus('done');
+          if (!isMountedRef.current) return;
+          safeSetStatus('done');
           onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
         } catch (uploadErr) {
           // Supabase upload failed but BG-removal worked — surface a soft
@@ -126,9 +140,10 @@ export function LogoUploader({
           // preview + order. The edge function will get a re-upload on
           // checkout.
           console.warn('[LogoUploader] Supabase upload failed:', uploadErr);
-          setStatus('done');
+          if (!isMountedRef.current) return;
+          safeSetStatus('done');
           onLogoReady(noBgUrl, noBgUrl, file);
-          setErrorMsg(lang === 'en'
+          safeSetErrorMsg(lang === 'en'
             ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
             : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
         }
@@ -138,18 +153,20 @@ export function LogoUploader({
         // if it has transparent padding) so user can still proceed, and
         // tell them WHY.
         console.warn('[LogoUploader] BG removal failed:', bgErr);
+        if (!isMountedRef.current) return;
         let fallbackBlob: Blob = file;
         try { fallbackBlob = await trimTransparentPadding(file); } catch { /* ignore */ }
+        if (!isMountedRef.current) return;
         const fallbackUrl = trackBlobUrl(URL.createObjectURL(fallbackBlob));
-        setStatus('done');
-        setPreview(fallbackUrl);
+        safeSetStatus('done');
+        safeSetPreview(fallbackUrl);
         onLogoReady(fallbackUrl, fallbackUrl, file);
-        setErrorMsg(lang === 'en'
+        safeSetErrorMsg(lang === 'en'
           ? 'Couldn\u2019t auto-remove the background. Your logo will print with its original background — tap "Remove background" below to try again.'
           : 'Impossible de supprimer le fond automatiquement. Le logo sera imprimé avec son fond — clique « Supprimer le fond » ci-dessous pour réessayer.');
       }
     } else {
-      setStatus('done');
+      safeSetStatus('done');
       onLogoReady(localUrl, localUrl, file);
     }
   }, [onLogoReady, lang]);
