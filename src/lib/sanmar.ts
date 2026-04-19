@@ -100,18 +100,29 @@ export function summarizeStock(parts: SanmarInventoryPart[] | null): StockSummar
   const byColorSize = new Map<string, number>();
   let totalAvailable = 0;
 
-  if (!parts) return { totalAvailable, byColor, bySize, byColorSize };
+  // Accept only real arrays. The edge function could theoretically
+  // return an error object or null while TypeScript still narrows to
+  // SanmarInventoryPart[], and iterating a non-iterable throws.
+  if (!Array.isArray(parts)) return { totalAvailable, byColor, bySize, byColorSize };
 
   for (const p of parts) {
+    if (!p || typeof p !== 'object') continue;
     // SanMar's SOAP-to-REST gateway has been known to return null /
     // undefined for totalQty on discontinued parts. Coerce to 0 so a
     // single bad row doesn't turn the whole summary into NaN and
     // render as "NaN en stock" on the PDP stock badge.
     const qty = Number.isFinite(p.totalQty) ? p.totalQty : 0;
     totalAvailable += qty;
-    if (p.partColor) byColor.set(p.partColor, (byColor.get(p.partColor) ?? 0) + qty);
-    if (p.labelSize) bySize.set(p.labelSize, (bySize.get(p.labelSize) ?? 0) + qty);
-    if (p.partColor && p.labelSize) {
+    // Only string keys land in the Maps — a numeric partColor (has
+    // happened in test data) would be truthy and pollute the map
+    // with a number-keyed entry that doesn't match any UI lookup.
+    if (typeof p.partColor === 'string' && p.partColor) {
+      byColor.set(p.partColor, (byColor.get(p.partColor) ?? 0) + qty);
+    }
+    if (typeof p.labelSize === 'string' && p.labelSize) {
+      bySize.set(p.labelSize, (bySize.get(p.labelSize) ?? 0) + qty);
+    }
+    if (typeof p.partColor === 'string' && p.partColor && typeof p.labelSize === 'string' && p.labelSize) {
       const key = `${p.partColor}|${p.labelSize}`;
       byColorSize.set(key, (byColorSize.get(key) ?? 0) + qty);
     }
