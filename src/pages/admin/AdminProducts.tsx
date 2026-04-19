@@ -141,9 +141,12 @@ export default function AdminProducts() {
                     Actif
                   </span>
                   {lowStock && (
-                    <span className="absolute top-2 left-2 text-[10px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <span
+                      className="absolute top-2 left-2 text-[10px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded flex items-center gap-1"
+                      title="Inventaire à 0 ou en backorder"
+                    >
                       <AlertTriangle size={9} aria-hidden="true" />
-                      Stock
+                      Rupture
                     </span>
                   )}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
