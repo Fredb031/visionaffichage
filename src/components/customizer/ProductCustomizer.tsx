@@ -84,7 +84,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   // Escape closes the modal (but only when not focused in a text field
   // — fabric IText editing uses Escape to exit text mode).
-  useEscapeKey(true, onClose, { skipInTextInputs: true });
+  // Don't let Escape close the modal while an add-to-cart is in flight —
+  // the async work keeps running post-unmount and fires setState on a
+  // dead component (React dev warning) + the user sees the success
+  // toast appear on an unrelated page seconds after they dismissed.
+  useEscapeKey(!adding, onClose, { skipInTextInputs: true });
   useBodyScrollLock(true);
 
   // Auto-select the first Shopify color on mount so a default preview is
@@ -561,7 +565,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       role="dialog"
       aria-modal="true"
       aria-labelledby="customizer-title"
-      onClick={e => e.target === e.currentTarget && onClose()}
+      onClick={e => { if (!adding && e.target === e.currentTarget) onClose(); }}
     >
       <motion.div
         initial={{ y: 80, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 80, opacity: 0 }}
@@ -621,8 +625,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           <button
             type="button"
             onClick={onClose}
+            disabled={adding}
             aria-label={lang === 'en' ? 'Close customizer' : 'Fermer le personnalisateur'}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary flex-shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary flex-shrink-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
           >
             <X size={14} aria-hidden="true" />
           </button>
