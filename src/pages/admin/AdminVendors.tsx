@@ -33,7 +33,19 @@ export default function AdminVendors() {
   useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('vision-vendors') ?? '[]');
-      setCustomVendors(Array.isArray(raw) ? raw : []);
+      if (!Array.isArray(raw)) { setCustomVendors([]); return; }
+      // Filter out rows missing the fields the UI relies on (id is used
+      // as React key, name drives initials.split(' '), email fills the
+      // mailto). A malformed row could come from a devtools edit or an
+      // older build — dropping it is cleaner than crashing the whole
+      // admin page on a property access.
+      const clean = (raw as Partial<VendorRecord>[]).filter(v =>
+        v && typeof v === 'object' &&
+        typeof v.id === 'string' &&
+        typeof v.name === 'string' &&
+        typeof v.email === 'string'
+      ) as VendorRecord[];
+      setCustomVendors(clean);
     } catch {
       setCustomVendors([]);
     }
