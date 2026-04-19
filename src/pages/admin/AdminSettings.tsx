@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield } from 'lucide-react';
+import { Link2, Building2, CreditCard, Shield, ExternalLink } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // localStorage key for the settings toggles. Persisting client-side only
@@ -93,12 +93,19 @@ export default function AdminSettings() {
           </div>
           <span className="text-[11px] font-bold px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md">Actif</span>
         </div>
-        <button
-          type="button"
-          className="mt-3 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+        {/* Link to Shopify's Apps & permissions page since the actual
+            permission grants live there — the bare button with no
+            onClick used to read as a broken integration. */}
+        <a
+          href="https://visionaffichage.myshopify.com/admin/apps"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Gérer les permissions des apps dans Shopify Admin (nouvel onglet)"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
         >
           Gérer les permissions
-        </button>
+          <ExternalLink size={11} aria-hidden="true" />
+        </a>
       </section>
 
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
