@@ -460,7 +460,7 @@ export default function Checkout() {
                     <div className="font-bold text-xs truncate">{it.productName}</div>
                     <div className="text-[11px] text-muted-foreground">× {it.totalQuantity}</div>
                   </div>
-                  <div className="font-bold text-xs whitespace-nowrap">{it.totalPrice.toFixed(2)} $</div>
+                  <div className="font-bold text-xs whitespace-nowrap">{(Number.isFinite(it.totalPrice) ? it.totalPrice : 0).toFixed(2)} $</div>
                 </div>
               ))}
             </div>

@@ -233,7 +233,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         {item.sizeQuantities.filter(s => s.quantity > 0).map(s => `${s.size}×${s.quantity}`).join(' · ')}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs font-extrabold text-primary">{item.totalPrice.toFixed(2)} $</p>
+                        <p className="text-xs font-extrabold text-primary">{(Number.isFinite(item.totalPrice) ? item.totalPrice : 0).toFixed(2)} $</p>
                         <span className="text-[10px] text-muted-foreground">
                           ({item.totalQuantity} {lang === 'en' ? (item.totalQuantity !== 1 ? 'units' : 'unit') : (item.totalQuantity !== 1 ? 'unités' : 'unité')})
                         </span>

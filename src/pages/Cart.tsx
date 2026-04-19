@@ -222,9 +222,9 @@ export default function Cart() {
                       : `unité${item.totalQuantity !== 1 ? 's' : ''}`}
                   </p>
                   <p className="font-extrabold text-primary mt-1.5">
-                    {item.totalPrice.toFixed(2)} $
+                    {(Number.isFinite(item.totalPrice) ? item.totalPrice : 0).toFixed(2)} $
                     <span className="text-xs font-normal text-muted-foreground ml-1">
-                      ({item.unitPrice.toFixed(2)} $ / {lang === 'en' ? 'unit' : 'unité'})
+                      ({(Number.isFinite(item.unitPrice) ? item.unitPrice : 0).toFixed(2)} $ / {lang === 'en' ? 'unit' : 'unité'})
                     </span>
                   </p>
                 </div>
