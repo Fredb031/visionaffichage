@@ -79,10 +79,15 @@ async function createShopifyCart(item: CartItem): Promise<{ cartId: string; chec
   const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
     input: { lines: [{ quantity: item.quantity, merchandiseId: item.variantId }] },
   });
-  if (data?.data?.cartCreate?.userErrors?.length > 0) return null;
-  const cart = data?.data?.cartCreate?.cart;
+  // Mirror the guard the other mutation helpers added: storefrontApiRequest
+  // returns undefined on HTTP 402, and the optional chaining below would
+  // silently return null. Still null, so not a behavioural change — but
+  // being explicit keeps the code uniform and makes future refactors safer.
+  if (!data?.data?.cartCreate) return null;
+  if (data.data.cartCreate.userErrors?.length > 0) return null;
+  const cart = data.data.cartCreate.cart;
   if (!cart?.checkoutUrl) return null;
-  const lineId = cart.lines.edges[0]?.node?.id;
+  const lineId = cart.lines?.edges?.[0]?.node?.id;
   if (!lineId) return null;
   return { cartId: cart.id, checkoutUrl: formatCheckoutUrl(cart.checkoutUrl), lineId };
 }
