@@ -23,6 +23,10 @@ function relativeTime(ts: number): string {
   // doesn't render "-1 min" / "-1h" in the activity feed.
   const diff = Math.max(0, Date.now() - ts);
   const m = Math.floor(diff / 60000);
+  // Sub-minute events read more naturally as "à l'instant" than
+  // "0 min" — the bare zero suggests stale data ("0 min ago? did
+  // anything happen?") instead of "just now".
+  if (m < 1) return "à l'instant";
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
