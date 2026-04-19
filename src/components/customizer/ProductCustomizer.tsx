@@ -1230,10 +1230,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
         {/* ── Footer ── */}
         <div className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background">
-          <button onClick={goBack} disabled={store.step === 1}
-            className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground disabled:opacity-20 hover:text-foreground transition-colors"
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={store.step === 1}
+            className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground disabled:opacity-20 hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
           >
-            <ChevronLeft size={15} /> {t('retour')}
+            <ChevronLeft size={15} aria-hidden="true" /> {t('retour')}
           </button>
 
           {totalQty > 0 && store.step >= 3 && (
@@ -1246,19 +1249,23 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           )}
 
           {store.step < 4 ? (
-            <button onClick={goNext} disabled={!canNext()}
-              className="flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all"
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!canNext()}
+              className="flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              {t('suivant')} <ChevronRight size={15} />
+              {t('suivant')} <ChevronRight size={15} aria-hidden="true" />
             </button>
           ) : (
             <button
               type="button"
               onClick={handleAddToCart}
               disabled={totalQty === 0 || adding}
-              className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all shadow-md"
+              aria-busy={adding}
+              className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
-              <ShoppingBag size={14} />
+              <ShoppingBag size={14} aria-hidden="true" />
               {adding ? (lang === 'en' ? 'Adding…' : 'Ajout…') : t('ajouterPanier')}
             </button>
           )}

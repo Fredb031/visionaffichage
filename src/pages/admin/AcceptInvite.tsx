@@ -186,7 +186,22 @@ export default function AcceptInvite() {
               <CheckCircle2 size={28} strokeWidth={2.5} aria-hidden="true" />
             </div>
             <h2 className="text-lg font-extrabold mb-2">Compte activé</h2>
-            <p className="text-sm text-zinc-600">Redirection vers ton tableau de bord…</p>
+            <p className="text-sm text-zinc-600 mb-5">Tu peux entrer maintenant ou attendre la redirection automatique.</p>
+            {/* Explicit Continue button — the 1.8s auto-redirect was
+                jarring for users who hadn't finished reading the success
+                state. The button gives keyboard / screen-reader users a
+                clear next action and short-circuits the timer for those
+                who want to move faster. */}
+            <button
+              type="button"
+              onClick={() => {
+                if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+                navigate(invite?.role === 'admin' ? '/admin' : '/vendor', { replace: true });
+              }}
+              className="w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+            >
+              {invite?.role === 'admin' ? 'Aller au tableau de bord admin' : 'Aller à mon espace vendeur'}
+            </button>
           </div>
         ) : invite ? (
           <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
