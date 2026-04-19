@@ -39,7 +39,7 @@ function matchesCategory(
 
 export default function Products() {
   const { lang } = useLang();
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading, isError, refetch } = useProducts();
   const [cartOpen, setCartOpen] = useState(false);
   // Read the category off ?cat= on first mount so footer links like
   // /products?cat=tshirts land directly on the right filter, and so a
@@ -262,6 +262,28 @@ export default function Products() {
               <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" aria-hidden="true" />
             ))}
             <span className="sr-only">{lang === 'en' ? 'Loading products…' : 'Chargement des produits…'}</span>
+          </div>
+        ) : isError ? (
+          // Shopify Storefront returned an error (network, auth, 5xx).
+          // Before this, we just showed "no products" with no way to
+          // recover — the customer had to reload the whole tab to
+          // retry. Give them a scoped retry button.
+          <div className="text-center py-20" role="alert">
+            <p className="text-foreground text-lg font-bold mb-2">
+              {lang === 'en' ? 'Couldn\u2019t load the catalog' : 'Impossible de charger le catalogue'}
+            </p>
+            <p className="text-sm text-muted-foreground mb-5">
+              {lang === 'en'
+                ? 'Check your connection and try again.'
+                : 'Vérifie ta connexion et réessaie.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+            >
+              {lang === 'en' ? 'Retry' : 'Réessayer'}
+            </button>
           </div>
         ) : !products || products.length === 0 ? (
           <div className="text-center py-20">
