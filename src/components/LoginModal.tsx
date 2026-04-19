@@ -75,6 +75,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       onClose();
       if (res.role === 'admin' || res.role === 'president') navigate('/admin');
       else if (res.role === 'vendor') navigate('/vendor');
+    } catch (err) {
+      // signIn/signUp normally trap their own errors and return
+      // {ok:false} with a friendly message on the store. But a thrown
+      // exception — fetchProfile rejecting on network, onAuthStateChange
+      // subscriber throwing, syncOwnerProfile blowing up — would
+      // otherwise bubble into the unhandled-rejection path and React
+      // would render an error boundary instead of staying in the
+      // modal. Catch + surface via the store's error state so the
+      // existing red-alert label picks it up.
+      console.error('[LoginModal] auth call threw:', err);
+      useAuthStore.getState().setError(
+        lang === 'en'
+          ? 'Something went wrong. Check your connection and try again.'
+          : 'Une erreur est survenue. Vérifie ta connexion et réessaie.',
+      );
     } finally {
       setSubmitting(false);
     }
