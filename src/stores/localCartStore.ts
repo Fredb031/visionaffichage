@@ -2,6 +2,19 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItemCustomization } from '@/types/customization';
 
+// crypto.randomUUID is not available on every browser we ship to
+// (older mobile Safari, some in-app WebViews). Fall back to a
+// timestamp + random suffix so addItem never throws and drops the
+// user's cart line on the floor.
+function newCartId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch { /* ignore — fall through to the suffix version */ }
+  return `cart-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 interface CartStore {
   items: CartItemCustomization[];
   discountCode: string | null;
@@ -29,7 +42,7 @@ export const useCartStore = create<CartStore>()(
       discountApplied: false,
 
       addItem: (item) => {
-        const cartId = crypto.randomUUID();
+        const cartId = newCartId();
         set((state) => ({
           items: [...state.items, { ...item, cartId, addedAt: new Date() }],
         }));
