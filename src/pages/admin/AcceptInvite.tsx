@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,15 @@ export default function AcceptInvite() {
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Track the post-activation redirect timer so a fast unmount (user
+  // clicks a nav link while the success screen is showing) doesn't
+  // later shove them to the dashboard against their choice.
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -115,7 +124,10 @@ export default function AcceptInvite() {
       }
 
       setDone(true);
-      setTimeout(() => navigate(invite.role === 'admin' ? '/admin' : '/vendor', { replace: true }), 1800);
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
+        navigate(invite.role === 'admin' ? '/admin' : '/vendor', { replace: true });
+      }, 1800);
     } catch (err) {
       // A thrown supabase call (network reject) would otherwise leave
       // the button disabled forever with no feedback. Surface + release.
