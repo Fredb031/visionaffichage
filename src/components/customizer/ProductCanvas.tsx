@@ -791,9 +791,20 @@ export function ProductCanvas({
       const newScale = targetW / naturalW;
       img.set({ scaleX: newScale, scaleY: newScale });
     }
+    // The init effect sets originX/Y='center', so left/top ARE the center
+    // of the logo, not its top-left corner. The old math here subtracted
+    // width/2 + height/2 anyway — which shifted the logo up-left by half
+    // its size on every "Center on garment" / zone preset click. Match
+    // the origin so pre-set placements land exactly on the target point.
+    const originX = (img as unknown as { originX?: string }).originX;
+    const originY = (img as unknown as { originY?: string }).originY;
     img.set({
-      left: targetX - (img.width ?? 0) * (img.scaleX ?? 1) / 2,
-      top:  targetY - (img.height ?? 0) * (img.scaleY ?? 1) / 2,
+      left: originX === 'center'
+        ? targetX
+        : targetX - (img.width ?? 0) * (img.scaleX ?? 1) / 2,
+      top: originY === 'center'
+        ? targetY
+        : targetY - (img.height ?? 0) * (img.scaleY ?? 1) / 2,
       angle: currentPlacement.rotation ?? img.angle ?? 0,
     });
     img.setCoords?.();
