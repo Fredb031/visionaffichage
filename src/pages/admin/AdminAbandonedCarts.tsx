@@ -11,10 +11,18 @@ import { TablePagination } from '@/components/admin/TablePagination';
 const PAGE_SIZE = 25;
 
 function formatRelative(iso: string): string {
-  // Clamp — a snapshot createdAt a few seconds ahead of the browser
-  // clock would otherwise render "il y a -1 jours".
-  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-  const days = Math.floor(diff / 86400000);
+  // Compare CALENDAR-DAY deltas instead of a 24-hour-window floor —
+  // a cart created at 11:55pm yesterday was previously labelled
+  // "aujourd'hui" when viewed at 11:55am today (12h diff → floor(12/24)=0)
+  // even though it was clearly the previous calendar day. Use day-start
+  // anchors so the same calendar day reads "aujourd'hui" and the prior
+  // calendar day always reads "hier" regardless of the hour.
+  const created = new Date(iso);
+  if (Number.isNaN(created.getTime())) return '';
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const todayMid = startOfDay(new Date()).getTime();
+  const createdMid = startOfDay(created).getTime();
+  const days = Math.max(0, Math.round((todayMid - createdMid) / 86400000));
   if (days === 0) return "aujourd'hui";
   if (days === 1) return 'hier';
   if (days < 7) return `il y a ${days} jours`;
