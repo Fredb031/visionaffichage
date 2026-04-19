@@ -154,8 +154,16 @@ export default function QuoteBuilder() {
       `• ${it.productName} (${it.color || '—'}, ${it.size}) × ${it.quantity} = ${(it.unitPrice * it.quantity).toFixed(2)} $${it.placementNote ? ` — Placement: ${it.placementNote}` : ''}`,
     ).join('\n');
     const subject = encodeURIComponent(`Ta soumission ${q.number} de Vision Affichage`);
+    // Build the salutation with care for the empty-name case — the
+    // 'Send to client' button doesn't require a name (it only gates on
+    // a valid email), so without this guard the email body opened with
+    // 'Bonjour ,\n\n' (lone comma after the space). Use the trimmed
+    // clientName and drop the comma + space when there's nothing to
+    // address.
+    const cleanClientName = normalizeInvisible(clientName).trim();
+    const salutation = cleanClientName ? `Bonjour ${cleanClientName},` : 'Bonjour,';
     const body = encodeURIComponent(
-      `Bonjour ${clientName || ''},\n\n` +
+      `${salutation}\n\n` +
       `Voici ta soumission personnalisée :\n\n` +
       `${lines}\n` +
       (truncated ? `… et ${items.length - MAX_LINES_IN_EMAIL} autre${items.length - MAX_LINES_IN_EMAIL > 1 ? 's' : ''} article${items.length - MAX_LINES_IN_EMAIL > 1 ? 's' : ''} — détail complet sur la page Web.\n\n` : '\n') +
