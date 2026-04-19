@@ -133,8 +133,14 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background">
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-        <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-24 pb-32">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+        <div
+          className="max-w-[1100px] mx-auto px-6 md:px-10 pt-24 pb-32"
+          role="status"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <span className="sr-only">{lang === 'en' ? 'Loading product…' : 'Chargement du produit…'}</span>
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12" aria-hidden="true">
             <div className="aspect-square rounded-2xl bg-secondary animate-pulse" />
             <div className="space-y-4">
               <div className="h-8 bg-secondary rounded-xl animate-pulse w-3/4" />
