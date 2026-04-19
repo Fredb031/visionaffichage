@@ -347,7 +347,7 @@ export default function Checkout() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                    <Mail size={18} className="text-[#0052CC]" />
+                    <Mail size={18} className="text-[#0052CC]" aria-hidden="true" />
                     {lang === 'en' ? 'Contact' : 'Contact'}
                   </h2>
                   {(() => {
@@ -375,7 +375,7 @@ export default function Checkout() {
 
                 <div>
                   <h2 className="text-xl font-extrabold flex items-center gap-2 mb-3">
-                    <MapPin size={18} className="text-[#0052CC]" />
+                    <MapPin size={18} className="text-[#0052CC]" aria-hidden="true" />
                     {lang === 'en' ? 'Shipping address' : 'Adresse de livraison'}
                   </h2>
                   <div className="grid grid-cols-2 gap-3">
@@ -460,13 +460,13 @@ export default function Checkout() {
             {step === 'payment' && (
               <div className="space-y-5">
                 <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                  <CreditCard size={18} className="text-[#0052CC]" />
+                  <CreditCard size={18} className="text-[#0052CC]" aria-hidden="true" />
                   {lang === 'en' ? 'Payment' : 'Paiement'}
                 </h2>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <ShieldCheck size={16} className="text-emerald-600" />
+                    <ShieldCheck size={16} className="text-emerald-600" aria-hidden="true" />
                     <span className="font-bold">{lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
