@@ -11,6 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 // the full control + bidi block. Strip before any regex check so a
 // user who copies "john@example.com" from Slack doesn't get a
 // confusing "invalid email" rejection for what looks correct.
+// eslint-disable-next-line no-control-regex
 const INVISIBLE_CHARS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 
 export function normalizeInvisible(value: string): string {
