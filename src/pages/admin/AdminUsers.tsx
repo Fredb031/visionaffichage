@@ -6,7 +6,7 @@ import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { isValidEmail } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 interface ProfileRow {
   id: string;
@@ -138,8 +138,14 @@ export default function AdminUsers() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inviteSubmitting) return;
-    const trimmedEmail = inviteEmail.trim().toLowerCase();
-    if (!inviteName.trim() || !isValidEmail(trimmedEmail)) {
+    // Strip invisible chars BEFORE we store. isValidEmail already
+    // does this internally for the validity check, but the raw
+    // inviteEmail value was what got sent to the edge function,
+    // so a ZWSP paste from Slack/Notion lived in vendor_invites
+    // and AcceptInvite's strict email compare bounced the invitee.
+    const cleanEmail = normalizeInvisible(inviteEmail).trim().toLowerCase();
+    const cleanName = normalizeInvisible(inviteName).trim();
+    if (!cleanName || !isValidEmail(cleanEmail)) {
       setInviteResult('Nom + courriel valides requis.');
       return;
     }
@@ -147,13 +153,13 @@ export default function AdminUsers() {
     setInviteResult(null);
     try {
       const { data, error } = await supabase.functions.invoke('admin-invite-vendor', {
-        body: { email: trimmedEmail, full_name: inviteName.trim(), role: inviteRole },
+        body: { email: cleanEmail, full_name: cleanName, role: inviteRole },
       });
       if (error) {
         setInviteResult(`Erreur : ${error.message}`);
         return;
       }
-      setInviteResult(data?.warning ?? `Invitation envoyée à ${trimmedEmail}.`);
+      setInviteResult(data?.warning ?? `Invitation envoyée à ${cleanEmail}.`);
       setInviteName('');
       setInviteEmail('');
       fetchUsers();
