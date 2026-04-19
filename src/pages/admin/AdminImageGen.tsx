@@ -289,7 +289,18 @@ export default function AdminImageGen() {
               // 12-item history cap.
               <div key={`${img.url}-${img.generatedAt}`} className="border border-zinc-200 rounded-xl overflow-hidden">
                 <div className="aspect-square bg-zinc-100 relative group">
-                  <img src={img.url} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                  <img
+                    src={img.url}
+                    // Cap the alt at ~120 chars — prompts can run to 4000
+                    // and SR users were getting a 30-second prompt readout
+                    // for what should be a glanceable thumbnail. Full
+                    // prompt still lives below the image (line 299).
+                    alt={img.prompt.length > 120 ? `${img.prompt.slice(0, 117)}…` : img.prompt}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
                   <a
                     href={img.url}
                     download
