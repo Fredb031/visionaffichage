@@ -243,9 +243,17 @@ export function AIChat() {
 
             {view === 'chat' && (
               <div className="space-y-3" role="log" aria-live="polite" aria-label={lang === 'en' ? 'Chat history' : 'Historique de la conversation'}>
-                {messages.map((m, i) => (
+                {messages.map(m => (
+                  // Stable key tied to the message itself, not its array
+                  // index. Once the transcript hits MAX_MESSAGES (200) the
+                  // front gets sliced off and every surviving message's
+                  // index shifts down by one — index-keyed nodes had their
+                  // content swapped under them, which both burned a render
+                  // and (worse) tripped aria-live to re-announce stale
+                  // text in the screen-reader log. ts already gets +1ms
+                  // disambiguation in pickFromTopic so role+ts is unique.
                   <div
-                    key={i}
+                    key={`${m.ts}-${m.role}`}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
