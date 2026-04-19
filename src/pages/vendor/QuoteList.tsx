@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye } from 'lucide-react';
+import { normalizeInvisible } from '@/lib/utils';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
 
@@ -114,11 +115,14 @@ export default function QuoteList() {
   const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
 
   const filtered = useMemo(() => {
+    // ZWSP-safe search — same pattern as AdminQuotes / AdminOrders.
+    const Q = normalizeInvisible(query).trim().toLowerCase();
     return all.filter(q => {
       if (filter !== 'all' && q.status !== filter) return false;
-      if (!query.trim()) return true;
-      const Q = query.toLowerCase();
-      return q.client.toLowerCase().includes(Q) || q.number.toLowerCase().includes(Q);
+      if (!Q) return true;
+      const client = normalizeInvisible(q.client).toLowerCase();
+      const num = normalizeInvisible(q.number).toLowerCase();
+      return client.includes(Q) || num.includes(Q);
     });
   }, [all, query, filter]);
 
