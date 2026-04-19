@@ -280,8 +280,14 @@ export default function AdminImageGen() {
         <section className="bg-white border border-zinc-200 rounded-2xl p-5">
           <h2 className="font-bold text-sm mb-3">Images générées ({history.length})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {history.map((img, i) => (
-              <div key={i} className="border border-zinc-200 rounded-xl overflow-hidden">
+            {history.map(img => (
+              // Key on a stable identifier instead of array index. New
+              // images prepend to history (line 92), so index-keyed nodes
+              // got their src/alt swapped under them — the browser
+              // re-fetched each surviving image and any per-card focus
+              // state was lost. URL+generatedAt is unique enough for the
+              // 12-item history cap.
+              <div key={`${img.url}-${img.generatedAt}`} className="border border-zinc-200 rounded-xl overflow-hidden">
                 <div className="aspect-square bg-zinc-100 relative group">
                   <img src={img.url} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   <a
