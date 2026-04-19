@@ -154,24 +154,48 @@ export function LogoUploader({
     }
   }, [onLogoReady, lang]);
 
-  // Manual remove bg button — for when user uploads first then removes bg
+  // Manual remove bg button — for when user uploads first then removes bg.
+  // Every success/failure path MUST either call onLogoReady with a URL
+  // that matches the visible preview, OR leave both untouched. Otherwise
+  // the store's previewUrl (what gets PRINTED) drifts from what the user
+  // sees in the uploader — we had a report where the BG-removed preview
+  // showed correctly but the printed logo still had its original fill.
   const handleManualRemoveBg = useCallback(async () => {
     if (!currentFile) return;
     setStatus('removing-bg');
+    let noBgUrl: string | null = null;
+    let trimmedBlob: Blob | null = null;
     try {
       const noBgBlob = await removeBackground(currentFile);
-      const trimmedBlob = await trimTransparentPadding(noBgBlob);
-      const noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
+      trimmedBlob = await trimTransparentPadding(noBgBlob);
+      noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
       setPreview(noBgUrl);
       setBgRemoved(true);
-      setStatus('saving');
+    } catch (bgErr) {
+      console.warn('[LogoUploader] Manual BG removal failed:', bgErr);
+      setStatus('done');
+      setErrorMsg(lang === 'en'
+        ? 'Couldn\u2019t remove the background this time. Try a higher-contrast image or keep the original.'
+        : 'Impossible de supprimer le fond cette fois. Essaie une image plus contrastée ou garde l\u2019originale.');
+      return;
+    }
+
+    setStatus('saving');
+    try {
       const uploadedUrl = await uploadLogo(trimmedBlob, currentFile.name);
       setStatus('done');
       onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, currentFile);
-    } catch {
+    } catch (uploadErr) {
+      // Upload failed but BG-removal worked — commit the BG-removed URL
+      // to the store anyway so the printed logo matches the preview.
+      console.warn('[LogoUploader] Supabase upload (manual BG) failed:', uploadErr);
       setStatus('done');
+      onLogoReady(noBgUrl, noBgUrl, currentFile);
+      setErrorMsg(lang === 'en'
+        ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
+        : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
     }
-  }, [currentFile, onLogoReady]);
+  }, [currentFile, onLogoReady, lang]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
