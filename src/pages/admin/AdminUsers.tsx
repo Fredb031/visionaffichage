@@ -291,7 +291,8 @@ export default function AdminUsers() {
                         value={u.role}
                         onChange={e => updateRole(u.id, e.target.value as UserRole)}
                         disabled={isMe && u.role === 'president'}
-                        className={`text-[11px] font-bold px-2 py-1 rounded-md outline-none cursor-pointer ${ROLE_TONE[u.role]} disabled:cursor-not-allowed`}
+                        aria-label={`Rôle pour ${u.full_name ?? u.email}`}
+                        className={`text-[11px] font-bold px-2 py-1 rounded-md outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${ROLE_TONE[u.role]} disabled:cursor-not-allowed`}
                       >
                         {(['president', 'admin', 'vendor', 'client'] as UserRole[]).map(r => (
                           <option key={r} value={r}>{ROLE_LABEL[r]}</option>
@@ -300,7 +301,7 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[11px] font-bold ${u.active ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {u.active ? '● Actif' : '● Désactivé'}
+                        <span aria-hidden="true">● </span>{u.active ? 'Actif' : 'Désactivé'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-500 text-xs">
@@ -311,7 +312,10 @@ export default function AdminUsers() {
                         <button
                           type="button"
                           onClick={() => toggleActive(u.id, u.active)}
-                          className="text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:underline"
+                          aria-label={u.active
+                            ? `Désactiver ${u.full_name ?? u.email}`
+                            : `Réactiver ${u.full_name ?? u.email}`}
+                          className="text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                         >
                           {u.active ? 'Désactiver' : 'Réactiver'}
                         </button>
