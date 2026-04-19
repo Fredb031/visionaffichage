@@ -23,6 +23,12 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
   const [showHint, setShowHint] = useState(false);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  // Track the live GSAP timeline so we can kill it on unmount. Without
+  // this, a user who clicks through to /products before the 3.35s
+  // intro completes triggers the timeline's onComplete callback on an
+  // already-unmounted Index (setShowLoader(false) → stale-setState
+  // warning + wasted tween work running in the background).
+  const timelineRef = useRef<ReturnType<typeof gsap.timeline> | null>(null);
 
   useEffect(() => {
     // Skip path: returning visitor → instant cross-fade
@@ -47,6 +53,9 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     const buildAndPlay = (audioOk: boolean) => {
       const tl = gsap.timeline({
         onComplete: () => {
+          // GUARD: if unmount killed the timeline, skip the parent
+          // onComplete callback — it would setState on a dead Index.
+          if (timelineRef.current !== tl) return;
           if (completedRef.current) return;
           completedRef.current = true;
           try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
@@ -58,6 +67,7 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
           onComplete();
         },
       });
+      timelineRef.current = tl;
 
       // Audio cues — only if unlocked
       if (audioOk) {
@@ -183,6 +193,12 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       document.removeEventListener('click', onInteract);
       document.removeEventListener('touchstart', onInteract);
       document.removeEventListener('keydown', onInteract);
+      // Kill the GSAP timeline so its onComplete doesn't fire after
+      // unmount — would otherwise call onComplete() on a dead Index.
+      if (timelineRef.current) {
+        timelineRef.current.kill();
+        timelineRef.current = null;
+      }
     };
   }, [onComplete, skipIfSeen]);
 
