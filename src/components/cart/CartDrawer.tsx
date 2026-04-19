@@ -11,6 +11,7 @@ import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { PRODUCTS } from '@/data/products';
 import type { CartItemCustomization } from '@/types/customization';
 
@@ -127,6 +128,8 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // broken on mobile especially.
   useBodyScrollLock(isOpen);
 
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   const applyCode = () => {
     const ok = cart.applyDiscount(codeInput.toUpperCase());
     setCodeMsg(
@@ -151,6 +154,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       </AnimatePresence>
 
       <motion.div
+        ref={trapRef}
         initial={{ x:'100%' }} animate={{ x: isOpen ? '0%' : '100%' }}
         transition={{ type:'spring', stiffness:300, damping:32 }}
         className="fixed top-0 right-0 h-full w-full max-w-sm bg-card z-[500] shadow-2xl flex flex-col border-l border-border"
