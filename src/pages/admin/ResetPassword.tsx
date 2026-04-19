@@ -61,6 +61,7 @@ export default function ResetPassword() {
             src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
             alt="Vision Affichage"
             className="h-9 mx-auto mb-6 opacity-90"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
           />
           <h1 className="text-2xl font-extrabold text-white mb-1">Nouveau mot de passe</h1>
           <p className="text-sm text-white/60">Choisis un mot de passe fort (min 8 caractères)</p>
