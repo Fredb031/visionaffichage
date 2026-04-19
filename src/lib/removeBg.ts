@@ -64,6 +64,19 @@ export async function removeBackground(file: File): Promise<Blob> {
  */
 async function removeWhiteBackground(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
+  try {
+    return await processBitmap(bitmap);
+  } finally {
+    // createImageBitmap allocates a GPU-backed buffer that only gets
+    // freed when .close() is called (or on GC, which is unpredictable
+    // and has caused visible memory creep during multi-upload sessions).
+    // The polyfill path's try/catch ensures we close even if the main
+    // pipeline throws.
+    if (typeof bitmap.close === 'function') bitmap.close();
+  }
+}
+
+async function processBitmap(bitmap: ImageBitmap): Promise<Blob> {
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
