@@ -22,6 +22,28 @@ interface EmailOutput {
   text: string;
 }
 
+// Escape user-supplied strings before interpolating into the HTML body.
+// Without this, a client whose name was pasted with '<' or '&' (Slack
+// copy with formatting, an org name like "Smith & Sons") rendered
+// broken markup at best — and at worst, a malicious vendor entry could
+// smuggle hidden tracking pixels or rewrite the layout. Use ATTR-safe
+// quoting for href values so a URL with a stray '"' can't break out.
+function esc(s: string | number | undefined | null): string {
+  if (s === undefined || s === null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// First-name extractor that escapes too — every usage was the same
+// `${ctx.clientName.split(' ')[0]}` pattern, so centralise + sanitize.
+function firstName(full: string | undefined | null): string {
+  return esc((full ?? '').split(' ')[0] ?? '');
+}
+
 function wrap(inner: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -49,7 +71,7 @@ function wrap(inner: string): string {
 }
 
 function button(href: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;background:${BRAND.blue};color:#fff;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;">${label}</a>`;
+  return `<a href="${esc(href)}" style="display:inline-block;background:${BRAND.blue};color:#fff;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;">${esc(label)}</a>`;
 }
 
 // ───────────────── Quote sent to client ─────────────────
@@ -73,15 +95,15 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
     return {
       subject: `Your custom quote from Vision Affichage — ${ctx.quoteNumber}`,
       html: wrap(`
-        <h1 style="font-size:22px;margin:0 0 12px;">Hi ${ctx.clientName.split(' ')[0]},</h1>
+        <h1 style="font-size:22px;margin:0 0 12px;">Hi ${firstName(ctx.clientName)},</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-          ${ctx.vendorName} has prepared a custom quote for you. It's ready to review whenever you are —
+          ${esc(ctx.vendorName)} has prepared a custom quote for you. It's ready to review whenever you are —
           upload your logo, confirm the details, and we'll start production.
         </p>
         <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Quote ${ctx.quoteNumber}</div>
-          <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${totalFmt}</div>
-          <div style="font-size:12px;color:#777;margin-top:4px;">Valid until ${ctx.expiresAt}</div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Quote ${esc(ctx.quoteNumber)}</div>
+          <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+          <div style="font-size:12px;color:#777;margin-top:4px;">Valid until ${esc(ctx.expiresAt)}</div>
         </div>
         <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Review & accept quote')}</p>
         <p style="font-size:13px;color:#666;">Delivered in 5 business days · Made in Québec</p>
@@ -93,15 +115,15 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
   return {
     subject: `Ta soumission personnalisée Vision Affichage — ${ctx.quoteNumber}`,
     html: wrap(`
-      <h1 style="font-size:22px;margin:0 0 12px;">Bonjour ${ctx.clientName.split(' ')[0]},</h1>
+      <h1 style="font-size:22px;margin:0 0 12px;">Bonjour ${firstName(ctx.clientName)},</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-        ${ctx.vendorName} a préparé une soumission personnalisée pour toi. Elle est prête à être révisée —
+        ${esc(ctx.vendorName)} a préparé une soumission personnalisée pour toi. Elle est prête à être révisée —
         téléverse ton logo, confirme les détails, et on lance la production.
       </p>
       <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Soumission ${ctx.quoteNumber}</div>
-        <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${totalFmt}</div>
-        <div style="font-size:12px;color:#777;margin-top:4px;">Valide jusqu'au ${ctx.expiresAt}</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Soumission ${esc(ctx.quoteNumber)}</div>
+        <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+        <div style="font-size:12px;color:#777;margin-top:4px;">Valide jusqu'au ${esc(ctx.expiresAt)}</div>
       </div>
       <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Réviser et accepter')}</p>
       <p style="font-size:13px;color:#666;">Livré en 5 jours ouvrables · Fabriqué au Québec</p>
@@ -129,13 +151,13 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
     return {
       subject: `Payment received · Order ${ctx.orderNumber}`,
       html: wrap(`
-        <h1 style="font-size:22px;margin:0 0 12px;">Thanks ${ctx.clientName.split(' ')[0]} — we got it!</h1>
+        <h1 style="font-size:22px;margin:0 0 12px;">Thanks ${firstName(ctx.clientName)} — we got it!</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-          Your payment of <strong>${totalFmt}</strong> for order <strong>${ctx.orderNumber}</strong> was received.
+          Your payment of <strong>${esc(totalFmt)}</strong> for order <strong>${esc(ctx.orderNumber)}</strong> was received.
           Production is starting now.
         </p>
         <div style="background:#f0f9ff;border-left:4px solid ${BRAND.blue};padding:14px 18px;border-radius:8px;margin:0 0 22px;">
-          <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Estimated delivery: ${ctx.etaDate}</div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Estimated delivery: ${esc(ctx.etaDate)}</div>
           <div style="font-size:13px;color:#555;">You'll get a tracking link as soon as it ships.</div>
         </div>
         ${ctx.trackingUrl ? `<p style="margin:0 0 22px;">${button(ctx.trackingUrl, 'Track my order')}</p>` : ''}
@@ -148,13 +170,13 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
   return {
     subject: `Paiement reçu · Commande ${ctx.orderNumber}`,
     html: wrap(`
-      <h1 style="font-size:22px;margin:0 0 12px;">Merci ${ctx.clientName.split(' ')[0]} — on l'a reçu !</h1>
+      <h1 style="font-size:22px;margin:0 0 12px;">Merci ${firstName(ctx.clientName)} — on l'a reçu !</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-        Ton paiement de <strong>${totalFmt}</strong> pour la commande <strong>${ctx.orderNumber}</strong> a été reçu.
+        Ton paiement de <strong>${esc(totalFmt)}</strong> pour la commande <strong>${esc(ctx.orderNumber)}</strong> a été reçu.
         La production commence maintenant.
       </p>
       <div style="background:#f0f9ff;border-left:4px solid ${BRAND.blue};padding:14px 18px;border-radius:8px;margin:0 0 22px;">
-        <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Livraison estimée : ${ctx.etaDate}</div>
+        <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Livraison estimée : ${esc(ctx.etaDate)}</div>
         <div style="font-size:13px;color:#555;">Tu recevras un lien de suivi dès l'expédition.</div>
       </div>
       ${ctx.trackingUrl ? `<p style="margin:0 0 22px;">${button(ctx.trackingUrl, 'Suivre ma commande')}</p>` : ''}
@@ -183,14 +205,14 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
     return {
       subject: `It's on its way · Order ${ctx.orderNumber}`,
       html: wrap(`
-        <h1 style="font-size:22px;margin:0 0 12px;">Your order is on the road, ${ctx.clientName.split(' ')[0]}.</h1>
+        <h1 style="font-size:22px;margin:0 0 12px;">Your order is on the road, ${firstName(ctx.clientName)}.</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-          Order <strong>${ctx.orderNumber}</strong> shipped via ${ctx.carrier}.
-          Arrival expected by <strong>${ctx.etaDate}</strong>.
+          Order <strong>${esc(ctx.orderNumber)}</strong> shipped via ${esc(ctx.carrier)}.
+          Arrival expected by <strong>${esc(ctx.etaDate)}</strong>.
         </p>
         <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;text-align:center;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Tracking #</div>
-          <div style="font-size:16px;font-weight:800;font-family:monospace;">${ctx.trackingNumber}</div>
+          <div style="font-size:16px;font-weight:800;font-family:monospace;">${esc(ctx.trackingNumber)}</div>
         </div>
         <p style="margin:0 0 22px;text-align:center;">${button(ctx.trackingUrl, 'Track package')}</p>
       `),
@@ -201,14 +223,14 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
   return {
     subject: `C'est en route · Commande ${ctx.orderNumber}`,
     html: wrap(`
-      <h1 style="font-size:22px;margin:0 0 12px;">Ta commande est en route, ${ctx.clientName.split(' ')[0]}.</h1>
+      <h1 style="font-size:22px;margin:0 0 12px;">Ta commande est en route, ${firstName(ctx.clientName)}.</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-        Commande <strong>${ctx.orderNumber}</strong> expédiée via ${ctx.carrier}.
-        Arrivée prévue d'ici le <strong>${ctx.etaDate}</strong>.
+        Commande <strong>${esc(ctx.orderNumber)}</strong> expédiée via ${esc(ctx.carrier)}.
+        Arrivée prévue d'ici le <strong>${esc(ctx.etaDate)}</strong>.
       </p>
       <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;text-align:center;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Suivi #</div>
-        <div style="font-size:16px;font-weight:800;font-family:monospace;">${ctx.trackingNumber}</div>
+        <div style="font-size:16px;font-weight:800;font-family:monospace;">${esc(ctx.trackingNumber)}</div>
       </div>
       <p style="margin:0 0 22px;text-align:center;">${button(ctx.trackingUrl, 'Suivre le colis')}</p>
     `),
@@ -232,9 +254,9 @@ export function orderDeliveredEmail(ctx: OrderDeliveredCtx): EmailOutput {
     return {
       subject: `Delivered — how did we do?`,
       html: wrap(`
-        <h1 style="font-size:22px;margin:0 0 12px;">Your merch arrived, ${ctx.clientName.split(' ')[0]}.</h1>
+        <h1 style="font-size:22px;margin:0 0 12px;">Your merch arrived, ${firstName(ctx.clientName)}.</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-          Order <strong>${ctx.orderNumber}</strong> has been delivered. We hope the print looks as sharp in person as it did on your screen.
+          Order <strong>${esc(ctx.orderNumber)}</strong> has been delivered. We hope the print looks as sharp in person as it did on your screen.
         </p>
         ${ctx.reviewUrl ? `<p style="margin:0 0 22px;">${button(ctx.reviewUrl, 'Leave a 30-second review')}</p>` : ''}
         <p style="font-size:13px;color:#666;">Thanks for trusting Vision Affichage. Ready to reorder? Reply to this email.</p>
@@ -246,9 +268,9 @@ export function orderDeliveredEmail(ctx: OrderDeliveredCtx): EmailOutput {
   return {
     subject: `Livré — comment on s'en est tiré ?`,
     html: wrap(`
-      <h1 style="font-size:22px;margin:0 0 12px;">Ton merch est arrivé, ${ctx.clientName.split(' ')[0]}.</h1>
+      <h1 style="font-size:22px;margin:0 0 12px;">Ton merch est arrivé, ${firstName(ctx.clientName)}.</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
-        La commande <strong>${ctx.orderNumber}</strong> a été livrée. On espère que l'impression te plaît autant en vrai qu'à l'écran.
+        La commande <strong>${esc(ctx.orderNumber)}</strong> a été livrée. On espère que l'impression te plaît autant en vrai qu'à l'écran.
       </p>
       ${ctx.reviewUrl ? `<p style="margin:0 0 22px;">${button(ctx.reviewUrl, 'Laisse un avis en 30 sec')}</p>` : ''}
       <p style="font-size:13px;color:#666;">Merci de faire confiance à Vision Affichage. Prêt à recommander ? Réponds à ce courriel.</p>
