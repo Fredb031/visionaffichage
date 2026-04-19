@@ -175,7 +175,8 @@ export default function Checkout() {
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
         <button
           onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+          disabled={processing}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {step === 'info'
@@ -358,12 +359,13 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <label className="flex items-start gap-3 cursor-pointer p-3 bg-secondary/30 rounded-xl">
+                <label className={`flex items-start gap-3 p-3 bg-secondary/30 rounded-xl ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={acceptedTerms}
+                    disabled={processing}
                     onChange={e => setAcceptedTerms(e.target.checked)}
-                    className="mt-0.5 w-5 h-5 accent-primary"
+                    className="mt-0.5 w-5 h-5 accent-primary disabled:cursor-not-allowed"
                   />
                   <span className="text-sm">
                     {lang === 'en'
