@@ -71,9 +71,14 @@ export default function QuoteBuilder() {
   const canSend = clientEmail.includes('@') && items.length > 0;
 
   const persistQuote = (status: 'draft' | 'sent') => {
-    const list = (() => {
-      try { return JSON.parse(localStorage.getItem('vision-quotes') ?? '[]'); }
-      catch { return []; }
+    // Defensive: older builds may have stored vision-quotes as non-array
+    // (string, object). Array.isArray guards .length/.unshift below from
+    // generating 'Q-YYYY-NaN' numbers or throwing a TypeError at .unshift.
+    const list: unknown[] = (() => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+        return Array.isArray(raw) ? raw : [];
+      } catch { return []; }
     })();
     const number = `Q-${new Date().getFullYear()}-${String(list.length + 1).padStart(4, '0')}`;
     const quote = {
