@@ -111,7 +111,11 @@ export default function Cart() {
   }, [lang, totalQty]);
 
   const handleCheckout = () => {
-    // Send users to our on-site checkout flow (no new tab, no redirect)
+    // Flip the disabled state on the button so rapid double-clicks don't
+    // queue multiple navigations while the browser is transitioning.
+    // Previous code declared checkingOut but never set it — the
+    // `disabled={checkingOut}` guard was permanently false.
+    setCheckingOut(true);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     window.location.href = '/checkout';
   };
