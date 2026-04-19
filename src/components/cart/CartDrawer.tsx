@@ -285,11 +285,14 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               <div className="flex gap-2">
                 <input
                   value={codeInput}
-                  onChange={e => setCodeInput(e.target.value.toUpperCase())}
+                  onChange={e => { setCodeInput(e.target.value.toUpperCase()); if (codeMsg && !codeMsg.ok) setCodeMsg(null); }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } }}
                   placeholder={t('codeRabais')}
                   aria-label={t('codeRabais')}
-                  className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary font-mono bg-secondary"
+                  aria-invalid={codeMsg?.ok === false || undefined}
+                  className={`flex-1 border rounded-xl px-3 py-2.5 text-sm outline-none font-mono bg-secondary ${
+                    codeMsg?.ok === false ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
+                  }`}
                 />
                 <button
                   type="button"
