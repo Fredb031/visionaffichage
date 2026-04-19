@@ -86,7 +86,23 @@ export default function QuoteBuilder() {
         return Array.isArray(raw) ? raw : [];
       } catch { return []; }
     })();
-    const number = `Q-${new Date().getFullYear()}-${String(list.length + 1).padStart(4, '0')}`;
+    // Use a monotonic counter — not list.length — because the list
+    // itself is capped at 100 via slice(0, 100) below. Past 100
+    // quotes, list.length plateaus at 100 and every new quote would
+    // get the same `Q-YYYY-0101` number as the previous one. The
+    // counter keeps growing even after the oldest entries are dropped.
+    const nextSeq = (() => {
+      try {
+        const raw = Number(localStorage.getItem('vision-quotes-seq') ?? '0');
+        const curr = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : list.length;
+        const next = curr + 1;
+        localStorage.setItem('vision-quotes-seq', String(next));
+        return next;
+      } catch {
+        return list.length + 1;
+      }
+    })();
+    const number = `Q-${new Date().getFullYear()}-${String(nextSeq).padStart(4, '0')}`;
     const quote = {
       id: `q-${Date.now()}`,
       number,
