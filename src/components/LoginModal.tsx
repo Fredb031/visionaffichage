@@ -256,6 +256,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               onClick={() => {
                 setMode(mode === 'login' ? 'signup' : 'login');
                 if (error) clearError();
+                // Wipe password fields on mode switch so switching from
+                // login → signup doesn't carry the "please wait while we
+                // check if you exist" password into signup (and disable
+                // the signup button because password2 is empty).
+                setPassword('');
+                setPassword2('');
               }}
               className="text-[12px] text-primary font-semibold bg-transparent border-none cursor-pointer hover:underline mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
             >
