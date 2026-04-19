@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -32,6 +33,10 @@ export function AdminLayout() {
   // the overlay without hunting for the close button.
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEscapeKey(mobileOpen, useCallback(() => setMobileOpen(false), []));
+  // Lock body scroll while the mobile sidebar is open. Without this,
+  // momentum scroll on iOS leaks through the backdrop and the page
+  // behind keeps moving while the menu sits frozen on top.
+  useBodyScrollLock(mobileOpen);
 
   const handleLogout = async () => {
     // Await the async signOut so the dynamic-import chain finishes

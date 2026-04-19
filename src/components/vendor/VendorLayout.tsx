@@ -3,6 +3,7 @@ import { LayoutDashboard, FileText, Plus, Settings, LogOut, Menu, X } from 'luci
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const NAV_ITEMS = [
   { to: '/vendor', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -21,6 +22,9 @@ export function VendorLayout() {
   // Match AdminLayout's keyboard support: Escape + auto-close on route.
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEscapeKey(mobileOpen, useCallback(() => setMobileOpen(false), []));
+  // Match AdminLayout: lock body scroll while the slide-in menu is up so
+  // iOS momentum scroll doesn't drag the page behind the backdrop.
+  useBodyScrollLock(mobileOpen);
 
   const handleLogout = async () => {
     // Await so the async in-memory store clears (cart/customizer reset
