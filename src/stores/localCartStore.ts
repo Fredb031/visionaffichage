@@ -104,6 +104,15 @@ export const useCartStore = create<CartStore>()(
           seen.add(it.cartId);
           return true;
         });
+        // Scrub blob: previewSnapshots — they were valid at persist
+        // time but don't survive a page reload. Replace with undefined
+        // so the img tag's onError path shows the container background
+        // instead of the native broken-image glyph.
+        for (const it of state.items) {
+          if (typeof it.previewSnapshot === 'string' && it.previewSnapshot.startsWith('blob:')) {
+            it.previewSnapshot = '';
+          }
+        }
       },
     }
   )
