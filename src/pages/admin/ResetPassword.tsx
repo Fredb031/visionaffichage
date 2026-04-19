@@ -156,15 +156,23 @@ export default function ResetPassword() {
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Confirmer</span>
               <div className="mt-1.5 relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
-                <input
-                  type="password"
-                  value={confirmPwd}
-                  onChange={e => setConfirmPwd(e.target.value)}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
-                />
+                {(() => {
+                  const mismatch = newPwd.length > 0 && confirmPwd.length > 0 && newPwd !== confirmPwd;
+                  return (
+                    <input
+                      type="password"
+                      value={confirmPwd}
+                      onChange={e => setConfirmPwd(e.target.value)}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      aria-invalid={mismatch || undefined}
+                      className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none ${
+                        mismatch ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
+                      }`}
+                    />
+                  );
+                })()}
               </div>
             </label>
 
