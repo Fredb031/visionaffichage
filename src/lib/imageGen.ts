@@ -24,14 +24,19 @@ export interface GeneratedImage {
 
 export function getStoredProvider(): ImageProvider {
   if (typeof window === 'undefined') return 'none';
-  const provider = localStorage.getItem('vision-image-provider');
+  // Safari private browsing throws SecurityError on localStorage access.
+  // The iter-152 setters already try/catch — mirror that on the readers
+  // so calling getStoredProvider() during render doesn't crash the page.
+  let provider: string | null = null;
+  try { provider = localStorage.getItem('vision-image-provider'); } catch { return 'none'; }
   if (provider === 'replicate' || provider === 'openai') return provider;
   return 'none';
 }
 
 export function getStoredApiKey(provider: ImageProvider): string | null {
   if (typeof window === 'undefined' || provider === 'none') return null;
-  return localStorage.getItem(`vision-image-key-${provider}`);
+  try { return localStorage.getItem(`vision-image-key-${provider}`); }
+  catch { return null; }
 }
 
 export function saveProviderConfig(provider: ImageProvider, apiKey: string) {

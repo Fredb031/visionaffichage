@@ -93,8 +93,14 @@ export default function Index() {
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
     loaderTimersRef.current.push(setTimeout(() => setHeroStaggered(true), 100));
-    // Auto-open the mini-game on first site visit only (once per browser)
-    const alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
+    // Auto-open the mini-game on first site visit only (once per browser).
+    // Wrap in try/catch — a Safari private browsing window can throw on
+    // localStorage.getItem and that uncaught error would break the loader
+    // teardown before hero stagger finishes.
+    let alreadyPlayed = true;
+    try {
+      alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
+    } catch { /* private mode — treat as "already seen" so the game doesn't pop repeatedly */ }
     if (!alreadyPlayed) {
       loaderTimersRef.current.push(setTimeout(() => setShowGame(true), 650));
     }
