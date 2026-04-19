@@ -56,14 +56,17 @@ function findVisibleBbox(img: HTMLImageElement): { x: number; y: number; w: numb
 }
 
 /** Load a Blob as an HTMLImageElement (needed because we want to
- * read the pixels, not just display it). */
+ * read the pixels, not just display it). Revokes any createObjectURL
+ * we allocate so repeated logo trims don't leak blob URLs. */
 function loadImage(blobOrUrl: Blob | string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = typeof blobOrUrl === 'string' ? blobOrUrl : URL.createObjectURL(blobOrUrl);
+    const ownedUrl = typeof blobOrUrl === 'string' ? null : URL.createObjectURL(blobOrUrl);
+    const cleanup = () => { if (ownedUrl) URL.revokeObjectURL(ownedUrl); };
+    img.onload = () => { cleanup(); resolve(img); };
+    img.onerror = (e) => { cleanup(); reject(e); };
+    img.src = ownedUrl ?? (blobOrUrl as string);
   });
 }
 
