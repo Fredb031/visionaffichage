@@ -30,13 +30,18 @@ export default function ProductDetail() {
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, isError, refetch } = useQuery({
     queryKey: ['shopify-product', handle],
     queryFn: async () => {
       const data = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, { handle });
       return data?.data?.product;
     },
     enabled: !!handle,
+    // Exponential-backoff retry so a transient Shopify blip doesn't
+    // immediately shove the user to a 'product not found' page.
+    // Matches the useProducts / useProductColors retry shape.
+    retry: 2,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
   });
 
   const localProduct = findProductByHandle(handle ?? '');
@@ -156,20 +161,42 @@ export default function ProductDetail() {
   }
 
   if (!product) {
+    // Distinguish network error (retriable) from genuine missing product.
+    // Before this, a Shopify outage looked identical to a deleted product,
+    // so customers hit the back button and assumed the link was bad.
+    const isNetworkError = isError;
     return (
       <div className="min-h-screen bg-background">
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-        <div className="container mx-auto px-4 py-20 text-center pt-24">
-          <p className="text-muted-foreground text-lg">
-            {lang === 'en' ? 'Product not found' : 'Produit non trouvé'}
+        <div className="container mx-auto px-4 py-20 text-center pt-24" role={isNetworkError ? 'alert' : undefined}>
+          <p className="text-foreground text-lg font-bold mb-2">
+            {isNetworkError
+              ? (lang === 'en' ? 'Couldn\u2019t load this product' : 'Impossible de charger ce produit')
+              : (lang === 'en' ? 'Product not found' : 'Produit non trouvé')}
           </p>
-          <Link
-            to="/products"
-            className="inline-block mt-4 text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full"
-          >
-            {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
-          </Link>
+          {isNetworkError && (
+            <p className="text-sm text-muted-foreground mb-4">
+              {lang === 'en' ? 'Check your connection and retry.' : 'Vérifie ta connexion et réessaie.'}
+            </p>
+          )}
+          <div className="inline-flex items-center gap-3 mt-2">
+            {isNetworkError && (
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              >
+                {lang === 'en' ? 'Retry' : 'Réessayer'}
+              </button>
+            )}
+            <Link
+              to="/products"
+              className="text-sm font-bold text-muted-foreground hover:text-foreground"
+            >
+              {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
+            </Link>
+          </div>
         </div>
       </div>
     );
