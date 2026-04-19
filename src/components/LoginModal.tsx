@@ -28,6 +28,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
+  // Local in-flight state so a double-click on the submit button doesn't
+  // fire two parallel Supabase auth calls. authStore.loading is global
+  // (hydration), not per-submit, so we need a local flag here.
+  const [submitting, setSubmitting] = useState(false);
 
   // Clear stale auth errors whenever the modal is closed so the next
   // open doesn't flash the previous attempt's error message.
@@ -55,19 +59,25 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'signup') {
-      if (password !== password2) return;
-      const res = await signUp(email, password, name);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      if (mode === 'signup') {
+        if (password !== password2) return;
+        const res = await signUp(email, password, name);
+        if (!res.ok) return;
+        onClose();
+        navigate('/');
+        return;
+      }
+      const res = await signIn(email, password);
       if (!res.ok) return;
       onClose();
-      navigate('/');
-      return;
+      if (res.role === 'admin' || res.role === 'president') navigate('/admin');
+      else if (res.role === 'vendor') navigate('/vendor');
+    } finally {
+      setSubmitting(false);
     }
-    const res = await signIn(email, password);
-    if (!res.ok) return;
-    onClose();
-    if (res.role === 'admin' || res.role === 'president') navigate('/admin');
-    else if (res.role === 'vendor') navigate('/vendor');
   };
 
   return (
@@ -193,11 +203,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             <button
               type="submit"
-              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              disabled={submitting || (mode === 'signup' && password.length > 0 && password !== password2)}
+              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
-              {mode === 'login'
-                ? lang === 'en' ? 'Log in' : 'Se connecter'
-                : lang === 'en' ? 'Create my account' : 'Créer mon compte'}
+              {submitting
+                ? lang === 'en' ? 'Please wait…' : 'Un instant…'
+                : mode === 'login'
+                  ? lang === 'en' ? 'Log in' : 'Se connecter'
+                  : lang === 'en' ? 'Create my account' : 'Créer mon compte'}
             </button>
 
             {/* Forgot-password link — only in LOGIN mode. Closes the
