@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
@@ -57,6 +58,7 @@ function coerceStatus(raw: unknown): Status {
 }
 
 export default function QuoteList() {
+  useDocumentTitle('Mes soumissions — Vendeur Vision Affichage');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
   const [savedQuotes, setSavedQuotes] = useState<MockQuote[]>([]);

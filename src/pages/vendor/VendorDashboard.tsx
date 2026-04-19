@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FileText, TrendingUp, DollarSign, Plus, Eye, Clock } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const MOCK_RECENT = [
   { id: 'q1', client: 'Sous Pression', total: 1840, status: 'viewed',  age: 'il y a 2h' },
@@ -28,6 +29,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function VendorDashboard() {
+  useDocumentTitle('Tableau de bord — Vendeur Vision Affichage');
   return (
     <div className="space-y-8">
       <header className="flex items-start justify-between flex-wrap gap-3">

@@ -3,6 +3,7 @@ import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-re
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PRODUCTS } from '@/data/products';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 interface LineItem {
@@ -21,6 +22,7 @@ export default function QuoteBuilder() {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
   const backHref = isAdminPath ? '/admin/quotes' : '/vendor';
+  useDocumentTitle('Nouvelle soumission — Vision Affichage');
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
   const [clientEmail, setClientEmail] = useState('');
