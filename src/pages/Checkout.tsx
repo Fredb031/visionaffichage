@@ -142,6 +142,16 @@ export default function Checkout() {
           console.warn('[Checkout] Could not persist pending checkout to localStorage:', e);
         }
         window.location.href = checkoutUrl;
+        // If the navigation doesn't actually happen (popup blocker,
+        // browser extension, CSP that blocks the Shopify origin) the
+        // user would be stuck on "Processing…" indefinitely. Give it
+        // 4s then unstick the button so they can try again.
+        setTimeout(() => {
+          setProcessing(false);
+          toast.error(lang === 'en'
+            ? 'Redirect didn\u2019t happen. Check popup blockers + try again.'
+            : 'La redirection n\u2019a pas eu lieu. Vérifie les bloqueurs de popups et réessaie.');
+        }, 4000);
         return;
       }
 
@@ -195,6 +205,13 @@ export default function Checkout() {
         return;
       }
       window.location.href = `https://visionaffichage-com.myshopify.com/cart/${permalinkParts.join(',')}`;
+      // Same no-navigation safety net as the direct checkoutUrl path.
+      setTimeout(() => {
+        setProcessing(false);
+        toast.error(lang === 'en'
+          ? 'Redirect didn\u2019t happen. Check popup blockers + try again.'
+          : 'La redirection n\u2019a pas eu lieu. Vérifie les bloqueurs de popups et réessaie.');
+      }, 4000);
     } catch (err) {
       console.error('Checkout error:', err);
       toast.error(lang === 'en'
