@@ -43,12 +43,17 @@ export function SiteFooter() {
       // poison the Set comparison below (list.includes would miss the
       // duplicate and we'd double-subscribe). Older builds stored raw
       // strings; a devtools edit or hand-built JSON could slip objects
-      // in. Cap at 2000 entries so a bored actor can't balloon storage.
+      // in. Cap at 2000 AFTER the append so the new entry is always
+      // included — the previous slice(-2000) BEFORE the push could
+      // produce a 2001-entry list (cap+1) on the boundary case.
       const arr: unknown[] = Array.isArray(raw) ? raw : [];
-      const clean = arr.filter((v): v is string => typeof v === 'string').slice(-2000);
+      const clean = arr.filter((v): v is string => typeof v === 'string');
       if (!clean.includes(normalized)) {
         clean.push(normalized);
-        localStorage.setItem('vision-newsletter', JSON.stringify(clean));
+        // Keep only the most-recent 2000 — a brand-new subscriber
+        // is the freshest and stays in the list.
+        const capped = clean.slice(-2000);
+        localStorage.setItem('vision-newsletter', JSON.stringify(capped));
       }
     } catch { /* noop */ }
     setSubscribed(true);
