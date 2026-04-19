@@ -245,6 +245,7 @@ export default function ProductDetail() {
                         loading="eager"
                         fetchPriority="high"
                         decoding="async"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                       />
                       {backUrl && (
                         <img
@@ -256,6 +257,7 @@ export default function ProductDetail() {
                           key={`back-${backUrl}`}
                           loading="lazy"
                           decoding="async"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                         />
                       )}
                       <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none transition-opacity duration-300 opacity-100 group-hover:opacity-0">
