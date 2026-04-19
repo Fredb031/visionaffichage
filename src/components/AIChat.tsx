@@ -132,8 +132,14 @@ export function AIChat() {
   };
 
   const backToMenu = () => {
-    if (messages.length > 0) setView('chat');
-    else setView('menu');
+    // Always switch to the menu view — the button labelled "Parcourir
+    // les sujets" / "Browse topics" promises navigation, and the prior
+    // logic (setView('chat') when messages exist) made the button
+    // appear to do nothing because chat was the view we were already
+    // in. Messages remain in state and are visible again the next
+    // time the user types into the input.
+    setView('menu');
+    setActiveTopic(null);
   };
 
   return (
