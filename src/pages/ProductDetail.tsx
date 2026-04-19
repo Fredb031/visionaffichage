@@ -329,14 +329,27 @@ export default function ProductDetail() {
                       title: document.title,
                       url: window.location.href,
                     };
+                    if (typeof navigator.share === 'function') {
+                      // User-cancel is a clean path here (AbortError).
+                      // Stay silent — no "copied" toast, no error.
+                      try { await navigator.share(shareData); } catch { /* cancelled */ }
+                      return;
+                    }
+                    // Clipboard fallback — iframes, non-HTTPS contexts,
+                    // and denied permissions all reject the write.
+                    // Surface an error toast in that case so the user
+                    // doesn't stare at a button that silently did nothing.
                     try {
-                      if (typeof navigator.share === 'function') {
-                        await navigator.share(shareData);
-                        return;
-                      }
                       await navigator.clipboard.writeText(window.location.href);
                       toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
-                    } catch { /* user cancelled share sheet — no toast needed */ }
+                    } catch (err) {
+                      console.warn('[ProductDetail] share clipboard failed:', err);
+                      toast.error(
+                        lang === 'en'
+                          ? 'Couldn\u2019t copy the link. Long-press the URL bar instead.'
+                          : 'Impossible de copier le lien. Fais un appui long sur la barre d\u2019adresse.',
+                      );
+                    }
                   }}
                   className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   aria-label={lang === 'en' ? 'Share product' : 'Partager le produit'}
