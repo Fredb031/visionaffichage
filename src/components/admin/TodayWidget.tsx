@@ -81,8 +81,8 @@ function TodayWidgetInner() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
-        <div className="text-4xl mb-2">✨</div>
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center" role="status">
+        <div className="text-4xl mb-2" aria-hidden="true">✨</div>
         <div className="font-bold text-emerald-900">Tout est à jour</div>
         <div className="text-xs text-emerald-700 mt-1">Aucune action requise pour le moment.</div>
       </div>
@@ -107,16 +107,16 @@ function TodayWidgetInner() {
             <Link
               key={item.id}
               to={item.href}
-              className="flex items-center gap-3 p-4 hover:bg-zinc-50 transition-colors group"
+              className="flex items-center gap-3 p-4 hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
             >
               <div className={`w-9 h-9 rounded-xl ${tone} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={16} />
+                <Icon size={16} aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm">{item.label}</div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">{item.detail}</div>
               </div>
-              <ArrowRight size={14} className="text-zinc-300 group-hover:text-[#0052CC] transition-colors" />
+              <ArrowRight size={14} className="text-zinc-300 group-hover:text-[#0052CC] transition-colors" aria-hidden="true" />
             </Link>
           );
         })}

@@ -30,7 +30,7 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
         <div className="text-[11px] font-semibold text-zinc-500 tracking-wider uppercase">{label}</div>
         {Icon && (
           <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${accentMap} flex items-center justify-center`}>
-            <Icon size={18} strokeWidth={2} />
+            <Icon size={18} strokeWidth={2} aria-hidden="true" />
           </div>
         )}
       </div>
@@ -41,8 +41,9 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
             className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
               isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
             }`}
+            aria-label={`${isPositive ? 'en hausse' : 'en baisse'} de ${Math.abs(delta)}%`}
           >
-            {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {isPositive ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}
             {Math.abs(delta)}%
           </span>
           {deltaLabel && <span className="text-[11px] text-zinc-500">{deltaLabel}</span>}

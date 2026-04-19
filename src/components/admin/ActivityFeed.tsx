@@ -75,8 +75,8 @@ function ActivityFeedInner() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-white border border-zinc-200 rounded-2xl p-6 text-center">
-        <AlertCircle size={20} className="text-zinc-400 mx-auto mb-2" />
+      <div className="bg-white border border-zinc-200 rounded-2xl p-6 text-center" role="status">
+        <AlertCircle size={20} className="text-zinc-400 mx-auto mb-2" aria-hidden="true" />
         <div className="text-sm text-zinc-500">Aucune activité récente</div>
       </div>
     );
@@ -98,10 +98,10 @@ function ActivityFeedInner() {
             <Link
               key={item.id}
               to={item.href}
-              className="flex items-start gap-3 px-2 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group"
+              className="flex items-start gap-3 px-2 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             >
               <div className={`w-8 h-8 rounded-lg ${item.iconBg} ${item.iconColor} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={14} />
+                <Icon size={14} aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm truncate">{item.title}</div>
