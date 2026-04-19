@@ -196,18 +196,27 @@ export function LogoUploader({
             key="drop"
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             onClick={() => inputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
             onDrop={handleDrop}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+            role="button"
+            tabIndex={0}
+            aria-label={t('glisserLogo')}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               isDragOver ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/40 hover:bg-secondary'
             }`}
           >
-            <Upload className="mx-auto mb-3 text-muted-foreground" size={28} />
+            <Upload className="mx-auto mb-3 text-muted-foreground" size={28} aria-hidden="true" />
             <p className="text-sm font-semibold text-foreground">{t('glisserLogo')}</p>
             <p className="text-xs text-muted-foreground mt-1">PNG · JPG · SVG — max 20MB</p>
             <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
-              <CheckCircle2 size={12} /> {t('fondSupprimeAuto')}
+              <CheckCircle2 size={12} aria-hidden="true" /> {t('fondSupprimeAuto')}
             </div>
           </motion.div>
         )}
@@ -219,14 +228,16 @@ export function LogoUploader({
               <div className="absolute inset-0" style={{ backgroundImage: 'repeating-conic-gradient(#e5e5e5 0% 25%, white 0% 50%)', backgroundSize: '14px 14px' }} />
               <img src={preview} alt="Logo" className="relative w-full h-full object-contain p-4 z-10" />
               <button
+                type="button"
                 onClick={() => { setStatus('idle'); setPreview(null); setBgRemoved(false); }}
-                className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-background shadow flex items-center justify-center text-muted-foreground hover:bg-destructive/10"
+                aria-label={lang === 'en' ? 'Remove uploaded logo' : 'Retirer le logo téléversé'}
+                className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-background shadow flex items-center justify-center text-muted-foreground hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
               >
-                <X size={14} />
+                <X size={14} aria-hidden="true" />
               </button>
               {bgRemoved && (
                 <div className="absolute bottom-2 left-2 z-20 bg-green-700/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <CheckCircle2 size={10} /> {t('fondSupprime')}
+                  <CheckCircle2 size={10} aria-hidden="true" /> {t('fondSupprime')}
                 </div>
               )}
             </div>
@@ -234,10 +245,11 @@ export function LogoUploader({
             {/* Remove BG button if not yet removed */}
             {!bgRemoved && (
               <button
+                type="button"
                 onClick={handleManualRemoveBg}
-                className="mt-2 w-full flex items-center justify-center gap-2 border border-border rounded-xl py-2.5 text-xs font-bold text-foreground hover:border-primary hover:bg-primary/5 transition-all"
+                className="mt-2 w-full flex items-center justify-center gap-2 border border-border rounded-xl py-2.5 text-xs font-bold text-foreground hover:border-primary hover:bg-primary/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               >
-                <Scissors size={13} /> {t('supprimerFond')}
+                <Scissors size={13} aria-hidden="true" /> {t('supprimerFond')}
               </button>
             )}
 
@@ -245,8 +257,8 @@ export function LogoUploader({
                 Users appreciate knowing BEFORE ordering that their logo
                 might print blurry. */}
             {quality?.warning && (
-              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
-                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+              <div role="status" className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
+                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{quality.warning}</span>
               </div>
             )}
@@ -255,8 +267,8 @@ export function LogoUploader({
                 have a usable logo). Shown on the "done" state so the user
                 knows why their logo still has a background. */}
             {errorMsg && status === 'done' && (
-              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
-                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+              <div role="alert" className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
+                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -267,21 +279,24 @@ export function LogoUploader({
           <motion.div
             key="loading"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            role="status"
+            aria-live="polite"
             className="rounded-xl border border-border bg-secondary flex flex-col items-center justify-center gap-3"
             style={{ height: 140 }}
           >
-            <Loader2 className="text-primary animate-spin" size={28} />
+            <Loader2 className="text-primary animate-spin" size={28} aria-hidden="true" />
             <p className="text-sm font-medium text-muted-foreground">{statusLabel[status]}</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {errorMsg && status === 'error' && <p className="text-xs text-destructive font-medium px-1">{errorMsg}</p>}
+      {errorMsg && status === 'error' && <p role="alert" className="text-xs text-destructive font-medium px-1">{errorMsg}</p>}
 
       <input
         ref={inputRef}
         type="file"
         accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        aria-label={t('glisserLogo')}
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
       />

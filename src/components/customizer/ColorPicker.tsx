@@ -22,8 +22,8 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-2">
-        <Loader2 className="animate-spin text-muted-foreground" size={14} />
+      <div className="flex items-center gap-2 py-2" role="status" aria-live="polite">
+        <Loader2 className="animate-spin text-muted-foreground" size={14} aria-hidden="true" />
         <span className="text-xs text-muted-foreground">
           {lang === 'en' ? 'Loading colors...' : 'Chargement des couleurs...'}
         </span>
@@ -40,23 +40,29 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
   return (
     <div className="space-y-2">
       {/* Swatches grid */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={lang === 'en' ? 'Colors' : 'Couleurs'}>
         {colors.map((color) => {
           const isSelected = color.colorName === selectedColorName;
+          const unavailable = !color.availableForSale;
           return (
             <button
               key={color.variantId}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={`${color.colorName}${unavailable ? (lang === 'en' ? ' — sold out' : ' — épuisé') : ''}`}
+              disabled={unavailable}
               onClick={() => onSelect(color)}
               onMouseEnter={() => setHovered(color.colorName)}
               onMouseLeave={() => setHovered(null)}
               title={color.colorName}
-              className={`relative flex-shrink-0 transition-all duration-200 ${
+              className={`relative flex-shrink-0 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 compact ? 'w-9 h-9' : 'w-10 h-10'
               } rounded-full ${
                 isSelected
                   ? 'ring-2 ring-offset-2 ring-primary scale-110'
                   : 'ring-1 ring-border hover:scale-105 hover:ring-primary/50'
-              }`}
+              } ${unavailable ? 'opacity-60 cursor-not-allowed' : ''}`}
               style={{ background: color.hex }}
             >
               {isSelected && (
@@ -65,11 +71,12 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
                     size={10}
                     className={isLightColor(color.hex) ? 'text-foreground/70' : 'text-white/90'}
                     strokeWidth={3}
+                    aria-hidden="true"
                   />
                 </span>
               )}
-              {!color.availableForSale && (
-                <span className="absolute inset-0 flex items-center justify-center">
+              {unavailable && (
+                <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
                   <div className="w-full h-px bg-white/60 rotate-45" />
                 </span>
               )}
