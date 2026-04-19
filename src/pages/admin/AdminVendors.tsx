@@ -72,8 +72,21 @@ export default function AdminVendors() {
     const name = normalizeInvisible(newName).trim();
     const email = normalizeInvisible(newEmail).trim().toLowerCase();
     if (!name || !isValidEmail(email)) return;
+    // Skip silently if this email already exists as a custom vendor — we
+    // were getting duplicate rows when an admin re-invited someone they
+    // forgot was already in the list, and React's list-key warning fired
+    // on whatever id collision happened next.
+    if (customVendors.some(v => v.email === email)) {
+      setShowInvite(false);
+      return;
+    }
+    // Salt the id with a random suffix so two invites in the same ms
+    // (admin double-click) can't collide on `cus-${Date.now()}`. Crypto
+    // UUID isn't universally available on every WebView this admin will
+    // hit; the Math.random suffix is defensive enough for a per-tab list.
+    const idSuffix = Math.random().toString(36).slice(2, 8);
     const v: VendorRecord = {
-      id: `cus-${Date.now()}`,
+      id: `cus-${Date.now()}-${idSuffix}`,
       name,
       email,
       quotesSent: 0,
