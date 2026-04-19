@@ -145,13 +145,20 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
             {totalQty} {lang === 'en' ? (totalQty !== 1 ? 'units' : 'unit') : (totalQty !== 1 ? 'unités' : 'unité')}
           </span>
         </div>
-        <div className="mt-2 h-1.5 rounded-full bg-black/5 overflow-hidden">
+        <div
+          className="mt-2 h-1.5 rounded-full bg-black/5 overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.round(progressPct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={lang === 'en' ? 'Bulk discount progress' : 'Progression du rabais'}
+        >
           <div
             className={`h-full transition-all duration-500 ease-out ${
               hasDiscount ? 'bg-emerald-600' : 'bg-primary'
             }`}
             style={{ width: `${progressPct}%` }}
-            aria-label={lang === 'en' ? `Bulk discount progress: ${Math.round(progressPct)}%` : `Progression du rabais : ${Math.round(progressPct)}%`}
+            aria-hidden="true"
           />
         </div>
         <div className="mt-1.5 text-[10px] font-normal opacity-75">
@@ -174,9 +181,14 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
               <button
                 key={c.variantId}
                 type="button"
+                role="radio"
+                aria-checked={isActive}
+                aria-label={colorTotal > 0
+                  ? (lang === 'en' ? `${c.colorName} — ${colorTotal} in cart` : `${c.colorName} — ${colorTotal} au panier`)
+                  : c.colorName}
                 onClick={() => setActiveColorId(c.variantId)}
                 title={c.colorName}
-                className={`relative w-9 h-9 rounded-full transition-all ${
+                className={`relative w-9 h-9 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   isActive
                     ? 'ring-2 ring-primary ring-offset-2 scale-110'
                     : 'ring-1 ring-border hover:ring-primary/50'
@@ -184,10 +196,13 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                 style={{ background: c.hex }}
               >
                 {isActive && (
-                  <Check size={13} className="absolute inset-0 m-auto text-white drop-shadow" strokeWidth={3} />
+                  <Check size={13} className="absolute inset-0 m-auto text-white drop-shadow" strokeWidth={3} aria-hidden="true" />
                 )}
                 {colorTotal > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-extrabold rounded-full flex items-center justify-center px-1 shadow-sm">
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-extrabold rounded-full flex items-center justify-center px-1 shadow-sm"
+                    aria-hidden="true"
+                  >
                     {colorTotal}
                   </span>
                 )}
@@ -213,7 +228,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
             onClick={applySameSizesToAllColors}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/40 text-primary text-[11px] font-bold hover:bg-primary/5 transition-colors"
           >
-            <Copy size={12} />
+            <Copy size={12} aria-hidden="true" />
             {lang === 'en'
               ? `Apply the same sizes to the other ${otherPickedCount} color${otherPickedCount > 1 ? 's' : ''}`
               : `Appliquer les mêmes tailles aux ${otherPickedCount} autre${otherPickedCount > 1 ? 's' : ''} couleur${otherPickedCount > 1 ? 's' : ''}`}
@@ -265,7 +280,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                     aria-label={lang === 'en' ? `Decrease ${size}` : `Diminuer ${size}`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
                   >
-                    <Minus size={12} />
+                    <Minus size={12} aria-hidden="true" />
                   </button>
                   <span className={`w-8 text-center text-sm font-black ${qty > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
                     {qty}
@@ -277,7 +292,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                     aria-label={lang === 'en' ? `Increase ${size}` : `Augmenter ${size}`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
                   >
-                    <Plus size={12} />
+                    <Plus size={12} aria-hidden="true" />
                   </button>
                 </div>
               </div>
