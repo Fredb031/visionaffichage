@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, CheckCircle2, FileImage } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 
@@ -16,6 +16,15 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track the current blob URL in a ref so the unmount cleanup doesn't
+  // stale-close over an earlier value of `preview`. Without this,
+  // dropping the dropzone mid-upload (e.g. modal close) leaked the URL
+  // because the cleanup saw `preview=null` at first render.
+  const previewUrlRef = useRef<string | null>(null);
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   const handleFile = useCallback(
     (f: File) => {
@@ -40,7 +49,9 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
       const url = URL.createObjectURL(f);
       // Free the previous blob URL if the user is swapping files so we
       // don't leak object URLs for every re-upload attempt.
-      setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = url;
+      setPreview(url);
       setFile(f);
       onFileReady(f, url);
     },
@@ -48,7 +59,8 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
   );
 
   const remove = () => {
-    if (preview) URL.revokeObjectURL(preview);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
     setFile(null);
     setPreview(null);
     setError(null);
