@@ -86,7 +86,7 @@ export default function AdminImageGen() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-          <Sparkles size={22} className="text-[#E8A838]" />
+          <Sparkles size={22} className="text-[#E8A838]" aria-hidden="true" />
           Génération d'images
         </h1>
         <p className="text-sm text-zinc-500 mt-1">
@@ -97,11 +97,11 @@ export default function AdminImageGen() {
       {/* Provider config */}
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Key size={16} className="text-zinc-400" />
+          <Key size={16} className="text-zinc-400" aria-hidden="true" />
           <h2 className="font-bold text-sm">Clé API</h2>
           {configured && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 flex items-center gap-1">
-              <CheckCircle2 size={10} />
+              <CheckCircle2 size={10} aria-hidden="true" />
               Configurée
             </span>
           )}
@@ -111,7 +111,8 @@ export default function AdminImageGen() {
           <select
             value={provider}
             onChange={e => setProvider(e.target.value as ImageProvider)}
-            className="border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#0052CC]"
+            aria-label="Fournisseur de génération d'images"
+            className="border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
           >
             <option value="none">— Choisir un fournisseur —</option>
             <option value="replicate">Replicate (Flux) · recommandé</option>
@@ -124,13 +125,17 @@ export default function AdminImageGen() {
               onChange={e => setApiKey(e.target.value)}
               placeholder={provider === 'replicate' ? 'r8_...' : provider === 'openai' ? 'sk-...' : 'Sélectionne un fournisseur d\'abord'}
               disabled={provider === 'none'}
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC] disabled:bg-zinc-50"
+              aria-label="Clé API"
+              autoComplete="off"
+              className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 disabled:bg-zinc-50"
             />
             {provider !== 'none' && apiKey && (
               <button
                 type="button"
                 onClick={() => setKeyVisible(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0052CC] hover:underline"
+                aria-label={keyVisible ? 'Cacher la clé API' : 'Afficher la clé API'}
+                aria-pressed={keyVisible}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded px-1"
               >
                 {keyVisible ? 'Cacher' : 'Voir'}
               </button>
@@ -140,15 +145,15 @@ export default function AdminImageGen() {
             type="button"
             onClick={handleSaveKey}
             disabled={provider === 'none' || !apiKey.trim()}
-            className="px-5 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-5 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             Sauvegarder
           </button>
         </div>
 
         {savedMsg && (
-          <p className="text-xs text-emerald-700 font-semibold mt-2 flex items-center gap-1">
-            <CheckCircle2 size={12} />
+          <p className="text-xs text-emerald-700 font-semibold mt-2 flex items-center gap-1" role="status">
+            <CheckCircle2 size={12} aria-hidden="true" />
             {savedMsg}
           </p>
         )}
@@ -156,7 +161,7 @@ export default function AdminImageGen() {
           <button
             type="button"
             onClick={handleClear}
-            className="text-xs text-rose-600 hover:underline font-semibold mt-2"
+            className="text-xs text-rose-600 hover:underline font-semibold mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded"
           >
             Effacer la configuration
           </button>
@@ -177,7 +182,8 @@ export default function AdminImageGen() {
               key={i}
               type="button"
               onClick={() => setPrompt(p.prompt)}
-              className="text-left p-3 border border-zinc-200 rounded-lg hover:border-[#0052CC] hover:bg-[#0052CC]/5 transition-colors bg-white"
+              aria-label={`Utiliser le prompt : ${p.label}`}
+              className="text-left p-3 border border-zinc-200 rounded-lg hover:border-[#0052CC] hover:bg-[#0052CC]/5 transition-colors bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             >
               <div className="text-sm font-bold">{p.label}</div>
               <div className="text-[11px] text-zinc-500 mt-1 line-clamp-2">{p.prompt.slice(0, 120)}…</div>
@@ -189,7 +195,7 @@ export default function AdminImageGen() {
       {/* Generate */}
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <h2 className="font-bold text-sm mb-3 flex items-center gap-1.5">
-          <Zap size={14} className="text-[#E8A838]" />
+          <Zap size={14} className="text-[#E8A838]" aria-hidden="true" />
           Générer une image
         </h2>
 
@@ -198,7 +204,8 @@ export default function AdminImageGen() {
           onChange={e => setPrompt(e.target.value)}
           rows={4}
           placeholder="Décris l'image que tu veux générer. Soit précis : style, cadrage, éclairage, ambiance…"
-          className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC] resize-none"
+          aria-label="Prompt de génération"
+          className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none"
         />
 
         <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -207,7 +214,8 @@ export default function AdminImageGen() {
             <select
               value={aspect}
               onChange={e => setAspect(e.target.value as '1:1' | '16:9' | '3:4')}
-              className="border border-zinc-200 rounded-lg px-2 py-1 text-sm bg-white"
+              aria-label="Format de l'image"
+              className="border border-zinc-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
             >
               <option value="1:1">Carré (1:1)</option>
               <option value="16:9">Large (16:9)</option>
@@ -219,23 +227,23 @@ export default function AdminImageGen() {
             type="button"
             onClick={handleGenerate}
             disabled={!configured || loading || !prompt.trim()}
-            className="ml-auto inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white rounded-lg text-sm font-bold hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="ml-auto inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white rounded-lg text-sm font-bold hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {loading ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
             {loading ? 'Génération en cours…' : 'Générer'}
           </button>
         </div>
 
         {!configured && (
           <p className="text-[11px] text-zinc-500 mt-2 flex items-center gap-1">
-            <AlertCircle size={12} />
+            <AlertCircle size={12} aria-hidden="true" />
             Configure une clé API pour activer la génération.
           </p>
         )}
 
         {error && (
-          <div className="mt-3 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs flex items-start gap-2">
-            <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+          <div role="alert" className="mt-3 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs flex items-start gap-2">
+            <AlertCircle size={13} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
             {error}
           </div>
         )}
@@ -254,10 +262,10 @@ export default function AdminImageGen() {
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="absolute top-2 right-2 w-8 h-8 bg-white/95 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    aria-label="Download"
+                    className="absolute top-2 right-2 w-8 h-8 bg-white/95 rounded-lg shadow-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                    aria-label="Télécharger l'image"
                   >
-                    <Download size={14} />
+                    <Download size={14} aria-hidden="true" />
                   </a>
                 </div>
                 <div className="p-3">
