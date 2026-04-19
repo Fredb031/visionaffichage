@@ -9,6 +9,8 @@ import {
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { TablePagination } from '@/components/admin/TablePagination';
 
 function initials(c: ShopifyCustomerSnapshot): string {
@@ -40,6 +42,12 @@ export default function AdminCustomers() {
   useEffect(() => { setPage(0); }, [query, filter]);
 
   useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
+  // Lock body scroll + trap focus while the customer detail drawer is
+  // open — same pattern as AdminOrders. Without these the scroll wheel
+  // over the backdrop moves the underlying table (reads as broken on
+  // mobile), and Tab escapes into the dimmed list.
+  useBodyScrollLock(!!selected);
+  const trapRef = useFocusTrap<HTMLDivElement>(!!selected);
 
   const filtered = useMemo(() => {
     return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {
@@ -197,7 +205,7 @@ export default function AdminCustomers() {
           aria-labelledby="customer-detail-title"
           onClick={() => setSelected(null)}
         >
-          <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div ref={trapRef} tabIndex={-1} className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl focus:outline-none" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <button
                 type="button"

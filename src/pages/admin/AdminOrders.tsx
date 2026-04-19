@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 
@@ -96,6 +98,12 @@ export default function AdminOrders() {
   useEffect(() => { setPage(0); }, [query, statusFilter]);
 
   useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
+  // Side-drawer modal: stop the underlying table from scrolling while
+  // the detail is open (iOS/mobile especially — the scroll wheel
+  // leaking through reads as broken), and trap Tab inside the panel
+  // so keyboard users don't fall back into the dimmed table.
+  useBodyScrollLock(!!selected);
+  const trapRef = useFocusTrap<HTMLDivElement>(!!selected);
 
   useEffect(() => {
     try {
@@ -307,7 +315,7 @@ export default function AdminOrders() {
           aria-labelledby="order-detail-title"
           onClick={() => setSelected(null)}
         >
-          <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div ref={trapRef} tabIndex={-1} className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl focus:outline-none" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
