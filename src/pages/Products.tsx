@@ -70,6 +70,21 @@ export default function Products() {
     else next.set('sort', sortMode);
     setSearchParams(next, { replace: true });
   }, [activeCategory, sortMode, searchParams, setSearchParams]);
+
+  // Also sync URL → state so browser Back/Forward actually updates the
+  // visible filter. Without this, the state → URL effect above would
+  // notice the mismatch and shove the URL back to the previous filter,
+  // silently cancelling the user's nav intent.
+  useEffect(() => {
+    const urlCat = searchParams.get('cat') ?? 'overview';
+    const urlSortRaw = searchParams.get('sort') ?? 'default';
+    const urlSort: SortMode = (SORT_VALUES as readonly string[]).includes(urlSortRaw)
+      ? (urlSortRaw as SortMode)
+      : 'default';
+    if (urlCat !== activeCategory) setActiveCategory(urlCat);
+    if (urlSort !== sortMode) setSortMode(urlSort);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
