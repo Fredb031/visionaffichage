@@ -2,7 +2,7 @@
  * CartDrawer — Panier avec aperçu produit live (devant + logo)
  * Chaque article montre l'image devant avec le logo overlaid.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
@@ -109,6 +109,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   };
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Tracked so rapid re-submits don't stack timers + cleanup on unmount.
+  const codeMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (codeMsgTimerRef.current) clearTimeout(codeMsgTimerRef.current);
+    };
+  }, []);
 
   // Escape closes drawer — skipInTextInputs so a stray Esc while the
   // user is typing a discount code clears the field instead of killing
@@ -127,7 +134,11 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         ? { ok: true, text: lang === 'en' ? `Code ${codeInput.toUpperCase()} applied!` : `Code ${codeInput.toUpperCase()} appliqué !` }
         : { ok: false, text: lang === 'en' ? 'Invalid code' : 'Code invalide' }
     );
-    setTimeout(() => setCodeMsg(null), 3000);
+    if (codeMsgTimerRef.current) clearTimeout(codeMsgTimerRef.current);
+    codeMsgTimerRef.current = setTimeout(() => {
+      setCodeMsg(null);
+      codeMsgTimerRef.current = null;
+    }, 3000);
   };
 
   return (
