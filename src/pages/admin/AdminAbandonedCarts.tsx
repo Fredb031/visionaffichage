@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
   SHOPIFY_STATS,
+  SHOPIFY_SNAPSHOT_META,
   type ShopifyAbandonedCheckoutSnapshot,
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
@@ -162,12 +163,21 @@ export default function AdminAbandonedCarts() {
             <div className="text-xs text-white/70 mb-3 max-w-md">
               Configurez l'envoi automatique d'un courriel de relance après 1h, 24h et 72h pour récupérer en moyenne 15-25% des paniers abandonnés.
             </div>
-            <button
-              type="button"
-              className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+            {/* Link to Shopify Admin's marketing-automation page since
+                we don't host the recovery flows ourselves — Shopify Email
+                + Shopify Marketing handle the cron + send. The button
+                used to be decorative with no onClick which read as a
+                broken integration. */}
+            <a
+              href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/marketing/automations`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Configurer la séquence de récupération dans Shopify Marketing (nouvel onglet)"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
             >
-              Configurer la séquence →
-            </button>
+              Configurer la séquence dans Shopify
+              <ExternalLink size={11} aria-hidden="true" />
+            </a>
           </div>
         </div>
       </div>
