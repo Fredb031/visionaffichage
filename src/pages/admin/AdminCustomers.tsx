@@ -109,21 +109,25 @@ export default function AdminCustomers() {
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={16} className="text-zinc-400" />
+            <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher par nom, courriel, ville"
+              aria-label="Rechercher par nom, courriel ou ville"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
-          <div className="inline-flex bg-zinc-100 rounded-lg p-0.5">
+          <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Filtrer par type de client">
             {(['all', 'paying', 'prospects'] as const).map(f => (
               <button
                 key={f}
                 type="button"
+                role="radio"
+                aria-checked={filter === f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   filter === f ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >

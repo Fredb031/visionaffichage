@@ -180,18 +180,21 @@ export default function AdminUsers() {
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={16} className="text-zinc-400" />
+            <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher par nom ou courriel"
+              aria-label="Rechercher par nom ou courriel"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
           <select
             value={filter}
             onChange={e => setFilter(e.target.value as UserRole | 'all')}
-            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC]"
+            aria-label="Filtrer par rôle"
+            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
           >
             <option value="all">Tous les rôles</option>
             <option value="president">Président</option>
@@ -202,8 +205,8 @@ export default function AdminUsers() {
         </div>
 
         {loading ? (
-          <div className="p-12 flex items-center justify-center">
-            <Loader2 size={24} className="animate-spin text-[#0052CC]" />
+          <div className="p-12 flex items-center justify-center" role="status" aria-label="Chargement des utilisateurs">
+            <Loader2 size={24} className="animate-spin text-[#0052CC]" aria-hidden="true" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-zinc-400 text-sm">Aucun utilisateur</div>
@@ -233,7 +236,7 @@ export default function AdminUsers() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-semibold flex items-center gap-1.5">
-                            {u.role === 'president' && <Crown size={12} className="text-[#E8A838]" />}
+                            {u.role === 'president' && <Crown size={12} className="text-[#E8A838]" aria-label="Président" />}
                             {u.full_name ?? u.email.split('@')[0]}
                             {isMe && <span className="text-[10px] font-bold text-[#0052CC]">(toi)</span>}
                           </div>
