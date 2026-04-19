@@ -122,6 +122,12 @@ export function ProductCanvas({
   // Local mirror of the detected bbox so we can render a centre crosshair
   // over the canvas without asking the parent to feed it back.
   const [localBbox, setLocalBbox] = useState<{ cx: number; cy: number } | null>(null);
+  // Ref mirror so the drag-snap handler (registered once at canvas init)
+  // reads live bbox values instead of the snapshot captured when the
+  // effect first ran. Otherwise snap-to-center always targets canvas
+  // 50,50 even after the real garment center is detected.
+  const bboxRef = useRef<{ cx: number; cy: number } | null>(null);
+  bboxRef.current = localBbox;
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
@@ -587,8 +593,13 @@ export function ProductCanvas({
       canvas.add(guideY);
 
       const updateGuides = (target: { left?: number; top?: number; setCoords?: () => void }) => {
-        const cx = W / 2;
-        const cy = H / 2;
+        // Snap to the DETECTED garment center when we have a bbox —
+        // otherwise fall back to canvas center. Matches the auto-place
+        // behaviour so 'snapped to center' actually means 'centered on
+        // the garment' instead of 'centered on the photo frame'.
+        const bbox = bboxRef.current;
+        const cx = bbox ? (bbox.cx / 100) * W : W / 2;
+        const cy = bbox ? (bbox.cy / 100) * H : H / 2;
         const left = target.left ?? 0;
         const top = target.top ?? 0;
 
@@ -597,13 +608,15 @@ export function ProductCanvas({
 
         if (snapToX) {
           target.left = cx;
-          guideX.set('opacity', 1);
+          // Reposition the vertical guide to the actual garment center
+          // so the visible dashed line matches the snap point.
+          guideX.set({ x1: cx, x2: cx, opacity: 1 });
         } else {
           guideX.set('opacity', 0);
         }
         if (snapToY) {
           target.top = cy;
-          guideY.set('opacity', 1);
+          guideY.set({ y1: cy, y2: cy, opacity: 1 });
         } else {
           guideY.set('opacity', 0);
         }
