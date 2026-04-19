@@ -68,17 +68,20 @@ export function AdminLayout() {
                 end={item.end}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-0.5 transition-colors ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${
                     isActive
                       ? 'bg-white/10 text-white'
                       : 'text-white/70 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <Icon size={18} strokeWidth={1.8} />
+                <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
                 <span className="flex-1">{item.label}</span>
                 {'badge' in item && item.badge === 'pendingFulfillment' && SHOPIFY_STATS.awaitingFulfillment > 0 && (
-                  <span className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  <span
+                    className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                    aria-label={`${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`}
+                  >
                     {SHOPIFY_STATS.awaitingFulfillment}
                   </span>
                 )}
@@ -90,16 +93,16 @@ export function AdminLayout() {
         <div className="px-3 py-4 border-t border-white/10 space-y-1">
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
           >
             Retour au site
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
           >
-            <LogOut size={18} strokeWidth={1.8} />
+            <LogOut size={18} strokeWidth={1.8} aria-hidden="true" />
             Déconnexion
           </button>
         </div>

@@ -60,7 +60,7 @@ export function VendorLayout() {
                 end={item.end}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) => {
-                  const base = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 transition-colors';
+                  const base = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1';
                   if (item.highlight) {
                     return `${base} bg-[#0052CC] text-white hover:bg-[#0052CC]/90`;
                   }
@@ -69,7 +69,7 @@ export function VendorLayout() {
                   }`;
                 }}
               >
-                <Icon size={17} strokeWidth={1.8} />
+                <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
                 {item.label}
               </NavLink>
             );
@@ -77,15 +77,18 @@ export function VendorLayout() {
         </nav>
 
         <div className="px-3 py-4 border-t border-zinc-100 space-y-1">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors">
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
             Retour au site
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors bg-transparent border-none cursor-pointer text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
-            <LogOut size={17} strokeWidth={1.8} />
+            <LogOut size={17} strokeWidth={1.8} aria-hidden="true" />
             Déconnexion
           </button>
         </div>
