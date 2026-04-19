@@ -439,6 +439,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         unitPrice: unitPrice * discount,
         totalQuantity: totalQty,
         totalPrice,
+        // Include the Shopify variant ID so removing this line from
+        // CartDrawer / Cart also pulls it from the Shopify cart. Without
+        // this, the single-color flow left the line in Shopify after a
+        // local remove — at checkout the customer paid for an item they
+        // thought they'd deleted.
+        shopifyVariantIds: [shopifyColor.variantId],
       });
     }
 
