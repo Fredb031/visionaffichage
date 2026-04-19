@@ -108,7 +108,7 @@ export default function QuoteAccept() {
         }
       `}</style>
 
-      <main className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-6">
+      <main id="main-content" tabIndex={-1} className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-6 focus:outline-none">
         <div className="text-center">
           <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2">
             {lang === 'en' ? 'Custom quote' : 'Soumission personnalisée'}
