@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { playHorizonTone, playLogoTone, playExitWhisper, unlockAudio } from './audio';
+import { playHorizonTone, playLogoTone, playExitWhisper, unlockAudio, stopAllScheduledAudio } from './audio';
 import './intro.css';
 
 interface IntroAnimationProps {
@@ -218,6 +218,10 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
         timelineRef.current.kill();
         timelineRef.current = null;
       }
+      // Cancel still-pending audio cues. The exit whisper is scheduled
+      // 2.80s into the timeline, so an early click-through used to
+      // play it over the freshly-rendered next page.
+      stopAllScheduledAudio();
     };
   }, [onComplete, skipIfSeen]);
 

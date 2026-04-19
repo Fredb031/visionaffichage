@@ -6,6 +6,18 @@ type WindowWithWebkit = Window & { webkitAudioContext?: typeof AudioContext };
 let ctxSingleton: AudioContext | null = null;
 let convolverSingleton: ConvolverNode | null = null;
 let masterGainSingleton: GainNode | null = null;
+// Track every source node we schedule so we can stop the ones whose
+// start time hasn't elapsed yet (or which are mid-playback) when the
+// intro unmounts. Without this, a user who clicks past the intro early
+// still hears the exit whisper / lingering tones layered over the next
+// page — calling stop(0) cancels both running and scheduled-but-not-yet
+// playing oscillators.
+type ScheduledSource = OscillatorNode | AudioBufferSourceNode;
+const activeSources = new Set<ScheduledSource>();
+function trackSource(src: ScheduledSource): void {
+  activeSources.add(src);
+  src.addEventListener('ended', () => activeSources.delete(src));
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -88,6 +100,7 @@ export function playHorizonTone(delaySec = 0): void {
   gain.connect(dry);
   dry.connect(master);
 
+  trackSource(osc);
   osc.start(t0);
   osc.stop(t0 + 2.0);
 }
@@ -116,6 +129,7 @@ export function playLogoTone(delaySec = 0): void {
   g1.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
   osc1.connect(g1);
   g1.connect(filter);
+  trackSource(osc1);
   osc1.start(t0);
   osc1.stop(t0 + 1.5);
 
@@ -129,6 +143,7 @@ export function playLogoTone(delaySec = 0): void {
   g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
   osc2.connect(g2);
   g2.connect(filter);
+  trackSource(osc2);
   osc2.start(t0);
   osc2.stop(t0 + 0.4);
 }
@@ -162,7 +177,21 @@ export function playExitWhisper(delaySec = 0): void {
   src.connect(filter);
   filter.connect(gain);
   gain.connect(convolver);
+  trackSource(src);
   src.start(t0);
+}
+
+/** Stop every still-pending or running scheduled source. Safe to call
+ * even if the audio context isn't running — stop(0) on an oscillator
+ * that hasn't started yet cancels its scheduled start, while a running
+ * one halts on the next audio tick. Used by IntroAnimation on unmount
+ * so an early click-through doesn't leak the exit whisper into the
+ * next page. */
+export function stopAllScheduledAudio(): void {
+  for (const src of activeSources) {
+    try { src.stop(0); } catch { /* already stopped */ }
+  }
+  activeSources.clear();
 }
 
 export function disposeAudio(): void {
