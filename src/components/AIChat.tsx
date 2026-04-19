@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X, Send, Sparkles, ChevronLeft } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, ChevronLeft, Trash2 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { KBTopic, Lang } from '@/lib/aiKnowledgeBase';
@@ -259,6 +259,24 @@ export function AIChat() {
                 {lang === 'en' ? 'Online · Replies instantly' : 'En ligne · Réponse instantanée'}
               </div>
             </div>
+            {/* Clear-conversation button — only shown when there's history.
+                Now that the transcript persists across reload (sessionStorage)
+                the user needs an explicit way to start fresh. */}
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMessages([]);
+                  setView('menu');
+                  setActiveTopic(null);
+                }}
+                aria-label={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
+                title={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0052CC]"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {/* Body — switches between menu / topic / chat */}
