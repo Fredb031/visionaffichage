@@ -51,11 +51,18 @@ export interface SanmarPricingRow {
 
 type Action = 'product' | 'inventory' | 'media' | 'pricing';
 
+// Hard timeout so a hung SanMar edge function doesn't leave the
+// React Query inflight state stuck forever. 8s is well above the
+// p99 ~1.5s inventory round-trip.
+const SANMAR_TIMEOUT_MS = 8_000;
+
 async function call<T>(action: Action, productId: string, partId?: string, lang: 'en' | 'fr' = 'en'): Promise<T | null> {
   if (!EDGE_URL || !SUPABASE_KEY) {
     console.warn('[sanmar] Supabase not configured — skipping', action);
     return null;
   }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SANMAR_TIMEOUT_MS);
   try {
     const res = await fetch(EDGE_URL, {
       method: 'POST',
@@ -65,6 +72,7 @@ async function call<T>(action: Action, productId: string, partId?: string, lang:
         'Authorization': `Bearer ${SUPABASE_KEY}`,
       },
       body: JSON.stringify({ action, productId, partId, lang }),
+      signal: controller.signal,
     });
     const json = await res.json();
     if (!res.ok || !json.ok) {
@@ -73,8 +81,14 @@ async function call<T>(action: Action, productId: string, partId?: string, lang:
     }
     return json.data as T;
   } catch (err) {
-    console.warn('[sanmar]', action, 'error:', err);
+    if ((err as Error)?.name === 'AbortError') {
+      console.warn('[sanmar]', action, `timed out after ${SANMAR_TIMEOUT_MS}ms`);
+    } else {
+      console.warn('[sanmar]', action, 'error:', err);
+    }
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
