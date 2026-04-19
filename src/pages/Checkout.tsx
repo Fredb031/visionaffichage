@@ -246,7 +246,21 @@ export default function Checkout() {
         setProcessing(false);
         return;
       }
-      window.location.href = `https://visionaffichage-com.myshopify.com/cart/${permalinkParts.join(',')}`;
+      // Shopify cart permalinks accept up to ~8 KB. Each part runs
+      // ~14 chars, so 500+ size variants in one cart could truncate
+      // the URL server-side and drop items at checkout. Cap at 400
+      // parts which keeps the URL well under browser + Shopify limits
+      // and warn if we had to clip.
+      const MAX_PERMALINK_PARTS = 400;
+      const clipped = permalinkParts.length > MAX_PERMALINK_PARTS;
+      const urlParts = clipped ? permalinkParts.slice(0, MAX_PERMALINK_PARTS) : permalinkParts;
+      if (clipped) {
+        toast.warning(lang === 'en'
+          ? `Cart too large for direct checkout — only the first ${MAX_PERMALINK_PARTS} lines were sent. Contact us at 367-380-4808 to finish the order.`
+          : `Panier trop volumineux pour le paiement direct — seules les ${MAX_PERMALINK_PARTS} premières lignes ont été envoyées. Appelle-nous au 367-380-4808 pour finaliser.`,
+          { duration: 8000 });
+      }
+      window.location.href = `https://visionaffichage-com.myshopify.com/cart/${urlParts.join(',')}`;
       // Same no-navigation safety net as the direct checkoutUrl path.
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
       redirectTimerRef.current = setTimeout(() => {
