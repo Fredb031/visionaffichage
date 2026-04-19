@@ -19,7 +19,9 @@ interface ActivityItem {
 }
 
 function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
+  // Clamp so a Shopify ts a few seconds ahead of the browser clock
+  // doesn't render "-1 min" / "-1h" in the activity feed.
+  const diff = Math.max(0, Date.now() - ts);
   const m = Math.floor(diff / 60000);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);

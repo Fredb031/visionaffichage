@@ -61,8 +61,13 @@ export default function AdminDashboard() {
             {recentOrders.map(order => {
               const date = new Date(order.createdAt);
               const relTime = (() => {
-                const diff = Date.now() - date.getTime();
-                const h = Math.floor(diff / 3600000);
+                // Clamp to 0 — order.createdAt can be a few seconds
+                // ahead of the browser clock (NTP drift) and would
+                // render "il y a -1h" otherwise.
+                const diff = Math.max(0, Date.now() - date.getTime());
+                const mins = Math.floor(diff / 60000);
+                if (mins < 60) return mins < 1 ? "à l'instant" : `il y a ${mins} min`;
+                const h = Math.floor(mins / 60);
                 if (h < 24) return `il y a ${h}h`;
                 return `il y a ${Math.floor(h / 24)}j`;
               })();

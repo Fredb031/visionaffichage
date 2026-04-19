@@ -75,8 +75,13 @@ function formatDate(iso: string): string {
 }
 
 function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  // Math.abs on diff first — the snapshot sync time can occasionally
+  // be a few seconds AHEAD of the browser clock (NTP drift, laptop that
+  // just woke from sleep). Without the abs, that flipped diff negative
+  // and rendered "Synchronisé il y a -1 min" in the admin header.
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "à l'instant";
   if (mins < 60) return `il y a ${mins} min`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `il y a ${hrs}h`;
