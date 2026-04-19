@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -66,6 +67,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         if (password !== password2) return;
         const res = await signUp(email, password, name);
         if (!res.ok) return;
+        // Supabase signup with email confirmation returns ok=true but
+        // the session is NOT live until the user clicks the email link.
+        // The old code silently closed the modal and navigated home,
+        // which read like 'you're signed in' when they weren't. Surface
+        // a toast so the user knows to go check their inbox.
+        toast.success(
+          lang === 'en'
+            ? 'Account created! Check your email to confirm.'
+            : 'Compte créé ! Vérifie ton courriel pour confirmer.',
+          { duration: 5000 },
+        );
         onClose();
         navigate('/');
         return;
