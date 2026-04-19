@@ -38,8 +38,13 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
     // Default to /admin/login since it's the single sign-in surface on
     // this site; AdminLogin's post-auth redirect sends admins to /admin
     // and vendors to /vendor based on role. Pages can override if needed.
+    //
+    // Preserve search + hash so the back-redirect lands on the exact
+    // URL the user tried to reach — previously state.from dropped the
+    // ?cat=polos / #anchor, stranding the user on the bare route.
     const target = redirectTo ?? '/admin/login';
-    return <Navigate to={target} state={{ from: location.pathname }} replace />;
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={target} state={{ from }} replace />;
   }
 
   // President has access to everything — bypass role check.
