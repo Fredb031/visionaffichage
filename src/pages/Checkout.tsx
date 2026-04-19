@@ -151,9 +151,26 @@ export default function Checkout() {
       // destination page arrives pre-populated. Without this the
       // previous fallback just redirected to an empty /cart page —
       // which is exactly the problem we were trying to recover from.
-      const localLines = cart.items.flatMap(it =>
-        (it.shopifyVariantIds ?? []).map(vid => ({ vid, qty: 1 })),
-      );
+      //
+      // Qty mapping:
+      // - Multi-variant line: shopifyVariantIds[i] matches
+      //   sizeQuantities[i] (ProductCustomizer pushes them together in
+      //   the same loop), so zip by index.
+      // - Single-color line: shopifyVariantIds has one id representing
+      //   the whole line, so carry the line's totalQuantity.
+      // Hardcoding qty:1 (the previous code) undercounted every line
+      // — customer paid for 1 shirt instead of the 10 they ordered.
+      const localLines = cart.items.flatMap(it => {
+        const vids = it.shopifyVariantIds ?? [];
+        if (vids.length === 0) return [];
+        if (vids.length === 1) {
+          return [{ vid: vids[0], qty: Math.max(1, it.totalQuantity || 1) }];
+        }
+        return vids.map((vid, i) => ({
+          vid,
+          qty: Math.max(1, it.sizeQuantities?.[i]?.quantity ?? 1),
+        }));
+      });
       if (localLines.length === 0) {
         toast.error(lang === 'en'
           ? 'Your cart could not be synced to Shopify. Please refresh and try again, or contact us at 367-380-4808.'
