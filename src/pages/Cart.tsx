@@ -368,7 +368,15 @@ export default function Cart() {
                 </div>
               </div>
 
-              <div className="border-t border-border pt-3 flex justify-between items-center">
+              {/* aria-live so screen readers announce the new total when
+                  the user removes a line, applies a discount, or clears
+                  one — without it, the visual total update was silent. */}
+              <div
+                className="border-t border-border pt-3 flex justify-between items-center"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 <span className="text-base font-extrabold">
                   {lang === 'en' ? 'Estimated total' : 'Total estimé'}
                 </span>
