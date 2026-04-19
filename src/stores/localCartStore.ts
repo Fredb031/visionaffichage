@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItemCustomization } from '@/types/customization';
+import { normalizeInvisible } from '@/lib/utils';
 
 // crypto.randomUUID is not available on every browser we ship to
 // (older mobile Safari, some in-app WebViews). Fall back to a
@@ -52,10 +53,12 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({ items: state.items.filter((i) => i.cartId !== cartId) })),
 
       applyDiscount: (code) => {
-        // Trim + uppercase so "  vision10 " pasted from an email still
-        // matches. Without this the lookup silently fails and the UI
-        // flashes 'invalid code' for what looks like a correct code.
-        const normalized = code.trim().toUpperCase();
+        // Trim + normalize + uppercase so "  vision10 " pasted from an
+        // email still matches. normalizeInvisible strips zero-width
+        // passengers (ZWSP, BOM, etc) that sneak in from Slack/Notion
+        // pastes — without it the strict lookup below would miss a
+        // code that looks 100% correct to the user.
+        const normalized = normalizeInvisible(code).trim().toUpperCase();
         const rate = VALID_DISCOUNT_CODES[normalized];
         if (rate) {
           set({ discountCode: normalized, discountApplied: true });
