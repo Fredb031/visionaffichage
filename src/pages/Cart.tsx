@@ -216,7 +216,7 @@ export default function Cart() {
             </p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
             </Link>
@@ -227,9 +227,9 @@ export default function Cart() {
             <RecentlyViewed limit={4} />
           </div>
         ) : (
-          <div className="space-y-3">
+          <ul className="space-y-3 list-none p-0" aria-label={lang === 'en' ? 'Cart items' : 'Articles au panier'}>
             {items.map((item) => (
-              <div
+              <li
                 key={item.cartId}
                 className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
               >
@@ -305,9 +305,13 @@ export default function Cart() {
                     )}
                   </div>
                 </div>
-              </div>
+              </li>
             ))}
+          </ul>
+        )}
 
+        {items.length > 0 && (
+          <div className="space-y-3">
             {/* Cross-sell — placed between cart lines and totals so it
                 catches the eye right before the customer commits to pay. */}
             <div className="mt-6">
