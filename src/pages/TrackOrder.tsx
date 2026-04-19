@@ -64,7 +64,12 @@ export default function TrackOrder() {
     if (!emailQ) return null;
     return SHOPIFY_ORDERS_SNAPSHOT.find(o => {
       const matchNumber = o.name.toLowerCase().replace('#', '') === q;
-      const matchEmail = o.email.toLowerCase() === emailQ;
+      // Mirror the input-side normalization on the snapshot too — a
+      // Shopify-exported order email that accidentally carries a ZWSP
+      // would otherwise fail the strict compare against a clean input.
+      // Account.tsx already does this; TrackOrder was inconsistent.
+      const snapshotEmail = normalizeInvisible(o.email).trim().toLowerCase();
+      const matchEmail = snapshotEmail === emailQ;
       return matchNumber && matchEmail;
     }) ?? null;
   }, [searchInput, emailInput]);
