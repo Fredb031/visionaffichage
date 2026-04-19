@@ -155,7 +155,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       password,
     });
     if (error || !data.user) {
-      set({ error: friendlyError(error?.message ?? 'Connexion échouée') });
+      // Default error uses its own lang detection (localStorage 'vision-lang')
+      // since friendlyError's fallback-through returns the input unchanged
+      // and hardcoding French here would flash French to English users.
+      let isEn = false;
+      try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+      const fallback = isEn ? 'Sign-in failed' : 'Connexion échouée';
+      set({ error: friendlyError(error?.message ?? fallback) });
       return { ok: false };
     }
     // Ensure the profile row exists + owner role is correct. Runs
