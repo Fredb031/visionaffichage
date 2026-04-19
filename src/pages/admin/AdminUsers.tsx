@@ -6,6 +6,7 @@ import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 interface ProfileRow {
@@ -33,6 +34,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 export default function AdminUsers() {
+  useDocumentTitle('Comptes & accès — Admin Vision Affichage');
   const me = useAuthStore(s => s.user);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);

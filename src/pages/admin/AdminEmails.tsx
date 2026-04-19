@@ -6,6 +6,7 @@ import {
   orderShippedEmail,
   orderDeliveredEmail,
 } from '@/lib/emailTemplates';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type TemplateId = 'quote-sent' | 'payment' | 'shipped' | 'delivered';
 type Lang = 'fr' | 'en';
@@ -60,6 +61,7 @@ function previewOf(id: TemplateId, lang: Lang) {
 }
 
 export default function AdminEmails() {
+  useDocumentTitle('Modèles de courriels — Admin Vision Affichage');
   const [active, setActive] = useState<TemplateId>('quote-sent');
   const [lang, setLang] = useState<Lang>('fr');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');

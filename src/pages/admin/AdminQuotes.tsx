@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
@@ -44,6 +45,7 @@ export default function AdminQuotes() {
   const [page, setPage] = useState(0);
 
   useEffect(() => { setPage(0); }, [query, filter]);
+  useDocumentTitle('Soumissions — Admin Vision Affichage');
 
   useEffect(() => {
     try {

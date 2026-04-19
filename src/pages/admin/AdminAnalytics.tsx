@@ -8,6 +8,7 @@ import {
   SHOPIFY_STATS,
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 function dayKey(iso: string): string {
   const d = new Date(iso);
@@ -15,6 +16,7 @@ function dayKey(iso: string): string {
 }
 
 export default function AdminAnalytics() {
+  useDocumentTitle('Analytique — Admin Vision Affichage');
   const dailyRevenue = useMemo(() => {
     const map = new Map<string, number>();
     for (const o of SHOPIFY_ORDERS_SNAPSHOT) {

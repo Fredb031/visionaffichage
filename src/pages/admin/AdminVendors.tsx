@@ -4,6 +4,7 @@ import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface VendorRecord {
   id: string;
@@ -23,6 +24,7 @@ const SEED_VENDORS: VendorRecord[] = [
 ];
 
 export default function AdminVendors() {
+  useDocumentTitle('Vendeurs — Admin Vision Affichage');
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');

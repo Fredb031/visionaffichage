@@ -11,6 +11,7 @@ import { StatCard } from '@/components/admin/StatCard';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { normalizeInvisible } from '@/lib/utils';
 
@@ -37,6 +38,10 @@ export default function AdminCustomers() {
   const [filter, setFilter] = useState<'all' | 'paying' | 'prospects'>('all');
   const [selected, setSelected] = useState<ShopifyCustomerSnapshot | null>(null);
   const [page, setPage] = useState(0);
+  // Distinct admin tab title — admins routinely have multiple admin
+  // tabs open and the bare 'Vision Affichage' from index.html made
+  // them indistinguishable in the strip.
+  useDocumentTitle('Clients — Admin Vision Affichage');
 
   // Reset pagination when the filter or search changes — otherwise
   // filtering to 3 prospects while on page 5 shows an empty table.

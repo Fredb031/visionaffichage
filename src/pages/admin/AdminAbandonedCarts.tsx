@@ -7,6 +7,7 @@ import {
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const PAGE_SIZE = 25;
 
@@ -33,6 +34,7 @@ function formatRelative(iso: string): string {
 export default function AdminAbandonedCarts() {
   const [sort, setSort] = useState<'recent' | 'value'>('value');
   const [page, setPage] = useState(0);
+  useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
 
   const sorted = useMemo(() => {
     const arr = [...SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT];

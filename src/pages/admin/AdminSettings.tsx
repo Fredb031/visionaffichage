@@ -1,6 +1,8 @@
 import { Link2, Building2, CreditCard, Shield } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function AdminSettings() {
+  useDocumentTitle('Paramètres — Admin Vision Affichage');
   return (
     <div className="space-y-6 max-w-3xl">
       <header>

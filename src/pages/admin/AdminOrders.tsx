@@ -6,6 +6,7 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
@@ -113,6 +114,7 @@ export default function AdminOrders() {
   // Reset to first page whenever the filter or search changes so we
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
+  useDocumentTitle('Commandes — Admin Vision Affichage');
 
   // Cancel the resync delay if the admin clicks through to a sibling
   // route in the 400ms before the reload fires — otherwise it yanks

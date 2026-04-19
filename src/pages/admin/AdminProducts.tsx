@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 32;
@@ -18,6 +19,7 @@ export default function AdminProducts() {
   const [page, setPage] = useState(0);
 
   useEffect(() => { setPage(0); }, [query, typeFilter]);
+  useDocumentTitle('Produits — Admin Vision Affichage');
 
   // Cancel the resync delay if the admin navigates away in the 400ms
   // before the reload — same pattern as AdminOrders / AdminCustomers,

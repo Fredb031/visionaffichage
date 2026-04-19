@@ -4,6 +4,7 @@ import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
 import { ActivityFeed } from '@/components/admin/ActivityFeed';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_STATS, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
@@ -15,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
+  useDocumentTitle('Tableau de bord — Admin Vision Affichage');
   const recentOrders = SHOPIFY_ORDERS_SNAPSHOT.slice(0, 6);
   const revenueFmt = SHOPIFY_STATS.revenueLast7Days.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
