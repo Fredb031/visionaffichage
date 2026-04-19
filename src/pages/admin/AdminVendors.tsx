@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -23,14 +24,35 @@ const SEED_VENDORS: VendorRecord[] = [
   { id: '3', name: 'Julie Gagnon',            email: 'julie@visionaffichage.com',  quotesSent: 28, conversionRate: 61, revenue: 15800, lastActive: 'il y a 4h' },
 ];
 
+type VendorSort = 'default' | 'revenue' | 'quotes' | 'conv';
+const VALID_SORTS: readonly VendorSort[] = ['default', 'revenue', 'quotes', 'conv'];
+
 export default function AdminVendors() {
   useDocumentTitle('Vendeurs — Admin Vision Affichage');
+  // URL-backed sort so reload preserves the admin's chosen ranking and
+  // shareable URLs jump straight to the right view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSortRaw = searchParams.get('sort') ?? 'default';
+  const initialSort: VendorSort = (VALID_SORTS as readonly string[]).includes(initialSortRaw)
+    ? (initialSortRaw as VendorSort)
+    : 'default';
+
+  const [sort, setSort] = useState<VendorSort>(initialSort);
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
   const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
+
+  // Sync sort → URL.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (sort !== 'default') next.set('sort', sort); else next.delete('sort');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [sort, searchParams, setSearchParams]);
 
   useEffect(() => {
     try {
@@ -129,7 +151,15 @@ export default function AdminVendors() {
     persist(customVendors.filter(x => x.id !== id));
   };
 
-  const all = [...customVendors, ...SEED_VENDORS];
+  const allUnsorted = [...customVendors, ...SEED_VENDORS];
+  const all = useMemo(() => {
+    const arr = [...allUnsorted];
+    if (sort === 'revenue') return arr.sort((a, b) => b.revenue - a.revenue);
+    if (sort === 'quotes')  return arr.sort((a, b) => b.quotesSent - a.quotesSent);
+    if (sort === 'conv')    return arr.sort((a, b) => b.conversionRate - a.conversionRate);
+    return arr; // 'default' = custom-first then seed (insertion order)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customVendors, sort]);
 
   return (
     <div className="space-y-6">
@@ -138,14 +168,32 @@ export default function AdminVendors() {
           <h1 className="text-2xl font-extrabold tracking-tight">Vendeurs</h1>
           <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} vendeur{all.length > 1 ? 's' : ''}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowInvite(true)}
-          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          <Plus size={15} aria-hidden="true" />
-          Ajouter un vendeur
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Sort dropdown — admins routinely want top-revenue or
+              top-quotes-sent at the top to spot performers. */}
+          <label className="flex items-center gap-2 text-xs text-zinc-500">
+            <span>Trier :</span>
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as VendorSort)}
+              aria-label="Trier les vendeurs"
+              className="border border-zinc-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 text-xs font-semibold text-foreground cursor-pointer"
+            >
+              <option value="default">Défaut</option>
+              <option value="revenue">Revenus (élevés → bas)</option>
+              <option value="quotes">Devis envoyés</option>
+              <option value="conv">Taux de conversion</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowInvite(true)}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <Plus size={15} aria-hidden="true" />
+            Ajouter un vendeur
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
