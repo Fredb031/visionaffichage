@@ -34,9 +34,16 @@ export function AIChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Warm-up: start loading the KB the first time the panel opens.
+  // If the dynamic import fails (chunk 404, offline), log + swallow so
+  // the chat still renders a typing input — users can still ask
+  // questions (send() also catches and posts a fallback answer).
   useEffect(() => {
     if (!open) return;
-    loadKb().then(mod => setTopics(mod.KB_TOPICS));
+    loadKb()
+      .then(mod => setTopics(mod.KB_TOPICS))
+      .catch(err => {
+        console.warn('[AIChat] Failed to load knowledge base:', err);
+      });
   }, [open]);
 
   // Auto-scroll on new message
@@ -57,12 +64,24 @@ export function AIChat() {
     setInput('');
     setThinking(true);
     setView('chat');
-    // Natural pause so it doesn't feel like a form POST.
-    await new Promise(r => setTimeout(r, 350 + Math.random() * 400));
-    const { answerQuestion } = await loadKb();
-    const { answer } = answerQuestion(trimmed, lang as Lang);
-    setMessages(m => [...m, { role: 'assistant', text: answer, ts: Date.now() }]);
-    setThinking(false);
+    try {
+      // Natural pause so it doesn't feel like a form POST.
+      await new Promise(r => setTimeout(r, 350 + Math.random() * 400));
+      const { answerQuestion } = await loadKb();
+      const { answer } = answerQuestion(trimmed, lang as Lang);
+      setMessages(m => [...m, { role: 'assistant', text: answer, ts: Date.now() }]);
+    } catch (err) {
+      // If the KB import fails (chunk 404, offline), the user was
+      // stuck on an eternal "typing…" spinner with no reply. Surface
+      // a graceful fallback so they can still call us.
+      console.warn('[AIChat] Failed to answer:', err);
+      const fallback = lang === 'fr'
+        ? 'Désolé, je n\u2019arrive pas à charger mes réponses pour l\u2019instant. Appelle-nous au 367-380-4808 ou écris à info@visionaffichage.com.'
+        : 'Sorry, I can\u2019t load my answers right now. Call us at 367-380-4808 or email info@visionaffichage.com.';
+      setMessages(m => [...m, { role: 'assistant', text: fallback, ts: Date.now() }]);
+    } finally {
+      setThinking(false);
+    }
   };
 
   const onSubmit = (e: React.FormEvent) => {
