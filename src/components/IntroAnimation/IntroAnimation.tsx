@@ -256,9 +256,24 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       <div id="va-intro-accent" />
 
       <div id="va-intro-hint" className={showHint ? 'show' : ''}>
-        {typeof navigator !== 'undefined' && /^en/.test(navigator.language)
-          ? 'Tap to begin'
-          : 'Touche pour commencer'}
+        {(() => {
+          // Honor the user's chosen site language (stored by langContext
+          // under 'vision-lang') instead of navigator.language. A French-
+          // speaking user on an EN-locale browser who toggled to FR would
+          // otherwise see 'Tap to begin' here while the rest of the site
+          // is in French. Fall back to navigator.language when the user
+          // has not picked a language yet (first visit, before the toggle).
+          let isEn = false;
+          try {
+            const stored = typeof window !== 'undefined' ? localStorage.getItem('vision-lang') : null;
+            if (stored === 'en') isEn = true;
+            else if (stored === 'fr') isEn = false;
+            else isEn = typeof navigator !== 'undefined' && /^en/.test(navigator.language);
+          } catch {
+            isEn = typeof navigator !== 'undefined' && /^en/.test(navigator.language);
+          }
+          return isEn ? 'Tap to begin' : 'Touche pour commencer';
+        })()}
       </div>
     </div>
   );
