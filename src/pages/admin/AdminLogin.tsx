@@ -54,9 +54,11 @@ export default function AdminLogin() {
       // signIn normally returns {ok:false} with a friendly error on the
       // store, but a thrown exception (network down, fetch reject) used
       // to slip past the bare await and leave the button disabled
-      // forever. Always release submitting, and surface the error.
+      // forever. Always release submitting, and surface the error so
+      // the admin sees *something* — previously only console.error fired
+      // and the form looked inert on bad wifi.
       console.error('[AdminLogin] signIn threw:', err);
-      setSubmitting(false);
+      useAuthStore.getState().setError('Erreur réseau. Vérifie ta connexion et réessaie.');
       return;
     } finally {
       setSubmitting(false);
