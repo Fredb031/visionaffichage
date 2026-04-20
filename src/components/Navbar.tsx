@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
@@ -26,6 +26,26 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   // Close the user menu on Escape so keyboard users can dismiss it
   // without having to click outside.
   useEscapeKey(menuOpen, useCallback(() => setMenuOpen(false), []));
+
+  // Global Cmd/Ctrl+Shift+C opens the cart drawer from anywhere Navbar
+  // is mounted (every page). Skip when focus is in a text input or
+  // contentEditable so typing 'C' mid-form doesn't hijack the keystroke.
+  // Chosen over plain Cmd+K (owned by admin search) and Cmd+C (system
+  // copy). Shift+C is rarely bound and intentional enough to avoid
+  // stealing from browser defaults.
+  useEffect(() => {
+    if (!onOpenCart) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
+      if (e.key.toLowerCase() !== 'c') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      onOpenCart();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onOpenCart]);
 
   // President is the highest admin tier — route it to the same admin
   // dashboard as 'admin'. Before this, owners signed in as 'president'
@@ -164,6 +184,8 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         <button
           onClick={onOpenCart}
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
+          aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
+          title={`${t('panier')} (⇧⌘C)`}
           className="flex items-center gap-[7px] text-[13px] text-muted-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
           <svg
