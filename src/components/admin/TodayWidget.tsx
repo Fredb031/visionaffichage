@@ -44,7 +44,7 @@ function TodayWidgetInner() {
       id: 'fulfill',
       label: `${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`,
       detail: 'Production prête, à étiqueter',
-      href: '/admin/orders?filter=awaiting',
+      href: '/admin/orders?filter=awaiting_fulfillment',
       icon: Package,
       priority: 'normal',
     });
