@@ -46,7 +46,15 @@ export function useRecentlyViewed() {
   const [handles, setHandles] = useState<string[]>(readStorage);
 
   const track = useCallback((handle: string) => {
-    if (!handle) return;
+    // Normalize before dedupe/storage — Shopify handles are ASCII
+    // lowercase by spec, but callers sometimes hand us a trailing space
+    // from a copy-paste or mixed case from a hand-built URL. Without
+    // trim+lower, track('  hoodie  ') and track('hoodie') land in two
+    // separate entries and the RecentlyViewed strip renders the same
+    // product twice (with a duplicate React list key). Mirrors the
+    // normalization useWishlist + useProductColors already apply.
+    const norm = handle.trim().toLowerCase();
+    if (!norm) return;
     setHandles(prev => {
       // Re-tracking the handle that's already at the front is a no-op:
       // the user navigated back to the same product, the list ordering
@@ -56,8 +64,8 @@ export function useRecentlyViewed() {
       // that re-runs readStorage() on every sibling instance. Without
       // this, a user clicking the same PDP card twice still pays for
       // the full write+broadcast loop.
-      if (prev[0] === handle) return prev;
-      const next = [handle, ...prev.filter(h => h !== handle)].slice(0, MAX);
+      if (prev[0] === norm) return prev;
+      const next = [norm, ...prev.filter(h => h !== norm)].slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return next;
