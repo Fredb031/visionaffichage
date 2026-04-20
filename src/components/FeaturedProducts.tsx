@@ -33,7 +33,17 @@ export function FeaturedProducts() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {featured.map((p, i) => (
+          {featured.map((p, i) => {
+            // Use fr-CA / en-CA locale formatting so French users see
+            // '27,54 $' with a comma separator (matches cart totals,
+            // quote rows, admin dashboards, CartRecommendations). .toFixed(2)
+            // alone always emits a '.' which looks out of place in the
+            // French build next to every other price on the page.
+            const priceFmt = p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+            return (
             <Link
               key={p.sku}
               to={`/product/${p.shopifyHandle}`}
@@ -65,11 +75,12 @@ export function FeaturedProducts() {
                   {categoryLabel(p.category, lang)}
                 </div>
                 <div className="text-xs text-[#0052CC] font-bold mt-1">
-                  {lang === 'en' ? 'From' : 'À partir de'} {p.basePrice.toFixed(2)} $
+                  {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
