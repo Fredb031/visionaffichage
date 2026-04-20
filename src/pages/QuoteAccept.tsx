@@ -240,14 +240,16 @@ export default function QuoteAccept() {
               <button
                 type="button"
                 disabled={!canPay}
-                className="w-full py-4 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-disabled={!canPay}
+                aria-describedby={!canPay ? 'quote-pay-hint' : undefined}
+                className="w-full py-4 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               >
-                <CreditCard size={18} />
+                <CreditCard size={18} aria-hidden="true" />
                 {lang === 'en' ? 'Review & pay' : 'Vérifier et payer'}
               </button>
 
               {!canPay && (
-                <p className="text-[11px] text-muted-foreground text-center">
+                <p id="quote-pay-hint" className="text-[11px] text-muted-foreground text-center">
                   {!logoFile
                     ? lang === 'en' ? '⬆ Upload your logo first' : '⬆ Téléverse ton logo d\'abord'
                     : lang === 'en' ? '⬆ Accept terms to continue' : '⬆ Accepte les conditions pour continuer'}
