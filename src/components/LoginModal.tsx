@@ -138,7 +138,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       // as "I clicked outside to dismiss, now it teleported me to
       // /admin." Block the backdrop close while submitting.
       onClick={() => { if (!submitting) onClose(); }}
-      aria-hidden="true"
+      // NOTE: no aria-hidden on this wrapper — it contains the
+      // role="dialog" below, and aria-hidden on an ancestor hides
+      // the entire dialog subtree from screen readers. The dialog
+      // announces itself via role + aria-modal + aria-labelledby.
     >
       <div
         ref={trapRef}
