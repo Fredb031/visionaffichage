@@ -3,7 +3,7 @@ import { ShoppingBag, DollarSign, FileText, Package, TrendingUp, AlertCircle } f
 import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
 import { ActivityFeed } from '@/components/admin/ActivityFeed';
-import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_STATS, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
+import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_STATS, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -19,6 +19,14 @@ export default function AdminDashboard() {
   useDocumentTitle('Tableau de bord — Admin Vision Affichage');
   const recentOrders = SHOPIFY_ORDERS_SNAPSHOT.slice(0, 6);
   const revenueFmt = SHOPIFY_STATS.revenueLast7Days.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  // Count from the live snapshot instead of a hardcoded "3". Threshold
+  // of 10 matches AdminProducts' lowStock/outOfStock split so both
+  // surfaces agree on what "stock faible" means. Includes rupture
+  // (inventory <= 0) since those also need admin attention — the card
+  // is a "products that need a reorder" pointer, not a strict
+  // 1–10-units filter. Hides the card entirely when everything is
+  // healthy so admins don't see a stale "0 produits" alert.
+  const lowStockCount = SHOPIFY_PRODUCTS_SNAPSHOT.filter(p => p.totalInventory <= 10).length;
 
   return (
     <div className="space-y-8">
@@ -141,23 +149,27 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                <AlertCircle size={18} aria-hidden="true" />
-              </div>
-              <div>
-                <div className="font-bold text-sm mb-1">Stock faible</div>
-                <div className="text-xs text-white/70 mb-3">3 produits ont un inventaire sous 10 unités.</div>
-                <Link
-                  to="/admin/products?filter=low-stock"
-                  className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
-                >
-                  Voir les produits →
-                </Link>
+          {lowStockCount > 0 && (
+            <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle size={18} aria-hidden="true" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm mb-1">Stock faible</div>
+                  <div className="text-xs text-white/70 mb-3">
+                    {lowStockCount} produit{lowStockCount > 1 ? 's ont' : ' a'} un inventaire sous 10 unités.
+                  </div>
+                  <Link
+                    to="/admin/products"
+                    className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+                  >
+                    Voir les produits →
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
