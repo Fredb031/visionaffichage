@@ -286,7 +286,7 @@ export default function QuoteBuilder() {
                       label="Qté"
                       type="number"
                       value={String(it.quantity)}
-                      onChange={v => updateItem(it.id, { quantity: parseInt(v) || 0 })}
+                      onChange={v => updateItem(it.id, { quantity: Math.max(0, parseInt(v) || 0) })}
                     />
                     <div className="col-span-2">
                       <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Placement du logo</div>
@@ -387,7 +387,14 @@ export default function QuoteBuilder() {
               value={discountValue}
               onChange={e => setDiscountValue(e.target.value)}
               placeholder="0"
+              // decimal (not numeric) so mobile shows a keypad that
+              // includes the period — discount can be fractional
+              // percent or dollar amounts. min="0" prevents the spinner
+              // arrows from clicking into negative territory.
+              inputMode="decimal"
+              min={0}
               className="w-full mt-2 border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC]"
+              aria-label={discountKind === 'percent' ? 'Valeur du rabais en pourcentage' : 'Valeur du rabais en dollars'}
             />
           </div>
 
@@ -446,6 +453,13 @@ function LabeledInput({
   placeholder?: string;
   type?: string;
 }) {
+  // Mobile UX: a bare type="number" input is unreliable across iOS / Android
+  // — some browsers still show the full alphanumeric keyboard. Force the
+  // numeric keypad via inputMode, and clamp negatives at the element level
+  // so a copy-pasted "-5" or the arrow-down-from-zero path can't produce a
+  // negative quantity line on a quote. min="0" step="1" also gives the
+  // built-in spinner sane bounds.
+  const isNumeric = type === 'number';
   return (
     <label className="flex flex-col gap-0.5">
       <span className="text-[11px] text-zinc-500 uppercase tracking-wider">{label}</span>
@@ -454,6 +468,9 @@ function LabeledInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
+        inputMode={isNumeric ? 'numeric' : undefined}
+        min={isNumeric ? 0 : undefined}
+        step={isNumeric ? 1 : undefined}
         className="border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC]"
       />
     </label>
