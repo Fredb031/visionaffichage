@@ -118,10 +118,10 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         <button
           type="button"
           onClick={remove}
-          className="w-8 h-8 rounded-full bg-white hover:bg-rose-50 hover:text-rose-600 text-zinc-500 flex items-center justify-center border-none cursor-pointer transition-colors"
+          className="w-8 h-8 rounded-full bg-white hover:bg-rose-50 hover:text-rose-600 text-zinc-500 flex items-center justify-center border-none cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1"
           aria-label={lang === 'en' ? 'Remove file' : 'Retirer le fichier'}
         >
-          <X size={16} />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
     );
