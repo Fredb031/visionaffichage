@@ -36,7 +36,11 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.isFrench() ? 'Une erreur est survenue' : 'Something went wrong'}
           </p>
           <p className="text-xs text-muted-foreground mb-4 max-w-sm">
-            {this.state.error?.message ??
+            {/* `??` only falls through on null/undefined, so an Error
+               thrown with an empty message (new Error('') or new Error())
+               would render a blank <p> under the icon. Use `||` so any
+               falsy message — including '' — shows the human fallback. */}
+            {(this.state.error?.message && this.state.error.message.trim()) ||
               (this.isFrench()
                 ? 'Une erreur inattendue est survenue.'
                 : 'An unexpected error occurred.')}
