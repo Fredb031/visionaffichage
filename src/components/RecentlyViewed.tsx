@@ -23,10 +23,16 @@ export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-10" aria-label={lang === 'en' ? 'Recently viewed' : 'Vus récemment'}>
+    // Use aria-labelledby pointing to the visible h3 instead of a
+    // redundant aria-label. With both set, screen readers announce
+    // the region label and then re-announce the same heading text on
+    // next move — duplicated "Recently viewed" / "Vus récemment".
+    // Matching WishlistGrid's labelledby pattern keeps the region
+    // named while letting the heading serve as its sole label.
+    <section className="mt-10" aria-labelledby="recently-viewed-heading">
       <div className="flex items-center gap-2 mb-4 justify-center">
         <History size={14} className="text-muted-foreground" aria-hidden="true" />
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <h3 id="recently-viewed-heading" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {lang === 'en' ? 'Recently viewed' : 'Vus récemment'}
         </h3>
       </div>
