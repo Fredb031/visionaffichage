@@ -124,8 +124,12 @@ export function summarizeStock(parts: SanmarInventoryPart[] | null): StockSummar
     // SanMar's SOAP-to-REST gateway has been known to return null /
     // undefined for totalQty on discontinued parts. Coerce to 0 so a
     // single bad row doesn't turn the whole summary into NaN and
-    // render as "NaN en stock" on the PDP stock badge.
-    const qty = Number.isFinite(p.totalQty) ? p.totalQty : 0;
+    // render as "NaN en stock" on the PDP stock badge. Also clamp
+    // negative values — a negative sentinel qty on one part would
+    // otherwise cancel out real stock on another part and suppress
+    // the "In stock" badge on products that are actually stocked.
+    const raw = Number.isFinite(p.totalQty) ? p.totalQty : 0;
+    const qty = raw < 0 ? 0 : raw;
     totalAvailable += qty;
     // Only string keys land in the Maps — a numeric partColor (has
     // happened in test data) would be truthy and pollute the map
