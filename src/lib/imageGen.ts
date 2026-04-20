@@ -112,6 +112,26 @@ function withTimeout(): { signal: AbortSignal; cancel: () => void } {
   return { signal: controller.signal, cancel: () => clearTimeout(timer) };
 }
 
+// DALL-E 3 only accepts three fixed sizes. AdminImageGen passes the
+// UX-friendly `aspect` (1:1 / 16:9 / 3:4) without a `size`, so without
+// this mapping the "Large" + "Portrait" selects silently fell back to
+// 1024x1024 and the admin got a square image from a wide/portrait pick.
+function aspectToOpenAISize(
+  aspect: GenerateImageParams['aspect'],
+): NonNullable<GenerateImageParams['size']> {
+  switch (aspect) {
+    case '16:9':
+    case '4:3':
+      return '1792x1024';
+    case '3:4':
+    case '9:16':
+      return '1024x1792';
+    case '1:1':
+    default:
+      return '1024x1024';
+  }
+}
+
 async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<GeneratedImage> {
   const { signal, cancel } = withTimeout();
   let res: Response;
@@ -125,7 +145,7 @@ async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<
       body: JSON.stringify({
         model: 'dall-e-3',
         prompt: params.prompt,
-        size: params.size ?? '1024x1024',
+        size: params.size ?? aspectToOpenAISize(params.aspect),
         style: params.style ?? 'natural',
         quality: 'hd',
         n: 1,
