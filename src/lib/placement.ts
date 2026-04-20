@@ -35,17 +35,29 @@ const defaultWidth = (bbox?: Bbox | null) =>
  * because real product photos are often shifted a few percent off the
  * canvas frame — forcing x=50 (canvas center) makes logos visibly
  * lean toward the wider shoulder on asymmetric crops. When no bbox
- * is available, fall back to 50 (best we can do).
+ * is available, fall back to the declared zone center if provided
+ * (closer to the garment than canvas center on off-frame shots), else
+ * canvas center as a last resort.
  *
  * Kickflip, Printful, Custom Ink etc. all anchor to the detected
  * silhouette center, not the canvas center, for this exact reason. */
 export function centerOnGarment(p: Params) {
-  const { bbox } = p;
-  return {
-    x: bbox ? bbox.cx : 50,
-    y: bbox ? bbox.cy : 50,
-    width: p.widthPct ?? defaultWidth(bbox),
-  };
+  const { bbox, zone } = p;
+  if (bbox) {
+    return {
+      x: bbox.cx,
+      y: bbox.cy,
+      width: p.widthPct ?? defaultWidth(bbox),
+    };
+  }
+  if (zone) {
+    return {
+      x: zone.x + zone.width / 2,
+      y: zone.y + zone.height / 2,
+      width: p.widthPct ?? defaultWidth(null),
+    };
+  }
+  return { x: 50, y: 50, width: p.widthPct ?? defaultWidth(null) };
 }
 
 /** Chest point = detected garment horizontal centre + vertical 25% from
