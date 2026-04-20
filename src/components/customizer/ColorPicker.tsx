@@ -113,8 +113,20 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
 }
 
 function isLightColor(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  // Normalize: strip '#', expand shorthand (#fff -> #ffffff). Without
+  // expansion, '#fff'.slice(3,5) yields 'f' and slice(5,7) yields ''
+  // which parseInt turns into NaN — the luminance math then short-circuits
+  // to false and a white swatch gets a white check mark (invisible).
+  // Shopify-sourced variant hexes aren't guaranteed to be 6-digit and
+  // some curated color data uses shorthand, so harden this at the edge.
+  const h = hex.startsWith('#') ? hex.slice(1) : hex;
+  const full = h.length === 3
+    ? h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
+    : h;
+  if (full.length < 6) return true; // Safe default: assume light -> dark check
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return true;
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
