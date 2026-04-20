@@ -19,28 +19,51 @@ export default function ResetPassword() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [tokenReady, setTokenReady] = useState(false);
+  // Don't condemn the link as invalid until we've given Supabase enough
+  // time to actually process the recovery hash. Users arriving from the
+  // reset email used to see "Lien invalide ou expiré" flash for the first
+  // ~200 ms before the SDK finished parsing the token — many hit Back
+  // and asked for a new link thinking their perfectly-fine recovery link
+  // was broken. Keep `checking=true` until either the session shows up
+  // OR the timeout elapses, then render the invalid-link state only if
+  // still no session.
+  const [checking, setChecking] = useState(true);
 
   // Supabase parses the recovery token from the URL hash asynchronously
   // on client init. A first-mount getSession() often returns no session
-  // because the SDK hasn't processed the hash yet — users landing
-  // straight from the reset email saw "Lien invalide" flash briefly
-  // before anything. Subscribe to onAuthStateChange so the PASSWORD_RECOVERY
-  // / SIGNED_IN event flips tokenReady true the moment the SDK is ready.
+  // because the SDK hasn't processed the hash yet. Subscribe to
+  // onAuthStateChange so the PASSWORD_RECOVERY / SIGNED_IN event flips
+  // tokenReady true the moment the SDK is ready.
   useEffect(() => {
     let alive = true;
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        if (alive && session) setTokenReady(true);
+        if (!alive) return;
+        if (session) {
+          setTokenReady(true);
+          setChecking(false);
+        }
       })
       .catch((err) => {
         console.warn('[ResetPassword] getSession failed:', err);
       });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!alive) return;
-      if (session) setTokenReady(true);
+      if (session) {
+        setTokenReady(true);
+        setChecking(false);
+      }
     });
+    // Hard upper bound — if Supabase still hasn't produced a session
+    // after 2.5 s, the token really is bad (or the network dropped the
+    // hash) and showing the invalid-link view is the honest answer.
+    // 2.5 s is generous enough that a healthy SDK always wins the race.
+    const timeout = setTimeout(() => {
+      if (alive) setChecking(false);
+    }, 2500);
     return () => {
       alive = false;
+      clearTimeout(timeout);
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -116,6 +139,20 @@ export default function ResetPassword() {
                 ? 'Continuer vers le tableau de bord'
                 : user?.role === 'vendor' ? 'Continuer vers mon espace' : 'Retour au site'}
             </button>
+          </div>
+        ) : checking && !tokenReady ? (
+          <div
+            className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div
+              className="w-10 h-10 border-[3px] border-[#0052CC] border-t-transparent rounded-full animate-spin mx-auto mb-3"
+              aria-hidden="true"
+            />
+            <h2 className="text-sm font-extrabold text-zinc-700 mb-1">Validation du lien…</h2>
+            <p className="text-xs text-zinc-500">On vérifie ton lien de réinitialisation.</p>
           </div>
         ) : !tokenReady ? (
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center" role="alert">
