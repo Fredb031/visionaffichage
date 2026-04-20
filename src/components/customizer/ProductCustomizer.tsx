@@ -60,13 +60,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // pixels so "center on garment" lands on the shirt body, not whitespace.
   const [bbox, setBbox] = useState<{ x: number; y: number; w: number; h: number; cx: number; cy: number } | null>(null);
 
-  // Init store when productId changes — use effect to avoid
-  // "Cannot update a component while rendering" warnings.
-  // NOTE: do NOT include `store` in the deps — Zustand returns a fresh
-  // state object on every render, so including it causes an infinite
-  // update loop. Action functions (store.setProduct) are stable refs.
+  // RESET the customizer state every time the modal mounts. User
+  // explicitly asked: 'when we go back on the customiser, it restarts
+  // the process'. The persisted customizer store was designed to keep
+  // state across navigations, but that confused users who expected a
+  // fresh canvas each time they opened the flow. Always start at
+  // step 1, no logo, no sizes — then set the current product so the
+  // canvas has something to render.
   useEffect(() => {
-    if (product && store.productId !== productId) store.setProduct(productId);
+    if (!product) return;
+    store.reset();
+    store.setProduct(productId);
+    setMultiVariants([]);
+    setShopifyColor(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, product]);
 
