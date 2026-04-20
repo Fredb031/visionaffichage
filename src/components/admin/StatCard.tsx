@@ -35,17 +35,19 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
         )}
       </div>
       <div className="text-3xl font-extrabold text-zinc-900 tracking-tight">{value}</div>
-      {delta !== undefined && (
+      {(delta !== undefined || deltaLabel) && (
         <div className="flex items-center gap-1 mt-2">
-          <span
-            className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
-              isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-            }`}
-            aria-label={`${isPositive ? 'en hausse' : 'en baisse'} de ${Math.abs(delta)}%`}
-          >
-            {isPositive ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}
-            {Math.abs(delta)}%
-          </span>
+          {delta !== undefined && (
+            <span
+              className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
+                isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              }`}
+              aria-label={`${isPositive ? 'en hausse' : 'en baisse'} de ${Math.abs(delta)}%`}
+            >
+              {isPositive ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}
+              {Math.abs(delta)}%
+            </span>
+          )}
           {deltaLabel && <span className="text-[11px] text-zinc-500">{deltaLabel}</span>}
         </div>
       )}
