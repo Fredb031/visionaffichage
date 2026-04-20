@@ -62,16 +62,16 @@ const NotFound = () => {
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-7">
             <Link
               to="/"
-              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-7 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform"
+              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-7 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
-              <Home className="w-4 h-4" />
+              <Home className="w-4 h-4" aria-hidden="true" />
               {lang === 'en' ? 'Go home' : "Retour à l'accueil"}
             </Link>
             <Link
               to="/products"
-              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold border border-border bg-background px-7 py-3.5 rounded-full hover:border-primary hover:text-primary transition-colors"
+              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold border border-border bg-background px-7 py-3.5 rounded-full hover:border-primary hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               {lang === 'en' ? 'See products' : 'Voir les produits'}
             </Link>
           </div>
