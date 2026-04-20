@@ -10,9 +10,24 @@ import {
 import { StatCard } from '@/components/admin/StatCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+// Bucket orders by LOCAL day, not UTC. toISOString() drifts orders
+// placed in the evening (America/Toronto is -04/-05) into the next day
+// and the `new Date('YYYY-MM-DD')` label then renders as the prior day
+// locally — a double off-by-one that mis-labels the bar chart.
 function dayKey(iso: string): string {
   const d = new Date(iso);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// Parse a local YYYY-MM-DD back into a Date in local time (not UTC).
+// `new Date('2026-04-16')` is parsed as UTC midnight which shifts the
+// weekday label in negative timezones.
+function parseDayKeyLocal(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 
 export default function AdminAnalytics() {
@@ -112,7 +127,7 @@ export default function AdminAnalytics() {
             <div className="flex items-end gap-1.5 h-48" role="list">
               {dailyRevenue.map(([day, revenue]) => {
                 const heightPct = (revenue / maxRevenue) * 100;
-                const date = new Date(day);
+                const date = parseDayKeyLocal(day);
                 const label = date.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' });
                 return (
                   <div
