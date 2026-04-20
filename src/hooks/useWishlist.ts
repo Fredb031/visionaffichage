@@ -37,9 +37,12 @@ function readStorage(): string[] {
 
 /**
  * Persist the customer's wishlist (Shopify product handles) to
- * localStorage. Most-recent first — toggling an already-saved handle
- * moves it to the top, while a fresh save prepends it. Cross-tab sync
- * via the storage event so a like on one tab appears on the others.
+ * localStorage. Most-recent first — a fresh save prepends the handle,
+ * while toggling an already-saved handle removes it (classic heart
+ * add/remove behaviour, matching what the Heart button aria-labels
+ * promise: "Save to wishlist" ↔ "Remove from wishlist"). Cross-tab
+ * sync via the storage event so a like on one tab appears on the
+ * others.
  */
 export function useWishlist() {
   const [handles, setHandles] = useState<string[]>(readStorage);
@@ -60,7 +63,10 @@ export function useWishlist() {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) setHandles(readStorage());
+      // e.key === null fires when another tab calls localStorage.clear()
+      // — re-read in that case too so this tab doesn't keep rendering
+      // hearts for products whose wishlist entry was just wiped.
+      if (e.key === KEY || e.key === null) setHandles(readStorage());
     };
     const onLocal = () => setHandles(readStorage());
     window.addEventListener('storage', onStorage);
