@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X, Send, Sparkles, ChevronLeft, Trash2 } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, ChevronLeft, Trash2, Check, CheckCheck } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { KBTopic, Lang } from '@/lib/aiKnowledgeBase';
@@ -340,31 +340,52 @@ export function AIChat() {
 
             {view === 'chat' && (
               <div className="space-y-3" role="log" aria-live="polite" aria-label={lang === 'en' ? 'Chat history' : 'Historique de la conversation'}>
-                {messages.map(m => (
-                  // Stable key tied to the message itself, not its array
-                  // index. Once the transcript hits MAX_MESSAGES (200) the
-                  // front gets sliced off and every surviving message's
-                  // index shifts down by one — index-keyed nodes had their
-                  // content swapped under them, which both burned a render
-                  // and (worse) tripped aria-live to re-announce stale
-                  // text in the screen-reader log. ts already gets +1ms
-                  // disambiguation in pickFromTopic so role+ts is unique.
-                  <div
-                    key={`${m.ts}-${m.role}`}
-                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                {messages.map((m, idx) => {
+                  // Read-receipt state for user messages: single check as
+                  // soon as it's on screen (delivered to local transcript),
+                  // double check once the assistant has responded after
+                  // it. Mirrors the iMessage/WhatsApp affordance so the
+                  // customer has visual confirmation their question was
+                  // processed — previously the bubble was silent and a
+                  // slow reply read as "did it send?".
+                  const isUser = m.role === 'user';
+                  const answered = isUser && messages.slice(idx + 1).some(n => n.role === 'assistant');
+                  return (
+                    // Stable key tied to the message itself, not its array
+                    // index. Once the transcript hits MAX_MESSAGES (200)
+                    // the front gets sliced off and every surviving
+                    // message's index shifts down by one — index-keyed
+                    // nodes had their content swapped under them, which
+                    // both burned a render and (worse) tripped aria-live
+                    // to re-announce stale text in the screen-reader log.
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-line ${
-                        m.role === 'user'
-                          ? 'bg-[#0052CC] text-white rounded-br-md'
-                          : 'bg-white text-foreground border border-border rounded-bl-md shadow-sm'
-                      }`}
+                      key={`${m.ts}-${m.role}`}
+                      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      <span className="sr-only">{m.role === 'user' ? (lang === 'en' ? 'You: ' : 'Toi : ') : (lang === 'en' ? 'Assistant: ' : 'Assistant : ')}</span>
-                      {m.text}
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-line ${
+                          isUser
+                            ? 'bg-[#0052CC] text-white rounded-br-md'
+                            : 'bg-white text-foreground border border-border rounded-bl-md shadow-sm'
+                        }`}
+                      >
+                        <span className="sr-only">{isUser ? (lang === 'en' ? 'You: ' : 'Toi : ') : (lang === 'en' ? 'Assistant: ' : 'Assistant : ')}</span>
+                        {m.text}
+                        {isUser && (
+                          <span
+                            className="ml-1.5 inline-flex items-center align-middle"
+                            aria-label={answered ? (lang === 'en' ? 'Read' : 'Lu') : (lang === 'en' ? 'Delivered' : 'Livré')}
+                            title={answered ? (lang === 'en' ? 'Read' : 'Lu') : (lang === 'en' ? 'Delivered' : 'Livré')}
+                          >
+                            {answered
+                              ? <CheckCheck size={12} className="text-white/90" aria-hidden="true" />
+                              : <Check      size={12} className="text-white/70" aria-hidden="true" />}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {thinking && (
                   <div className="flex justify-start" role="status" aria-live="polite">
                     <span className="sr-only">{lang === 'en' ? 'Assistant is typing…' : 'L\u2019assistant écrit…'}</span>
