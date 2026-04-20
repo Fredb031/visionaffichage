@@ -210,6 +210,7 @@ export default function TrackOrder() {
                   {STAGES.map((s, i) => {
                     const isDone = i < currentIdx;
                     const isCurrent = i === currentIdx;
+                    const isLast = i === STAGES.length - 1;
                     const Icon = s.icon;
                     const stateSr = isDone
                       ? (lang === 'en' ? 'completed' : 'complété')
@@ -219,11 +220,27 @@ export default function TrackOrder() {
                     return (
                       <li
                         key={s.id}
-                        className="flex items-start gap-3"
+                        className="flex items-start gap-3 relative"
                         aria-current={isCurrent ? 'step' : undefined}
                         aria-label={`${lang === 'en' ? s.en : s.fr} — ${stateSr}`}
                       >
-                        <div className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                        {/* Vertical connector to the next step. Coloured
+                            green when the CURRENT step is past (flow has
+                            already passed this gap), blue-ish for the
+                            gap sitting just below the current step, and
+                            grey for upcoming gaps. Makes the timeline
+                            read as a continuous line, not 4 detached
+                            circles. aria-hidden because the <ol> order
+                            already conveys the sequence to AT users. */}
+                        {!isLast && (
+                          <span
+                            aria-hidden="true"
+                            className={`absolute left-[17px] top-9 w-0.5 h-[calc(100%+0.25rem)] ${
+                              isDone ? 'bg-emerald-400' : isCurrent ? 'bg-gradient-to-b from-[#0052CC] to-zinc-200' : 'bg-zinc-200'
+                            }`}
+                          />
+                        )}
+                        <div className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all z-10 ${
                           isDone ? 'bg-emerald-500 text-white'
                           : isCurrent ? 'bg-[#0052CC] text-white scale-110 shadow-lg ring-4 ring-[#0052CC]/15'
                           : 'bg-zinc-100 text-zinc-400'
