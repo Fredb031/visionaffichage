@@ -405,7 +405,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       };
       for (const [, group] of byColor.entries()) {
         const colorImg = findColorImage(product.sku, group.color.colorName);
-        const linePreview = pickPersistableLogo(store.logoPlacement)
+        // Prefer the actual canvas mockup (garment + logo composited)
+        // so the cart shows what the customer is buying, not just a
+        // product stock photo or a bare logo. Falls back to the same
+        // chain as before if the canvas hasn't exposed its snapshot
+        // function yet.
+        const mockup = getSnapshotRef.current?.();
+        const linePreview = mockup
+          ?? pickPersistableLogo(store.logoPlacement)
           ?? pickPersistableLogo(store.logoPlacementBack)
           ?? colorImg?.front ?? product.imageDevant;
         cartStore.addItem({
@@ -521,6 +528,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         step: store.step,
         productName: product.name,
         previewSnapshot: (() => {
+          // Prefer the composited canvas mockup so the cart thumbnail
+          // shows the actual garment + logo the customer configured,
+          // not just the bare logo or a stock product photo.
+          const mockup = getSnapshotRef.current?.();
+          if (mockup) return mockup;
           // Same blob:-safe resolution as the multi-color path — blob
           // URLs don't survive a page reload, so prefer uploaded
           // (Supabase) URLs and fall back to the product photo.
