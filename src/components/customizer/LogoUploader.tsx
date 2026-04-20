@@ -96,7 +96,7 @@ export function LogoUploader({
 
   const processFile = useCallback(async (file: File, autoRemoveBg = true) => {
     if (!file.type.startsWith('image/')) {
-      setErrorMsg(lang === 'en' ? 'Invalid format. PNG, JPG, or SVG required.' : 'Format invalide. PNG, JPG ou SVG requis.');
+      setErrorMsg(lang === 'en' ? 'Invalid format. PNG, JPG, SVG, or WebP required.' : 'Format invalide. PNG, JPG, SVG ou WebP requis.');
       setStatus('error');
       return;
     }
@@ -282,7 +282,7 @@ export function LogoUploader({
           >
             <Upload className="mx-auto mb-3 text-muted-foreground" size={28} aria-hidden="true" />
             <p className="text-sm font-semibold text-foreground">{t('glisserLogo')}</p>
-            <p className="text-xs text-muted-foreground mt-1">PNG · JPG · SVG — max 20MB</p>
+            <p className="text-xs text-muted-foreground mt-1">PNG · JPG · SVG · WebP — max 20MB</p>
             <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
               <CheckCircle2 size={12} aria-hidden="true" /> {t('fondSupprimeAuto')}
             </div>
