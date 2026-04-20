@@ -100,6 +100,17 @@ export default function Checkout() {
   const total = subtotal + shippingCost + tax;
   const itemCount = cart.getItemCount();
 
+  // Match the locale-aware money formatting used on Cart /
+  // FeaturedProducts / WishlistGrid / ProductDetailBulkCalc so French
+  // users see "27,54 $" (comma decimal) instead of "27.54 $" on the
+  // checkout page. Plain .toFixed() is locale-blind and made the
+  // checkout summary the odd page out after the Cart fix.
+  const fmtMoney = (n: number) =>
+    (Number.isFinite(n) ? n : 0).toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   if (cart.items.length === 0 && step !== 'done') {
     return (
       <div className="min-h-screen bg-background flex flex-col pb-20">
@@ -483,7 +494,7 @@ export default function Checkout() {
                           <div className="font-bold text-sm">{lang === 'en' ? opt.en : opt.fr}</div>
                         </div>
                         <div className="font-extrabold text-sm">
-                          {opt.price === 0 ? <span className="text-emerald-600">{lang === 'en' ? 'Free' : 'Gratuit'}</span> : `${opt.price.toFixed(2)} $`}
+                          {opt.price === 0 ? <span className="text-emerald-600">{lang === 'en' ? 'Free' : 'Gratuit'}</span> : `${fmtMoney(opt.price)} $`}
                         </div>
                       </label>
                     );
@@ -524,12 +535,12 @@ export default function Checkout() {
                     {lang === 'en' ? 'Order summary' : 'Résumé de commande'}
                   </div>
                   <div className="space-y-1 text-sm">
-                    <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${subtotal.toFixed(2)} $`} />
-                    <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${shippingCost.toFixed(2)} $`} />
-                    <Row label={lang === 'en' ? 'Tax (14.975%)' : 'Taxes (14.975%)'} value={`${tax.toFixed(2)} $`} />
+                    <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} />
+                    <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} />
+                    <Row label={lang === 'en' ? 'Tax (14.975%)' : 'Taxes (14.975%)'} value={`${fmtMoney(tax)} $`} />
                     <div className="border-t border-border pt-2 mt-2 flex justify-between items-baseline">
                       <span className="font-extrabold">Total</span>
-                      <span className="text-2xl font-extrabold text-primary">{total.toFixed(2)} $ CAD</span>
+                      <span className="text-2xl font-extrabold text-primary">{fmtMoney(total)} $ CAD</span>
                     </div>
                   </div>
                 </div>
@@ -600,7 +611,7 @@ export default function Checkout() {
                   )}
                   {processing
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'
-                    : lang === 'en' ? `Pay ${total.toFixed(2)} $ securely` : `Payer ${total.toFixed(2)} $ en sécurité`}
+                    : lang === 'en' ? `Pay ${fmtMoney(total)} $ securely` : `Payer ${fmtMoney(total)} $ en sécurité`}
                 </button>
 
                 <p className="text-[11px] text-muted-foreground text-center">
@@ -628,17 +639,17 @@ export default function Checkout() {
                     <div className="font-bold text-xs truncate">{it.productName}</div>
                     <div className="text-[11px] text-muted-foreground">× {it.totalQuantity}</div>
                   </div>
-                  <div className="font-bold text-xs whitespace-nowrap">{(Number.isFinite(it.totalPrice) ? it.totalPrice : 0).toFixed(2)} $</div>
+                  <div className="font-bold text-xs whitespace-nowrap">{fmtMoney(it.totalPrice)} $</div>
                 </div>
               ))}
             </div>
             <div className="border-t border-border mt-4 pt-3 space-y-1 text-sm">
-              <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${subtotal.toFixed(2)} $`} muted />
-              <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${shippingCost.toFixed(2)} $`} muted />
-              <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${tax.toFixed(2)} $`} muted />
+              <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} muted />
+              <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} muted />
+              <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${fmtMoney(tax)} $`} muted />
               <div className="flex justify-between pt-2 mt-1 border-t border-border">
                 <span className="font-extrabold">Total</span>
-                <span className="font-extrabold text-primary">{total.toFixed(2)} $</span>
+                <span className="font-extrabold text-primary">{fmtMoney(total)} $</span>
               </div>
             </div>
             <div className="mt-4">
