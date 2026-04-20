@@ -1165,7 +1165,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         : (lang === 'en' ? 'Front + Back' : 'Devant + Dos')],
                       [t('quantiteTotale'), `${totalQty} ${t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}`],
                       [t('prixUnitaire'),   `${product.basePrice.toFixed(2)} $`],
-                      [t('impression'),     `${PRINT_PRICE.toFixed(2)} $`],
+                      [
+                        t('impression'),
+                        store.placementSides === 'none'
+                          ? (lang === 'en' ? 'Not included' : 'Non inclus')
+                          : store.placementSides === 'both'
+                            ? `${PRINT_PRICE.toFixed(2)} $ · ${lang === 'en' ? 'front + back included' : 'recto-verso inclus'}`
+                            : `${PRINT_PRICE.toFixed(2)} $`,
+                      ],
                     ].map(([l, v]) => (
                       <div key={l} className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{l}</span>
