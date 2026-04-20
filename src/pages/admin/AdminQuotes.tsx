@@ -201,7 +201,17 @@ export default function AdminQuotes() {
               </tr>
             </thead>
             <tbody>
-              {paged.map(q => (
+              {/* Empty-state row — parity with AdminOrders / AdminCustomers.
+                  Without this, a no-match search (e.g. typo on a client
+                  name) leaves the table body blank while the toolbar +
+                  pagination still render, reading as a broken page. */}
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-12 text-zinc-400 text-sm">
+                    Aucune soumission trouvée
+                  </td>
+                </tr>
+              ) : paged.map(q => (
                 <tr key={q.id} className="border-t border-zinc-100 hover:bg-zinc-50">
                   <td className="px-4 py-3 font-mono text-xs font-bold">{q.number}</td>
                   <td className="px-4 py-3 font-semibold">{q.vendor}</td>
