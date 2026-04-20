@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
+import { useLang } from '@/lib/langContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
   const user = useAuthStore(s => s.user);
   const loading = useAuthStore(s => s.loading);
   const location = useLocation();
+  const { lang } = useLang();
 
   const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
 
@@ -29,7 +31,7 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
         aria-busy="true"
       >
         <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-        <span className="sr-only">Loading</span>
+        <span className="sr-only">{lang === 'en' ? 'Loading' : 'Chargement'}</span>
       </div>
     );
   }
