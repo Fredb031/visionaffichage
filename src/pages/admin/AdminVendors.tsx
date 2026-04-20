@@ -44,6 +44,7 @@ export default function AdminVendors() {
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
@@ -84,7 +85,7 @@ export default function AdminVendors() {
     if (!showInvite) return;
     nameInputRef.current?.focus();
   }, [showInvite]);
-  useEscapeKey(showInvite, useCallback(() => setShowInvite(false), []));
+  useEscapeKey(showInvite, useCallback(() => { setShowInvite(false); setInviteError(null); }, []));
   useBodyScrollLock(showInvite);
 
   const persist = (next: VendorRecord[]) => {
@@ -100,13 +101,21 @@ export default function AdminVendors() {
     // vision-vendors localStorage row and fail any future strict compare.
     const name = normalizeInvisible(newName).trim();
     const email = normalizeInvisible(newEmail).trim().toLowerCase();
-    if (!name || !isValidEmail(email)) return;
-    // Skip silently if this email already exists as a custom vendor — we
-    // were getting duplicate rows when an admin re-invited someone they
-    // forgot was already in the list, and React's list-key warning fired
-    // on whatever id collision happened next.
-    if (customVendors.some(v => v.email === email)) {
-      setShowInvite(false);
+    if (!name || !isValidEmail(email)) {
+      setInviteError('Nom et courriel valides requis.');
+      return;
+    }
+    // Block re-invites for ANY existing vendor (custom OR seed). Before
+    // this, re-inviting e.g. sophie@visionaffichage.com (a seed vendor)
+    // silently closed the modal with no feedback and — worse — matching
+    // against customVendors only meant the same seed email could be
+    // stored a second time, producing a duplicate card. Surface an
+    // inline error instead of the previous silent modal-close so the
+    // admin understands nothing happened.
+    const normalizedSeed = SEED_VENDORS.map(v => v.email.toLowerCase());
+    const normalizedCustom = customVendors.map(v => v.email.toLowerCase());
+    if (normalizedSeed.includes(email) || normalizedCustom.includes(email)) {
+      setInviteError('Ce courriel est déjà associé à un vendeur existant.');
       return;
     }
     // Salt the id with a random suffix so two invites in the same ms
@@ -125,6 +134,7 @@ export default function AdminVendors() {
       isCustom: true,
     };
     persist([v, ...customVendors]);
+    setInviteError(null);
     // Pre-fill an invitation mailto
     const subject = encodeURIComponent('Invitation à rejoindre Vision Affichage');
     const body = encodeURIComponent(
@@ -310,7 +320,7 @@ export default function AdminVendors() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="invite-vendor-title"
-          onClick={() => setShowInvite(false)}
+          onClick={() => { setShowInvite(false); setInviteError(null); }}
         >
           <div
             ref={trapRef}
@@ -322,7 +332,7 @@ export default function AdminVendors() {
               <h2 id="invite-vendor-title" className="text-lg font-extrabold">Inviter un vendeur</h2>
               <button
                 type="button"
-                onClick={() => setShowInvite(false)}
+                onClick={() => { setShowInvite(false); setInviteError(null); }}
                 aria-label="Fermer"
                 className="text-zinc-400 hover:text-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
               >
@@ -332,6 +342,11 @@ export default function AdminVendors() {
             <p className="text-sm text-zinc-500 mb-4">
               Le vendeur recevra une invitation par courriel avec un mot de passe temporaire.
             </p>
+            {inviteError && (
+              <div role="alert" className="mb-3 p-3 rounded-lg text-xs bg-rose-50 text-rose-700 border border-rose-200">
+                {inviteError}
+              </div>
+            )}
             <form onSubmit={handleInvite} className="space-y-3">
               <label className="block">
                 <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nom complet</span>
@@ -339,7 +354,7 @@ export default function AdminVendors() {
                   ref={nameInputRef}
                   type="text"
                   value={newName}
-                  onChange={e => setNewName(e.target.value)}
+                  onChange={e => { setNewName(e.target.value); if (inviteError) setInviteError(null); }}
                   required
                   autoComplete="name"
                   placeholder="Marie Tremblay"
@@ -354,7 +369,7 @@ export default function AdminVendors() {
                     <input
                       type="email"
                       value={newEmail}
-                      onChange={e => setNewEmail(e.target.value)}
+                      onChange={e => { setNewEmail(e.target.value); if (inviteError) setInviteError(null); }}
                       required
                       autoComplete="email"
                       placeholder="marie@visionaffichage.com"
