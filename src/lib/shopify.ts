@@ -258,6 +258,26 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
     return;
   }
 
+  // Storefront enforces a GraphQL cost budget per IP; burst traffic
+  // (e.g. a shopper hammering Prev/Next on the PDP variants) returns
+  // 429 Too Many Requests. Previously this fell through to the generic
+  // `HTTP error! status: 429` throw, which React Query surfaces as a
+  // blank skeleton / ErrorBoundary — users had no idea it was transient.
+  // Surface a localized toast so they know to wait a moment, mirroring
+  // the 402 pattern above. Still return undefined so callers don't crash
+  // on a missing `data` — the fetch will retry via React Query.
+  if (response.status === 429) {
+    let isEn = false;
+    try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+    toast.error(
+      isEn ? 'Shopify: Too many requests' : 'Shopify : Trop de requêtes',
+      { description: isEn
+          ? 'Please wait a moment and try again.'
+          : 'Veuillez patienter un instant et réessayer.' },
+    );
+    return;
+  }
+
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
   const data = await response.json();
