@@ -11,6 +11,7 @@ export default function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false);
   const sendPasswordReset = useAuthStore(s => s.sendPasswordReset);
   const error = useAuthStore(s => s.error);
+  const clearError = useAuthStore(s => s.clearError);
   // Auth-tab disambiguation — same pattern as the other auth pages.
   useDocumentTitle('Mot de passe oublié — Vision Affichage');
 
@@ -89,7 +90,14 @@ export default function ForgotPassword() {
                     <input
                       type="email"
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        // Match AdminLogin: drop the stale error as soon
+                        // as the user starts correcting, so a typo
+                        // warning doesn't linger on-screen while they
+                        // fix the address.
+                        if (error) clearError();
+                      }}
                       placeholder="toi@visionaffichage.com"
                       autoComplete="email"
                       required
