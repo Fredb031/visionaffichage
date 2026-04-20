@@ -18,7 +18,14 @@ export function StepsTimeline() {
   useEffect(() => {
     if (!ref.current) return;
     const io = new IntersectionObserver(
-      entries => entries.forEach(e => e.isIntersecting && setVisible(true)),
+      (entries, observer) => entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        setVisible(true);
+        // One-shot reveal — stop observing so the CSS transitions
+        // aren't re-kicked on every scroll past. Saves a callback
+        // + a render on each scroll frame the timeline crosses.
+        observer.unobserve(e.target);
+      }),
       { threshold: 0.3 },
     );
     io.observe(ref.current);
