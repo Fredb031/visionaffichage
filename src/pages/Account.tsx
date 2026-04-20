@@ -121,7 +121,7 @@ export default function Account() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {user.role === 'president' && <span aria-label="Président" title="Président">👑</span>}
+              {user.role === 'president' && <span role="img" aria-label="Président" title="Président">👑</span>}
               <h1 className="text-xl md:text-2xl font-extrabold truncate">{user.name}</h1>
             </div>
             <div className="text-xs text-muted-foreground truncate">{user.email}</div>

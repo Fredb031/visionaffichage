@@ -70,7 +70,7 @@ export default function Signup() {
             onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
           />
           <h1 className="text-2xl font-extrabold text-white mb-1 flex items-center gap-2 justify-center">
-            {isPresidentEmail && <span aria-label="Président" title="Président">👑</span>}
+            {isPresidentEmail && <span role="img" aria-label="Président" title="Président">👑</span>}
             Créer un compte
           </h1>
           <p className="text-sm text-white/60">
