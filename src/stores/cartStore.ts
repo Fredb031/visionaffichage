@@ -194,7 +194,21 @@ export const useCartStore = create<CartStore>()(
             try { await pendingCartCreation; } finally { pendingCartCreation = null; }
           } else if (existingItem) {
             const newQuantity = existingItem.quantity + item.quantity;
-            if (!existingItem.lineId) return;
+            if (!existingItem.lineId) {
+              // Orphan local line (persisted from an older build before
+              // we refused to commit without a lineId). Treat it as a
+              // fresh add so the user's click actually registers, then
+              // drop the orphan so the cart doesn't show the variant
+              // twice. Previously this path silently `return`ed, which
+              // made the add button feel broken on affected sessions.
+              console.warn('[cartStore] Existing local line missing lineId — re-adding fresh and dropping orphan');
+              set({ items: get().items.filter(i => i.variantId !== item.variantId) });
+              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              release();
+              set({ isLoading: false });
+              await get().addItem(item);
+              return;
+            }
             const result = await updateShopifyCartLine(cartId, existingItem.lineId, newQuantity);
             if (result.success) {
               set({ items: get().items.map(i => i.variantId === item.variantId ? { ...i, quantity: newQuantity } : i) });
