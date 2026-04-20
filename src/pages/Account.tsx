@@ -8,6 +8,7 @@ import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { WishlistGrid } from '@/components/WishlistGrid';
+import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 import { normalizeInvisible } from '@/lib/utils';
 
@@ -246,6 +247,12 @@ export default function Account() {
             </div>
           )}
         </div>
+
+        {/* Recently-viewed strip — useful for returning customers to
+            jump back into a product they were eyeing. Renders nothing
+            when the user has no browsing history yet, so it doesn't
+            leave an awkward empty card on first visit. */}
+        <RecentlyViewed limit={4} />
 
         {/* Profile info */}
         <div className="bg-white border border-border rounded-2xl p-5 md:p-6 mt-5 space-y-3">
