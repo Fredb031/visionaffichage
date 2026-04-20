@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, ShoppingCart, UserPlus, AlertCircle } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   SHOPIFY_ORDERS_SNAPSHOT,
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
@@ -34,6 +34,17 @@ function relativeTime(ts: number): string {
 }
 
 function ActivityFeedInner() {
+  // Tick every 60s so "à l'instant" / "5 min" / "2h" labels actually
+  // update while an admin keeps the dashboard open. The component is
+  // wrapped in memo() below, so without this forced re-render the
+  // relative timestamps stayed frozen at the values from the first
+  // paint — a dashboard left open for an hour still read "à l'instant".
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(t => t + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const items = useMemo<ActivityItem[]>(() => {
     const all: ActivityItem[] = [];
 
