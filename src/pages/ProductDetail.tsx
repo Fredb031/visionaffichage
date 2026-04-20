@@ -648,6 +648,17 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
   const total = unit * qty;
   const savings = isBulk ? (unitWithPrint - discountedUnit) * qty : 0;
 
+  // Use fr-CA / en-CA locale so French users see '27,54 $' with a comma
+  // separator (matches cart totals, quote rows, admin dashboards,
+  // CartRecommendations, FeaturedProducts). .toFixed(2) alone always
+  // emits a '.' which looks out of place next to every other CAD price
+  // in the French build.
+  const fmt = (n: number) =>
+    n.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   const bump = (delta: number) => setQty(q => Math.max(1, q + delta));
 
   return (
@@ -687,13 +698,13 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
       </div>
       <div className="flex justify-between items-baseline">
         <span className="text-xs text-muted-foreground">
-          {qty} × {unit.toFixed(2)} $
+          {qty} × {fmt(unit)} $
         </span>
         <div className="text-right">
-          <div className="text-2xl font-extrabold text-foreground">{total.toFixed(2)} $</div>
+          <div className="text-2xl font-extrabold text-foreground">{fmt(total)} $</div>
           {savings > 0 && (
             <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-              {lang === 'en' ? 'Save' : 'Économise'} {savings.toFixed(2)} $
+              {lang === 'en' ? 'Save' : 'Économise'} {fmt(savings)} $
             </div>
           )}
         </div>
