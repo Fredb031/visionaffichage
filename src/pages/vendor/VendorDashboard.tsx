@@ -82,8 +82,8 @@ export default function VendorDashboard() {
                 <div className="text-right">
                   <div className="font-bold text-sm">{q.total.toLocaleString('fr-CA')} $</div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status]}`}>
-                  {STATUS_LABEL[q.status]}
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status] ?? STATUS_COLOR.draft}`}>
+                  {STATUS_LABEL[q.status] ?? q.status}
                 </span>
               </Link>
             ))}
