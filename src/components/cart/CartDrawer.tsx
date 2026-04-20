@@ -299,7 +299,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   type="button"
                   onClick={applyCode}
                   disabled={!codeInput.trim()}
-                  className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border transition-colors"
+                  className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                 >
                   {t('appliquer')}
                 </button>
@@ -311,6 +311,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   {lang === 'en' ? `Code ${cart.discountCode} applied` : `Code ${cart.discountCode} appliqué`}
                 </span>
                 <button
+                  type="button"
                   onClick={() => cart.clearDiscount()}
                   aria-label={lang === 'en' ? 'Remove discount code' : 'Retirer le code de rabais'}
                   className="ml-auto w-8 h-8 flex items-center justify-center text-green-500 hover:text-green-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
@@ -327,11 +328,12 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             </div>
 
             <button
-              className="w-full bg-primary text-primary-foreground font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+              type="button"
+              className="w-full bg-primary text-primary-foreground font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               style={{ boxShadow: '0 6px 20px rgba(27,58,107,0.3)' }}
               onClick={() => { onClose(); navigate('/cart'); }}
             >
-              {t('passerCaisse')} <ChevronRight size={15} />
+              {t('passerCaisse')} <ChevronRight size={15} aria-hidden="true" />
             </button>
             <p className="text-center text-[11px] text-muted-foreground">{t('livraisonNote')}</p>
             <button
