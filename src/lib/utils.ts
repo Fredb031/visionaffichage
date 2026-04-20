@@ -21,8 +21,24 @@ export function normalizeInvisible(value: string): string {
 // Tighter than /^[^@]+@[^@]+\.[^@]+$/ — rejects "a@b.c" and similar
 // two-char-prefix/suffix garbage while still accepting real addresses.
 // Used by the newsletter signup and the checkout contact step.
+//
+// Post-regex guards reject shapes the character-class regex accepts but
+// SMTP / DNS would reject: consecutive dots anywhere, a leading or
+// trailing dot in the local part, and a domain label that starts or
+// ends with a dot or hyphen. Without these, "user@example..com",
+// ".user@example.com", "user.@example.com", and "user@-ex.com" all
+// slip through and surface later as bounced confirmations.
 export function isValidEmail(value: string): boolean {
-  return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(
-    normalizeInvisible(value).trim(),
-  );
+  const v = normalizeInvisible(value).trim();
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v)) return false;
+  if (v.includes('..')) return false;
+  const at = v.lastIndexOf('@');
+  const local = v.slice(0, at);
+  const domain = v.slice(at + 1);
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+  if (domain.startsWith('.') || domain.startsWith('-')) return false;
+  // Each dot-separated domain label must not start or end with a hyphen
+  // (e.g. "foo-.com" or "-foo.com" — invalid per RFC 1035 label syntax).
+  if (domain.split('.').some(label => label.startsWith('-') || label.endsWith('-'))) return false;
+  return true;
 }
