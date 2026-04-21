@@ -15,6 +15,7 @@ interface CustomizerStore extends CustomizationState {
   setStep: (step: CustomizationState['step']) => void;
   getTotalQuantity: () => number;
   getEstimatedPrice: () => number;
+  hasCustomizations: () => boolean;
   reset: () => void;
 }
 
@@ -35,6 +36,8 @@ export const useCustomizerStore = create<CustomizerStore>()(
     (set, get) => ({
       ...initialState,
 
+      /** Switch the customizer to a different product and reset every
+       * derived choice (color, logos, text, sizes, view, step). */
       setProduct: (productId) => set({
         productId, colorId: null,
         logoPlacement: null, logoPlacementBack: null,
@@ -50,24 +53,46 @@ export const useCustomizerStore = create<CustomizerStore>()(
         activeView: 'front',
         step: 1,
       }),
-      setColor: (colorId) => set({ colorId }),
+      /** Pick a product color by slug id (e.g. "black", "true-royal").
+       * Rejects empty / non-string inputs so a bad UI wire-up can't
+       * persist `colorId: ''` and silently break the "find color" lookup
+       * downstream in the canvas + cart. */
+      setColor: (colorId) => {
+        if (typeof colorId !== 'string' || !colorId) return;
+        set({ colorId });
+      },
+      /** Set the front-side logo placement (null clears it). */
       setLogoPlacement: (placement) => set({ logoPlacement: placement }),
+      /** Set the back-side logo placement (null clears it). */
       setLogoPlacementBack: (placement) => set({ logoPlacementBack: placement }),
+      /** Choose which sides get printed ('none' | 'front' | 'back' | 'both'). */
       setPlacementSides: (placementSides) => set({ placementSides }),
+      /** Replace the list of canvas text captions. */
       setTextAssets: (textAssets) => set({ textAssets }),
 
+      /** Upsert a (size, quantity) row. Guards non-finite / negative
+       * quantities so downstream pricing math can't be NaN-poisoned by
+       * a stray input event (e.g. a blur that fires with NaN from an
+       * empty <input type="number">). quantity === 0 removes the row. */
       setSizeQuantity: (size, quantity) =>
         set((state) => {
+          if (typeof size !== 'string' || !size) return {};
+          const q = Math.floor(Number(quantity));
+          if (!Number.isFinite(q) || q < 0) return {};
           const existing = state.sizeQuantities.filter((s) => s.size !== size);
-          if (quantity > 0) return { sizeQuantities: [...existing, { size, quantity }] };
+          if (q > 0) return { sizeQuantities: [...existing, { size, quantity: q }] };
           return { sizeQuantities: existing };
         }),
 
+      /** Toggle the visible canvas face (front / back). */
       setView: (activeView) => set({ activeView }),
+      /** Jump the wizard to a specific step (1..3). */
       setStep: (step) => set({ step }),
 
+      /** Sum of quantities across all size rows. */
       getTotalQuantity: () => get().sizeQuantities.reduce((sum, s) => sum + s.quantity, 0),
 
+      /** Running price estimate including print fee + bulk discount. */
       getEstimatedPrice: () => {
         const { productId, sizeQuantities } = get();
         if (!productId) return 0;
@@ -79,6 +104,25 @@ export const useCustomizerStore = create<CustomizerStore>()(
         return parseFloat((total * unitBase * discount).toFixed(2));
       },
 
+      /** True once the user has picked a color, uploaded a logo on either
+       * side, added a caption, or entered any size quantity. Consumers
+       * can bind this to a "Reset" button's `disabled` state so the
+       * button is dormant on a pristine flow. */
+      hasCustomizations: () => {
+        const s = get();
+        if (s.colorId) return true;
+        if (s.logoPlacement?.previewUrl || s.logoPlacement?.processedUrl) return true;
+        if (s.logoPlacementBack?.previewUrl || s.logoPlacementBack?.processedUrl) return true;
+        if (Array.isArray(s.textAssets) && s.textAssets.length > 0) return true;
+        if (Array.isArray(s.sizeQuantities) && s.sizeQuantities.some((q) => q.quantity > 0)) return true;
+        return false;
+      },
+
+      /** Wipe all customization back to `initialState`.
+       * NOTE: this is a pure state mutation — user-facing "Reset"
+       * buttons should gate this behind a `window.confirm(...)` in
+       * the UI layer (see ProductCustomizer) so a stray click doesn't
+       * erase an in-progress design. */
       reset: () => set(initialState),
     }),
     {
@@ -186,3 +230,8 @@ export const useCustomizerStore = create<CustomizerStore>()(
     },
   ),
 );
+
+/** Public type for consumers that want to reference the full store shape
+ * (state + actions) without re-declaring it. Derived from the hook itself
+ * so it stays in sync with the zustand definition above. */
+export type CustomizerState = ReturnType<typeof useCustomizerStore.getState>;
