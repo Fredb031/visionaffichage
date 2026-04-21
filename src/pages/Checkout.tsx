@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2, Package, MailCheck, Clock } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2, Package, MailCheck, Clock, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
@@ -13,6 +13,7 @@ import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { fmtMoney as fmtCAD } from '@/lib/format';
 import { trackEvent } from '@/lib/analytics';
+import { readLS, writeLS } from '@/lib/storage';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -26,6 +27,7 @@ interface ShippingForm {
   postalCode: string;
   province: string;
   phone: string;
+  notes: string;
 }
 
 // Quebec effective combined rate is 14.975% (5% GST + 9.975% QST).
@@ -88,6 +90,42 @@ const SHIPPING_OPTIONS: Record<ShippingMethod, {
 
 const SHIPPING_STORAGE_KEY = 'vision-shipping-method';
 
+// Key + TTL for the "pending checkout draft" feature. Any in-progress
+// form state (name / email / phone / address / city / postal / notes /
+// shipping method) is persisted under this key with a 500ms debounce
+// so a buyer who closes the tab mid-flow can resume on the next visit
+// via a banner at the top of the page. Card data (cardNumber, cvv,
+// expiry) is NEVER persisted here — Shopify's hosted form owns that.
+const DRAFT_STORAGE_KEY = 'vision-checkout-draft';
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DRAFT_DEBOUNCE_MS = 500;
+
+interface CheckoutDraft {
+  name: string;        // "First Last" joined for forward-compat with schemas that store one field
+  firstName?: string;  // split variants kept so hydration can skip the re-split round-trip
+  lastName?: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  notes: string;
+  shippingMethod: ShippingMethod;
+  updatedAt: number;
+}
+
+/** Humanize ms elapsed into "5min", "2h", "3j/d". Used by the resume banner. */
+function formatElapsed(ms: number, lang: 'en' | 'fr'): string {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  if (seconds < 60) return lang === 'en' ? 'just now' : "à l'instant";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return lang === 'en' ? `${minutes}min` : `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return lang === 'en' ? `${hours}h` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return lang === 'en' ? `${days}d` : `${days}j`;
+}
+
 /**
  * Add `businessDays` weekdays to `from`, skipping Saturday + Sunday.
  * Used to compute the real delivery ETA shown on each shipping tile
@@ -107,7 +145,7 @@ function addBusinessDays(from: Date, businessDays: number): Date {
 
 const empty: ShippingForm = {
   email: '', firstName: '', lastName: '', company: '',
-  address: '', city: '', postalCode: '', province: 'QC', phone: '',
+  address: '', city: '', postalCode: '', province: 'QC', phone: '', notes: '',
 };
 
 export default function Checkout() {
@@ -138,6 +176,25 @@ export default function Checkout() {
   const [step, setStep] = useState<Step>(initialStep);
   const [orderNumber, setOrderNumber] = useState<string>(initialOrderNumber);
   const [form, setForm] = useState<ShippingForm>(empty);
+
+  // Resume-draft banner — surfaced on mount if `vision-checkout-draft`
+  // was written within the last 7 days. Declared here (not lazily inside
+  // a useMemo) so we can clear it from both the Reprendre and Effacer
+  // handlers without re-reading localStorage. `null` = no offer.
+  const [draftOffer, setDraftOffer] = useState<CheckoutDraft | null>(() => {
+    if (typeof window === 'undefined') return null;
+    if (initialStep === 'done') return null; // post-payment return — don't nag
+    const draft = readLS<CheckoutDraft | null>(DRAFT_STORAGE_KEY, null);
+    if (!draft || typeof draft !== 'object') return null;
+    if (typeof draft.updatedAt !== 'number') return null;
+    if (Date.now() - draft.updatedAt > DRAFT_TTL_MS) return null;
+    // Nothing to restore? Don't show the banner.
+    const hasContent = Boolean(
+      draft.email || draft.firstName || draft.lastName || draft.address ||
+      draft.city || draft.postalCode || draft.phone || draft.notes,
+    );
+    return hasContent ? draft : null;
+  });
 
   // Rehydrate buyer info from the pending-checkout payload we stashed
   // before redirecting to Shopify. Lets the 'Merci, {name}!' line still
@@ -259,6 +316,90 @@ export default function Checkout() {
   }, [shippingMethod]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Debounced (500ms) write of the non-sensitive portion of the form
+  // into `vision-checkout-draft`. Any re-render that changes form or
+  // shippingMethod schedules a fresh timer; the previous one is
+  // cleared so we only persist after the user pauses typing. Card
+  // fields are not part of `form` so they can't leak in by accident —
+  // but we still hand-pick fields to put in the draft rather than
+  // blindly spreading `form`, as belt-and-suspenders against a future
+  // refactor that would add a sensitive field to ShippingForm.
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (step === 'done') return; // never persist after success
+    // Skip persisting an all-empty form on first render — avoids
+    // creating an empty draft that then immediately trips the banner
+    // on the next visit with nothing useful to restore.
+    const hasContent = Boolean(
+      form.email || form.firstName || form.lastName || form.address ||
+      form.city || form.postalCode || form.phone || form.notes,
+    );
+    if (!hasContent) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      const name = [form.firstName, form.lastName].filter(Boolean).join(' ').trim();
+      const draft: CheckoutDraft = {
+        name,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        postalCode: form.postalCode,
+        notes: form.notes,
+        shippingMethod,
+        updatedAt: Date.now(),
+      };
+      writeLS(DRAFT_STORAGE_KEY, draft);
+      draftTimerRef.current = null;
+    }, DRAFT_DEBOUNCE_MS);
+    return () => {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+    };
+  }, [form, shippingMethod, step]);
+
+  // Successful checkout wipes the draft so the banner doesn't re-
+  // appear on the next visit. Fires on the step-flip to 'done' (both
+  // direct flow and Shopify return-redirect ?step=done), mirroring
+  // the purchase-event effect above.
+  useEffect(() => {
+    if (step !== 'done') return;
+    if (typeof window === 'undefined') return;
+    try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* private mode — ignore */ }
+    setDraftOffer(null);
+  }, [step]);
+
+  const hydrateFromDraft = (draft: CheckoutDraft) => {
+    setForm(prev => ({
+      ...prev,
+      email: draft.email || prev.email,
+      firstName: draft.firstName || (draft.name?.split(' ')[0] ?? '') || prev.firstName,
+      lastName: draft.lastName || (draft.name?.split(' ').slice(1).join(' ') ?? '') || prev.lastName,
+      phone: draft.phone || prev.phone,
+      address: draft.address || prev.address,
+      city: draft.city || prev.city,
+      postalCode: draft.postalCode || prev.postalCode,
+      notes: draft.notes || prev.notes,
+    }));
+    if (draft.shippingMethod === 'standard' || draft.shippingMethod === 'express' || draft.shippingMethod === 'pickup') {
+      setShippingMethod(draft.shippingMethod);
+    }
+    setDraftOffer(null);
+    toast.success(lang === 'en' ? 'Draft restored.' : 'Brouillon restauré.');
+  };
+
+  const clearDraft = () => {
+    if (typeof window !== 'undefined') {
+      try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
+    }
+    setDraftOffer(null);
+  };
 
   const subtotal = cart.getTotal();
   const shippingCost = SHIPPING_OPTIONS[shippingMethod].price;
@@ -518,6 +659,51 @@ export default function Checkout() {
       <Navbar />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
+        {draftOffer && (
+          <div
+            role="region"
+            aria-label={lang === 'en' ? 'Resume in-progress checkout' : 'Reprendre la commande en cours'}
+            className="mb-4 flex items-start gap-3 border-l-4 border-[#0052CC] bg-blue-50/60 rounded-r-lg px-4 py-3"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {lang === 'en'
+                  ? 'Resume your in-progress checkout?'
+                  : 'Reprendre votre commande en cours ?'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'en'
+                  ? `Last saved ${formatElapsed(Date.now() - draftOffer.updatedAt, 'en')} ago.`
+                  : `Dernière modification il y a ${formatElapsed(Date.now() - draftOffer.updatedAt, 'fr')}.`}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => hydrateFromDraft(draftOffer)}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#0052CC] text-white text-xs font-extrabold hover:bg-[#003d99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                >
+                  {lang === 'en' ? 'Resume' : 'Reprendre'}
+                </button>
+                <button
+                  type="button"
+                  onClick={clearDraft}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-border text-foreground text-xs font-bold hover:bg-secondary/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  {lang === 'en' ? 'Clear' : 'Effacer'}
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearDraft}
+              aria-label={lang === 'en' ? 'Dismiss' : 'Fermer'}
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
         <button
           onClick={goBack}
           disabled={processing}
