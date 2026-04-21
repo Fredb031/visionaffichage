@@ -71,6 +71,11 @@ function matchNavItem(pathname: string) {
 // Safari or when the storage quota is exhausted — we fall back to the
 // default expanded state rather than crashing the whole admin shell.
 const COLLAPSE_KEY = 'admin:sidebarCollapsed';
+// Persists the moment the user last clicked "Mark all as read" on the
+// notifications dropdown. We compare every notification's "as-of" time
+// against this timestamp: older ones get greyed out, newer ones stay
+// fully opaque. Stored as ms-since-epoch in a string for portability.
+const NOTIFS_READ_UNTIL_KEY = 'vision-admin-notifs-read-until';
 
 function readInitialCollapsed(): boolean {
   if (typeof window === 'undefined') return false;
@@ -81,10 +86,27 @@ function readInitialCollapsed(): boolean {
   }
 }
 
+// Read the stored mark-all-read timestamp. Returns 0 when nothing has
+// been marked read yet, or if storage throws. 0 < any positive
+// timestamp means "everything is treated as unread" by default, which
+// is the correct initial state for a brand new admin.
+function readNotifsReadUntil(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(NOTIFS_READ_UNTIL_KEY);
+    if (!raw) return 0;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(readInitialCollapsed);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifsReadUntil, setNotifsReadUntil] = useState<number>(() => readNotifsReadUntil());
   const notifContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -101,6 +123,33 @@ export function AdminLayout() {
   const failedPaymentsCount = 0;
   const totalNotifications = pendingOrdersCount + abandonedCartsCount + failedPaymentsCount;
   const hasUnread = totalNotifications > 0;
+  // All notifications in this snapshot share a single "as-of" date —
+  // the moment the Shopify snapshot was refreshed (see
+  // src/data/shopifySnapshot.ts). When the admin clicks mark-all-read
+  // we stamp Date.now() into localStorage; on the next render any
+  // notification older than that stamp greys out. This lets the admin
+  // acknowledge the current batch and only see *new* items light up
+  // once the snapshot is refreshed to a later date.
+  const SNAPSHOT_AS_OF = Date.parse('2026-04-18T00:00:00Z');
+  const isStale = notifsReadUntil > 0 && SNAPSHOT_AS_OF <= notifsReadUntil;
+  // Badge math: show the exact count up to 9; anything larger
+  // collapses to "9+" so the dot stays a dot. Cast to string for
+  // the JSX branch below.
+  const badgeLabel = totalNotifications > 9 ? '9+' : String(totalNotifications);
+  // When everything is stale (acknowledged), we still show the bell
+  // but skip the gold dot — nothing is "new" until the next refresh.
+  const showUnreadDot = hasUnread && !isStale;
+
+  const handleMarkAllRead = () => {
+    const now = Date.now();
+    setNotifsReadUntil(now);
+    try {
+      window.localStorage.setItem(NOTIFS_READ_UNTIL_KEY, String(now));
+    } catch {
+      /* private-mode Safari / quota exceeded — no-op, state still
+         updates for this session */
+    }
+  };
 
   // Close the mobile sidebar when the route changes (user clicked a
   // link) and when Escape is pressed, so keyboard users can dismiss
@@ -307,11 +356,13 @@ export function AdminLayout() {
                 aria-controls="admin-notifications-menu"
               >
                 <Bell size={20} aria-hidden="true" className="text-zinc-700" />
-                {hasUnread && (
+                {showUnreadDot && (
                   <span
                     aria-hidden="true"
-                    className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#E8A838] ring-2 ring-white"
-                  />
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8A838] text-[#1B3A6B] text-[10px] font-extrabold leading-[18px] text-center ring-2 ring-white"
+                  >
+                    {badgeLabel}
+                  </span>
                 )}
               </button>
 
@@ -320,99 +371,150 @@ export function AdminLayout() {
                   id="admin-notifications-menu"
                   role="menu"
                   aria-label="Notifications"
-                  className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white shadow-xl z-40 overflow-hidden"
+                  className="absolute right-0 mt-2 w-80 max-w-80 rounded-xl border border-zinc-200 bg-white shadow-xl z-40 overflow-hidden"
                 >
-                  <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
-                    <div className="text-sm font-bold text-zinc-900">Notifications</div>
-                    <div className="text-[11px] text-zinc-500">
+                  {/* Brand-navy header strip — matches the sidebar palette
+                      so the dropdown reads as part of the admin chrome, not
+                      a generic popup. */}
+                  <div className="px-4 py-3 bg-[#0F2341] text-white flex items-center justify-between">
+                    <div className="text-sm font-bold">Notifications</div>
+                    <div className="text-[11px] text-white/60">
                       {hasUnread
-                        ? `${totalNotifications} non lue${totalNotifications > 1 ? 's' : ''}`
+                        ? isStale
+                          ? 'Tout a été lu'
+                          : `${totalNotifications} non lue${totalNotifications > 1 ? 's' : ''}`
                         : 'Tout est à jour'}
                     </div>
                   </div>
-                  <ul className="max-h-96 overflow-y-auto py-1">
-                    <li>
-                      <Link
-                        to="/admin/orders"
-                        role="menuitem"
-                        onClick={() => setNotifOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
-                      >
-                        <span className="w-8 h-8 shrink-0 rounded-lg bg-[#E8A838]/15 text-[#B37D10] flex items-center justify-center">
-                          <ShoppingBag size={16} aria-hidden="true" />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-semibold text-zinc-900">
-                            Commandes en attente
-                          </span>
-                          <span className="block text-[12px] text-zinc-500">
-                            {pendingOrdersCount === 0
-                              ? 'Aucune commande en attente de paiement'
-                              : `${pendingOrdersCount} commande${pendingOrdersCount > 1 ? 's' : ''} en attente de paiement`}
-                          </span>
-                        </span>
-                        {pendingOrdersCount > 0 && (
-                          <span className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
-                            {pendingOrdersCount}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/abandoned-carts"
-                        role="menuitem"
-                        onClick={() => setNotifOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
-                      >
-                        <span className="w-8 h-8 shrink-0 rounded-lg bg-[#0052CC]/10 text-[#0052CC] flex items-center justify-center">
-                          <ShoppingCart size={16} aria-hidden="true" />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-semibold text-zinc-900">
-                            Paniers abandonnés
-                          </span>
-                          <span className="block text-[12px] text-zinc-500">
-                            {abandonedCartsCount === 0
-                              ? 'Aucun panier abandonné récent'
-                              : `${abandonedCartsCount} panier${abandonedCartsCount > 1 ? 's' : ''} à récupérer`}
-                          </span>
-                        </span>
-                        {abandonedCartsCount > 0 && (
-                          <span className="text-[10px] font-extrabold bg-[#0052CC] text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
-                            {abandonedCartsCount}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/orders"
-                        role="menuitem"
-                        onClick={() => setNotifOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
-                      >
-                        <span className="w-8 h-8 shrink-0 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                          <CreditCard size={16} aria-hidden="true" />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-semibold text-zinc-900">
-                            Paiements échoués
-                          </span>
-                          <span className="block text-[12px] text-zinc-500">
-                            {failedPaymentsCount === 0
-                              ? 'Aucun échec de paiement'
-                              : `${failedPaymentsCount} paiement${failedPaymentsCount > 1 ? 's' : ''} à revoir`}
-                          </span>
-                        </span>
-                        {failedPaymentsCount > 0 && (
-                          <span className="text-[10px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
-                            {failedPaymentsCount}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  </ul>
+                  {totalNotifications === 0 ? (
+                    // Empty state — shown when every counter is 0. Kept
+                    // intentionally plain so it reads as "nothing to do"
+                    // rather than an error.
+                    <div className="px-4 py-8 text-center">
+                      <div className="w-10 h-10 mx-auto rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mb-2">
+                        <Bell size={18} aria-hidden="true" />
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-700">Aucune notification</div>
+                      <div className="text-[12px] text-zinc-500">No notifications</div>
+                    </div>
+                  ) : (
+                    <>
+                      <ul className="max-h-96 overflow-y-auto py-1">
+                        <li>
+                          <Link
+                            to="/admin/orders?filter=pending"
+                            role="menuitem"
+                            onClick={() => setNotifOpen(false)}
+                            className={`flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors ${
+                              isStale ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${
+                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-[#E8A838]/15 text-[#B37D10]'
+                            }`}>
+                              <ShoppingBag size={16} aria-hidden="true" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className={`block text-[13px] font-semibold ${isStale ? 'text-zinc-500' : 'text-zinc-900'}`}>
+                                Commandes en attente
+                              </span>
+                              <span className="block text-[12px] text-zinc-500">
+                                {pendingOrdersCount === 0
+                                  ? 'Aucune commande en attente de paiement'
+                                  : `${pendingOrdersCount} commande${pendingOrdersCount > 1 ? 's' : ''} en attente de paiement`}
+                              </span>
+                            </span>
+                            {pendingOrdersCount > 0 && (
+                              <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center ${
+                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-[#E8A838] text-[#1B3A6B]'
+                              }`}>
+                                {pendingOrdersCount}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/admin/abandoned-carts"
+                            role="menuitem"
+                            onClick={() => setNotifOpen(false)}
+                            className={`flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors ${
+                              isStale ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${
+                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-[#0052CC]/10 text-[#0052CC]'
+                            }`}>
+                              <ShoppingCart size={16} aria-hidden="true" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className={`block text-[13px] font-semibold ${isStale ? 'text-zinc-500' : 'text-zinc-900'}`}>
+                                Paniers abandonnés
+                              </span>
+                              <span className="block text-[12px] text-zinc-500">
+                                {abandonedCartsCount === 0
+                                  ? 'Aucun panier abandonné récent'
+                                  : `${abandonedCartsCount} panier${abandonedCartsCount > 1 ? 's' : ''} à récupérer`}
+                              </span>
+                            </span>
+                            {abandonedCartsCount > 0 && (
+                              <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center ${
+                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-[#0052CC] text-white'
+                              }`}>
+                                {abandonedCartsCount}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/admin/orders?filter=failed"
+                            role="menuitem"
+                            onClick={() => setNotifOpen(false)}
+                            className={`flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors ${
+                              isStale ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${
+                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-red-50 text-red-600'
+                            }`}>
+                              <CreditCard size={16} aria-hidden="true" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className={`block text-[13px] font-semibold ${isStale ? 'text-zinc-500' : 'text-zinc-900'}`}>
+                                Paiements échoués
+                              </span>
+                              <span className="block text-[12px] text-zinc-500">
+                                {failedPaymentsCount === 0
+                                  ? 'Aucun échec de paiement'
+                                  : `${failedPaymentsCount} paiement${failedPaymentsCount > 1 ? 's' : ''} à revoir`}
+                              </span>
+                            </span>
+                            {failedPaymentsCount > 0 && (
+                              <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center ${
+                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-red-600 text-white'
+                              }`}>
+                                {failedPaymentsCount}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                      </ul>
+                      {/* Mark-all-read. Stamps Date.now() into
+                          localStorage; next render greys out every row
+                          whose as-of date is earlier than the stamp. */}
+                      <div className="border-t border-zinc-100 px-3 py-2 bg-zinc-50/60">
+                        <button
+                          type="button"
+                          onClick={handleMarkAllRead}
+                          disabled={isStale}
+                          className="w-full text-center text-[12px] font-semibold text-[#0052CC] hover:text-[#003D99] disabled:text-zinc-400 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer py-1.5 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+                        >
+                          {isStale ? 'Tout est marqué comme lu' : 'Tout marquer comme lu'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
