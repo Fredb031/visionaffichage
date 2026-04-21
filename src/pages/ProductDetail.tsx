@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
@@ -332,26 +332,54 @@ export default function ProductDetail() {
   // availableForSale + SanMar's byColorSize map; the calculator clamps
   // qty down to it on change, without unmounting. Undefined = unknown,
   // leave qty alone (typical path when SanMar edge fn isn't deployed).
-  const variantMaxQty: number | undefined = (() => {
-    if (selectedVariant && selectedVariant.availableForSale === false) return 0;
+  // Resolve the picked Color/Size labels once so both the SanMar
+  // lookup and the low-stock/out-of-stock pill (Task 3.17) can reuse
+  // them without re-scanning the options list twice.
+  const colorOption = options.find((o: { name: string }) => /color|colour|couleur/i.test(o.name));
+  const sizeOption = options.find((o: { name: string }) => /size|taille/i.test(o.name));
+  const selectedColor = colorOption ? currentOptions[colorOption.name] : undefined;
+  const selectedSize = sizeOption ? currentOptions[sizeOption.name] : undefined;
+
+  // SanMar keys are raw strings; match case-insensitively so 'Black'
+  // vs 'BLACK' / 'S' vs 's' differences between Shopify option labels
+  // and SanMar partColor/labelSize don't silently skip the lookup.
+  const normKey = (s: string) => s.toLowerCase().trim();
+  const sanmarVariantQty: number | undefined = (() => {
     const byColorSize = stock?.byColorSize;
     if (!byColorSize || byColorSize.size === 0) return undefined;
-    const colorOpt = options.find((o: { name: string }) => /color|colour|couleur/i.test(o.name));
-    const sizeOpt = options.find((o: { name: string }) => /size|taille/i.test(o.name));
-    const color = colorOpt ? currentOptions[colorOpt.name] : undefined;
-    const size = sizeOpt ? currentOptions[sizeOpt.name] : undefined;
-    if (!color || !size) return undefined;
-    // SanMar keys are raw strings; match case-insensitively so 'Black'
-    // vs 'BLACK' / 'S' vs 's' differences between Shopify option labels
-    // and SanMar partColor/labelSize don't silently skip the clamp.
-    const norm = (s: string) => s.toLowerCase().trim();
-    const wanted = `${norm(color)}|${norm(size)}`;
+    if (!selectedColor || !selectedSize) return undefined;
+    const wanted = `${normKey(selectedColor)}|${normKey(selectedSize)}`;
     for (const [key, qty] of byColorSize.entries()) {
       const [k1, k2] = key.split('|');
-      if (k1 && k2 && `${norm(k1)}|${norm(k2)}` === wanted) return qty;
+      if (k1 && k2 && `${normKey(k1)}|${normKey(k2)}` === wanted) return qty;
     }
     return undefined;
   })();
+
+  const variantMaxQty: number | undefined = (() => {
+    if (selectedVariant && selectedVariant.availableForSale === false) return 0;
+    return sanmarVariantQty;
+  })();
+
+  // Low-stock / out-of-stock warning state for Task 3.17. Only fires
+  // when SanMar has loaded AND both color+size are selected — stale
+  // data or a half-made selection must stay silent (spec rule 5).
+  // Shopify's `availableForSale === false` counts as "sold out" even
+  // if SanMar's byColorSize is missing, so people can't add a variant
+  // Shopify already rejects.
+  const stockSelectionReady = !stockLoading
+    && !!stock.byColorSize
+    && stock.byColorSize.size > 0
+    && !!selectedColor
+    && !!selectedSize;
+  const shopifySoldOut = selectedVariant?.availableForSale === false;
+  const isVariantSoldOut = (stockSelectionReady && sanmarVariantQty === 0)
+    || (shopifySoldOut && !!selectedColor && !!selectedSize);
+  const isVariantLowStock = stockSelectionReady
+    && !isVariantSoldOut
+    && typeof sanmarVariantQty === 'number'
+    && sanmarVariantQty > 0
+    && sanmarVariantQty <= 5;
 
   const currency = product.priceRange?.minVariantPrice?.currencyCode ?? '';
 
@@ -661,9 +689,14 @@ export default function ProductDetail() {
               return <BulkCalculator key={handle} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
             })()}
 
-            {/* Compact info row: stock + size guide + delivery */}
+            {/* Compact info row: stock + size guide + delivery.
+                The generic "In stock" badge stays for products/variants
+                without a specific warning, but steps aside when Task 3.17's
+                per-variant pill (low-stock / out-of-stock) has something
+                more urgent to say — we don't want both pills fighting for
+                the user's attention right above the CTA. */}
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              {!stockLoading && stock.totalAvailable > 0 && (
+              {!stockLoading && stock.totalAvailable > 0 && !isVariantLowStock && !isVariantSoldOut && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold">
                   <Package size={11} aria-hidden="true" />
                   {lang === 'en' ? 'In stock' : 'En stock'}
@@ -847,14 +880,42 @@ export default function ProductDetail() {
                 );
               })}
 
+            {/* Task 3.17 — low-stock / out-of-stock warning pill.
+                Sits right above the CTA so the nudge lands exactly where
+                the purchase decision is made. role=status + aria-live
+                polite so screen readers announce "Only 3 left in Navy XL"
+                when the user changes color/size without stealing focus.
+                Never rendered when SanMar hasn't loaded or the user hasn't
+                picked both color+size — we never show stale numbers. */}
+            <div role="status" aria-live="polite" aria-atomic="true">
+              {isVariantSoldOut && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
+                  <PackageX size={13} aria-hidden="true" />
+                  {lang === 'en' ? 'Out of stock' : 'Rupture de stock'}
+                </span>
+              )}
+              {isVariantLowStock && typeof sanmarVariantQty === 'number' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold">
+                  <AlertTriangle size={13} aria-hidden="true" />
+                  {lang === 'en'
+                    ? `Only ${sanmarVariantQty} left in ${selectedColor} ${selectedSize}`
+                    : `Il ne reste que ${sanmarVariantQty} en ${selectedColor} ${selectedSize}`}
+                </span>
+              )}
+            </div>
+
             {/* CTA */}
             <button
-              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:hover:translate-y-0"
               style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
               onClick={() => setCustomizerOpen(true)}
+              disabled={isVariantSoldOut}
+              aria-disabled={isVariantSoldOut || undefined}
             >
               <Shirt size={18} aria-hidden="true" />
-              {lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit'}
+              {isVariantSoldOut
+                ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
+                : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
 
