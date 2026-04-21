@@ -72,6 +72,29 @@ export function useDocumentTitle(
     const prevTitle = document.title;
     document.title = title;
 
+    // Canonical URL bookkeeping (Task 8.9) — search engines treat
+    // ?sort=price / ?q=foo / ?view=grid as distinct URLs unless we point
+    // every variant at a single canonical. We strip the query string so
+    // the canonical reflects the logical page, not the current filter.
+    // Pre-existing <link rel="canonical"> (e.g. a global one in
+    // index.html) has its href captured and restored on unmount; a tag
+    // we create is removed on unmount so SPA nav doesn't leak.
+    let canonicalEl: HTMLLinkElement | null = null;
+    let prevCanonicalHref: string | null = null;
+    let canonicalCreated = false;
+    if (typeof window !== 'undefined') {
+      canonicalEl = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+      if (!canonicalEl) {
+        canonicalEl = document.createElement('link');
+        canonicalEl.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalEl);
+        canonicalCreated = true;
+      } else {
+        prevCanonicalHref = canonicalEl.getAttribute('href');
+      }
+      canonicalEl.setAttribute('href', window.location.origin + window.location.pathname);
+    }
+
     let metaEl: HTMLMetaElement | null = null;
     let prevDescription: string | null = null;
     if (description !== undefined) {
@@ -156,6 +179,13 @@ export function useDocumentTitle(
       document.title = prevTitle;
       if (metaEl && prevDescription !== null) {
         metaEl.setAttribute('content', prevDescription);
+      }
+      if (canonicalEl) {
+        if (canonicalCreated) {
+          if (canonicalEl.parentNode) canonicalEl.parentNode.removeChild(canonicalEl);
+        } else if (prevCanonicalHref !== null) {
+          canonicalEl.setAttribute('href', prevCanonicalHref);
+        }
       }
       // Walk in reverse so tags we appended get removed before any
       // sibling we may have appended after them — keeps <head> ordering
