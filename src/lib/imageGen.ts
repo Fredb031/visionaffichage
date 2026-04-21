@@ -6,7 +6,24 @@
 //   2. Admin/vendor calls generateImage({ prompt, size, style })
 //   3. Returned URL can be downloaded, uploaded to Shopify CDN or Supabase Storage
 
+/** Supported image generation providers, or 'none' when unconfigured. */
 export type ImageProvider = 'replicate' | 'openai' | 'none';
+
+/**
+ * Error thrown by {@link generateImage} and its provider helpers. Carries
+ * the originating provider and (when HTTP-derived) the upstream status so
+ * callers can branch on shape rather than parsing message strings.
+ */
+export class ImageGenError extends Error {
+  readonly provider?: string;
+  readonly status?: number;
+  constructor(message: string, opts: { provider?: string; status?: number } = {}) {
+    super(message);
+    this.name = 'ImageGenError';
+    this.provider = opts.provider;
+    this.status = opts.status;
+  }
+}
 
 // Provider-specific prompt length caps, derived from each vendor's docs:
 //   - OpenAI DALL-E 3: 4000 chars (their documented hard cap)
@@ -15,22 +32,28 @@ export type ImageProvider = 'replicate' | 'openai' | 'none';
 // Before this, the UI used a blanket 4000 limit regardless of provider
 // and Replicate silently truncated long prompts without telling the
 // admin, producing images that ignored the tail of the instructions.
+/** Per-provider prompt length caps derived from each vendor's documentation. */
 export const PROMPT_LIMITS: Record<Exclude<ImageProvider, 'none'>, number> = {
   openai: 4000,
   replicate: 2000,
 };
 
+/** Returns the max prompt length for a given provider. */
 export function getPromptLimit(provider: ImageProvider): number {
   return provider === 'none' ? 4000 : PROMPT_LIMITS[provider];
 }
 
+/** Options accepted by {@link generateImage}. */
 export interface GenerateImageParams {
   prompt: string;
   size?: '1024x1024' | '1024x1792' | '1792x1024';
   style?: 'vivid' | 'natural';
   aspect?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
+  /** Optional signal; aborting cancels the in-flight fetch. */
+  signal?: AbortSignal;
 }
 
+/** Result returned by {@link generateImage} on success. */
 export interface GeneratedImage {
   url: string;
   prompt: string;
@@ -38,6 +61,7 @@ export interface GeneratedImage {
   generatedAt: string;
 }
 
+/** Reads the currently configured provider from localStorage, safely on SSR / Safari private. */
 export function getStoredProvider(): ImageProvider {
   if (typeof window === 'undefined') return 'none';
   // Safari private browsing throws SecurityError on localStorage access.
@@ -49,12 +73,14 @@ export function getStoredProvider(): ImageProvider {
   return 'none';
 }
 
+/** Reads the stored API key for a given provider, or null when absent / unavailable. */
 export function getStoredApiKey(provider: ImageProvider): string | null {
   if (typeof window === 'undefined' || provider === 'none') return null;
   try { return localStorage.getItem(`vision-image-key-${provider}`); }
   catch { return null; }
 }
 
+/** Persists provider + API key to localStorage; swallows quota / private-mode errors. */
 export function saveProviderConfig(provider: ImageProvider, apiKey: string) {
   if (typeof window === 'undefined') return;
   try {
@@ -71,6 +97,7 @@ export function saveProviderConfig(provider: ImageProvider, apiKey: string) {
   }
 }
 
+/** Clears stored provider + all stored API keys. */
 export function clearProviderConfig() {
   if (typeof window === 'undefined') return;
   try {
@@ -82,19 +109,24 @@ export function clearProviderConfig() {
   }
 }
 
+/**
+ * Generates an image using the configured provider. Throws {@link ImageGenError}
+ * on failure. Pass `params.signal` to cancel a generation (e.g. on unmount).
+ */
 export async function generateImage(params: GenerateImageParams): Promise<GeneratedImage> {
   const provider = getStoredProvider();
   const key = getStoredApiKey(provider);
 
   if (provider === 'none' || !key) {
-    throw new Error(
+    throw new ImageGenError(
       'Aucun fournisseur d\'images configuré. Ajoute une clé API Replicate ou OpenAI dans les paramètres admin.',
+      { provider },
     );
   }
 
   if (provider === 'openai') return callOpenAI(params, key);
   if (provider === 'replicate') return callReplicate(params, key);
-  throw new Error(`Fournisseur non supporté : ${provider}`);
+  throw new ImageGenError(`Fournisseur non supporté : ${provider}`, { provider });
 }
 
 // Hard timeout on image-gen calls. DALL-E HD typically returns in 8-12s
@@ -106,10 +138,26 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
 // useful error.
 const IMAGE_GEN_TIMEOUT_MS = 60_000;
 
-function withTimeout(): { signal: AbortSignal; cancel: () => void } {
+function withTimeout(external?: AbortSignal): {
+  signal: AbortSignal;
+  cancel: () => void;
+  timedOut: () => boolean;
+} {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), IMAGE_GEN_TIMEOUT_MS);
-  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+  let didTimeout = false;
+  const timer = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, IMAGE_GEN_TIMEOUT_MS);
+  if (external) {
+    if (external.aborted) controller.abort();
+    else external.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  return {
+    signal: controller.signal,
+    cancel: () => clearTimeout(timer),
+    timedOut: () => didTimeout,
+  };
 }
 
 // DALL-E 3 only accepts three fixed sizes. AdminImageGen passes the
@@ -133,7 +181,7 @@ function aspectToOpenAISize(
 }
 
 async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<GeneratedImage> {
-  const { signal, cancel } = withTimeout();
+  const { signal, cancel, timedOut } = withTimeout(params.signal);
   let res: Response;
   try {
     res = await fetch('https://api.openai.com/v1/images/generations', {
@@ -155,14 +203,23 @@ async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<
   } catch (err) {
     cancel();
     if ((err as Error)?.name === 'AbortError') {
-      throw new Error(`OpenAI request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`);
+      if (timedOut()) {
+        throw new ImageGenError(
+          `OpenAI request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`,
+          { provider: 'openai' },
+        );
+      }
+      throw err;
     }
     throw err;
   }
   cancel();
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${body}`);
+    throw new ImageGenError(`OpenAI error ${res.status}: ${body}`, {
+      provider: 'openai',
+      status: res.status,
+    });
   }
   const data = await res.json();
   return {
@@ -176,7 +233,7 @@ async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<
 async function callReplicate(params: GenerateImageParams, apiKey: string): Promise<GeneratedImage> {
   // Use Flux Schnell for fast + affordable; swap to Flux Pro for higher quality.
   const model = 'black-forest-labs/flux-schnell';
-  const { signal, cancel } = withTimeout();
+  const { signal, cancel, timedOut } = withTimeout(params.signal);
   let res: Response;
   try {
     res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
@@ -199,18 +256,29 @@ async function callReplicate(params: GenerateImageParams, apiKey: string): Promi
   } catch (err) {
     cancel();
     if ((err as Error)?.name === 'AbortError') {
-      throw new Error(`Replicate request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`);
+      if (timedOut()) {
+        throw new ImageGenError(
+          `Replicate request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`,
+          { provider: 'replicate' },
+        );
+      }
+      throw err;
     }
     throw err;
   }
   cancel();
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Replicate error ${res.status}: ${body}`);
+    throw new ImageGenError(`Replicate error ${res.status}: ${body}`, {
+      provider: 'replicate',
+      status: res.status,
+    });
   }
   const data = await res.json();
   const url = Array.isArray(data.output) ? data.output[0] : data.output;
-  if (!url) throw new Error('Replicate returned no output URL');
+  if (!url) {
+    throw new ImageGenError('Replicate returned no output URL', { provider: 'replicate' });
+  }
   return {
     url,
     prompt: params.prompt,
