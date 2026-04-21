@@ -113,6 +113,14 @@ export default function Products() {
   // sync effect below.
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [sortMode, setSortMode] = useState<SortMode>(initialSort);
+  // Task 2.17 — client-side pagination. Sub-30 catalogs render the
+  // whole set (page size equals 30, so the first page already covers
+  // today's 22-product baseline). Once the filtered count crosses 30
+  // we reveal 30 more per "Charger plus" click instead of paying for
+  // the full grid's initial paint cost. Counter resets to PAGE_SIZE
+  // on any filter/sort/search change (see effect below).
+  const PAGE_SIZE = 30;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   // Task 2.16 — surface a RecentlyViewed row above the catalog grid so
   // returning visitors see their last-browsed items one click away.
   // Gated at >=2 items: a fresh visitor (0) or a single-view visitor
@@ -460,6 +468,26 @@ export default function Products() {
       return [];
     }
   }, [products, activeCategory, debouncedQuery, sortMode]);
+
+  // Task 2.17 — reset pagination whenever the filter surface changes
+  // (category, debounced search, or sort). Scroll back to top so the
+  // shopper doesn't land mid-page on a newly narrowed result set.
+  // Guarded on the client (typeof window) so SSR/tests don't blow up.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeCategory, debouncedQuery, sortMode]);
+
+  // Task 2.17 — slice applied just before render. Using min() keeps us
+  // safe when the filter tightens mid-page (e.g. 60 -> 12) before the
+  // reset effect above has a chance to run.
+  const visibleProducts = useMemo(
+    () => filteredProducts.slice(0, Math.min(visibleCount, filteredProducts.length)),
+    [filteredProducts, visibleCount],
+  );
+  const hasMore = visibleProducts.length < filteredProducts.length;
 
   // Task 2.15 — total real-color count across the currently filtered
   // products. We resolve each Shopify product back to its local entry
@@ -998,7 +1026,7 @@ export default function Products() {
                   onKeyDown={handleGridKeyDown}
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
                 >
-                {filteredProducts.map((product, i) => {
+                {visibleProducts.map((product, i) => {
                   // Defensive key fallback: an id might be missing on a
                   // brand-new product. Fall back to handle, then to
                   // index — React just needs uniqueness within the list.
@@ -1015,6 +1043,32 @@ export default function Products() {
                   }
                 })}
                 </div>
+
+                {/* Task 2.17 — pagination footer. Only renders when the
+                    filtered set crosses PAGE_SIZE (30). The count line
+                    ("Affichage de 1-30 sur 42") sits above a load-more
+                    pill that reveals PAGE_SIZE more per click. Full-
+                    width on mobile so it reads as a primary action;
+                    auto width / centered on desktop so it doesn't feel
+                    like a form field stretched edge-to-edge. */}
+                {filteredProducts.length > PAGE_SIZE && (
+                  <div className="mt-10 flex flex-col items-center gap-4">
+                    <p className="text-[12px] text-muted-foreground" aria-live="polite">
+                      {lang === 'en'
+                        ? `Showing 1-${visibleProducts.length} of ${filteredProducts.length}`
+                        : `Affichage de 1-${visibleProducts.length} sur ${filteredProducts.length}`}
+                    </p>
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                        className="w-full md:w-auto inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3 rounded-full shadow-navy hover:opacity-95 transition-opacity focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                      >
+                        {lang === 'en' ? 'Load more' : 'Charger plus'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </>
