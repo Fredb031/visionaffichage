@@ -4,7 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Truck } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -361,8 +361,31 @@ export default function Cart() {
               <CartRecommendations />
             </div>
 
+            {/* Trust bar — reinforces key reassurances right before the
+                total + CTA so hesitation at the payment step is minimized.
+                Visually connected to the order-summary card via shared
+                rounded-top and seamless -mb-px to the card below. */}
+            <div
+              className="mt-6 -mb-px rounded-t-2xl border border-b-0 border-border bg-secondary/40 px-4 py-2.5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] font-semibold text-muted-foreground"
+              role="list"
+              aria-label={lang === 'en' ? 'Shop with confidence' : 'Achète en confiance'}
+            >
+              <span className="inline-flex items-center gap-1.5" role="listitem">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+                {lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}
+              </span>
+              <span className="inline-flex items-center gap-1.5" role="listitem">
+                <MapPin className="w-3.5 h-3.5 text-[#0052CC]" aria-hidden="true" />
+                {lang === 'en' ? 'Printed in Québec' : 'Imprimé au Québec'}
+              </span>
+              <span className="inline-flex items-center gap-1.5" role="listitem">
+                <Truck className="w-3.5 h-3.5 text-[#E8A838]" aria-hidden="true" />
+                {lang === 'en' ? '5-day shipping' : 'Livraison 5 jours'}
+              </span>
+            </div>
+
             {/* Order summary */}
-            <div className="rounded-2xl border border-border bg-card p-5 mt-6 space-y-3">
+            <div className="rounded-2xl rounded-t-none border border-border bg-card p-5 space-y-3">
               <h2 className="font-extrabold text-sm uppercase tracking-wider text-muted-foreground">
                 {lang === 'en' ? 'Order Summary' : 'Résumé de la commande'}
               </h2>
