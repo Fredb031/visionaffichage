@@ -25,6 +25,19 @@ export const CHECKER_BG_STYLE: CSSProperties = {
   backgroundColor: '#f5f5f5',
 };
 
+/** Human-readable byte size. fr-CA uses 'o' / 'ko' / 'Mo' (octet),
+ * en uses 'B' / 'KB' / 'MB'. Kept local + tiny so we don't pull a
+ * dependency for a 3-branch conditional. */
+const formatFileSize = (bytes: number, lang: 'fr' | 'en'): string => {
+  const fr = lang !== 'en';
+  const b = fr ? 'o' : 'B';
+  const k = fr ? 'ko' : 'KB';
+  const m = fr ? 'Mo' : 'MB';
+  if (bytes < 1024) return `${bytes} ${b}`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ${k}`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} ${m}`;
+};
+
 type QualityCheck = {
   ok: boolean;
   naturalWidth: number;
@@ -337,7 +350,11 @@ export function LogoUploader({
                 ? (lang === 'en' ? 'Drop to upload' : 'Relâche pour téléverser')
                 : t('glisserLogo')}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">PNG · JPG · SVG · WebP — max 20MB</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {lang === 'en'
+                ? 'PNG · JPG · SVG · WebP — max 20 MB'
+                : 'PNG · JPG · SVG · WebP — max 20 Mo'}
+            </p>
             <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
               <CheckCircle2 size={12} aria-hidden="true" /> {t('fondSupprimeAuto')}
             </div>
@@ -382,6 +399,20 @@ export function LogoUploader({
                 </div>
               )}
             </div>
+
+            {/* Filename + size under the preview. Truncated with CSS so a
+                long filename doesn't push the size off the row. Title
+                attribute exposes the full name on hover. */}
+            {currentFile && (
+              <p
+                className="mt-2 text-[11px] text-muted-foreground px-1 truncate"
+                title={currentFile.name}
+              >
+                <span className="font-medium text-foreground">{currentFile.name}</span>
+                <span className="mx-1">—</span>
+                <span>{formatFileSize(currentFile.size, lang === 'en' ? 'en' : 'fr')}</span>
+              </p>
+            )}
 
             {/* Remove BG button if not yet removed */}
             {!bgRemoved && (
