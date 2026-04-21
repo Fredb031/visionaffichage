@@ -24,7 +24,57 @@ const API_URL = 'https://api.remove.bg/v1.0/removebg';
 // the canvas strategy and unblock the user.
 const REMOTE_BG_TIMEOUT_MS = 30_000;
 
-export async function removeBackground(file: File): Promise<Blob> {
+/**
+ * Stage labels emitted to the optional progress callback. Exported so callers
+ * (e.g. LogoUploader) can narrow on specific stages if they want stage-aware
+ * UI copy without pattern-matching on raw strings.
+ */
+export type RemoveBgStage =
+  | 'start'
+  | 'api-request'
+  | 'api-success'
+  | 'api-fallback'
+  | 'canvas-start'
+  | 'canvas-success'
+  | 'canvas-failure';
+
+export interface RemoveBgProgress {
+  stage: RemoveBgStage;
+  /** Milliseconds since removeBackground() was invoked — handy for spinners */
+  elapsedMs: number;
+  /** Optional human-readable detail (e.g. the HTTP status on api-fallback) */
+  detail?: string;
+}
+
+export type RemoveBgProgressCallback = (progress: RemoveBgProgress) => void;
+
+const noop: RemoveBgProgressCallback = () => {};
+
+export async function removeBackground(
+  file: File,
+  onProgress: RemoveBgProgressCallback = noop,
+): Promise<Blob> {
+  const startedAt = (typeof performance !== 'undefined' && performance.now)
+    ? performance.now()
+    : Date.now();
+  const elapsed = () => {
+    const now = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now()
+      : Date.now();
+    return Math.round(now - startedAt);
+  };
+  // Wrap the callback so a buggy caller can never break the BG-removal
+  // pipeline — progress reporting is strictly advisory.
+  const report = (stage: RemoveBgStage, detail?: string) => {
+    try {
+      onProgress({ stage, elapsedMs: elapsed(), detail });
+    } catch {
+      /* swallow — progress is advisory */
+    }
+  };
+
+  report('start');
+
   // SVGs are already transparent
   if (file.type === 'image/svg+xml') return file;
 
@@ -34,6 +84,7 @@ export async function removeBackground(file: File): Promise<Blob> {
   if (apiKey && apiKey !== '') {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REMOTE_BG_TIMEOUT_MS);
+    report('api-request');
     try {
       const formData = new FormData();
       formData.append('image_file', file);
@@ -47,23 +98,38 @@ export async function removeBackground(file: File): Promise<Blob> {
       });
 
       clearTimeout(timer);
-      if (res.ok) return await res.blob();
+      if (res.ok) {
+        report('api-success');
+        return await res.blob();
+      }
       console.warn(`remove.bg returned ${res.status} — falling back to canvas`);
+      report('api-fallback', `http-${res.status}`);
     } catch (err) {
       clearTimeout(timer);
       if ((err as Error)?.name === 'AbortError') {
         console.warn(`remove.bg timed out after ${REMOTE_BG_TIMEOUT_MS}ms — falling back to canvas`);
+        report('api-fallback', 'timeout');
       } else {
         console.warn('remove.bg request failed — falling back to canvas:', err);
+        report('api-fallback', 'network');
       }
     }
   }
 
   // ── Strategy 2: in-browser canvas fallback ───────────────────────────────
+  // Surface the retry with clear timing so dev tools make it obvious when
+  // a slow device is stuck in the canvas pass (the for-loop over pixels
+  // can take a second or two on a 4000×4000 image on low-end mobiles).
+  console.info(`[removeBg] canvas fallback starting at +${elapsed()}ms`);
+  report('canvas-start');
   try {
-    return await removeWhiteBackground(file);
+    const blob = await removeWhiteBackground(file);
+    console.info(`[removeBg] canvas fallback finished in ${elapsed()}ms total`);
+    report('canvas-success');
+    return blob;
   } catch (err) {
     console.warn('Canvas background removal failed — returning original:', err);
+    report('canvas-failure');
     return file;
   }
 }
