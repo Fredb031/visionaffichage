@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Check, CreditCard, ShieldCheck, MapPin, Mail } from 'lucide-react';
+import { Check, CreditCard, ShieldCheck, MapPin, Mail, Copy, Printer } from 'lucide-react';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { LogoUploadDropzone } from '@/components/LogoUploadDropzone';
 import { useLang } from '@/lib/langContext';
@@ -56,6 +56,8 @@ export default function QuoteAccept() {
   const { lang } = useLang();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const quoteNumber = id ?? MOCK_QUOTE.number;
   useDocumentTitle(lang === 'en'
@@ -68,6 +70,38 @@ export default function QuoteAccept() {
   const total = subtotal - discountAmount + tax;
 
   const canPay = logoFile !== null && acceptedTerms;
+
+  // Expiration countdown: refresh "now" every 60s so the header stays live.
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const expiryLabel = useMemo(() => {
+    const expiresMs = Date.parse(MOCK_QUOTE.expiresAt);
+    if (Number.isNaN(expiresMs)) return null;
+    const diff = expiresMs - now;
+    if (diff <= 0) {
+      return lang === 'en' ? 'Expired' : 'Expirée';
+    }
+    const totalMinutes = Math.floor(diff / 60_000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    return lang === 'en'
+      ? `Expires in ${days}d ${hours}h`
+      : `Expire dans ${days}j ${hours}h`;
+  }, [now, lang]);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard may be unavailable (insecure context, denied permission).
+      // Silently ignore — the button remains usable next time.
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background">
@@ -83,15 +117,42 @@ export default function QuoteAccept() {
             onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
           />
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 no-print">
+          {expiryLabel && (
+            <span
+              className="hidden sm:inline-flex items-center text-[11px] font-bold px-2 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200"
+              aria-live="polite"
+            >
+              {expiryLabel}
+            </span>
+          )}
           <button
             type="button"
-            onClick={() => window.print()}
-            aria-label={lang === 'en' ? 'Print this quote' : 'Imprimer cette soumission'}
-            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors print:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            onClick={handleCopyLink}
+            aria-label={lang === 'en' ? 'Copy quote link' : 'Copier le lien de la soumission'}
+            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
-            <span aria-hidden="true">🖨️</span> {lang === 'en' ? 'Print' : 'Imprimer'}
+            <Copy size={14} aria-hidden="true" />
+            {copied
+              ? (lang === 'en' ? 'Copied' : 'Copié')
+              : (lang === 'en' ? 'Copy link' : 'Copier le lien')}
           </button>
+          <div className="hidden md:flex flex-col items-end">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              aria-label={lang === 'en' ? 'Print this quote' : 'Imprimer cette soumission'}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            >
+              <Printer size={14} aria-hidden="true" />
+              {lang === 'en' ? 'Print' : 'Imprimer'}
+            </button>
+            <span className="text-[11px] text-zinc-500 mt-0.5">
+              {lang === 'en'
+                ? "Tip: choose 'Save as PDF' in the print dialog."
+                : "Astuce : utilise « Enregistrer en PDF » dans la boîte d'impression."}
+            </span>
+          </div>
           <DeliveryBadge size="sm" />
         </div>
       </header>
@@ -99,17 +160,20 @@ export default function QuoteAccept() {
       <style>{`
         @media print {
           body { background: white !important; }
+          body * { visibility: hidden; }
+          .quote-accept-print, .quote-accept-print * { visibility: visible; }
+          .quote-accept-print { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
           .print\\:hidden { display: none !important; }
           .lg\\:sticky { position: static !important; }
           aside { page-break-inside: avoid; }
           section { page-break-inside: avoid; }
           .min-h-screen { min-height: auto !important; }
           .shadow-2xl, .shadow-xl, .shadow-md { box-shadow: none !important; }
-          button { display: none !important; }
         }
       `}</style>
 
-      <main id="main-content" tabIndex={-1} className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-6 focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="quote-accept-print max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-6 focus:outline-none">
         <div className="text-center">
           <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2">
             {lang === 'en' ? 'Custom quote' : 'Soumission personnalisée'}
@@ -243,7 +307,7 @@ export default function QuoteAccept() {
                 disabled={!canPay}
                 aria-disabled={!canPay}
                 aria-describedby={!canPay ? 'quote-pay-hint' : undefined}
-                className="w-full py-4 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="no-print w-full py-4 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               >
                 <CreditCard size={18} aria-hidden="true" />
                 {lang === 'en' ? 'Review & pay' : 'Vérifier et payer'}
