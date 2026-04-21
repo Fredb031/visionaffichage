@@ -114,6 +114,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           ? 'bg-background/[0.93] backdrop-blur-xl border-[hsl(var(--navy))]/10'
           : 'bg-transparent backdrop-blur-0 border-transparent'
       }`}
+      // Task 16.10 — env(safe-area-inset-top) keeps the logo + right-side
+      // pills off the iPhone notch. The 58px bar grows only on devices
+      // that actually report a non-zero inset (older iPhones and Android
+      // evaluate to 0px, so the bar looks unchanged there).
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       role="navigation"
       aria-label="Main navigation"
     >

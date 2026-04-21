@@ -91,6 +91,10 @@ export function CookieConsent() {
       aria-live="polite"
       aria-label={isFr ? 'Avis de confidentialité' : 'Privacy notice'}
       className="fixed bottom-4 left-4 z-[60] max-w-sm rounded-2xl border border-[#D4AF37]/40 bg-[#0A1A2F] text-white shadow-2xl ring-1 ring-black/5"
+      // Task 16.10 — lift the consent panel above the iPhone home
+      // indicator. margin-bottom on top of the existing bottom-4 so
+      // non-notched devices are unchanged (inset resolves to 0px).
+      style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="relative p-5">
         <button

@@ -325,7 +325,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
         {/* Footer */}
         {cart.items.length > 0 && (
-          <div className="p-4 border-t border-border space-y-3 bg-card">
+          <div
+            className="p-4 border-t border-border space-y-3 bg-card"
+            // Task 16.10 — pad past the iPhone home-indicator so the
+            // "Checkout" CTA isn't half-swallowed by the gesture bar.
+            // No-op on non-notched devices (inset resolves to 0px).
+            style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+          >
             {!cart.discountApplied ? (
               <div className="flex gap-2">
                 <input

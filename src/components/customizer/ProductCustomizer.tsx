@@ -1656,7 +1656,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         </div>
 
         {/* ── Footer ── */}
-        <div className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background gap-2">
+        {/* Task 16.10 — the customizer becomes a full-bleed sheet on
+            mobile (items-end on the overlay). env(safe-area-inset-bottom)
+            pushes the Back / Export / CTA row above the iPhone
+            home-indicator so primary actions are always tappable.
+            No-op on desktop/non-notched mobile (inset = 0px). */}
+        <div
+          className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background gap-2"
+          style={{ paddingBottom: 'calc(0.875rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <button
             type="button"
             onClick={goBack}
