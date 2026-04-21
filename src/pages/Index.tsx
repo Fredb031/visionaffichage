@@ -810,6 +810,161 @@ export default function Index() {
         </section>
       </FadeIn>
 
+      {/* Case studies — Task 11.5. Three challenge/solution/result cards
+          extend the social proof beyond star-rating testimonials with
+          concrete delivery metrics (volume, turnaround). Real client
+          names, numbers, and quotes are owner-uploads — this scaffold
+          ships with TODO placeholders so the visual lands now and the
+          content can drop in without a code change beyond string edits.
+          The CTA links route to /case-studies/<slug> which are planned
+          deep-dive pages (see future task) — kept as <Link> so routing
+          lights up automatically once the pages exist. Result metric
+          uses the brand gold (#E8A838) to echo the hero + CTA band. */}
+      <FadeIn>
+        <section aria-label={lang === 'en' ? 'Case studies' : 'Études de cas'} className="py-16 md:py-20 px-6 md:px-10 bg-background border-b border-border">
+          <div className="max-w-[1160px] mx-auto">
+            <div className="text-center mb-10 md:mb-12">
+              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
+                {lang === 'en' ? 'Case studies' : 'Études de cas'}
+              </div>
+              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
+                {lang === 'en' ? 'Real clients, real results' : 'Clients réels, résultats concrets'}
+              </h2>
+              <p className="text-[14px] text-muted-foreground mt-3 max-w-[560px] mx-auto">
+                {lang === 'en'
+                  ? 'Three recent projects, from brief to delivery — the numbers speak for themselves.'
+                  : 'Trois projets récents, du brief à la livraison — les chiffres parlent d\u2019eux-mêmes.'}
+              </p>
+            </div>
+            {/* 3-up on desktop, stacked on mobile. Cards share the subtle
+                border + bg-secondary treatment used by testimonials so
+                this section reads as a sibling, not a competing block. */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+              {[
+                {
+                  // TODO(owner): replace with real client name
+                  client: '<Client 1>',
+                  // TODO(owner): industry/sector label (e.g. "Restaurant · Québec")
+                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
+                  challenge: lang === 'en'
+                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
+                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
+                  solution: lang === 'en'
+                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
+                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
+                  // TODO(owner): hard metric — e.g. "500+ t-shirts livrés en 7 jours"
+                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
+                  // TODO(owner): optional client quote (set to null to hide)
+                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
+                  // TODO(owner): slug for /case-studies/<slug> — page doesn't exist yet
+                  slug: 'client-1',
+                },
+                {
+                  client: '<Client 2>',
+                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
+                  challenge: lang === 'en'
+                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
+                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
+                  solution: lang === 'en'
+                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
+                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
+                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
+                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
+                  slug: 'client-2',
+                },
+                {
+                  client: '<Client 3>',
+                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
+                  challenge: lang === 'en'
+                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
+                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
+                  solution: lang === 'en'
+                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
+                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
+                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
+                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
+                  slug: 'client-3',
+                },
+              ].map((cs, i) => (
+                <article
+                  key={i}
+                  className="flex flex-col bg-secondary border border-border rounded-2xl p-6 md:p-7 transition-shadow hover:shadow-[0_8px_28px_rgba(15,35,65,0.08)]"
+                >
+                  {/* Header — client name + sector. Gold 2px rule below
+                      the header ties the card to the brand palette. */}
+                  <header className="mb-4">
+                    <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1">
+                      {cs.sector}
+                    </div>
+                    <h3 className="text-[18px] md:text-[19px] font-extrabold text-foreground tracking-[-0.3px]">
+                      {cs.client}
+                    </h3>
+                    <div aria-hidden="true" className="mt-3 h-[2px] w-10 bg-[#E8A838]" />
+                  </header>
+
+                  {/* Challenge / Solution / Result columns. Stacked
+                      within each card (not across cards) so the story
+                      reads top-to-bottom and the result anchors the
+                      bottom with the gold accent. */}
+                  <dl className="flex flex-col gap-4 mb-4">
+                    <div>
+                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-muted-foreground mb-1">
+                        {lang === 'en' ? 'Challenge' : 'Défi'}
+                      </dt>
+                      <dd className="text-[13.5px] leading-relaxed text-foreground/90">
+                        {cs.challenge}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-muted-foreground mb-1">
+                        {lang === 'en' ? 'Solution' : 'Solution'}
+                      </dt>
+                      <dd className="text-[13.5px] leading-relaxed text-foreground/90">
+                        {cs.solution}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-[#E8A838] mb-1">
+                        {lang === 'en' ? 'Result' : 'Résultat'}
+                      </dt>
+                      {/* Gold-accented metric — the keystone number that
+                          earns the card its place. Uses the same
+                          #E8A838 as the CTA band and hero gold. */}
+                      <dd className="text-[17px] font-extrabold tracking-[-0.2px] text-foreground leading-tight">
+                        {cs.metric}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {/* Optional client quote. Kept conditional so cards
+                      with no quote collapse cleanly to just the
+                      challenge/solution/result story. */}
+                  {cs.quote && (
+                    <blockquote className="mb-5 pl-3 border-l-2 border-[#E8A838]/60 text-[13px] italic text-muted-foreground leading-relaxed">
+                      {cs.quote}
+                    </blockquote>
+                  )}
+
+                  {/* CTA → /case-studies/<slug>. Routes are future
+                      deep-dive pages (not yet implemented) — using
+                      <Link> now means the moment the pages land the
+                      navigation lights up with zero code change here.
+                      mt-auto pins the CTA to the bottom so cards of
+                      varying body length still align their buttons. */}
+                  <Link
+                    to={`/case-studies/${cs.slug}`}
+                    className="mt-auto inline-flex items-center gap-1.5 text-[13px] font-bold text-primary hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:underline"
+                  >
+                    {lang === 'en' ? 'Read the full case study' : 'Lire l\u2019étude complète'}
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
       {/* Mid-page CTA band — Task 1.10. A slim navy strip punctuating
           the shift from social-proof (testimonials + logos) to FAQ.
           Sits at ~120px desktop height so it reads as a breath-break
