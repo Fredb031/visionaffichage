@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight, Plus, Sparkles, HelpCircle, Printer } from 'lucide-react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight, Plus, Sparkles, HelpCircle, Printer, FilePlus, ArrowRight, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/admin/StatCard';
 import { Sparkline } from '@/components/admin/Sparkline';
@@ -328,6 +328,98 @@ function buildClientRows(summary: VendorCommissionSummary): ClientCrmRow[] {
     const tb = b.lastOrderAt ? Date.parse(b.lastOrderAt) : 0;
     return tb - ta;
   });
+}
+
+// --- Recent quotes preview (dashboard card) ---------------------------
+//
+// Vendors land on the dashboard expecting a glance at their last few
+// quotes before deciding whether to dive into /vendor/quotes. We read
+// the same localStorage key QuoteList uses ('vision-quotes') so both
+// views stay in lockstep — no shadow store, no duplicated shape. Bad
+// rows get skipped per-item (mirror of QuoteList's per-row try/catch)
+// so one malformed quote can't wipe the preview.
+
+type RecentQuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
+
+interface RecentQuote {
+  id: string;
+  number: string;
+  client: string;
+  total: number;
+  status: RecentQuoteStatus;
+  createdAt: string | null;
+}
+
+const RECENT_QUOTE_STATUSES: readonly RecentQuoteStatus[] = [
+  'draft', 'sent', 'viewed', 'accepted', 'paid', 'expired',
+];
+
+function coerceRecentStatus(raw: unknown): RecentQuoteStatus {
+  return typeof raw === 'string' && (RECENT_QUOTE_STATUSES as readonly string[]).includes(raw)
+    ? (raw as RecentQuoteStatus)
+    : 'draft';
+}
+
+const RECENT_QUOTE_STATUS_LABEL_FR: Record<RecentQuoteStatus, string> = {
+  draft: 'Brouillon',
+  sent: 'Envoyé',
+  viewed: 'Vu',
+  accepted: 'Accepté',
+  paid: 'Payé',
+  expired: 'Expiré',
+};
+const RECENT_QUOTE_STATUS_LABEL_EN: Record<RecentQuoteStatus, string> = {
+  draft: 'Draft',
+  sent: 'Sent',
+  viewed: 'Viewed',
+  accepted: 'Accepted',
+  paid: 'Paid',
+  expired: 'Expired',
+};
+const RECENT_QUOTE_STATUS_COLOR: Record<RecentQuoteStatus, string> = {
+  draft: 'bg-zinc-100 text-zinc-700',
+  sent: 'bg-blue-50 text-blue-700',
+  viewed: 'bg-amber-50 text-amber-700',
+  accepted: 'bg-emerald-50 text-emerald-700',
+  paid: 'bg-emerald-100 text-emerald-800',
+  expired: 'bg-rose-50 text-rose-700',
+};
+
+function loadRecentQuotes(limit: number): RecentQuote[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+    if (!Array.isArray(raw)) return [];
+    const rows: RecentQuote[] = [];
+    for (const q of raw as Array<Record<string, unknown>>) {
+      try {
+        if (!q || typeof q !== 'object') continue;
+        const email = typeof q.clientEmail === 'string' ? q.clientEmail : '';
+        const clientFromEmail = email.includes('@') ? email.split('@')[0] : email;
+        const client = typeof q.clientName === 'string' && q.clientName
+          ? q.clientName
+          : (clientFromEmail || '—');
+        const total = Number.isFinite(q.total) ? (q.total as number) : 0;
+        rows.push({
+          id: String(q.id ?? `q-${rows.length}`),
+          number: typeof q.number === 'string' ? q.number : '—',
+          client,
+          total,
+          status: coerceRecentStatus(q.status),
+          createdAt: typeof q.createdAt === 'string' ? q.createdAt : null,
+        });
+      } catch {
+        // Skip malformed row, keep the rest.
+      }
+    }
+    rows.sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+    return rows.slice(0, limit);
+  } catch {
+    return [];
+  }
 }
 
 function formatDateTime(iso: string, lang: 'fr' | 'en'): string {
@@ -1020,6 +1112,24 @@ export default function VendorDashboard() {
     document.body.removeChild(a);
   }, []);
 
+  // Recent quotes preview (dashboard card). Reads the same
+  // localStorage key QuoteList reads — 'vision-quotes' — so a quote
+  // created in the builder surfaces here immediately on next mount.
+  // We refresh on the cross-tab 'storage' event (another window saving
+  // a new quote) and on vendorId flips so an admin previewing a
+  // different vendor doesn't see stale rows cached in state.
+  const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>(() => loadRecentQuotes(5));
+  useEffect(() => {
+    setRecentQuotes(loadRecentQuotes(5));
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'vision-quotes' || e.key === null) {
+        setRecentQuotes(loadRecentQuotes(5));
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [vendorId]);
+
   // Task 10.8 — client CRM rows + private notes state.
   // Rows derive from the full (un-month-filtered) summary so a vendor
   // can still see last year's clients during a slow month. Notes are
@@ -1323,6 +1433,150 @@ export default function VendorDashboard() {
           accent="green"
         />
       </div>
+
+      {/* Quick-actions pills — shortcut row below the metric cards so
+          a vendor can jump to the builder or the full quote list in one
+          click without hunting through the header. "Mes clients" stays
+          out of this row because /vendor/clients doesn't exist as a
+          standalone route yet; the per-vendor CRM lives further down on
+          this same page and is reachable via the existing anchor. */}
+      <nav
+        aria-label={L('Raccourcis rapides', 'Quick actions')}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <Link
+          to="/vendor/quotes/new"
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#0052CC] text-white rounded-full hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        >
+          <FilePlus size={13} aria-hidden="true" />
+          {L('Nouveau devis', 'New quote')}
+        </Link>
+        <Link
+          to="/vendor/quotes"
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-full hover:bg-zinc-50 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+        >
+          <FileText size={13} aria-hidden="true" />
+          {L('Voir mes devis', 'My quotes')}
+        </Link>
+        <a
+          href="#vendor-clients-heading"
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-full hover:bg-zinc-50 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+        >
+          <Users size={13} aria-hidden="true" />
+          {L('Voir mes clients', 'My clients')}
+        </a>
+      </nav>
+
+      {/* Empty state for brand-new vendors — no commissions AND no
+          quotes yet. We show a warm welcome card pushing them toward
+          the builder rather than presenting a wall of zeroed-out tables.
+          Suppressed as soon as the vendor has any activity on either
+          side so it doesn't linger once they've started. */}
+      {fullSummary.lines.length === 0 && recentQuotes.length === 0 && (
+        <section
+          aria-label={L('Bienvenue', 'Welcome')}
+          className="rounded-2xl border border-[#0052CC]/20 bg-gradient-to-br from-[#0052CC]/5 via-white to-[#E8A838]/10 px-5 py-6 sm:px-6 sm:py-7"
+        >
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center shadow-sm">
+              <Rocket size={20} aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#1B3A6B]">
+                {L(
+                  'Bienvenue chez Vision Affichage!',
+                  'Welcome to Vision Affichage!',
+                )}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-700 max-w-xl leading-relaxed">
+                {L(
+                  'Tu n\u2019as pas encore de devis ni de commission. Lance ton premier devis client en moins d\u2019une minute — on s\u2019occupe du reste.',
+                  'You haven\u2019t created a quote or earned a commission yet. Start your first client quote in under a minute — we\u2019ll handle the rest.',
+                )}
+              </p>
+              <div className="mt-4">
+                <Link
+                  to="/vendor/quotes/new"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 bg-[#E8A838] text-[#1B3A6B] rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+                >
+                  <Plus size={15} aria-hidden="true" />
+                  {L('Créer ton premier devis', 'Create your first quote')}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recent quotes preview — 5 most-recent rows with status pill +
+          total. Data source is the same localStorage key QuoteList
+          reads ('vision-quotes'). Row click + header CTA both drop the
+          vendor into /vendor/quotes since there isn't a per-id vendor
+          route. Skipped entirely when there are zero quotes (the empty
+          state above already handles that case). */}
+      {recentQuotes.length > 0 && (
+        <section
+          aria-labelledby="vendor-recent-quotes-heading"
+          className="bg-white border border-zinc-200 rounded-2xl overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+            <div>
+              <h2 id="vendor-recent-quotes-heading" className="font-bold flex items-center gap-2">
+                <FileText size={16} className="text-[#1B3A6B]" aria-hidden="true" />
+                {L('Devis récents', 'Recent quotes')}
+              </h2>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                {L(
+                  'Tes 5 dernières soumissions, tri par date de création.',
+                  'Your 5 latest quotes, sorted by creation date.',
+                )}
+              </p>
+            </div>
+            <Link
+              to="/vendor/quotes"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 rounded-sm px-1"
+              aria-label={L('Voir tous mes devis', 'See all my quotes')}
+            >
+              {L('Tout voir', 'See all')}
+              <ArrowRight size={12} aria-hidden="true" />
+            </Link>
+          </div>
+          <ul className="divide-y divide-zinc-100">
+            {recentQuotes.map(q => (
+              <li key={q.id}>
+                <Link
+                  to="/vendor/quotes"
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-50/70 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/50"
+                  aria-label={L(
+                    `Ouvrir la liste des devis — ${q.number} pour ${q.client}`,
+                    `Open quote list — ${q.number} for ${q.client}`,
+                  )}
+                >
+                  <div className="flex-shrink-0 font-mono text-[11px] font-bold text-[#1B3A6B] w-[108px] truncate">
+                    {q.number}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm truncate">{q.client}</div>
+                    <div className="text-[11px] text-zinc-500">
+                      {q.createdAt ? formatDate(q.createdAt, lang) : '—'}
+                    </div>
+                  </div>
+                  <span
+                    className={`flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md ${RECENT_QUOTE_STATUS_COLOR[q.status]}`}
+                  >
+                    {lang === 'fr'
+                      ? RECENT_QUOTE_STATUS_LABEL_FR[q.status]
+                      : RECENT_QUOTE_STATUS_LABEL_EN[q.status]}
+                  </span>
+                  <div className="flex-shrink-0 font-bold text-sm text-zinc-800 tabular-nums w-[96px] text-right">
+                    {formatMoney(q.total, lang)}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
