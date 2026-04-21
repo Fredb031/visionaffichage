@@ -408,7 +408,15 @@ export default function ProductDetail() {
               const shopifyBase = parseFloat(price);
               const unitWithPrint = shopifyBase + PRINT_PRICE;
               const discountedUnit = unitWithPrint * (1 - BULK_DISCOUNT_RATE);
-              return <BulkCalculator unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />;
+              // Key on handle so nav to a new product remounts the calculator
+              // with the default qty=12. Without this, ProductDetail stays
+              // mounted across /product/:handle (same as selectedOptions
+              // reset useEffect) and the previous product's qty leaks onto
+              // the new page, confusing the 'unlock volume discount' hint.
+              // Keep qty stable across variant (color/size) switches on the
+              // *same* product so size/color tweaks don't reset the user's
+              // chosen quantity.
+              return <BulkCalculator key={handle} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />;
             })()}
 
             {/* Compact info row: stock + size guide + delivery */}
