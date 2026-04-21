@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type CSSProperties } from 'react';
 import { Upload, X, Loader2, CheckCircle2, Scissors, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { removeBackground } from '@/lib/removeBg';
@@ -7,6 +7,23 @@ import { trimTransparentPadding } from '@/lib/trimLogo';
 import { useLang } from '@/lib/langContext';
 
 type UploadStatus = 'idle' | 'removing-bg' | 'saving' | 'done' | 'error';
+
+/** Industry-standard 20×20px checker pattern (Photoshop / Figma / Sketch
+ * all use this) — shown behind a logo preview so transparent pixels read
+ * as transparent instead of being masked by a solid tile. Kept as an
+ * exported const so other preview surfaces (Step 4 review thumbnail,
+ * admin logo QC, etc.) can reuse the same pattern without drifting. */
+export const CHECKER_BG_STYLE: CSSProperties = {
+  backgroundImage: [
+    'linear-gradient(45deg, #e5e5e5 25%, transparent 25%)',
+    'linear-gradient(-45deg, #e5e5e5 25%, transparent 25%)',
+    'linear-gradient(45deg, transparent 75%, #e5e5e5 75%)',
+    'linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)',
+  ].join(','),
+  backgroundSize: '20px 20px',
+  backgroundPosition: '0 0, 0 10px, 10px -10px, 10px 0',
+  backgroundColor: '#f5f5f5',
+};
 
 type QualityCheck = {
   ok: boolean;
@@ -315,9 +332,14 @@ export function LogoUploader({
 
         {status === 'done' && preview && (
           <motion.div key="preview" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-            {/* Preview with checkered bg */}
+            {/* Preview with checker bg — industry-standard 20×20px pattern
+                (Photoshop / Figma / Sketch all use this) so transparent
+                pixels in the logo read as transparent. Without it a white
+                tile hides whether BG-removal actually worked, and users
+                couldn't tell if their PNG had a transparent background
+                before ordering. */}
             <div className="relative rounded-xl overflow-hidden border border-border" style={{ height: 140 }}>
-              <div className="absolute inset-0" style={{ backgroundImage: 'repeating-conic-gradient(#e5e5e5 0% 25%, white 0% 50%)', backgroundSize: '14px 14px' }} />
+              <div className="absolute inset-0" style={CHECKER_BG_STYLE} />
               <img src={preview} alt="Logo" className="relative w-full h-full object-contain p-4 z-10" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
               <button
                 type="button"
