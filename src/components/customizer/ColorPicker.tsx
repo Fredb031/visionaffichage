@@ -201,12 +201,14 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
             }`}
           >
             <span
-              className={`relative block w-16 h-16 rounded-xl transition-all ${
+              className={`relative block w-16 h-16 rounded-xl transition-all duration-200 ease-out ${
                 isSelected
                   // Brand gold outer ring + navy inner ring so the pick
                   // reads as premium against both light and dark tiles.
-                  ? 'shadow-[0_0_0_2px_#E8A838,0_0_0_4px_#1B3A6B,0_6px_14px_rgba(27,58,107,0.22)] scale-[1.04]'
-                  : 'ring-1 ring-border group-hover:ring-primary/60 group-hover:scale-[1.03] group-hover:shadow-md'
+                  // Selected also gets a stronger gold glow on hover so
+                  // the already-picked swatch still signals interactivity.
+                  ? 'shadow-[0_0_0_2px_#E8A838,0_0_0_4px_#1B3A6B,0_6px_14px_rgba(27,58,107,0.22)] scale-[1.04] motion-reduce:scale-100 group-hover:shadow-[0_0_0_2px_#E8A838,0_0_0_4px_#1B3A6B,0_0_0_8px_rgba(232,168,56,0.3),0_6px_14px_rgba(27,58,107,0.22)]'
+                  : 'ring-1 ring-border group-hover:ring-primary/60 group-hover:scale-[1.03] motion-reduce:group-hover:scale-100 group-hover:shadow-[0_0_0_4px_rgba(232,168,56,0.15)]'
               }`}
               style={{ background: color.hex }}
               aria-hidden="true"
