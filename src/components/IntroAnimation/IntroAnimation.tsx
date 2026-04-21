@@ -261,16 +261,45 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     }, 1500);
 
     const onInteract = () => startIntro();
+    // Escape skips straight to the main site — both before the
+    // timeline has auto-started (impatient returning visitor who
+    // landed during the 200ms pre-roll window) and mid-playback
+    // (anyone who'd rather not watch the 4s sequence a second time).
+    // We short-circuit the GSAP timeline by killing it and invoking
+    // the same onComplete path the natural finish uses.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (timelineRef.current) {
+          timelineRef.current.kill();
+          timelineRef.current = null;
+        }
+        stopAllScheduledAudio();
+        if (!completedRef.current) {
+          completedRef.current = true;
+          try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
+          const overlay = document.getElementById('va-intro-overlay');
+          if (overlay) {
+            overlay.style.display = 'none';
+            overlay.style.pointerEvents = 'none';
+          }
+          onComplete();
+        }
+        return;
+      }
+      // Any other key counts as a "begin" gesture (unlocks audio the
+      // same way click / touchstart do).
+      startIntro();
+    };
     document.addEventListener('click', onInteract, { once: true });
     document.addEventListener('touchstart', onInteract, { once: true, passive: true });
-    document.addEventListener('keydown', onInteract, { once: true });
+    document.addEventListener('keydown', onKeyDown);
 
     return () => {
       if (hintTimer) clearTimeout(hintTimer);
       if (autoTimer) clearTimeout(autoTimer);
       document.removeEventListener('click', onInteract);
       document.removeEventListener('touchstart', onInteract);
-      document.removeEventListener('keydown', onInteract);
+      document.removeEventListener('keydown', onKeyDown);
       // Kill the GSAP timeline so its onComplete doesn't fire after
       // unmount — would otherwise call onComplete() on a dead Index.
       if (timelineRef.current) {
