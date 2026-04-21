@@ -20,6 +20,7 @@
  */
 import { useEffect, useRef, useState, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
   ImageOff, Move, Trash2, Type, X,
@@ -354,9 +355,13 @@ export function ProductCanvas({
       // error which leaves the canvas visibly blank with no explanation.
       const probe = new Image();
       probe.crossOrigin = 'anonymous';
+      const reportLoadFailure = () => {
+        setImgError(true);
+        toast.error('Impossible de charger cette couleur — réessayez ou choisissez une autre');
+      };
       probe.onerror = () => {
         if (disposed) return;
-        setImgError(true);
+        reportLoadFailure();
       };
       probe.onload = () => {
         if (disposed || !fc.current) return;
@@ -365,6 +370,15 @@ export function ProductCanvas({
           photoUrl,
           (img: FabricObj) => {
             if (disposed || !fc.current) return;
+            // fromURL silently resolves with a falsy/zero-sized image when
+            // the decode blows up (Drive 403 on a cross-origin GET, CORS
+            // mismatch, corrupt bytes, etc). Bail out here instead of
+            // wiping the previous photo — swap-on-arrival means the old
+            // color stays visible until a replacement actually decodes.
+            if (!img || !img.width) {
+              reportLoadFailure();
+              return;
+            }
             // Now that the new photo is ready, retire the old one. This
             // keeps the canvas painted with the previous color until the
             // pixel-perfect replacement lands — eliminates the flash.
@@ -524,10 +538,14 @@ export function ProductCanvas({
       // Pre-load with a regular Image so we can detect failures fast
       const probe = new Image();
       probe.crossOrigin = 'anonymous';
-      probe.onerror = () => {
-        if (disposed) return;
+      const reportInitLoadFailure = () => {
         setImgError(true);
         setReady(true);
+        toast.error('Impossible de charger cette couleur — réessayez ou choisissez une autre');
+      };
+      probe.onerror = () => {
+        if (disposed) return;
+        reportInitLoadFailure();
       };
       probe.onload = () => {
         if (disposed || !fc.current) return;
@@ -535,6 +553,14 @@ export function ProductCanvas({
           photoUrl,
           (img: FabricObj) => {
             if (disposed || !fc.current) return;
+            // fromURL can silently resolve with a falsy/zero-sized image
+            // even after the probe succeeded (CORS-tainted decode, etc).
+            // Converge on the same error state the probe.onerror path
+            // uses so the user gets feedback instead of an empty canvas.
+            if (!img || !img.width) {
+              reportInitLoadFailure();
+              return;
+            }
             // object-contain — never crop the garment
             const sx = W / (img.width ?? W);
             const sy = H / (img.height ?? H);
