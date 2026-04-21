@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield, ShieldCheck, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign, Download, Upload, RotateCcw, DatabaseBackup, AlertTriangle } from 'lucide-react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link2, Building2, CreditCard, Shield, ShieldCheck, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign, Download, Upload, RotateCcw, DatabaseBackup, AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -71,6 +71,170 @@ function readSettings(): SettingsState {
   };
 }
 
+// ───────────── Dirty-state registry ─────────────
+//
+// Subsections (Taxes, Commissions, Discount codes, Bulk pricing, Zapier
+// Outlook) each own a local `dirty` flag + a `save()` function. The
+// top-level `AdminSettings` needs to know the aggregate dirty state so
+// it can:
+//   - render a sticky "Modifications non enregistrées" banner with an
+//     inline "Tout enregistrer" button that flushes every dirty section,
+//   - install a `beforeunload` listener when anything is dirty so a
+//     fat-finger tab close doesn't silently drop unsaved edits.
+//
+// A small React context handles that lifting without having to rewire
+// every subsection's state up to the parent. Each subsection calls
+// `useRegisterDirty(id, dirty, save)` on every render; the provider
+// keeps the latest save callback per id so "Tout enregistrer" always
+// invokes the freshest closure (with up-to-date form values).
+
+type SaveFn = () => void;
+
+interface DirtyRegistryCtx {
+  register: (id: string, dirty: boolean, save: SaveFn) => void;
+  unregister: (id: string) => void;
+}
+
+const DirtyRegistryContext = createContext<DirtyRegistryCtx | null>(null);
+
+function useRegisterDirty(id: string, dirty: boolean, save: SaveFn) {
+  const ctx = useContext(DirtyRegistryContext);
+  // Keep the latest save closure in a ref so the registered function
+  // always sees current form state without forcing the provider to
+  // re-render on every keystroke.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    if (!ctx) return;
+    ctx.register(id, dirty, () => saveRef.current());
+    return () => ctx.unregister(id);
+    // Re-run when dirty flips so the provider's aggregate stays accurate.
+  }, [ctx, id, dirty]);
+}
+
+// ───────────── Saved toast ─────────────
+//
+// Replaces the plain "Enregistré" spans that each subsection used to
+// render after a save. Shows a CheckCircle2 icon + "Enregistré · il y a
+// un instant" for ~2.5 s then fades itself out — gives the admin a
+// clearer "yes, it actually persisted" signal without cluttering the
+// footer indefinitely.
+
+function SavedToast({ savedAt, dirty }: { savedAt: number | null; dirty: boolean }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!savedAt || dirty) {
+      setVisible(false);
+      return;
+    }
+    setVisible(true);
+    const t = window.setTimeout(() => setVisible(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [savedAt, dirty]);
+  if (!visible) return null;
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600"
+    >
+      <CheckCircle2 size={13} aria-hidden="true" />
+      Enregistré · il y a un instant
+    </span>
+  );
+}
+
+// ───────────── Collapsible section wrapper ─────────────
+//
+// Each subsection `<section>` renders its own rounded card + header.
+// Rather than refactor every subsection's internal DOM, this wrapper
+// sits around the existing `<section>` and overlays a chevron button
+// in the top-right corner (inside the section's `p-5` padding, so no
+// content overlap). Collapse hides the section body and swaps in a
+// compact stub card that keeps the title + chevron visible — expanded
+// state persists across reloads under `va:admin-settings-expanded`.
+
+const COLLAPSE_KEY = 'va:admin-settings-expanded';
+
+function readCollapseMap(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === 'boolean') out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeCollapseMap(map: Record<string, boolean>) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(map));
+  } catch {
+    // Private mode / quota — collapse state is cosmetic, swallow.
+  }
+}
+
+function CollapsibleSection({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  // Default expanded — admins shouldn't lose visibility on a section
+  // they've never touched. Persisted state wins over the default.
+  const [expanded, setExpanded] = useState<boolean>(true);
+  useEffect(() => {
+    const map = readCollapseMap();
+    if (Object.prototype.hasOwnProperty.call(map, id)) setExpanded(map[id]);
+  }, [id]);
+
+  const toggle = () => {
+    setExpanded(prev => {
+      const next = !prev;
+      const map = readCollapseMap();
+      map[id] = next;
+      writeCollapseMap(map);
+      return next;
+    });
+  };
+
+  if (!expanded) {
+    return (
+      <section className="bg-white border border-zinc-200 rounded-2xl px-5 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-bold text-sm text-zinc-700">{title}</h2>
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={false}
+            aria-controls={`section-body-${id}`}
+            aria-label={`Déplier la section ${title}`}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+          >
+            <ChevronDown size={16} aria-hidden="true" className="-rotate-90" />
+          </button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <div id={`section-body-${id}`} className="relative">
+      {children}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={true}
+        aria-controls={`section-body-${id}`}
+        aria-label={`Replier la section ${title}`}
+        className="absolute top-3 right-4 inline-flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+      >
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   useDocumentTitle('Paramètres — Admin Vision Affichage');
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
@@ -104,13 +268,104 @@ export default function AdminSettings() {
     });
   };
 
+  // Aggregate dirty state across subsections. We keep two refs + one
+  // state: the ref map holds save callbacks (no re-render on update),
+  // the `dirtyIds` state is what drives the banner + beforeunload.
+  const saveFnsRef = useRef<Map<string, SaveFn>>(new Map());
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(() => new Set());
+  const registry = useMemo<DirtyRegistryCtx>(() => ({
+    register: (id, dirty, save) => {
+      saveFnsRef.current.set(id, save);
+      setDirtyIds(prev => {
+        const hasIt = prev.has(id);
+        if (dirty && !hasIt) {
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        }
+        if (!dirty && hasIt) {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        }
+        return prev;
+      });
+    },
+    unregister: (id) => {
+      saveFnsRef.current.delete(id);
+      setDirtyIds(prev => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    },
+  }), []);
+
+  const hasDirty = dirtyIds.size > 0;
+
+  // beforeunload — only attach the listener when there's genuinely
+  // unsaved state so we don't spuriously prompt on every tab close.
+  useEffect(() => {
+    if (!hasDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Modern browsers ignore the custom string and show their own
+      // generic prompt, but `returnValue` must be set (non-empty) to
+      // trigger it. Keep the string for older browsers / IE just in case.
+      e.preventDefault();
+      e.returnValue = 'Des modifications non enregistrées seront perdues.';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [hasDirty]);
+
+  const saveAll = () => {
+    // Copy the map values because individual save() calls trigger
+    // re-renders + unregister flows that could mutate the map mid-loop.
+    const fns = Array.from(saveFnsRef.current.values());
+    for (const fn of fns) {
+      try {
+        fn();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[admin-settings] save failed', err);
+      }
+    }
+  };
+
   return (
+    <DirtyRegistryContext.Provider value={registry}>
     <div className="space-y-6 max-w-3xl">
+      {hasDirty ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="sticky top-0 z-40 -mx-1 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg shadow-sm flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2 text-sm text-amber-900 min-w-0">
+            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" aria-hidden="true" />
+            <span className="font-semibold truncate">
+              Modifications non enregistrées
+              <span className="text-xs font-normal text-amber-800/80"> · Unsaved changes ({dirtyIds.size})</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={saveAll}
+            className="inline-flex items-center gap-1.5 bg-[#0052CC] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#0043a8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 flex-shrink-0"
+          >
+            <Save size={12} aria-hidden="true" /> Tout enregistrer
+          </button>
+        </div>
+      ) : null}
+
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight">Paramètres</h1>
         <p className="text-sm text-zinc-500 mt-1">Configurez votre entreprise et vos intégrations</p>
       </header>
 
+      <CollapsibleSection id="company" title="Informations de l'entreprise">
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -135,7 +390,9 @@ export default function AdminSettings() {
           <Field label="Téléphone" value={settings.companyPhone} onChange={v => updateField('companyPhone', v)} />
         </div>
       </section>
+      </CollapsibleSection>
 
+      <CollapsibleSection id="shopify" title="Connexion Shopify">
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -164,7 +421,9 @@ export default function AdminSettings() {
           <ExternalLink size={11} aria-hidden="true" />
         </a>
       </section>
+      </CollapsibleSection>
 
+      <CollapsibleSection id="payments" title="Paiements">
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -176,7 +435,9 @@ export default function AdminSettings() {
           Traitement via Shopify Payments. Configurez les taxes QST/TPS dans l'admin Shopify.
         </div>
       </section>
+      </CollapsibleSection>
 
+      <CollapsibleSection id="security" title="Sécurité">
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -191,14 +452,28 @@ export default function AdminSettings() {
         </div>
         <Require2faPolicyRow />
       </section>
+      </CollapsibleSection>
 
-      <TaxesSection />
-      <CommissionsSection />
-      <DiscountCodesSection />
-      <BulkPricingSection />
-      <ZapierOutlookSection />
-      <BackupRestoreSection />
+      <CollapsibleSection id="taxes" title="Taxes (TPS / TVQ)">
+        <TaxesSection />
+      </CollapsibleSection>
+      <CollapsibleSection id="commissions" title="Commissions">
+        <CommissionsSection />
+      </CollapsibleSection>
+      <CollapsibleSection id="discounts" title="Codes de réduction">
+        <DiscountCodesSection />
+      </CollapsibleSection>
+      <CollapsibleSection id="bulk" title="Rabais quantité">
+        <BulkPricingSection />
+      </CollapsibleSection>
+      <CollapsibleSection id="zapier" title="Intégrations · Zapier → Outlook">
+        <ZapierOutlookSection />
+      </CollapsibleSection>
+      <CollapsibleSection id="backup" title="Sauvegarde · Restauration">
+        <BackupRestoreSection />
+      </CollapsibleSection>
     </div>
+    </DirtyRegistryContext.Provider>
   );
 }
 
@@ -679,6 +954,11 @@ function CommissionsSection() {
     logAdminAction('settings.save', { section: 'commissions', commissionRate: rateNum / 100 });
   };
 
+  // Only register as dirty when the form is actually saveable — a
+  // rateError would block save() so the banner's "Tout enregistrer"
+  // should not claim it has something to persist here.
+  useRegisterDirty('commissions', dirty && !rateError, save);
+
   const resetDefault = () => {
     setRatePct(String((DEFAULT_APP_SETTINGS.commissionRate * 100).toFixed(2)).replace(/\.?0+$/, ''));
   };
@@ -728,7 +1008,7 @@ function CommissionsSection() {
         >
           Réinitialiser (10 %) · Reset (10%)
         </button>
-        {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré · Saved</span> : null}
+        <SavedToast savedAt={savedAt} dirty={dirty} />
       </div>
     </section>
   );
@@ -774,6 +1054,8 @@ function ZapierOutlookSection() {
     setConfiguredWebhook(trimmed.length > 0 ? trimmed : null);
     setSavedAt(Date.now());
   };
+
+  useRegisterDirty('zapier-outlook', dirty && !invalidUrl, save);
 
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
@@ -844,7 +1126,7 @@ function ZapierOutlookSection() {
               Effacer
             </button>
           )}
-          {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré</span> : null}
+          <SavedToast savedAt={savedAt} dirty={dirty} />
         </div>
       )}
     </section>
@@ -898,6 +1180,8 @@ function TaxesSection() {
     });
   };
 
+  useRegisterDirty('taxes', dirty && !hasError, save);
+
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
       <div className="flex items-center gap-3 mb-4">
@@ -943,7 +1227,7 @@ function TaxesSection() {
         >
           <Save size={12} aria-hidden="true" /> Enregistrer
         </button>
-        {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré</span> : null}
+        <SavedToast savedAt={savedAt} dirty={dirty} />
       </div>
     </section>
   );
@@ -1053,6 +1337,8 @@ function DiscountCodesSection() {
     setSavedAt(Date.now());
   };
 
+  // Hoisted below the `dirty` memo.
+
   const resetToDefaults = () => {
     setRows(
       Object.entries(DEFAULT_APP_SETTINGS.discountCodes).map(([code, rate], i) => ({
@@ -1080,6 +1366,8 @@ function DiscountCodesSection() {
     }
     return false;
   }, [rows, settings.discountCodes]);
+
+  useRegisterDirty('discounts', dirty && !hasError, save);
 
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
@@ -1183,7 +1471,7 @@ function DiscountCodesSection() {
         >
           Réinitialiser (VISION10/15/20)
         </button>
-        {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré</span> : null}
+        <SavedToast savedAt={savedAt} dirty={dirty} />
       </div>
     </section>
   );
@@ -1220,6 +1508,8 @@ function BulkPricingSection() {
     saveAppSettings({ bulkThreshold: thrNum, bulkRate: rateNum / 100 });
     setSavedAt(Date.now());
   };
+
+  useRegisterDirty('bulk', dirty && !hasError, save);
 
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
@@ -1266,7 +1556,7 @@ function BulkPricingSection() {
         >
           <Save size={12} aria-hidden="true" /> Enregistrer
         </button>
-        {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré</span> : null}
+        <SavedToast savedAt={savedAt} dirty={dirty} />
       </div>
     </section>
   );
