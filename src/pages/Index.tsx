@@ -366,10 +366,14 @@ export default function Index() {
           {/* Logo marquee — promoted ABOVE the "Aucun minimum" line per
               user feedback ("les logos en-dessus"). Reads visually as
               social proof → commitment pitch. */}
-          <div className={`w-full max-w-[680px] mx-auto mt-6 mb-4 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            <div className="absolute top-0 bottom-0 left-0 w-16 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
-            <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
-            <div className="flex w-max" style={{ animation: 'heroLogoScroll 24s linear infinite' }}>
+          <div
+            className={`w-full max-w-[680px] mx-auto mt-6 mb-4 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}
+            style={{
+              maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+            }}
+          >
+            <div className="flex w-max" style={{ animation: 'heroLogoScroll 40s linear infinite' }}>
               {allLogos.map((logo, i) => (
                 <img
                   key={i}
@@ -689,10 +693,14 @@ export default function Index() {
           <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">
             {lang === 'en' ? 'Companies that trust us' : 'Des entreprises qui nous font confiance'}
           </div>
-          <div className="overflow-hidden relative">
-            <div className="absolute top-0 bottom-0 left-0 w-20 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
-            <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
-            <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
+          <div
+            className="overflow-hidden relative"
+            style={{
+              maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
+            }}
+          >
+            <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 40s linear infinite' }}>
               {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
                 <div key={i} className="px-10 flex items-center justify-center h-[88px]">
                   <img
