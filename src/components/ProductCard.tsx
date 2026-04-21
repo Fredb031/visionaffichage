@@ -23,14 +23,43 @@ interface ProductCardProps {
 export function ProductCard({ product, eager = false }: ProductCardProps) {
   const { t, lang } = useLang();
   const navigate = useNavigate();
-  const { node } = product;
   const [customizerOpen, setCustomizerOpen] = useState(false);
 
-  const shopifyImage = node.images.edges[0]?.node;
-  const shopifyBackImage = node.images.edges[1]?.node;
-  const price = node.priceRange.minVariantPrice;
+  // Defensive: a malformed Shopify payload (new product without full
+  // data, or a partial response) can hand us `product` without a
+  // `node`. Bail out with null rather than crash the whole grid.
+  if (!product || !product.node) {
+    console.warn('[ProductCard] missing product.node, rendering null', product);
+    return null;
+  }
+  const { node } = product;
 
-  const local = findProductByHandle(node.handle) ?? matchProductByTitle(node.title);
+  // Every nested access below is wrapped in optional-chaining +
+  // defaults. Shopify Storefront can legally omit `images.edges` or
+  // `variants.edges` for a brand-new product that hasn't been fully
+  // populated yet, and a NEW product without a local data/products.ts
+  // mapping used to crash this component outright.
+  const imageEdges = Array.isArray(node.images?.edges) ? node.images.edges : [];
+  const shopifyImage = imageEdges[0]?.node;
+  const shopifyBackImage = imageEdges[1]?.node;
+
+  const variantEdges = Array.isArray(node.variants?.edges) ? node.variants.edges : [];
+  const firstVariant = variantEdges[0]?.node;
+
+  // `price` is consumed below as `parseFloat(price.amount)`. A partial
+  // response can omit priceRange entirely — fall through to the
+  // first variant's price, then to "0.00" so the template never
+  // sees undefined.
+  const price = node.priceRange?.minVariantPrice
+    ?? firstVariant?.price
+    ?? { amount: '0', currencyCode: 'CAD' };
+
+  const handle = node.handle ?? '';
+  const title = node.title ?? (lang === 'en' ? 'Product' : 'Produit');
+
+  const local = (handle && findProductByHandle(handle))
+    || (title && matchProductByTitle(title))
+    || null;
   const isPopular = local ? POPULAR_SKUS.has(local.sku) : false;
 
   // Use clean Drive images when available, fall back to Shopify CDN
@@ -42,17 +71,17 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
     : shopifyBackImage;
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
-  const saved = isWishlisted(node.handle);
+  const saved = isWishlisted(handle);
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleWishlist(node.handle);
+    if (handle) toggleWishlist(handle);
   };
 
-  const handleCardClick = () => navigate(`/product/${node.handle}`);
+  const handleCardClick = () => { if (handle) navigate(`/product/${handle}`); };
   const handleCustomize = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (local) setCustomizerOpen(true);
-    else navigate(`/product/${node.handle}`);
+    else if (handle) navigate(`/product/${handle}`);
   };
 
   const onCardKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -62,7 +91,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     if ((e.target as HTMLElement).tagName === 'BUTTON') return;
     e.preventDefault();
-    navigate(`/product/${node.handle}`);
+    if (handle) navigate(`/product/${handle}`);
   };
 
   return (
@@ -76,7 +105,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
            title — joining with " — " when SKU is absent leaves a stray
            trailing em-dash ('T-shirt — ') that screen readers read out
            loud. */
-        aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : node.title}
+        aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : title}
         className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Image */}
@@ -85,7 +114,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             <>
               <img
                 src={image.url}
-                alt={image.altText || node.title}
+                alt={image.altText || title}
                 width={400}
                 height={400}
                 className={`w-full h-full object-cover transition-all duration-500 ${backImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
@@ -104,8 +133,8 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                 <img
                   src={backImage.url}
                   alt={lang === 'en'
-                    ? `${local?.shortName ?? node.title} — back view`
-                    : `${local?.shortName ?? node.title} — vue arrière`}
+                    ? `${local?.shortName ?? title} — back view`
+                    : `${local?.shortName ?? title} — vue arrière`}
                   width={400}
                   height={400}
                   className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105"
@@ -133,8 +162,8 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             type="button"
             onClick={handleWishlistClick}
             aria-label={saved
-              ? (lang === 'en' ? `Remove ${node.title} from wishlist` : `Retirer ${node.title} des favoris`)
-              : (lang === 'en' ? `Save ${node.title} to wishlist` : `Ajouter ${node.title} aux favoris`)}
+              ? (lang === 'en' ? `Remove ${title} from wishlist` : `Retirer ${title} des favoris`)
+              : (lang === 'en' ? `Save ${title} to wishlist` : `Ajouter ${title} aux favoris`)}
             aria-pressed={saved}
             className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
               saved
@@ -150,7 +179,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             <button
               type="button"
               onClick={handleCustomize}
-              aria-label={`${t('personnaliserProduit')} — ${local?.shortName ?? node.title}`}
+              aria-label={`${t('personnaliserProduit')} — ${local?.shortName ?? title}`}
               className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
             >
               {t('personnaliserProduit')} →
@@ -185,7 +214,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             {local?.sku ?? node.productType ?? ''}
           </p>
           <div className="text-[14px] font-extrabold text-foreground leading-tight mb-1">
-            {local ? categoryLabel(local.category, lang) : node.title}
+            {local ? categoryLabel(local.category, lang) : title}
           </div>
 
           {/* Pricing with quantity breaks */}
@@ -208,7 +237,14 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             );
           })() : (
             <div className="mt-2">
-              <span className="text-[14px] font-extrabold text-primary">{parseFloat(price.amount).toFixed(2)} $</span>
+              <span className="text-[14px] font-extrabold text-primary">{(() => {
+                // Defensive: price.amount can be missing/non-numeric on
+                // a partial Shopify response. NaN → "—" so we render
+                // something visible instead of "NaN $".
+                const raw = price?.amount;
+                const n = raw != null ? parseFloat(raw) : NaN;
+                return Number.isFinite(n) ? `${n.toFixed(2)} $` : '— $';
+              })()}</span>
             </div>
           )}
 

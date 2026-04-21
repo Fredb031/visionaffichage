@@ -23,9 +23,12 @@ function matchesCategory(
   product: { node: { handle: string; productType: string; title: string } },
   catId: string,
 ): boolean {
-  const local = findProductByHandle(product.node.handle);
-  const title = product.node.title.toLowerCase();
-  const type  = product.node.productType.toLowerCase();
+  // Defensive: a malformed product could be missing node or any of
+  // its fields. Return false for unknown products (they won't appear
+  // in a category view) rather than crashing the whole grid.
+  const handle = product?.node?.handle;
+  if (!handle) return false;
+  const local = findProductByHandle(handle);
 
   if (!local) return false;
   switch (catId) {
@@ -150,26 +153,42 @@ export default function Products() {
   // already matches the failed query — suggesting the same miss back
   // to the user would be pointless.
   const popularSuggestions = useMemo(() => {
-    if (!products) return [];
-    const popular = [...POPULAR_SKUS];
-    const matched = popular
-      .map(sku => {
-        const local = PRODUCTS.find(p => p.sku === sku);
-        if (!local) return undefined;
-        return products.find(p =>
-          p.node.handle === local.shopifyHandle ||
-          p.node.handle.toLowerCase().includes(sku.toLowerCase()) ||
-          p.node.title.toLowerCase().includes(sku.toLowerCase())
-        );
-      })
-      .filter((p): p is NonNullable<typeof p> => Boolean(p));
-    // Dedupe by handle in case two SKUs map to the same Shopify product.
-    const seen = new Set<string>();
-    return matched.filter(p => {
-      if (seen.has(p.node.handle)) return false;
-      seen.add(p.node.handle);
-      return true;
-    }).slice(0, 3);
+    try {
+      // Defensive: products can be null/undefined while loading, or if
+      // Shopify returned a malformed payload that React Query still
+      // accepted. Guarding with Array.isArray covers both nullish and
+      // "it was an object, not a list" cases.
+      if (!products || !Array.isArray(products)) return [];
+      const popular = [...POPULAR_SKUS];
+      const matched = popular
+        .map(sku => {
+          const local = PRODUCTS.find(p => p.sku === sku);
+          if (!local) return undefined;
+          return products.find(p => {
+            // A NEW product could come back without a handle/title —
+            // don't blow up .toLowerCase() on undefined.
+            const handle = p?.node?.handle ?? '';
+            const title = p?.node?.title ?? '';
+            return (
+              handle === local.shopifyHandle ||
+              handle.toLowerCase().includes(sku.toLowerCase()) ||
+              title.toLowerCase().includes(sku.toLowerCase())
+            );
+          });
+        })
+        .filter((p): p is NonNullable<typeof p> => Boolean(p?.node?.handle));
+      // Dedupe by handle in case two SKUs map to the same Shopify product.
+      const seen = new Set<string>();
+      return matched.filter(p => {
+        const handle = p.node.handle;
+        if (seen.has(handle)) return false;
+        seen.add(handle);
+        return true;
+      }).slice(0, 3);
+    } catch (err) {
+      console.warn('[Products] popularSuggestions failed, returning []', err);
+      return [];
+    }
   }, [products]);
   // Nearest category matches for an empty search. A category is
   // "near" if its label (FR or EN) contains any token from the query,
@@ -190,36 +209,63 @@ export default function Products() {
   }, [searchQuery]);
 
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    let result = activeCategory === 'overview'
-      ? products
-      : products.filter(p => matchesCategory(p, activeCategory));
-    if (debouncedQuery.trim()) {
-      const q = debouncedQuery.toLowerCase();
-      result = result.filter(p =>
-        p.node.title.toLowerCase().includes(q) ||
-        p.node.handle.toLowerCase().includes(q)
-      );
-    }
-    if (sortMode !== 'default') {
-      // Copy before sort — useMemo would otherwise mutate the upstream
-      // products array and invalidate React Query's cached reference.
-      const sorted = [...result];
-      const priceOf = (p: typeof result[number]) => parseFloat(p.node.priceRange.minVariantPrice.amount);
-      switch (sortMode) {
-        case 'name':
-          sorted.sort((a, b) => a.node.title.localeCompare(b.node.title, lang));
-          break;
-        case 'price-asc':
-          sorted.sort((a, b) => priceOf(a) - priceOf(b));
-          break;
-        case 'price-desc':
-          sorted.sort((a, b) => priceOf(b) - priceOf(a));
-          break;
+    try {
+      // Defensive: Shopify (or a buggy intermediate cache) could hand
+      // back null/undefined/non-array. Coerce to [] so the grid simply
+      // renders the empty state instead of throwing on .filter().
+      if (!products || !Array.isArray(products)) return [];
+      // Filter out entries missing the critical `node` sub-tree up
+      // front — every downstream read assumes it exists.
+      const safeProducts = products.filter(p => p && p.node && typeof p.node === 'object');
+      let result = activeCategory === 'overview'
+        ? safeProducts
+        : safeProducts.filter(p => {
+            try {
+              return matchesCategory(p, activeCategory);
+            } catch (err) {
+              console.warn('[Products] matchesCategory threw, skipping product', p?.node?.handle, err);
+              return false;
+            }
+          });
+      if (debouncedQuery.trim()) {
+        const q = debouncedQuery.toLowerCase();
+        result = result.filter(p => {
+          const title = p?.node?.title ?? '';
+          const handle = p?.node?.handle ?? '';
+          return title.toLowerCase().includes(q) || handle.toLowerCase().includes(q);
+        });
       }
-      result = sorted;
+      if (sortMode !== 'default') {
+        // Copy before sort — useMemo would otherwise mutate the upstream
+        // products array and invalidate React Query's cached reference.
+        const sorted = [...result];
+        // Defensive: a NEW product or partial response may be missing
+        // priceRange.minVariantPrice.amount entirely. Optional chain +
+        // NaN-safe fallback keeps sort stable instead of flinging items
+        // to the front/back unpredictably.
+        const priceOf = (p: typeof result[number]) => {
+          const raw = p?.node?.priceRange?.minVariantPrice?.amount;
+          const n = raw != null ? parseFloat(raw) : NaN;
+          return Number.isFinite(n) ? n : 0;
+        };
+        switch (sortMode) {
+          case 'name':
+            sorted.sort((a, b) => (a?.node?.title ?? '').localeCompare(b?.node?.title ?? '', lang));
+            break;
+          case 'price-asc':
+            sorted.sort((a, b) => priceOf(a) - priceOf(b));
+            break;
+          case 'price-desc':
+            sorted.sort((a, b) => priceOf(b) - priceOf(a));
+            break;
+        }
+        result = sorted;
+      }
+      return result;
+    } catch (err) {
+      console.warn('[Products] filteredProducts failed, falling back to []', err);
+      return [];
     }
-    return result;
   }, [products, activeCategory, debouncedQuery, sortMode, lang]);
 
   return (
@@ -495,20 +541,35 @@ export default function Products() {
                       </button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
-                      {popularSuggestions.map(product => (
-                        <ProductCard key={product.node.id} product={product} />
-                      ))}
+                      {popularSuggestions.map((product, i) => {
+                        const key = product?.node?.id ?? product?.node?.handle ?? `pop-${i}`;
+                        try {
+                          return <ProductCard key={key} product={product} />;
+                        } catch (err) {
+                          console.warn('[Products] popular ProductCard threw, skipping', key, err);
+                          return null;
+                        }
+                      })}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-                {filteredProducts.map((product, i) => (
-                  // First row is above the fold (2-col mobile, 4-col desktop)
-                  // — mark those eager so the LCP image isn't lazy-loaded.
-                  <ProductCard key={product.node.id} product={product} eager={i < 4} />
-                ))}
+                {filteredProducts.map((product, i) => {
+                  // Defensive key fallback: an id might be missing on a
+                  // brand-new product. Fall back to handle, then to
+                  // index — React just needs uniqueness within the list.
+                  const key = product?.node?.id ?? product?.node?.handle ?? `idx-${i}`;
+                  try {
+                    // First row is above the fold (2-col mobile, 4-col desktop)
+                    // — mark those eager so the LCP image isn't lazy-loaded.
+                    return <ProductCard key={key} product={product} eager={i < 4} />;
+                  } catch (err) {
+                    console.warn('[Products] ProductCard threw, skipping', key, err);
+                    return null;
+                  }
+                })}
               </div>
             )}
           </>
