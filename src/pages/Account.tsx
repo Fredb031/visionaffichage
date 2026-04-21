@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -40,6 +40,42 @@ function enqueueDeletionRequest(req: DeletionRequest) {
   } catch (e) {
     console.warn('[Account] Could not persist deletion request:', e);
   }
+}
+
+// Law 25 (Québec) right-of-access companion to the deletion queue
+// above. Bundles every localStorage key the site writes for a given
+// visitor into a single JSON blob the customer can download with one
+// click. Server-side data (Shopify orders, Supabase rows) is *not*
+// included on purpose — those live on back-ends we don't ship from
+// this browser; the bilingual footnote in the UI sends customers to
+// info@visionaffichage.com for that half of the request.
+const EXPORT_KEYS = {
+  wishlist: 'vision-wishlist',
+  recentlyViewed: 'vision-recently-viewed',
+  cart: 'vision-cart',
+  savedForLater: 'vision-saved-for-later',
+  newsletterSubscribers: 'vision-newsletter-subscribers',
+  cookieConsent: 'vision-cookie-consent',
+  deletionRequests: DELETION_QUEUE_KEY,
+  lang: 'vision-lang',
+} as const;
+function readJSON(key: string): unknown {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return null;
+    try { return JSON.parse(raw); } catch { return raw; }
+  } catch { return null; }
+}
+function filterDeletionRequestsForEmail(email: string | undefined): unknown {
+  if (!email) return [];
+  const raw = readJSON(EXPORT_KEYS.deletionRequests);
+  if (!Array.isArray(raw)) return [];
+  const me = email.trim().toLowerCase();
+  return raw.filter((r: unknown) => {
+    if (!r || typeof r !== 'object') return false;
+    const candidate = (r as { email?: unknown }).email;
+    return typeof candidate === 'string' && candidate.trim().toLowerCase() === me;
+  });
 }
 
 export default function Account() {
@@ -157,6 +193,61 @@ export default function Account() {
         ? 'Deletion request logged. We will contact you within 24h.'
         : 'Demande de suppression enregistrée. On vous contactera sous 24h.'
     );
+  };
+
+  // Law 25 right-of-access — pack everything we store on this device
+  // about the signed-in user into a single downloadable JSON. We strip
+  // deletion requests to the caller's email so one customer can't
+  // harvest another's pending request on a shared browser.
+  const handleExportData = () => {
+    if (!user) return;
+    try {
+      const exportedAt = new Date().toISOString();
+      const payload = {
+        exportedAt,
+        schemaVersion: 1,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          initials: user.initials,
+          role: user.role,
+          title: user.title ?? null,
+        },
+        data: {
+          wishlist: readJSON(EXPORT_KEYS.wishlist),
+          recentlyViewed: readJSON(EXPORT_KEYS.recentlyViewed),
+          cart: readJSON(EXPORT_KEYS.cart),
+          savedForLater: readJSON(EXPORT_KEYS.savedForLater),
+          newsletterSubscribers: readJSON(EXPORT_KEYS.newsletterSubscribers),
+          cookieConsent: readJSON(EXPORT_KEYS.cookieConsent),
+          deletionRequests: filterDeletionRequestsForEmail(user.email),
+          lang: readJSON(EXPORT_KEYS.lang),
+        },
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vision-affichage-data-${exportedAt}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoke on next tick so Safari has time to start the download.
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      toast.success(
+        lang === 'en'
+          ? 'Your data export has been downloaded.'
+          : 'Votre export de données a été téléchargé.'
+      );
+    } catch (e) {
+      console.warn('[Account] Data export failed:', e);
+      toast.error(
+        lang === 'en'
+          ? 'Could not generate your data export. Please try again.'
+          : "Impossible de générer l'export. Réessayez."
+      );
+    }
   };
 
   const totalSpent = myOrders.reduce((s, o) => s + o.total, 0);
@@ -342,6 +433,39 @@ export default function Account() {
           <LogOut size={14} aria-hidden="true" />
           {lang === 'en' ? 'Sign out' : 'Déconnexion'}
         </button>
+
+        {/* My data — Law 25 right-of-access companion to the deletion
+            queue below. One-click JSON download of every localStorage
+            key we write for this visitor (profile, cart, wishlist,
+            recently-viewed, consent, newsletter sub, deletion
+            requests). Server-side records live elsewhere — the
+            bilingual note points customers to the mailbox for those. */}
+        <section
+          aria-labelledby="my-data-heading"
+          className="mt-8 bg-white border border-border rounded-2xl p-5 md:p-6"
+        >
+          <div className="flex items-start gap-3">
+            <Download size={18} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <h2 id="my-data-heading" className="font-bold text-foreground">
+                {lang === 'en' ? 'My data' : 'Mes données'}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                {lang === 'en'
+                  ? 'This export contains all data stored on this device. Server-side requests: info@visionaffichage.com.'
+                  : 'Cette export contient toutes les données stockées sur cet appareil. Demandes serveur via info@visionaffichage.com.'}
+              </p>
+              <button
+                type="button"
+                onClick={handleExportData}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              >
+                <Download size={14} aria-hidden="true" />
+                {lang === 'en' ? 'Download my data (JSON)' : 'Télécharger mes données (JSON)'}
+              </button>
+            </div>
+          </div>
+        </section>
 
         {/* Danger zone — Law 25 self-serve deletion request. Muted/border
             styling keeps it visually separated from the rest of the page
