@@ -1024,39 +1024,53 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <div className="flex-1 h-px bg-border" />
                   </div>
 
-                  {/* Zone grid with pricing */}
-                  <div className="space-y-1.5">
-                    {product.printZones.map(z => {
-                      const active = currentPlacement?.zoneId === z.id;
-                      const isFree = !z.extraPrice || z.extraPrice === 0;
+                  {/* Zone grid with pricing — filter by active view so back-view users don't see chest zones */}
+                  {(() => {
+                    const visibleZones = product.printZones.filter(z => !z.side || z.side === store.activeView);
+                    if (visibleZones.length === 0) {
                       return (
-                        <button
-                          key={z.id}
-                          onClick={() => setCurrentPlacement({
-                            ...currentPlacement!,
-                            zoneId: z.id,
-                            mode: 'preset',
-                            ...centerOnZone(z),
-                          })}
-                          className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${
-                            active
-                              ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                              : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/50'
-                          }`}
-                        >
-                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
-                          <span className="text-xs font-bold flex-1">
-                            {lang === 'en' ? (z.labelEn ?? z.label) : z.label}
-                          </span>
-                          <span className={`text-[11px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
-                            {isFree
-                              ? (lang === 'en' ? 'Included' : 'Inclus')
-                              : `+${fmtMoney(z.extraPrice, lang)}`}
-                          </span>
-                        </button>
+                        <div className="px-3.5 py-3 rounded-xl border border-dashed border-border text-[11px] text-muted-foreground text-center leading-relaxed">
+                          {lang === 'en'
+                            ? "This view has no standard print zones. Use the Auto-center button."
+                            : "Cette vue n'a pas de zones d'impression standard. Utilise le bouton Auto-center."}
+                        </div>
                       );
-                    })}
-                  </div>
+                    }
+                    return (
+                      <div className="space-y-1.5">
+                        {visibleZones.map(z => {
+                          const active = currentPlacement?.zoneId === z.id;
+                          const isFree = !z.extraPrice || z.extraPrice === 0;
+                          return (
+                            <button
+                              key={z.id}
+                              onClick={() => setCurrentPlacement({
+                                ...currentPlacement!,
+                                zoneId: z.id,
+                                mode: 'preset',
+                                ...centerOnZone(z),
+                              })}
+                              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${
+                                active
+                                  ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                                  : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/50'
+                              }`}
+                            >
+                              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
+                              <span className="text-xs font-bold flex-1">
+                                {lang === 'en' ? (z.labelEn ?? z.label) : z.label}
+                              </span>
+                              <span className={`text-[11px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                {isFree
+                                  ? (lang === 'en' ? 'Included' : 'Inclus')
+                                  : `+${fmtMoney(z.extraPrice, lang)}`}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {/* Manual placement explicit option */}
                   <button

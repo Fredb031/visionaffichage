@@ -9,6 +9,8 @@ export type PrintZone = {
   x: number; y: number; width: number; height: number;
   /** Extra cost for this zone (0 = included in base print price) */
   extraPrice?: number;
+  /** Which garment side this zone belongs to. Unset = unrestricted (shows on both views). */
+  side?: 'front' | 'back';
 };
 
 /**
@@ -54,21 +56,21 @@ const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
 
 // ── Zones d'impression ────────────────────────────────────────────────────────
 const HOODIE_ZONES: PrintZone[] = [
-  { id: 'poitrine-centre', label: 'Centre poitrine',           labelEn: 'Center chest',        x:33, y:26, width:34, height:24, extraPrice: 0 },
-  { id: 'coeur-gauche',    label: 'Cœur gauche (petit logo)',  labelEn: 'Left chest (small)',   x:16, y:27, width:18, height:14, extraPrice: 0 },
-  { id: 'dos-complet',     label: 'Dos complet (grand format)', labelEn: 'Full back (large)',    x:22, y:18, width:56, height:44, extraPrice: 2.00 },
-  { id: 'dos-haut',        label: 'Haut du dos',                labelEn: 'Upper back',           x:28, y:16, width:44, height:20, extraPrice: 2.00 },
-  { id: 'manche-gauche',   label: 'Manche gauche',              labelEn: 'Left sleeve',          x: 4, y:34, width:13, height:17, extraPrice: 2.00 },
-  { id: 'manche-droite',   label: 'Manche droite',              labelEn: 'Right sleeve',         x:83, y:34, width:13, height:17, extraPrice: 2.00 },
+  { id: 'poitrine-centre', label: 'Centre poitrine',           labelEn: 'Center chest',        x:33, y:26, width:34, height:24, extraPrice: 0,    side: 'front' },
+  { id: 'coeur-gauche',    label: 'Cœur gauche (petit logo)',  labelEn: 'Left chest (small)',   x:16, y:27, width:18, height:14, extraPrice: 0,    side: 'front' },
+  { id: 'dos-complet',     label: 'Dos complet (grand format)', labelEn: 'Full back (large)',    x:22, y:18, width:56, height:44, extraPrice: 2.00, side: 'back'  },
+  { id: 'dos-haut',        label: 'Haut du dos',                labelEn: 'Upper back',           x:28, y:16, width:44, height:20, extraPrice: 2.00, side: 'back'  },
+  { id: 'manche-gauche',   label: 'Manche gauche',              labelEn: 'Left sleeve',          x: 4, y:34, width:13, height:17, extraPrice: 2.00, side: 'front' },
+  { id: 'manche-droite',   label: 'Manche droite',              labelEn: 'Right sleeve',         x:83, y:34, width:13, height:17, extraPrice: 2.00, side: 'front' },
 ];
 
 const SHIRT_ZONES: PrintZone[] = [
-  { id: 'poitrine-centre', label: 'Centre poitrine',           labelEn: 'Center chest',         x:32, y:24, width:36, height:26, extraPrice: 0 },
-  { id: 'coeur-gauche',    label: 'Cœur gauche (petit logo)',  labelEn: 'Left chest (small)',    x:16, y:25, width:18, height:14, extraPrice: 0 },
-  { id: 'dos-complet',     label: 'Dos complet (grand format)', labelEn: 'Full back (large)',    x:20, y:16, width:60, height:48, extraPrice: 2.00 },
-  { id: 'dos-haut',        label: 'Haut du dos',                labelEn: 'Upper back',           x:26, y:14, width:48, height:22, extraPrice: 2.00 },
-  { id: 'manche-gauche',   label: 'Manche gauche',              labelEn: 'Left sleeve',          x: 3, y:29, width:13, height:16, extraPrice: 2.00 },
-  { id: 'manche-droite',   label: 'Manche droite',              labelEn: 'Right sleeve',         x:84, y:29, width:13, height:16, extraPrice: 2.00 },
+  { id: 'poitrine-centre', label: 'Centre poitrine',           labelEn: 'Center chest',         x:32, y:24, width:36, height:26, extraPrice: 0,    side: 'front' },
+  { id: 'coeur-gauche',    label: 'Cœur gauche (petit logo)',  labelEn: 'Left chest (small)',    x:16, y:25, width:18, height:14, extraPrice: 0,    side: 'front' },
+  { id: 'dos-complet',     label: 'Dos complet (grand format)', labelEn: 'Full back (large)',    x:20, y:16, width:60, height:48, extraPrice: 2.00, side: 'back'  },
+  { id: 'dos-haut',        label: 'Haut du dos',                labelEn: 'Upper back',           x:26, y:14, width:48, height:22, extraPrice: 2.00, side: 'back'  },
+  { id: 'manche-gauche',   label: 'Manche gauche',              labelEn: 'Left sleeve',          x: 3, y:29, width:13, height:16, extraPrice: 2.00, side: 'front' },
+  { id: 'manche-droite',   label: 'Manche droite',              labelEn: 'Right sleeve',         x:84, y:29, width:13, height:16, extraPrice: 2.00, side: 'front' },
 ];
 
 const CAP_ZONES: PrintZone[] = [
@@ -201,9 +203,9 @@ export const PRODUCTS: Product[] = [
     colors: ATCF2500_COLORS.slice(0, 10),
     sizes: ['XS','S','M','L','XL','2XL','3XL'],
     printZones: [
-      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest',  x:14, y:27, width:20, height:16 , extraPrice: 0 },
-      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back', x:22, y:18, width:56, height:44, extraPrice: 2.00 },
-      { id: 'manche-gauche',label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:34, width:13, height:17, extraPrice: 2.00 },
+      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest',  x:14, y:27, width:20, height:16 , extraPrice: 0,    side: 'front' },
+      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back', x:22, y:18, width:56, height:44, extraPrice: 2.00, side: 'back'  },
+      { id: 'manche-gauche',label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:34, width:13, height:17, extraPrice: 2.00, side: 'front' },
     ],
     description: 'Veste à capuche avec fermeture éclair YKK pleine longueur en French Terry 3 épaisseurs, alliant confort et allure professionnelle. Ses deux poches latérales ajoutent une touche pratique au quotidien. Conçu pour les représentants terrain, salons et événements corporatifs.',
     features: ['Fermeture éclair YKK pleine longueur','French Terry 3 épaisseurs','Deux poches latérales','Capuchon doublé'],
@@ -300,10 +302,10 @@ export const PRODUCTS: Product[] = [
     colors: POLO_S445_COLORS,
     sizes: ['XS','S','M','L','XL','2XL','3XL','4XL'],
     printZones: [
-      { id: 'coeur-gauche',    label: 'Cœur gauche', labelEn: 'Left chest',   x:16, y:25, width:20, height:16 , extraPrice: 0 },
-      { id: 'poitrine-centre', label: 'Centre poitrine', labelEn: 'Center chest', x:32, y:26, width:34, height:24, extraPrice: 0 },
-      { id: 'dos-complet',     label: 'Dos complet', labelEn: 'Full back', x:20, y:16, width:60, height:48, extraPrice: 2.00 },
-      { id: 'manche-gauche',   label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:29, width:13, height:16, extraPrice: 2.00 },
+      { id: 'coeur-gauche',    label: 'Cœur gauche', labelEn: 'Left chest',   x:16, y:25, width:20, height:16 , extraPrice: 0,    side: 'front' },
+      { id: 'poitrine-centre', label: 'Centre poitrine', labelEn: 'Center chest', x:32, y:26, width:34, height:24, extraPrice: 0,    side: 'front' },
+      { id: 'dos-complet',     label: 'Dos complet', labelEn: 'Full back', x:20, y:16, width:60, height:48, extraPrice: 2.00, side: 'back'  },
+      { id: 'manche-gauche',   label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:29, width:13, height:16, extraPrice: 2.00, side: 'front' },
     ],
     description: 'Polo homme à manches courtes avec col classique et placket 3 boutons, offrant une allure soignée en toute occasion. Son tissu respirant assure un confort optimal tout au long de la journée. Parfait pour les uniformes d\'entreprise, réceptions et salons professionnels.',
     features: ['Col polo classique','Placket 3 boutons','Coupe droite','Lavable en machine'],
@@ -318,8 +320,8 @@ export const PRODUCTS: Product[] = [
     colors: POLO_S445_COLORS,
     sizes: ['XS','S','M','L','XL','2XL'],
     printZones: [
-      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest', x:16, y:25, width:20, height:16 , extraPrice: 0 },
-      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back', x:20, y:16, width:60, height:48, extraPrice: 2.00 },
+      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest', x:16, y:25, width:20, height:16 , extraPrice: 0,    side: 'front' },
+      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back', x:20, y:16, width:60, height:48, extraPrice: 2.00, side: 'back'  },
     ],
     description: 'Polo femme coupe ajustée à manches courtes avec col polo et placket 3 boutons, offrant une silhouette élégante et professionnelle. Son tissu léger et respirant garantit un confort toute la journée. Idéal pour les équipes mixtes, réceptions et uniformes corporatifs.',
     features: ['Coupe ajustée femme','Col polo','Placket 3 boutons'],
@@ -334,9 +336,9 @@ export const PRODUCTS: Product[] = [
     colors: POLO_S445_COLORS.slice(0, 7),
     sizes: ['XS','S','M','L','XL','2XL','3XL'],
     printZones: [
-      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest',  x:16, y:25, width:20, height:16 , extraPrice: 0 },
-      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back',   x:20, y:16, width:60, height:48 , extraPrice: 2.00 },
-      { id: 'manche-gauche',label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:29, width:13, height:16, extraPrice: 2.00 },
+      { id: 'coeur-gauche', label: 'Cœur gauche', labelEn: 'Left chest',  x:16, y:25, width:20, height:16 , extraPrice: 0,    side: 'front' },
+      { id: 'dos-complet',  label: 'Dos complet', labelEn: 'Full back',   x:20, y:16, width:60, height:48 , extraPrice: 2.00, side: 'back'  },
+      { id: 'manche-gauche',label: 'Manche gauche', labelEn: 'Left sleeve', x: 3, y:29, width:13, height:16, extraPrice: 2.00, side: 'front' },
     ],
     description: 'Polo manches longues 4 saisons avec col polo et placket 3 boutons, combinant protection contre les éléments et allure professionnelle. Sa coupe structurée garde un look impeccable du matin au soir. Conçu pour les représentants terrain, événements extérieurs et environnements climatisés.',
     features: ['Manches longues','Col polo','Placket 3 boutons','Usage 4 saisons'],
