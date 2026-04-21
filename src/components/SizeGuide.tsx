@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
@@ -88,6 +88,9 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   const rows = product.sizes.filter(s => chart[s]);
 
   const [unit, setUnit] = useState<Unit>(() => readStoredUnit());
+  // Roving-focus ref array for the cm/in radiogroup — arrow keys hop
+  // between the two segments so the modal is usable without a mouse.
+  const unitRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -146,21 +149,53 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
               ) : (
                 <>
                   <div
-                    role="group"
+                    role="radiogroup"
                     aria-label={lang === 'en' ? 'Units' : 'Unités'}
                     className="inline-flex border border-border rounded-lg mb-3 overflow-hidden"
+                    onKeyDown={e => {
+                      const opts: Unit[] = ['cm', 'in'];
+                      const curIdx = opts.indexOf(unit);
+                      let nextIdx = curIdx;
+                      switch (e.key) {
+                        case 'ArrowRight':
+                        case 'ArrowDown':
+                          nextIdx = (curIdx + 1) % opts.length;
+                          break;
+                        case 'ArrowLeft':
+                        case 'ArrowUp':
+                          nextIdx = (curIdx - 1 + opts.length) % opts.length;
+                          break;
+                        case 'Home':
+                          nextIdx = 0;
+                          break;
+                        case 'End':
+                          nextIdx = opts.length - 1;
+                          break;
+                        default:
+                          return;
+                      }
+                      e.preventDefault();
+                      setUnit(opts[nextIdx]);
+                      unitRefs.current[nextIdx]?.focus();
+                    }}
                   >
                     <button
+                      ref={el => { unitRefs.current[0] = el; }}
                       type="button"
-                      aria-pressed={unit === 'cm'}
+                      role="radio"
+                      aria-checked={unit === 'cm'}
+                      tabIndex={unit === 'cm' ? 0 : -1}
                       onClick={() => setUnit('cm')}
                       className={`px-3 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${unit === 'cm' ? 'bg-[#0052CC] text-white' : 'bg-transparent text-muted-foreground'}`}
                     >
                       cm
                     </button>
                     <button
+                      ref={el => { unitRefs.current[1] = el; }}
                       type="button"
-                      aria-pressed={unit === 'in'}
+                      role="radio"
+                      aria-checked={unit === 'in'}
+                      tabIndex={unit === 'in' ? 0 : -1}
                       onClick={() => setUnit('in')}
                       className={`px-3 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${unit === 'in' ? 'bg-[#0052CC] text-white' : 'bg-transparent text-muted-foreground'}`}
                     >
