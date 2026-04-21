@@ -23,8 +23,12 @@ export function useProducts(first = 50) {
     // page re-hydrates instantly instead of hitting Shopify again.
     gcTime: 60 * 60 * 1000,
     // Retry transient Shopify network blips with exponential backoff
-    // before surfacing an error to the user.
+    // before surfacing an error to the user. The +Math.random()*300
+    // jitter prevents a thundering herd when the tab wakes from
+    // sleep / reconnects: without it, every tab the user has open
+    // retries at the exact same t=1000/2000/4000ms mark, which just
+    // replays the 429 that queued them up in the first place.
     retry: 2,
-    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
   });
 }

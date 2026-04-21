@@ -264,8 +264,14 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
   // `HTTP error! status: 429` throw, which React Query surfaces as a
   // blank skeleton / ErrorBoundary — users had no idea it was transient.
   // Surface a localized toast so they know to wait a moment, mirroring
-  // the 402 pattern above. Still return undefined so callers don't crash
-  // on a missing `data` — the fetch will retry via React Query.
+  // the 402 pattern above. Then THROW a tagged error (retryable: true)
+  // instead of returning undefined: returning undefined silently looked
+  // like success to callers — cart mutations committed local lines for
+  // writes that never reached Shopify, and query hooks cached an empty
+  // result for the full staleTime even though the server was back in
+  // 200ms. Throwing lets React Query's retry policy honour the backoff,
+  // and lets future callers branch on `err.retryable` to decide between
+  // auto-retry vs a user-facing failure.
   if (response.status === 429) {
     let isEn = false;
     try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
@@ -275,7 +281,10 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
           ? 'Please wait a moment and try again.'
           : 'Veuillez patienter un instant et réessayer.' },
     );
-    return;
+    const err = new Error('HTTP error! status: 429') as Error & { retryable: boolean; status: number };
+    err.retryable = true;
+    err.status = 429;
+    throw err;
   }
 
   // Shopify Storefront occasionally returns 5xx during deploys, regional

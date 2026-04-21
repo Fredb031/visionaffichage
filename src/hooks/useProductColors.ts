@@ -41,7 +41,10 @@ export function useProductColors(handle: string | undefined) {
     // locking in an empty list for the 30-min staleTime. Without this,
     // a dropped fetch during PDP load showed no colour swatches for
     // the full stale window even if Shopify was up the whole time after.
+    // The +Math.random()*300 jitter desynchronizes parallel hooks
+    // (useProducts + useProductColors fire together on PDP mount) so
+    // they don't retry in lock-step and re-trigger the same rate limit.
     retry: 2,
-    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
   });
 }
