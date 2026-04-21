@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, Plus, Trash2, Send, Percent, DollarSign, Save, BookmarkPlus, Bookmark } from 'lucide-react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PRODUCTS, PRINT_PRICE, findColorImage, type Product } from '@/data/products';
@@ -8,6 +8,7 @@ import { useProductColors } from '@/hooks/useProductColors';
 import type { ShopifyVariantColor } from '@/lib/shopify';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
+import { useAuthStore } from '@/stores/authStore';
 
 // The size column order that matches what the client can actually order on
 // Shopify — keep this constant in sync with the matrix header below so the
@@ -82,12 +83,65 @@ function lineTotalForItem(it: LineItem): number {
   return (it.unitPrice + PRINT_PRICE * zones) * qty;
 }
 
+// ── Quote templates (Task 10.9) ──────────────────────────────────────────
+// Persisted reusable line-item bundles. Vendors doing recurring merch
+// pitches (shirts + hoodies + caps) used to rebuild the same rows every
+// time — templates let them capture the item list once and re-inject it
+// into a fresh draft without touching customer info.
+interface QuoteTemplate {
+  id: string;
+  name: string;
+  items: LineItem[];
+  savedAt: string;
+}
+
+const TEMPLATES_KEY = 'vision-quote-templates';
+const TEMPLATES_CAP = 50;
+
+// Vendor-scoped when we know who's logged in, otherwise a single global
+// bucket. Keyed so one vendor's templates don't leak into another's
+// dropdown on a shared browser.
+function templateStorageKey(vendorId: string | null): string {
+  return vendorId ? `${TEMPLATES_KEY}:${vendorId}` : TEMPLATES_KEY;
+}
+
+function loadTemplates(vendorId: string | null): QuoteTemplate[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(templateStorageKey(vendorId)) ?? '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((t): t is QuoteTemplate =>
+      !!t && typeof t === 'object'
+      && typeof (t as { id?: unknown }).id === 'string'
+      && typeof (t as { name?: unknown }).name === 'string'
+      && Array.isArray((t as { items?: unknown }).items),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveTemplates(vendorId: string | null, list: QuoteTemplate[]) {
+  try {
+    localStorage.setItem(
+      templateStorageKey(vendorId),
+      JSON.stringify(list.slice(0, TEMPLATES_CAP)),
+    );
+  } catch (e) {
+    console.warn('[QuoteBuilder] Templates could not be persisted:', e);
+  }
+}
+
 export default function QuoteBuilder() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isAdminPath = location.pathname.startsWith('/admin');
   const backHref = isAdminPath ? '/admin/quotes' : '/vendor';
   useDocumentTitle('Nouvelle soumission — Vision Affichage');
+  const user = useAuthStore(s => s.user);
+  // Scope template bucket to the logged-in vendor when we have one —
+  // falls back to a global list for admin/president flows or when
+  // auth hasn't hydrated yet so the UI still works.
+  const vendorId = user?.role === 'vendor' ? user.id : null;
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
   const [clientEmail, setClientEmail] = useState('');
@@ -95,6 +149,95 @@ export default function QuoteBuilder() {
   const [discountKind, setDiscountKind] = useState<'percent' | 'flat'>('percent');
   const [discountValue, setDiscountValue] = useState('');
   const [notes, setNotes] = useState('');
+  const [templates, setTemplates] = useState<QuoteTemplate[]>(() => loadTemplates(vendorId));
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const templatesPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Re-hydrate templates whenever vendor scope changes (e.g. auth
+  // rehydrates after the page mounts). Without this, a vendor who
+  // loads the page before auth resolves would stay on the global
+  // bucket for the rest of the session.
+  useEffect(() => {
+    setTemplates(loadTemplates(vendorId));
+  }, [vendorId]);
+
+  // Close the templates popover on outside click + Escape. Matches the
+  // dismissal pattern the catalog search + discount radio buttons use
+  // elsewhere on this page (focus-visible rings, keyboard-friendly).
+  useEffect(() => {
+    if (!templatesOpen) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (!templatesPanelRef.current) return;
+      if (!templatesPanelRef.current.contains(e.target as Node)) setTemplatesOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTemplatesOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [templatesOpen]);
+
+  const handleSaveTemplate = () => {
+    if (items.length === 0) {
+      toast.error('Aucun article à enregistrer', {
+        description: 'Ajoute au moins un produit avant de créer un template.',
+      });
+      return;
+    }
+    const raw = window.prompt('Nom du template / Template name');
+    const name = normalizeInvisible(raw ?? '').trim();
+    if (!name) return;
+    // Clone the items through JSON so a later edit to the current
+    // draft doesn't mutate the persisted template by reference — and
+    // re-mint ids so loading the template doesn't collide with whatever
+    // rows are already on-screen.
+    const clonedItems: LineItem[] = JSON.parse(JSON.stringify(items));
+    const entry: QuoteTemplate = {
+      id: `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: name.slice(0, 80),
+      items: clonedItems,
+      savedAt: new Date().toISOString(),
+    };
+    const next = [entry, ...templates].slice(0, TEMPLATES_CAP);
+    setTemplates(next);
+    saveTemplates(vendorId, next);
+    toast.success('Template enregistré', {
+      description: `« ${entry.name} » — ${clonedItems.length} article${clonedItems.length > 1 ? 's' : ''}.`,
+    });
+  };
+
+  const handleLoadTemplate = (tpl: QuoteTemplate) => {
+    // Re-mint line-item ids so React keys don't collide if the vendor
+    // loads the same template twice in a row, and deep-copy the matrix
+    // so editing the cloned row doesn't mutate the persisted template.
+    const hydrated: LineItem[] = tpl.items.map((it, idx) => ({
+      ...it,
+      id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+      colors: Array.isArray(it.colors) ? [...it.colors] : [],
+      sizeQuantities: it.sizeQuantities
+        ? JSON.parse(JSON.stringify(it.sizeQuantities))
+        : {},
+    }));
+    setItems(hydrated);
+    setTemplatesOpen(false);
+    toast.success('Template chargé', {
+      description: `« ${tpl.name} » — champs client conservés.`,
+    });
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    const target = templates.find(t => t.id === id);
+    const next = templates.filter(t => t.id !== id);
+    setTemplates(next);
+    saveTemplates(vendorId, next);
+    toast.success('Template supprimé', {
+      description: target ? `« ${target.name} » retiré.` : undefined,
+    });
+  };
 
   // Clone-existing-quote hydration (Task 10.2). When navigated to with
   // `?clone=<quoteId>`, look the source quote up in the same
@@ -387,6 +530,89 @@ export default function QuoteBuilder() {
           <h1 className="font-extrabold text-lg">Nouvelle soumission</h1>
         </div>
         <div className="flex gap-2">
+          <div className="relative" ref={templatesPanelRef}>
+            <button
+              type="button"
+              onClick={() => setTemplatesOpen(v => !v)}
+              aria-haspopup="menu"
+              aria-expanded={templatesOpen}
+              className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            >
+              <Bookmark size={14} aria-hidden="true" />
+              Templates
+              {templates.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#1B3A6B] text-white text-[10px] font-extrabold">
+                  {templates.length}
+                </span>
+              )}
+            </button>
+            {templatesOpen && (
+              <div
+                role="menu"
+                aria-label="Quote templates"
+                className="absolute right-0 mt-2 w-[320px] bg-white border border-zinc-200 rounded-xl shadow-lg z-50 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={handleSaveTemplate}
+                  disabled={items.length === 0}
+                  className="w-full flex items-center gap-2 text-left px-4 py-3 text-sm font-bold text-[#1B3A6B] hover:bg-[#1B3A6B]/5 disabled:opacity-40 disabled:cursor-not-allowed border-b border-zinc-100 focus:outline-none focus-visible:bg-[#1B3A6B]/5"
+                >
+                  <BookmarkPlus size={15} aria-hidden="true" />
+                  Enregistrer comme template / Save as template
+                </button>
+                <div className="max-h-[320px] overflow-y-auto">
+                  {templates.length === 0 ? (
+                    <div className="px-4 py-6 text-xs text-zinc-400 italic text-center">
+                      Aucun template enregistré.
+                      <div className="mt-1 text-[11px] text-zinc-400/80">
+                        Charger un template / Load a template
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        Charger un template / Load a template
+                      </div>
+                      <ul className="pb-1">
+                        {templates.map(tpl => (
+                          <li
+                            key={tpl.id}
+                            className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleLoadTemplate(tpl)}
+                              className="flex-1 min-w-0 text-left px-2 py-1.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+                            >
+                              <div className="text-sm font-bold text-zinc-800 truncate">
+                                {tpl.name}
+                              </div>
+                              <div className="text-[11px] text-zinc-500">
+                                {tpl.items.length} article{tpl.items.length > 1 ? 's' : ''}
+                                {' · '}
+                                {new Date(tpl.savedAt).toLocaleDateString('fr-CA', {
+                                  year: 'numeric', month: 'short', day: 'numeric',
+                                })}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTemplate(tpl.id)}
+                              aria-label={`Supprimer le template ${tpl.name}`}
+                              className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
+                            >
+                              <Trash2 size={14} aria-hidden="true" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleSaveDraft}
