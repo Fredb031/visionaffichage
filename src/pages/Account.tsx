@@ -239,7 +239,7 @@ export default function Account() {
                     </div>
                     <div className="text-right">
                       <div className="font-extrabold">{o.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { minimumFractionDigits: 2 })} $</div>
-                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] inline-block" aria-hidden="true" />
+                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] group-focus-visible:text-[#0052CC] inline-block" aria-hidden="true" />
                     </div>
                   </Link>
                 );
