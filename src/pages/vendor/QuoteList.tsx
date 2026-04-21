@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Copy, Send, Eye } from 'lucide-react';
+import { Search, Plus, Copy, Send, Eye, Download, FileText } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
@@ -18,6 +18,12 @@ interface MockQuote {
   discountKind: DiscountKind;
   status: Status;
   age: string;
+  // ISO strings when present — kept optional because MOCK fixtures and
+  // older localStorage rows predate the fields. Used by the CSV export
+  // to emit stable fr-CA dates (Créé / Expire) instead of the relative
+  // `age` label, which isn't reload-stable.
+  createdAt?: string;
+  expiresAt?: string;
 }
 
 const MOCK: MockQuote[] = [
@@ -47,6 +53,56 @@ const STATUS_COLOR: Record<Status, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
   expired: 'bg-rose-50 text-rose-700',
 };
+
+/** Format an ISO date for the CSV column. fr-CA matches the admin CSV
+ * so a reload-to-Excel round-trip preserves month order; returns an
+ * empty string for missing/invalid dates rather than 'Invalid Date' so
+ * the CSV stays clean. Mirror of AdminQuotes.formatQuoteDate. */
+function formatQuoteDate(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Generate and download a CSV for the vendor's currently filtered
+ * quote list. Columns (in this order): Numéro, Client, Courriel, Statut,
+ * Total, Créé, Expire. Mirrors the AdminQuotes helper verbatim — same
+ * formula-injection guard (OWASP CSV injection), RFC 4180 quoting, UTF-8
+ * BOM so Excel decodes accents without a prompt. Total is plain numeric
+ * (2 decimals, no '$') so the column stays parseable as a number.
+ * Filename is `mes-devis-YYYY-MM-DD.csv` — vendor-flavoured to distinguish
+ * from the admin-wide `quotes-YYYY-MM-DD.csv` when both land in the same
+ * Downloads folder. */
+function exportQuotesCsv(rows: MockQuote[]) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = ['Numéro', 'Client', 'Courriel', 'Statut', 'Total', 'Créé', 'Expire'];
+  const body = rows.map(q => [
+    q.number,
+    q.client,
+    q.email,
+    STATUS_LABEL[q.status] ?? q.status,
+    // No currency symbol — keeps the column numeric-parseable in Excel.
+    (Number.isFinite(q.total) ? q.total : 0).toFixed(2),
+    formatQuoteDate(q.createdAt),
+    formatQuoteDate(q.expiresAt),
+  ]);
+  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mes-devis-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired'];
 function coerceStatus(raw: unknown): Status {
@@ -107,6 +163,7 @@ export default function QuoteList() {
         total?: number;
         status?: MockQuote['status'];
         createdAt?: string;
+        expiresAt?: string;
         items?: unknown[];
         discountValue?: number;
         discountKind?: string;
@@ -149,6 +206,10 @@ export default function QuoteList() {
             discountKind: kind,
             status: coerceStatus(q.status),
             age,
+            // Preserve the raw ISO timestamps so the CSV export emits
+            // stable fr-CA dates instead of the relative `age` label.
+            createdAt: typeof q.createdAt === 'string' ? q.createdAt : undefined,
+            expiresAt: typeof q.expiresAt === 'string' ? q.expiresAt : undefined,
           });
         } catch (e) {
           console.warn('[QuoteList] Skipping malformed quote row:', e);
@@ -174,6 +235,14 @@ export default function QuoteList() {
     });
   }, [all, query, filter]);
 
+  // Distinguish "vendor has literally zero quotes" (first-run empty
+  // state — show a friendly CTA block) from "the current filter yields
+  // zero rows" (still render the table shell + toolbar so the vendor
+  // can loosen their search/filter). Without this split, a brand-new
+  // vendor hits the cramped "Aucune soumission trouvée" cell instead of
+  // being nudged toward the builder.
+  const vendorHasNoQuotes = all.length === 0;
+
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
@@ -181,15 +250,54 @@ export default function QuoteList() {
           <h1 className="text-2xl font-extrabold tracking-tight">Mes soumissions</h1>
           <p className="text-sm text-zinc-500 mt-1">{all.length} soumission{all.length > 1 ? 's' : ''} au total</p>
         </div>
-        <Link
-          to="/vendor/quotes/new"
-          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          <Plus size={16} aria-hidden="true" />
-          Nouvelle soumission
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => exportQuotesCsv(filtered)}
+            disabled={filtered.length === 0}
+            // Disabled when the filter yields nothing — avoids downloading
+            // a header-only CSV and signals to the vendor that the filter
+            // is the thing to change. Tooltip + aria explain why the
+            // button is dead. Mirror of the AdminQuotes export button.
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={filtered.length === 0 ? 'Aucune soumission à exporter' : 'Exporter en CSV'}
+            aria-label={
+              filtered.length === 0
+                ? 'Aucune soumission à exporter'
+                : `Exporter ${filtered.length} soumission${filtered.length > 1 ? 's' : ''} en CSV`
+            }
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
+          <Link
+            to="/vendor/quotes/new"
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nouvelle soumission
+          </Link>
+        </div>
       </header>
 
+      {vendorHasNoQuotes ? (
+        <div className="bg-white border border-zinc-200 rounded-2xl p-10 text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-[#0052CC]/10 flex items-center justify-center mb-4">
+            <FileText size={22} className="text-[#0052CC]" aria-hidden="true" />
+          </div>
+          <h2 className="text-lg font-extrabold text-[#1B3A6B]">Aucune soumission pour l'instant</h2>
+          <p className="text-sm text-zinc-500 mt-2 max-w-md mx-auto">
+            Créez votre première soumission pour commencer à suivre vos devis client.
+          </p>
+          <Link
+            to="/vendor/quotes/new"
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md mt-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Créer un devis
+          </Link>
+        </div>
+      ) : (
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
@@ -295,6 +403,7 @@ export default function QuoteList() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
