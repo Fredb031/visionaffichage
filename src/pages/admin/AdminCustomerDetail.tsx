@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -34,8 +34,10 @@ interface CustomerNote {
 }
 
 type NotesStore = Record<string, CustomerNote[]>;
+type TagsStore = Record<string, string[]>;
 
 const NOTES_KEY = 'vision-customer-notes';
+const TAGS_KEY = 'vision-customer-tags';
 
 type TabId = 'orders' | 'notes' | 'activity' | 'tags';
 
@@ -94,6 +96,20 @@ function saveNotes(store: NotesStore): void {
   writeLS(NOTES_KEY, store);
 }
 
+/* ────────── Tags persistence ────────── */
+
+function loadTagsStore(): TagsStore {
+  // Mirrors the notes hydration guard — a corrupted tag blob (wrong
+  // shape, half-written, devtools-edited) must not crash the detail
+  // page on open. readLS already swallows JSON.parse failures.
+  const parsed = readLS<unknown>(TAGS_KEY, {});
+  return parsed && typeof parsed === 'object' ? (parsed as TagsStore) : {};
+}
+
+function saveTagsStore(store: TagsStore): void {
+  writeLS(TAGS_KEY, store);
+}
+
 /* ────────── Page ────────── */
 
 export default function AdminCustomerDetail() {
@@ -121,13 +137,53 @@ export default function AdminCustomerDetail() {
   const customerKey = customerId ?? '';
   const notes = notesStore[customerKey] ?? [];
 
-  /* ─── Tags state (session-local — no backend yet) ─── */
-  const [tags, setTags] = useState<string[]>(() => (customer ? parseTags(customer.tags) : []));
-  const [tagDraft, setTagDraft] = useState('');
+  /* ─── Tags state (persisted per-customer to localStorage) ─── */
+  const [tagsStore, setTagsStore] = useState<TagsStore>(() => loadTagsStore());
+  // Per-customer tags: local override from store wins; otherwise seed
+  // from the Shopify snapshot so first-time visits still show the
+  // existing CSV-encoded tags instead of an empty list.
+  const tags: string[] = useMemo(() => {
+    if (!customer) return [];
+    const key = String(customer.id);
+    const override = tagsStore[key];
+    if (override) return override;
+    return parseTags(customer.tags);
+  }, [customer, tagsStore]);
+
+  // Inline-edit state: which chip index is being edited, and the
+  // buffered input value. -1 means "adding a new tag" when addingTag
+  // is true; a non-negative index means "renaming tag at index".
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [addingTag, setAddingTag] = useState(false);
+  const [editDraft, setEditDraft] = useState('');
+  const editInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
-    // reset when navigating between customers
-    setTags(customer ? parseTags(customer.tags) : []);
+    saveTagsStore(tagsStore);
+  }, [tagsStore]);
+
+  useEffect(() => {
+    // Reset inline-edit scratch state when switching customers — stale
+    // edit buffers would otherwise bleed into the next customer's view.
+    setEditIndex(null);
+    setAddingTag(false);
+    setEditDraft('');
   }, [customer]);
+
+  useEffect(() => {
+    // Autofocus the inline input whenever we enter an edit/add mode so
+    // keyboard users can type immediately without an extra click.
+    if (editIndex !== null || addingTag) {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }
+  }, [editIndex, addingTag]);
+
+  const commitTags = (next: string[]) => {
+    if (!customer) return;
+    const key = String(customer.id);
+    setTagsStore(prev => ({ ...prev, [key]: next }));
+  };
 
   /* ─── Derived: orders for this customer ─── */
   const customerOrders = useMemo<ShopifyOrderSnapshot[]>(() => {
@@ -183,19 +239,77 @@ export default function AdminCustomerDetail() {
     toast.success('Note ajoutée');
   };
 
-  const handleAddTag = () => {
-    const t = tagDraft.trim();
-    if (!t || tags.includes(t)) {
-      setTagDraft('');
-      return;
-    }
-    setTags([...tags, t]);
-    setTagDraft('');
-    toast.success(`Tag « ${t} » ajouté`);
+  const startAddTag = () => {
+    setEditIndex(null);
+    setAddingTag(true);
+    setEditDraft('');
   };
 
-  const handleRemoveTag = (t: string) => {
-    setTags(tags.filter(x => x !== t));
+  const startEditTag = (index: number) => {
+    setAddingTag(false);
+    setEditIndex(index);
+    setEditDraft(tags[index] ?? '');
+  };
+
+  const cancelEdit = () => {
+    // Revert to original — nothing else needed since the draft is
+    // only buffered, not applied until commit.
+    setEditIndex(null);
+    setAddingTag(false);
+    setEditDraft('');
+  };
+
+  const commitEdit = () => {
+    const trimmed = editDraft.trim();
+
+    // New-tag flow: bail on empty, silently no-op on duplicate.
+    if (addingTag) {
+      if (!trimmed) {
+        cancelEdit();
+        return;
+      }
+      if (tags.includes(trimmed)) {
+        toast.error(`Tag « ${trimmed } » déjà présent`);
+        cancelEdit();
+        return;
+      }
+      commitTags([...tags, trimmed]);
+      toast.success(`Tag « ${trimmed} » ajouté`);
+      cancelEdit();
+      return;
+    }
+
+    // Rename flow: empty-after-trim removes the tag entirely so a
+    // user can clear and blur to delete without reaching for the ×.
+    if (editIndex !== null) {
+      const original = tags[editIndex];
+      if (!trimmed) {
+        commitTags(tags.filter((_, i) => i !== editIndex));
+        toast.success(`Tag « ${original} » retiré`);
+        cancelEdit();
+        return;
+      }
+      // No-change: silently close without writing.
+      if (trimmed === original) {
+        cancelEdit();
+        return;
+      }
+      // Duplicate against another tag: revert, don't clobber.
+      if (tags.some((t, i) => i !== editIndex && t === trimmed)) {
+        toast.error(`Tag « ${trimmed} » déjà présent`);
+        cancelEdit();
+        return;
+      }
+      const next = tags.map((t, i) => (i === editIndex ? trimmed : t));
+      commitTags(next);
+      cancelEdit();
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    const removed = tags[index];
+    commitTags(tags.filter((_, i) => i !== index));
+    if (removed) toast.success(`Tag « ${removed} » retiré`);
   };
 
   /* ─── Not-found state ─── */
@@ -456,62 +570,104 @@ export default function AdminCustomerDetail() {
         {tab === 'tags' && (
           <div id="panel-tags" role="tabpanel" aria-labelledby="tab-tags" className="p-5 space-y-4">
             <div>
-              <label htmlFor="tag-input" className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                Ajouter un tag
-              </label>
-              <div className="flex gap-2 mt-2">
-                <input
-                  id="tag-input"
-                  type="text"
-                  value={tagDraft}
-                  onChange={e => setTagDraft(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddTag();
-                    }
-                  }}
-                  placeholder="p. ex. VIP, gros-compte, retard-paiement"
-                  className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC]"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  disabled={!tagDraft.trim()}
-                  className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg bg-[#0052CC] text-white hover:bg-[#003E99] disabled:bg-zinc-300 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
-                >
-                  <Plus size={15} aria-hidden="true" />
-                  Ajouter
-                </button>
+              <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                Tags du client
               </div>
+              <p className="text-[11px] text-zinc-400 mb-3">
+                Cliquer sur un tag pour le renommer. Entrée pour enregistrer, Échap pour annuler.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((t, i) => {
+                  const isEditing = editIndex === i;
+                  if (isEditing) {
+                    return (
+                      <input
+                        key={`edit-${i}`}
+                        ref={editInputRef}
+                        type="text"
+                        value={editDraft}
+                        onChange={e => setEditDraft(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitEdit();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelEdit();
+                          }
+                        }}
+                        aria-label={`Renommer le tag ${t}`}
+                        className="inline-flex text-xs font-bold px-3 py-1 rounded-full bg-white border border-[#0052CC] text-zinc-800 outline-none ring-2 ring-[#0052CC]/20 min-w-[6rem]"
+                      />
+                    );
+                  }
+                  return (
+                    <span
+                      key={`${t}-${i}`}
+                      className="group inline-flex items-center gap-1.5 text-xs font-bold pl-3 pr-2 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => startEditTag(i)}
+                        aria-label={`Modifier le tag ${t}`}
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded-sm"
+                      >
+                        {t}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(i)}
+                        aria-label={`Retirer le tag ${t}`}
+                        className="text-zinc-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded-full transition-colors"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    </span>
+                  );
+                })}
+
+                {addingTag ? (
+                  <input
+                    ref={editInputRef}
+                    type="text"
+                    value={editDraft}
+                    onChange={e => setEditDraft(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitEdit();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                    placeholder="Nouveau tag…"
+                    aria-label="Nouveau tag"
+                    className="inline-flex text-xs font-bold px-3 py-1 rounded-full bg-white border border-[#0052CC] text-zinc-800 outline-none ring-2 ring-[#0052CC]/20 min-w-[7rem]"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startAddTag}
+                    aria-label="Ajouter un tag"
+                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-white border border-dashed border-zinc-300 text-zinc-500 hover:text-[#0052CC] hover:border-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] transition-colors"
+                  >
+                    <Plus size={12} aria-hidden="true" />
+                    Ajouter
+                  </button>
+                )}
+              </div>
+
+              {tags.length === 0 && !addingTag && (
+                <div className="text-[11px] text-zinc-400 mt-3">
+                  Aucun tag pour ce client. Cliquer sur « Ajouter » pour en créer un.
+                </div>
+              )}
             </div>
 
-            {tags.length === 0 ? (
-              <div className="text-center py-8 text-sm text-zinc-400 border-t border-zinc-100">
-                Aucun tag pour ce client.
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
-                {tags.map(t => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-700"
-                  >
-                    {t}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(t)}
-                      aria-label={`Retirer le tag ${t}`}
-                      className="text-zinc-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
-                    >
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-zinc-400 border-t border-zinc-100 pt-3">
               Modifications locales — synchronisation Shopify à venir.
             </p>
           </div>
