@@ -1,10 +1,22 @@
 /**
- * ProductCustomizer — 5-step modal
- * Fixes applied:
- *  - Full i18n (no more hardcoded French)
- *  - REMOVED step-1 product image thumbnails (they showed Shopify CDN mockup
- *    images with "VOTRE LOGO" embedded in the actual JPG — causing logo
- *    duplication on step 3). The 3D viewer on the left already shows the garment.
+ * ProductCustomizer — 3-step modal.
+ *
+ * Step flow after the 2026-04-20 simplification (user feedback was
+ * "make it dumb fucking simple and so nice"):
+ *   1 = Design   (colour picker + logo upload + placement — all on one
+ *                 screen with progressive disclosure: placement tiles +
+ *                 zone grid only reveal after a logo is uploaded)
+ *   2 = Tailles  (sizes × quantities matrix + bulk discount preview)
+ *   3 = Récap    (summary + add-to-cart)
+ *
+ * Previous flow had 4 steps (Logo / Where / Sizes / Review) which forced
+ * the user through two navigation taps before they had a usable preview.
+ * The old "Where" (placement zones, auto-centre, chest, manual) is now
+ * an inline section on Step 1 that unlocks the moment the logo decodes.
+ *
+ * Everything else (canvas, placement logic, cart sync, per-side 'both'
+ * handling) is untouched. Only the step scaffolding, progress indicator,
+ * swatch layout, and placement-tile visuals changed.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -85,10 +97,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, product]);
 
-  // If the canvas-level trash wiped the current side's logo while we're
-  // on step 2, bounce back to step 1 so the user can re-upload.
+  // Design + placement now share Step 1 — there is no longer a dedicated
+  // "placement" step to bounce back from. Kept as a guard anyway: if the
+  // user is past Step 1 (Tailles / Récap) and somehow lost their logo
+  // (e.g. fabric trash-on-canvas from the old code path, or a hydrate
+  // replacing state mid-flow), send them back so they can re-upload
+  // before committing sizes.
   useEffect(() => {
-    if (store.step !== 2) return;
+    if (store.step <= 1) return;
     if (store.placementSides === 'none') return;
     const currentSideHasLogo =
       store.placementSides === 'back'  ? !!store.logoPlacementBack?.previewUrl :
@@ -324,40 +340,35 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       : !!store.logoPlacementBack?.previewUrl;
   })();
 
-  // 4-step flow (collapsed from 5). Color selection is handled by the
-  // persistent palette on the right — no dedicated step needed, which
-  // makes the whole flow one click shorter.
-  //   1 = Logo upload   (+ side selection)
-  //   2 = Where to print
-  //   3 = Sizes & quantities
-  //   4 = Review & cart
-  // Each step has a short clear label (never just a number) so users
-  // always know what the step does at a glance. Bilingual by design.
+  // 3-step flow (collapsed from 4). The colour palette lives at the top
+  // of the right panel at every step so the user can re-swap mid-flow.
+  //   1 = Design   (logo upload + side + placement — one screen)
+  //   2 = Tailles  (sizes × quantities)
+  //   3 = Récap    (summary + add to cart)
   const STEPS = [
-    { id: 1, label: lang === 'en' ? 'Logo'      : 'Logo',       shortLabel: 'Logo',                               done: anyLogoUploaded || store.placementSides === 'none' },
-    { id: 2, label: lang === 'en' ? 'Placement' : 'Placement',  shortLabel: 'Placement',                          done: placementComplete },
-    { id: 3, label: lang === 'en' ? 'Sizes'     : 'Tailles',    shortLabel: lang === 'en' ? 'Sizes'    : 'Tailles',  done: totalQty > 0 },
-    { id: 4, label: lang === 'en' ? 'Review'    : 'Révision',   shortLabel: lang === 'en' ? 'Review'   : 'Révision', done: false },
+    { id: 1 as const, label: lang === 'en' ? 'Design'  : 'Design',   shortLabel: 'Design',                                 done: (anyLogoUploaded || store.placementSides === 'none') && placementComplete },
+    { id: 2 as const, label: lang === 'en' ? 'Sizes'   : 'Tailles',  shortLabel: lang === 'en' ? 'Sizes'  : 'Tailles',     done: totalQty > 0 },
+    { id: 3 as const, label: lang === 'en' ? 'Review'  : 'Récap',    shortLabel: lang === 'en' ? 'Review' : 'Récap',       done: false },
   ];
 
   const canNext = () => {
-    if (store.step === 1) return anyLogoUploaded || store.placementSides === 'none';
-    if (store.step === 2) return placementComplete;
-    if (store.step === 3) return totalQty > 0;
+    if (store.step === 1) {
+      // Need either "no logo" OR a placed logo on every picked side.
+      if (store.placementSides === 'none') return true;
+      return anyLogoUploaded && placementComplete;
+    }
+    if (store.step === 2) return totalQty > 0;
     return true;
   };
 
   const goNext = () => {
     if (!canNext()) return;
-    let next = store.step + 1;
-    // Skip "Where to print" entirely when the user picked a blank garment.
-    if (store.step === 1 && store.placementSides === 'none' && next === 2) next = 3;
-    store.setStep(next as 1 | 2 | 3 | 4);
+    const next = Math.min(3, store.step + 1) as 1 | 2 | 3;
+    store.setStep(next);
   };
   const goBack = () => {
-    let prev = store.step - 1;
-    if (store.step === 3 && store.placementSides === 'none' && prev === 2) prev = 1;
-    store.setStep(Math.max(1, prev) as 1 | 2 | 3 | 4);
+    const prev = Math.max(1, store.step - 1) as 1 | 2 | 3;
+    store.setStep(prev);
   };
 
   const handleSelectColor = (c: ShopifyVariantColor) => {
@@ -720,16 +731,20 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
           </div>
 
-          {/* Step indicators — semantic ol so screen readers announce
-              "step X of 4" + aria-current on the live step. */}
+          {/* Horizontal progress bar — each step is a segment that
+              brightens as the user advances. A thick fill underneath the
+              labels makes the current step unambiguous at a glance, and
+              completed segments go full primary so the user sees how
+              much is left. Semantic ol preserved so screen readers still
+              announce "step X of 3" with aria-current on the live step. */}
           <ol
-            className="flex-1 flex items-center justify-center gap-1 overflow-x-auto px-1 scrollbar-hide"
+            className="flex-1 flex items-stretch gap-1.5 px-1"
             aria-label={lang === 'en' ? 'Customizer progress' : 'Progression du personnalisateur'}
           >
-            {STEPS.map((s, i) => {
+            {STEPS.map((s) => {
               const isActive = store.step === s.id;
-              const isDone = s.done && !isActive;
-              const isClickable = s.done && s.id < store.step;
+              const isDone = store.step > s.id;
+              const isClickable = (isDone || s.done) && s.id < store.step;
               const stateSr = isDone
                 ? (lang === 'en' ? 'completed' : 'complété')
                 : isActive
@@ -738,27 +753,50 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               return (
                 <li
                   key={s.id}
-                  className="flex items-center gap-1 flex-shrink-0"
+                  className="flex-1 min-w-0 flex flex-col gap-1"
                   aria-current={isActive ? 'step' : undefined}
                 >
                   <button
                     type="button"
-                    onClick={() => isClickable && store.setStep(s.id as 1 | 2 | 3 | 4)}
+                    onClick={() => isClickable && store.setStep(s.id)}
                     disabled={!isClickable && !isActive}
                     aria-label={`${s.id}. ${s.label} — ${stateSr}`}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all origin-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                    className={`group flex items-center gap-1.5 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded px-1 ${
                       isActive
-                        ? 'bg-[#1B3A6B] text-white scale-110 shadow-sm'
+                        ? 'text-[#1B3A6B]'
                       : isDone
-                        ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200'
-                      : 'text-muted-foreground cursor-default disabled:opacity-70'
+                        ? 'text-primary cursor-pointer hover:text-primary/80'
+                      : 'text-muted-foreground cursor-default'
                     }`}
                   >
-                    {isDone ? <Check size={10} strokeWidth={3} aria-hidden="true" /> : <span aria-hidden="true">{s.id}</span>}
-                    <span className="sm:hidden">{s.shortLabel}</span>
-                    <span className="hidden sm:inline">{s.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full flex-shrink-0 text-[9px] font-black ${
+                        isActive ? 'bg-[#1B3A6B] text-white'
+                        : isDone ? 'bg-primary text-primary-foreground'
+                        : 'bg-border text-muted-foreground'
+                      }`}
+                    >
+                      {isDone ? <Check size={9} strokeWidth={4} /> : s.id}
+                    </span>
+                    <span className="truncate">
+                      <span className="sm:hidden">{s.shortLabel}</span>
+                      <span className="hidden sm:inline">{s.label}</span>
+                    </span>
                   </button>
-                  {i < STEPS.length - 1 && <div className="w-1.5 h-px bg-border flex-shrink-0" aria-hidden="true" />}
+                  {/* Segment fill — the load-bearing "what step am I on"
+                      signal. Active = gold accent (matches the primary
+                      CTA). Done = solid navy. Pending = faint border. */}
+                  <span
+                    aria-hidden="true"
+                    className={`h-1 rounded-full transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#1B3A6B] to-[#E8A838] shadow-[0_1px_4px_rgba(232,168,56,0.45)]'
+                      : isDone
+                        ? 'bg-[#1B3A6B]'
+                      : 'bg-border/60'
+                    }`}
+                  />
                 </li>
               );
             })}
@@ -798,15 +836,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               onPlacementChange={setCurrentPlacement}
               onSnapshotReady={fn => { getSnapshotRef.current = fn; }}
               onTextAssetsChange={store.setTextAssets}
-              // Tools only appear when the user is actively placing the logo.
-              // No more leaking into color / sizes / review steps.
-              showPlacementTools={store.step === 2 && store.placementSides !== 'none'}
+              // Tools only appear when the user is actively placing the
+              // logo (Step 1 after the 2026-04-20 revamp). No more
+              // leaking into sizes / review steps.
+              showPlacementTools={store.step === 1 && anyLogoUploaded && store.placementSides !== 'none'}
               onBboxDetected={setBbox}
               hasLogoPerSide={{
                 front: !!store.logoPlacement?.previewUrl,
                 back:  !!store.logoPlacementBack?.previewUrl,
               }}
-              showBboxCenter={store.step === 2 && previewCenter}
+              showBboxCenter={store.step === 1 && previewCenter}
             />
           </div>
 
@@ -839,26 +878,50 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <div className="flex-1 min-h-0">
             <AnimatePresence mode="wait">
 
-              {/* Step 1 — Upload logo + pick which sides to print on.
-                  (Color selection lives in the persistent palette at the
-                  top of this panel, available at every step.) */}
+              {/* Step 1 — Design
+                  Merged from the old Step 1 (logo upload + side toggle)
+                  and Step 2 (placement zones). One screen, progressive
+                  disclosure: side tiles + uploader render immediately;
+                  the zone/manual/center controls only appear AFTER a
+                  logo is decoded so a first-time user doesn't see a wall
+                  of disabled buttons on mount. */}
               {store.step === 1 && (
                 <motion.div key="s1" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
-                  {/* Side selector — tighter copy, the paragraph explaining
-                      BG-removal was redundant with the uploader's own
-                      affordance ("Remove background" button). */}
+                  {/* Big visual placement tiles — replaces the old 2×2
+                      radio grid. Each tile draws a simplified shirt
+                      silhouette with the print zone highlighted so the
+                      user grasps Devant / Dos / Devant+Dos at a glance
+                      without parsing text. "Sans logo" keeps a plain
+                      outline. All four share the same role="radio" API
+                      so keyboard users still get Tab/Space/Enter. */}
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      {lang === 'en' ? 'Where do you want to print?' : 'Où imprimer ?'}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {lang === 'en' ? 'Placement' : 'Placement'}
+                      </div>
+                      {anyLogoUploaded && placementComplete && (
+                        <span className="text-[10px] font-bold text-emerald-600 inline-flex items-center gap-1">
+                          <Check size={10} strokeWidth={3} aria-hidden="true" />
+                          {lang === 'en' ? 'Logo placed' : 'Logo placé'}
+                        </span>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={lang === 'en' ? 'Print sides' : 'Côtés à imprimer'}>
+                    <div
+                      className="grid grid-cols-4 gap-1.5"
+                      role="radiogroup"
+                      aria-label={lang === 'en' ? 'Print sides' : 'Côtés à imprimer'}
+                    >
                       {([
                         { id: 'front', label: lang === 'en' ? 'Front'        : 'Devant' },
                         { id: 'back',  label: lang === 'en' ? 'Back'         : 'Dos' },
-                        { id: 'both',  label: lang === 'en' ? 'Front + Back' : 'Devant + Dos' },
-                        { id: 'none',  label: lang === 'en' ? 'No logo'      : 'Sans logo' },
+                        { id: 'both',  label: lang === 'en' ? 'Both'         : 'Recto-verso' },
+                        { id: 'none',  label: lang === 'en' ? 'Blank'        : 'Vierge' },
                       ] as const).map(opt => {
                         const active = store.placementSides === opt.id;
+                        // Logo dot colour + position on the silhouette
+                        // tells the whole story. Kept tiny (SVG inline,
+                        // no raster) so the tiles stay crisp at any DPI
+                        // and the file doesn't balloon with PNG imports.
                         return (
                           <button
                             key={opt.id}
@@ -867,36 +930,32 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             aria-checked={active}
                             onClick={() => {
                               store.setPlacementSides(opt.id as PlacementSides);
-                              // Keep the visible side consistent with the
-                              // pick. "both" / "none" → default to front
-                              // so the canvas shows something meaningful.
                               if (opt.id === 'back') store.setView('back');
                               else store.setView('front');
                             }}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left text-[11px] font-bold transition-all ${
+                            className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                               active
-                                ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                                : 'border-border text-muted-foreground hover:border-primary/40'
+                                ? 'border-[#1B3A6B] bg-primary/5 shadow-sm'
+                                : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/40'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
-                            <span className="flex-1">{opt.label}</span>
+                            <PlacementTile kind={opt.id} active={active} />
+                            <span className={`text-[10px] font-black leading-tight ${active ? 'text-[#1B3A6B]' : 'text-muted-foreground'}`}>
+                              {opt.label}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Logo uploader (hidden when user picks "Blank") */}
+                  {/* Logo uploader — prominent dashed drop zone, the
+                      user's first real action on the page. Hidden only
+                      when they picked "Blank" (nothing to upload). */}
                   {store.placementSides !== 'none' && (
                     <LogoUploader
                       onLogoReady={(previewUrl, processedUrl, file) => {
                         const zone = pickDefaultZone(product.printZones);
-                        // Caps/beanies need vertical-center geometry —
-                        // the chest-height anchor lands on the visor or
-                        // hem. `product.category` is the reliable signal
-                        // ('cap' for casquettes, 'toque' for tuques/
-                        // beanies); SKU prefixes vary per vendor.
                         const kind: 'garment' | 'cap' | 'beanie' =
                           product.category === 'cap' ? 'cap'
                           : product.category === 'toque' ? 'beanie'
@@ -908,9 +967,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           previewUrl, processedUrl, originalFile: file,
                           ...auto,
                         };
-                        // Apply to the picked side(s). When 'both', start
-                        // with identical placements on front + back — user
-                        // can tweak each independently in step 3.
                         if (store.placementSides === 'back') {
                           store.setLogoPlacementBack(placement);
                           store.setLogoPlacement(null);
@@ -921,7 +977,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           store.setLogoPlacement(placement);
                           store.setLogoPlacementBack(null);
                         }
-                        goNext();
+                        // Don't auto-advance — the user stays on the
+                        // Design step so they can tweak the zone inline.
+                        // This removes the old "flash to the next
+                        // screen the moment you upload" surprise. The
+                        // Continuer button unlocks as soon as the
+                        // placement is complete.
                       }}
                     />
                   )}
@@ -929,212 +990,197 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   {store.placementSides === 'none' && (
                     <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
                       {lang === 'en'
-                        ? 'No logo will be printed. You can still pick colors + sizes in the next step.'
-                        : 'Aucun logo ne sera imprimé. Tu peux quand même choisir les couleurs et tailles à l\u2019étape suivante.'}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Step 2 — Where to print (zones + centering) */}
-              {store.step === 2 && currentPlacement?.previewUrl && (
-                <motion.div key="s2" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-black mb-1">{t('zoneImpression')}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {lang === 'en'
-                        ? 'Pick a position or drag your logo freely on the preview.'
-                        : 'Choisis une position ou glisse ton logo librement sur le produit.'}
-                    </p>
-                  </div>
-
-                  {/* Front/Back editing toggle — only relevant when the
-                      user picked "Front + Back". Each side has its own
-                      placement so they can be tuned independently. */}
-                  {store.placementSides === 'both' && (
-                    <div className="flex items-center gap-1 p-1 bg-secondary rounded-full border border-border">
-                      {(['front', 'back'] as const).map(side => {
-                        const active = store.activeView === side;
-                        return (
-                          <button
-                            key={side}
-                            type="button"
-                            onClick={() => store.setView(side)}
-                            className={`flex-1 py-1.5 rounded-full text-[11px] font-bold transition-all ${
-                              active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
-                            }`}
-                          >
-                            {side === 'front'
-                              ? (lang === 'en' ? `Editing FRONT` : `Édition DEVANT`)
-                              : (lang === 'en' ? `Editing BACK`  : `Édition DOS`)}
-                          </button>
-                        );
-                      })}
+                        ? 'No logo will be printed. Pick a color above — sizes come next.'
+                        : 'Aucun logo ne sera imprimé. Choisis une couleur plus haut — les tailles viennent ensuite.'}
                     </div>
                   )}
 
-                  {/* Quick CENTER button — uses the REAL garment bounding
-                      box detected from the photo so "center" lands on the
-                      shirt body, not on canvas whitespace. */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentPlacement({
-                        ...currentPlacement!,
-                        zoneId: 'centre-vetement',
-                        mode: 'preset',
-                        ...centerOnGarment({ bbox }),
-                      });
-                    }}
-                    onMouseEnter={() => setPreviewCenter(true)}
-                    onMouseLeave={() => setPreviewCenter(false)}
-                    onFocus={() => setPreviewCenter(true)}
-                    onBlur={() => setPreviewCenter(false)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
-                  >
-                    <span aria-hidden="true">⊕</span>
-                    {lang === 'en' ? 'Auto-center on garment' : 'Auto-centrer sur le vêtement'}
-                  </button>
-
-                  {/* Chest button — only meaningful when we're editing the
-                      FRONT view (back-of-shirt chest doesn't exist). */}
-                  {store.activeView === 'front' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? pickDefaultZone(product.printZones);
-                        setCurrentPlacement({
-                          ...currentPlacement!,
-                          zoneId: zone?.id ?? 'poitrine-centre',
-                          mode: 'preset',
-                          ...centerOnChest({ bbox, zone }),
-                        });
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-all"
-                    >
-                      {lang === 'en' ? '↑ Center on chest' : '↑ Centrer sur la poitrine'}
-                    </button>
-                  )}
-
-                  <div className="flex items-center gap-2 my-2">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {lang === 'en' ? 'or pick a zone' : 'ou choisis une zone'}
-                    </span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-
-                  {/* Zone grid with pricing — filter by active view so back-view users don't see chest zones */}
-                  {(() => {
-                    const visibleZones = product.printZones.filter(z => !z.side || z.side === store.activeView);
-                    if (visibleZones.length === 0) {
-                      return (
-                        <div className="px-3.5 py-3 rounded-xl border border-dashed border-border text-[11px] text-muted-foreground text-center leading-relaxed">
-                          {lang === 'en'
-                            ? "This view has no standard print zones. Use the Auto-center button."
-                            : "Cette vue n'a pas de zones d'impression standard. Utilise le bouton Auto-center."}
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="space-y-1.5">
-                        {visibleZones.map(z => {
-                          const active = currentPlacement?.zoneId === z.id;
-                          const isFree = !z.extraPrice || z.extraPrice === 0;
-                          return (
-                            <button
-                              key={z.id}
-                              onClick={() => setCurrentPlacement({
-                                ...currentPlacement!,
-                                zoneId: z.id,
-                                mode: 'preset',
-                                ...centerOnZone(z),
-                              })}
-                              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${
-                                active
-                                  ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                                  : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/50'
-                              }`}
-                            >
-                              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
-                              <span className="text-xs font-bold flex-1">
-                                {lang === 'en' ? (z.labelEn ?? z.label) : z.label}
-                              </span>
-                              <span className={`text-[11px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                {isFree
-                                  ? (lang === 'en' ? 'Included' : 'Inclus')
-                                  : `+${fmtMoney(z.extraPrice, lang)}`}
-                              </span>
-                            </button>
-                          );
-                        })}
+                  {/* Placement controls (auto-center, chest, zone grid,
+                      manual, remove) — revealed only after at least one
+                      side has a decoded logo. Wrapping them in a single
+                      gated block means the Design step looks tidy on
+                      first render: a user with no logo yet sees only
+                      the side tiles + the big drop zone, no clutter. */}
+                  {store.placementSides !== 'none' && currentPlacement?.previewUrl && (
+                    <div className="space-y-2 pt-1 border-t border-border/50">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pt-2">
+                        {lang === 'en' ? 'Fine-tune the placement' : 'Ajuste le placement'}
                       </div>
-                    );
-                  })()}
 
-                  {/* Manual placement explicit option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentPlacement({
-                        ...currentPlacement!,
-                        mode: 'manual',
-                        zoneId: 'manual',
-                      });
-                      toast.info(
-                        lang === 'en'
-                          ? 'Drag the logo on the preview to place it anywhere.'
-                          : 'Glisse le logo sur l\u2019aperçu pour le placer où tu veux.',
-                        { duration: 2800 },
-                      );
-                    }}
-                    className={`w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-all ${
-                      currentPlacement?.mode === 'manual'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:border-primary/40'
-                    }`}
-                  >
-                    ✋ {lang === 'en'
-                      ? 'Place manually (drag on the product)'
-                      : 'Placer manuellement (glisse sur le produit)'}
-                  </button>
+                      {/* Front/Back editing toggle — only relevant when
+                          the user picked "Front + Back". Each side has
+                          its own placement so they can be tuned
+                          independently. */}
+                      {store.placementSides === 'both' && (
+                        <div className="flex items-center gap-1 p-1 bg-secondary rounded-full border border-border">
+                          {(['front', 'back'] as const).map(side => {
+                            const active = store.activeView === side;
+                            return (
+                              <button
+                                key={side}
+                                type="button"
+                                onClick={() => store.setView(side)}
+                                className={`flex-1 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+                                  active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
+                                }`}
+                              >
+                                {side === 'front'
+                                  ? (lang === 'en' ? 'Editing FRONT' : 'Édition DEVANT')
+                                  : (lang === 'en' ? 'Editing BACK'  : 'Édition DOS')}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                  {/* Remove-logo button goes back to Step 1 so the user can
-                      re-upload. Clears every side so state stays clean. */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      store.setLogoPlacement(null);
-                      store.setLogoPlacementBack(null);
-                      store.setStep(1);
-                    }}
-                    className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/5 transition-colors"
-                  >
-                    <X size={13} />
-                    {lang === 'en' ? 'Remove logo' : 'Retirer le logo'}
-                  </button>
+                      {/* Quick CENTER button — uses the REAL garment
+                          bounding box from the photo so "center" lands
+                          on the shirt body, not on canvas whitespace. */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentPlacement({
+                            ...currentPlacement!,
+                            zoneId: 'centre-vetement',
+                            mode: 'preset',
+                            ...centerOnGarment({ bbox }),
+                          });
+                        }}
+                        onMouseEnter={() => setPreviewCenter(true)}
+                        onMouseLeave={() => setPreviewCenter(false)}
+                        onFocus={() => setPreviewCenter(true)}
+                        onBlur={() => setPreviewCenter(false)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
+                      >
+                        <span aria-hidden="true">⊕</span>
+                        {lang === 'en' ? 'Auto-center on garment' : 'Auto-centrer sur le vêtement'}
+                      </button>
+
+                      {store.activeView === 'front' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? pickDefaultZone(product.printZones);
+                            setCurrentPlacement({
+                              ...currentPlacement!,
+                              zoneId: zone?.id ?? 'poitrine-centre',
+                              mode: 'preset',
+                              ...centerOnChest({ bbox, zone }),
+                            });
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-all"
+                        >
+                          {lang === 'en' ? '↑ Center on chest' : '↑ Centrer sur la poitrine'}
+                        </button>
+                      )}
+
+                      {/* Zone grid — filter by active view so back-view
+                          users don't see chest zones. */}
+                      {(() => {
+                        const visibleZones = product.printZones.filter(z => !z.side || z.side === store.activeView);
+                        if (visibleZones.length === 0) return null;
+                        return (
+                          <details className="rounded-xl border border-border bg-secondary/30">
+                            <summary className="cursor-pointer select-none px-3.5 py-2.5 text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center justify-between">
+                              <span>{lang === 'en' ? 'Pick a specific zone' : 'Choisir une zone précise'}</span>
+                              <span className="text-[10px] text-muted-foreground/70">{visibleZones.length}</span>
+                            </summary>
+                            <div className="p-2 space-y-1">
+                              {visibleZones.map(z => {
+                                const active = currentPlacement?.zoneId === z.id;
+                                const isFree = !z.extraPrice || z.extraPrice === 0;
+                                return (
+                                  <button
+                                    key={z.id}
+                                    onClick={() => setCurrentPlacement({
+                                      ...currentPlacement!,
+                                      zoneId: z.id,
+                                      mode: 'preset',
+                                      ...centerOnZone(z),
+                                    })}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-left transition-all ${
+                                      active
+                                        ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                                        : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-secondary/70'
+                                    }`}
+                                  >
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-primary' : 'bg-border'}`} />
+                                    <span className="text-[11px] font-bold flex-1">
+                                      {lang === 'en' ? (z.labelEn ?? z.label) : z.label}
+                                    </span>
+                                    <span className={`text-[10px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                      {isFree
+                                        ? (lang === 'en' ? 'Included' : 'Inclus')
+                                        : `+${fmtMoney(z.extraPrice, lang)}`}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        );
+                      })()}
+
+                      {/* Manual drag-to-place and remove share a row so
+                          the secondary actions don't compete with the
+                          primary Continuer button in the footer. */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentPlacement({
+                              ...currentPlacement!,
+                              mode: 'manual',
+                              zoneId: 'manual',
+                            });
+                            toast.info(
+                              lang === 'en'
+                                ? 'Drag the logo on the preview to place it anywhere.'
+                                : 'Glisse le logo sur l\u2019aperçu pour le placer où tu veux.',
+                              { duration: 2800 },
+                            );
+                          }}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-dashed text-[11px] font-bold transition-all ${
+                            currentPlacement?.mode === 'manual'
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : 'border-border text-muted-foreground hover:border-primary/40'
+                          }`}
+                        >
+                          ✋ {lang === 'en' ? 'Drag' : 'Glisser'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            store.setLogoPlacement(null);
+                            store.setLogoPlacementBack(null);
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-destructive/40 text-destructive text-[11px] font-bold hover:bg-destructive/5 transition-colors"
+                        >
+                          <X size={12} />
+                          {lang === 'en' ? 'Remove' : 'Retirer'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
-              {/* Step 3 — Multi-color × multi-size matrix */}
-              {store.step === 3 && (
-                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
+              {/* Step 2 (was Step 3) — Multi-color × multi-size matrix */}
+              {store.step === 2 && (
+                <motion.div key="s2" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('taillesQuantites')}</h3>
                   <p className="text-xs text-muted-foreground mb-3">
                     {lang === 'en'
                       ? 'Pick one or several colors. For each, choose sizes and quantities.'
                       : 'Choisis une ou plusieurs couleurs. Pour chacune, sélectionne les tailles et quantités.'}
                   </p>
-                  {/* Warn if the user reached Step 4 expecting a logo but
-                      never finished placing it. placementComplete already
-                      reflects "every picked side has a previewUrl". */}
                   {store.placementSides !== 'none' && !placementComplete && (
                     <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5 flex items-start gap-2">
                       <span aria-hidden="true">⚠</span>
                       <div className="flex-1">
                         {lang === 'en'
-                          ? 'Your logo placement isn\u2019t complete. Go back to Where to finish, or switch to "Blank" in step 1 for a plain garment.'
-                          : 'Le placement de ton logo n\u2019est pas terminé. Reviens à l\u2019étape « Où », ou choisis « Vierge » à l\u2019étape 1 pour un vêtement sans logo.'}
+                          ? 'Your logo placement isn\u2019t complete. Go back to Design to finish, or pick "Blank" for a plain garment.'
+                          : 'Le placement de ton logo n\u2019est pas terminé. Reviens à l\u2019étape Design, ou choisis « Vierge » pour un vêtement sans logo.'}
                       </div>
                     </div>
                   )}
@@ -1150,9 +1196,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 4 — Summary */}
-              {store.step === 4 && (
-                <motion.div key="s4" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
+              {/* Step 3 (was Step 4) — Summary */}
+              {store.step === 3 && (
+                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black">{t('resume')}</h3>
                     <button
@@ -1341,7 +1387,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                               type="button"
                               onClick={() => {
                                 store.setView(s.key);
-                                store.setStep(2);
+                                // Design + placement share Step 1 after
+                                // the 2026-04-20 collapse — edit lands
+                                // back on the Design screen with the
+                                // placement controls revealed.
+                                store.setStep(1);
                               }}
                               aria-label={lang === 'en' ? `Edit ${s.label} placement` : `Modifier le placement ${s.label}`}
                               className="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[11px] font-bold"
@@ -1425,7 +1475,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <span className="hidden sm:inline">{lang === 'en' ? 'Export PNG' : 'Télécharger aperçu'}</span>
           </button>
 
-          {totalQty > 0 && store.step >= 3 && (
+          {totalQty > 0 && store.step >= 2 && (
             <div className="text-center">
               <div className="text-[10px] text-muted-foreground">
                 {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
@@ -1434,7 +1484,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             </div>
           )}
 
-          {store.step < 4 ? (
+          {store.step < 3 ? (
             <button
               type="button"
               onClick={goNext}
@@ -1458,5 +1508,50 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+/** Visual placement tile — inline SVG silhouette with a logo dot drawn
+ * at the relevant position. Picked over raster thumbnails so it stays
+ * crisp at any DPI and we don't ship four extra PNGs just for the picker.
+ * Palette mirrors the brand (#1B3A6B navy + #E8A838 gold) when active,
+ * muted neutral otherwise. Kept fully presentational — no state, no
+ * props beyond the two visual inputs, so it plays nice with the
+ * button wrapper's click/aria behaviour. */
+function PlacementTile({ kind, active }: { kind: 'front' | 'back' | 'both' | 'none'; active: boolean }) {
+  const stroke = active ? '#1B3A6B' : '#9CA3AF';   // navy / muted
+  const fill = active ? '#EEF2F7' : 'transparent'; // faint navy tint when active
+  const dotColor = active ? '#E8A838' : '#9CA3AF'; // brand gold / muted
+  const dotOpacity = kind === 'none' ? 0 : 1;
+  return (
+    <svg viewBox="0 0 40 44" width="34" height="38" aria-hidden="true" role="presentation">
+      {/* Shirt silhouette — one path, same for front/back/both/none.
+          The logo dot is what differentiates the tiles. */}
+      <path
+        d="M6 10 L14 5 L20 7 L26 5 L34 10 L32 14 L28 13 L28 40 L12 40 L12 13 L8 14 Z"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      {/* Front logo dot — chest area */}
+      {(kind === 'front' || kind === 'both') && (
+        <circle cx={20} cy={20} r={3} fill={dotColor} opacity={dotOpacity} />
+      )}
+      {/* Back logo dot — drawn slightly offset so a "both" tile shows
+          both locations without overlap; the tile silhouette is the
+          same front shape for simplicity. */}
+      {(kind === 'back' || kind === 'both') && (
+        <circle
+          cx={kind === 'both' ? 20 : 20}
+          cy={kind === 'both' ? 30 : 22}
+          r={3}
+          fill={dotColor}
+          opacity={dotOpacity}
+          stroke={kind === 'both' ? '#fff' : undefined}
+          strokeWidth={kind === 'both' ? 1 : 0}
+        />
+      )}
+    </svg>
   );
 }

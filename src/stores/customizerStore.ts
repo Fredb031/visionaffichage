@@ -84,13 +84,17 @@ export const useCustomizerStore = create<CustomizerStore>()(
     {
       name: 'va-customizer',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
-      // Migrate old persisted state. v1 had 5 steps (Color/Logo/Where/
-      // Sizes/Review); v2 collapsed to 4 (Logo/Where/Sizes/Review).
-      // Mapping: v1 step N → v2 max(1, N-1). Returning users see the
-      // right screen instead of a blank modal.
+      version: 3,
+      // Migrate old persisted state across the two step-count rewrites:
+      //   v1 (5 steps: Color/Logo/Where/Sizes/Review)
+      //   v2 (4 steps: Logo/Where/Sizes/Review)
+      //   v3 (3 steps: Design/Sizes/Récap) — Logo+Where merged into Design
       //
-      // Always merge on top of initialState so new fields added in v2+
+      // v1 → v2 mapping: step N → max(1, N-1).
+      // v2 → v3 mapping: {1,2}→1 (both are now "Design"), 3→2, 4→3.
+      // Returning users land on the right screen instead of a blank modal.
+      //
+      // Always merge on top of initialState so new fields added later
       // (placementSides, activeView, logoPlacementBack) have a safe
       // default on disk. Without this, v1 users hydrated with undefined
       // for those fields, the canvas hit an undefined comparison, and
@@ -99,10 +103,14 @@ export const useCustomizerStore = create<CustomizerStore>()(
         const state = persisted as Partial<CustomizationState> | null;
         if (!state) return initialState;
         const merged: CustomizationState = { ...initialState, ...state };
-        if (fromVersion < 2) {
-          const old = (state.step as unknown as number | undefined) ?? 1;
-          merged.step = Math.max(1, Math.min(4, old - 1)) as 1 | 2 | 3 | 4;
+        let step = (state.step as unknown as number | undefined) ?? 1;
+        if (fromVersion < 2) step = Math.max(1, step - 1); // v1 → v2
+        if (fromVersion < 3) {
+          // v2 (1..4) → v3 (1..3): Logo + Where collapse into Design.
+          if (step <= 2) step = 1;
+          else step = step - 1;
         }
+        merged.step = Math.max(1, Math.min(3, step)) as 1 | 2 | 3;
         return merged;
       },
       // Don't persist the File blob — it isn't JSON-serializable and the
@@ -147,7 +155,7 @@ export const useCustomizerStore = create<CustomizerStore>()(
       // the customizer modal popped up blank. Clamp / fall back.
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        if (typeof state.step !== 'number' || state.step < 1 || state.step > 4) {
+        if (typeof state.step !== 'number' || state.step < 1 || state.step > 3) {
           state.step = 1;
         }
         if (state.activeView !== 'front' && state.activeView !== 'back') {

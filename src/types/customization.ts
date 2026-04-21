@@ -53,7 +53,13 @@ export type CustomizationState = {
   textAssets: TextAsset[];
   sizeQuantities: SizeQuantity[];
   activeView: ProductView;
-  step: 1 | 2 | 3 | 4;
+  /** 3-step flow after the 2026-04-20 simplification:
+   *   1 = Design   (color + logo upload + placement — one screen)
+   *   2 = Tailles  (sizes × quantities matrix + bulk discount preview)
+   *   3 = Récap    (summary + add to cart)
+   * Previously 4 steps; collapsed so a first-time buyer sees one fewer
+   * navigation hop between landing and checkout. */
+  step: 1 | 2 | 3;
 };
 
 export type CartItemCustomization = CustomizationState & {
