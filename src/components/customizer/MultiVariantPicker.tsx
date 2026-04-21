@@ -1,4 +1,4 @@
-import { Copy } from 'lucide-react';
+import { Copy, Eraser, Megaphone, Star, Users } from 'lucide-react';
 import { Minus, Plus } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
@@ -80,6 +80,84 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
       }
     }
     onChange(next);
+  };
+
+  // One-click size distributions. Each preset defines a size → qty map.
+  // Applied to the active color AND to every other color that already
+  // has at least one unit picked — multi-variant orders usually want the
+  // same S/M/L/XL mix duplicated across colors, not only on one row.
+  type SizeDist = Record<string, number>;
+  interface Preset {
+    id: string;
+    labelFr: string;
+    labelEn: string;
+    icon: typeof Users;
+    dist: SizeDist;
+  }
+  const PRESETS: Preset[] = [
+    { id: 'team12', labelFr: 'Équipe 12', labelEn: 'Team 12', icon: Users, dist: { S: 4, M: 4, L: 4 } },
+    { id: 'event36', labelFr: 'Événement 36', labelEn: 'Event 36', icon: Megaphone, dist: { S: 6, M: 12, L: 12, XL: 6 } },
+    { id: 'conf50', labelFr: 'Conférence 50', labelEn: 'Conference 50', icon: Star, dist: { S: 5, M: 15, L: 15, XL: 10, XXL: 5 } },
+  ];
+
+  // The colors we'll apply the preset across: the active color always,
+  // plus any other color that already has quantities picked (so users
+  // who are building a multi-color order get the preset mirrored).
+  const targetColorIds = Array.from(new Set([
+    activeColor?.variantId,
+    ...variants.filter(v => v.qty > 0).map(v => v.colorId),
+  ].filter((x): x is string => Boolean(x))));
+
+  // A preset is available only if every (targetColor, size) combo in
+  // the distribution exists and is in stock. This is the closest proxy
+  // we have to SanMar stock — `available` reflects Shopify inventory
+  // which mirrors SanMar stock via the sync.
+  const presetAvailable = (p: Preset) => {
+    for (const colorId of targetColorIds) {
+      const color = colors.find(c => c.variantId === colorId);
+      if (!color) return false;
+      for (const size of Object.keys(p.dist)) {
+        const opt = color.sizeOptions?.find(s => s.size === size);
+        if (!opt || opt.available === false) return false;
+      }
+    }
+    return true;
+  };
+
+  const applyPreset = (p: Preset) => {
+    if (!activeColor) return;
+    const applyToIds = targetColorIds.length > 0 ? targetColorIds : [activeColor.variantId];
+    // Strip out any existing lines for the target colors — the preset
+    // REPLACES the distribution on those rows rather than stacking on
+    // top, which matches the mental model of a "one-click setup".
+    let next = variants.filter(v => !applyToIds.includes(v.colorId));
+    for (const colorId of applyToIds) {
+      const color = colors.find(c => c.variantId === colorId);
+      if (!color) continue;
+      for (const [size, qty] of Object.entries(p.dist)) {
+        const opt = color.sizeOptions?.find(s => s.size === size);
+        if (!opt || opt.available === false) continue;
+        next = [
+          ...next,
+          {
+            colorId: color.variantId,
+            colorName: color.colorName,
+            hex: color.hex,
+            size,
+            qty,
+            shopifyVariantId: opt.variantId,
+            unitPrice: color.price,
+          },
+        ];
+      }
+    }
+    onChange(next);
+  };
+
+  const clearAllSizes = () => {
+    // Wipe every row — "Effacer" is a full reset, not just the active
+    // color, because presets also operate across all active colors.
+    onChange([]);
   };
 
   const adjustQty = (color: ShopifyVariantColor | null, size: string, nextQtyFn: (curr: number) => number) => {
@@ -191,6 +269,48 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
               ? 'Adding sizes for this colour. Pick another above to switch.'
               : 'Tu ajoutes les tailles pour cette couleur. Choisis-en une autre ci-haut pour changer.'}
           </div>
+        </div>
+      </div>
+
+      {/* One-click preset distributions for common order sizes. Replaces
+          the tedious manual +/+/+ work when a user knows they're buying
+          for a team of 12 or a 50-person conference. Applies to the
+          active color AND any other colors with picked units. */}
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+          {lang === 'en' ? 'Quick presets' : 'Modèles rapides'}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {PRESETS.map(p => {
+            const available = presetAvailable(p);
+            const Icon = p.icon;
+            const total = Object.values(p.dist).reduce((a, b) => a + b, 0);
+            const soldOutTitle = lang === 'en'
+              ? `Some sizes needed for this preset (${total} units) are sold out`
+              : `Certaines tailles du modèle (${total} unités) sont épuisées`;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p)}
+                disabled={!available}
+                title={!available ? soldOutTitle : undefined}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border bg-secondary/60 text-[11px] font-bold text-foreground hover:border-primary hover:bg-primary/5 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-secondary/60 disabled:hover:text-foreground transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              >
+                <Icon size={11} aria-hidden="true" />
+                {lang === 'en' ? p.labelEn : p.labelFr}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={clearAllSizes}
+            disabled={variants.length === 0}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border bg-transparent text-[11px] font-bold text-muted-foreground hover:border-destructive hover:text-destructive disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-muted-foreground transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
+          >
+            <Eraser size={11} aria-hidden="true" />
+            {lang === 'en' ? 'Clear' : 'Effacer'}
+          </button>
         </div>
       </div>
 
