@@ -151,6 +151,12 @@ export default function QuoteBuilder() {
   const [notes, setNotes] = useState('');
   const [templates, setTemplates] = useState<QuoteTemplate[]>(() => loadTemplates(vendorId));
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  // Last-saved stamp used to surface a "Brouillon enregistré · HH:mm"
+  // confirmation near the header after every persist. The toast fires
+  // once and vanishes; the stamp lingers so vendors can glance up and
+  // confirm their latest work actually hit localStorage before tabbing
+  // away or closing the window.
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const templatesPanelRef = useRef<HTMLDivElement | null>(null);
 
   // Re-hydrate templates whenever vendor scope changes (e.g. auth
@@ -420,6 +426,12 @@ export default function QuoteBuilder() {
         quantity: qty,
       };
     });
+    // Stamp `expiresAt` = createdAt + 14d so the CSV exports (9d5d05d,
+    // 3ebe046) and the /quote/:id accept-page countdown (6b1b9df) get
+    // real data instead of `undefined`. 14 days matches the standard
+    // quote lifetime the accept-page copy already promises the client.
+    const createdAtIso = new Date().toISOString();
+    const expiresAtIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const quote = {
       id: `q-${Date.now()}`,
       number,
@@ -434,12 +446,14 @@ export default function QuoteBuilder() {
       tax,
       total,
       notes,
-      createdAt: new Date().toISOString(),
+      createdAt: createdAtIso,
+      expiresAt: expiresAtIso,
       lang: 'fr',
     };
     list.unshift(quote);
     try { localStorage.setItem('vision-quotes', JSON.stringify(list.slice(0, 100))); }
     catch (e) { console.warn('[QuoteBuilder] Quote could not be saved locally:', e); }
+    setLastSavedAt(createdAtIso);
     return quote;
   };
 
@@ -528,6 +542,14 @@ export default function QuoteBuilder() {
             ← Retour
           </Link>
           <h1 className="font-extrabold text-lg">Nouvelle soumission</h1>
+          {lastSavedAt && (
+            <span
+              className="hidden sm:inline-flex items-center text-xs text-zinc-500 font-medium"
+              aria-live="polite"
+            >
+              {`Brouillon enregistré · ${new Date(lastSavedAt).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           <div className="relative" ref={templatesPanelRef}>
