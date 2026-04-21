@@ -917,6 +917,29 @@ function formatTimestamp(iso: string): string {
   }
 }
 
+// Verbose absolute timestamp for the cell's title tooltip. The compact
+// `formatTimestamp` above drops year + seconds to stay scannable, which
+// is fine most of the time but falls down when an admin needs to
+// correlate a test send with a Zapier log entry — those are timestamped
+// to the second. Exposing the full ISO on hover gives that precision
+// without crowding the table.
+function formatFullTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('fr-CA', {
+      year: 'numeric',
+      month: 'long',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function RecentSendsPanel({ entries, onClear, onRefresh }: {
   entries: SentLogEntry[];
   onClear: () => void;
@@ -971,9 +994,17 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
             <tbody>
               {visible.map((entry, i) => (
                 <tr key={`${entry.sentAt}-${i}`} className="border-b border-zinc-100 last:border-b-0 align-top">
-                  <td className="py-2 pr-3 text-zinc-700 whitespace-nowrap">{formatTimestamp(entry.sentAt)}</td>
+                  <td className="py-2 pr-3 text-zinc-700 whitespace-nowrap">
+                    <time
+                      dateTime={entry.sentAt}
+                      title={formatFullTimestamp(entry.sentAt)}
+                      className="cursor-help"
+                    >
+                      {formatTimestamp(entry.sentAt)}
+                    </time>
+                  </td>
                   <td className="py-2 pr-3 text-zinc-700 font-mono">{entry.template ?? '—'}</td>
-                  <td className="py-2 pr-3 text-zinc-700">{entry.to}</td>
+                  <td className="py-2 pr-3 text-zinc-700 max-w-[14rem] truncate" title={entry.to}>{entry.to}</td>
                   <td className="py-2 pr-3 text-zinc-700 max-w-xs truncate" title={entry.subject}>{entry.subject}</td>
                   <td className="py-2">
                     {entry.status === 'ok' ? (
