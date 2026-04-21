@@ -191,7 +191,12 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm">
               <li><Link to="/track" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Track an order' : 'Suivre une commande'}</Link></li>
               <li><Link to="/account" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'My account' : 'Mon compte'}</Link></li>
-              <li><a href="mailto:info@visionaffichage.com" className="text-white/80 hover:text-[#E8A838]">Contact</a></li>
+              {/* Task 11.10 — previously this pointed to a raw mailto:,
+                  which left mobile users without a Mail client stranded.
+                  /contact resolves to a real page with phone, map, hours,
+                  and a form fallback; the mailto is still one click
+                  deeper in the contact card on that page. */}
+              <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">Contact</Link></li>
             </ul>
           </div>
 

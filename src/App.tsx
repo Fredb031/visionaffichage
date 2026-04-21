@@ -62,6 +62,10 @@ const Terms = lazy(() => import("./pages/legal/Terms"));
 const Returns = lazy(() => import("./pages/legal/Returns"));
 const Accessibility = lazy(() => import("./pages/legal/Accessibility"));
 
+// Contact surface (Task 11.10) — lazy because it's reached from the
+// footer/nav, not the hot path. Keeps the Index bundle lean.
+const Contact = lazy(() => import("./pages/Contact"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -221,6 +225,7 @@ const AnimatedRoutes = () => {
           <Route path="/terms" element={<Terms />} />
           <Route path="/returns" element={<Returns />} />
           <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/contact" element={<Contact />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
