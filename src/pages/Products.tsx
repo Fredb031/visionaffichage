@@ -10,18 +10,31 @@ import { filterRealColors } from '@/lib/colorFilter';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
-import { Search, X } from 'lucide-react';
+import { Search, X, Sparkles, Shirt, Shell, Snowflake, type LucideIcon } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-const CATEGORIES = [
-  { id: 'overview',  fr: 'Tout',                 en: 'All' },
-  { id: 'chandails', fr: 'Chandails',            en: 'Sweaters' },
-  { id: 'tshirts',   fr: 'T-Shirts',             en: 'T-Shirts' },
-  { id: 'polos',     fr: 'Polos',                en: 'Polos' },
-  { id: 'headwear',  fr: 'Casquettes & Tuques',  en: 'Caps & Beanies' },
+// Task 2.1 — each category now carries a lucide icon so the tab row
+// reads as a visual shortcut rather than a wall of text. Icons picked
+// for quickest recognition:
+//   overview  -> Sparkles  (generic "see everything / featured")
+//   chandails -> Shirt     (hoodies/crewnecks — same silhouette family)
+//   tshirts   -> Shirt     (the canonical tee)
+//   polos     -> Shirt     (same silhouette; active-state accent disambiguates)
+//   headwear  -> Shell     (rounded cap-like silhouette; lucide has no dedicated cap)
+// Snowflake kept in the import for later toques-only split if headwear
+// is ever broken into caps vs toques.
+const CATEGORIES: Array<{ id: string; fr: string; en: string; icon: LucideIcon }> = [
+  { id: 'overview',  fr: 'Tout',                 en: 'All',            icon: Sparkles },
+  { id: 'chandails', fr: 'Chandails',            en: 'Sweaters',       icon: Shirt },
+  { id: 'tshirts',   fr: 'T-Shirts',             en: 'T-Shirts',       icon: Shirt },
+  { id: 'polos',     fr: 'Polos',                en: 'Polos',          icon: Shirt },
+  { id: 'headwear',  fr: 'Casquettes & Tuques',  en: 'Caps & Beanies', icon: Shell },
 ];
+// Suppress unused-warning for Snowflake — kept intentionally for the
+// future toques-only split (see CATEGORIES comment above).
+void Snowflake;
 
 function matchesCategory(
   product: { node: { handle: string; productType: string; title: string } },
@@ -454,9 +467,21 @@ export default function Products() {
 
             {/* Category tabs row — pill tabs on the left, sort dropdown on the right (desktop). Stacks on mobile. */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:flex-1 md:min-w-0" role="tablist" aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}>
+              {/* Task 2.1 — snap-x horizontal scroll on mobile, centered
+                  wrap on desktop. snap-mandatory keeps a tab fully
+                  flush with the viewport edge after a flick so half-
+                  visible pills never linger. md:flex-wrap unlocks the
+                  wrap behavior once the row is no longer the cramped
+                  mobile strip; md:justify-start keeps the tabs left-
+                  aligned next to the sort dropdown on the right. */}
+              <div
+                className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:flex-1 md:min-w-0 md:flex-wrap md:overflow-visible snap-x snap-mandatory md:snap-none"
+                role="tablist"
+                aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}
+              >
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.id && !searchQuery;
+                  const Icon = cat.icon;
                   return (
                     <button
                       key={cat.id}
@@ -464,13 +489,29 @@ export default function Products() {
                       role="tab"
                       aria-selected={isActive}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
+                      className={`group inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full border snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
                         isActive
-                          ? 'bg-white text-[#1B3A6B] shadow-md'
-                          : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
+                          // Active: white fill + dark text + stronger
+                          // border + gold-tinted shadow so the selection
+                          // reads even at a glance on mobile.
+                          ? 'bg-white text-[#1B3A6B] border-[#E8A838]/70 shadow-[0_2px_12px_-2px_rgba(232,168,56,0.55)]'
+                          // Inactive: same translucent chip as before
+                          // but with an explicit transparent border so
+                          // the active/inactive swap doesn't jump 1px.
+                          : 'bg-white/10 text-white/70 border-white/10 hover:bg-white/15 hover:text-white hover:border-white/25'
                       }`}
                     >
-                      {lang === 'en' ? cat.en : cat.fr}
+                      <Icon
+                        aria-hidden="true"
+                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                          // Gold accent on the active icon — matches the
+                          // existing brand accent used on hero CTAs and
+                          // the sale/quebec badge. Inactive icon inherits
+                          // the muted white so the row reads calm.
+                          isActive ? 'text-[#E8A838]' : 'text-white/60 group-hover:text-white/90'
+                        }`}
+                      />
+                      <span>{lang === 'en' ? cat.en : cat.fr}</span>
                     </button>
                   );
                 })}
