@@ -1,5 +1,5 @@
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap } from 'lucide-react';
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -7,21 +7,64 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { CommandPalette } from './CommandPalette';
 
-const NAV_ITEMS = [
-  { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
-  { to: '/admin/analytics', label: 'Analytique', icon: BarChart3 },
-  { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag, badge: 'pendingFulfillment' as const },
-  { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart },
-  { to: '/admin/products', label: 'Produits', icon: Package },
-  { to: '/admin/customers', label: 'Clients', icon: UserCircle },
-  { to: '/admin/quotes', label: 'Soumissions', icon: FileText },
-  { to: '/admin/vendors', label: 'Vendeurs', icon: Users },
-  { to: '/admin/users', label: 'Comptes & accès', icon: KeyRound },
-  { to: '/admin/emails', label: 'Courriels', icon: Mail },
-  { to: '/admin/automations', label: 'Automatisations', icon: Zap },
-  { to: '/admin/images', label: 'Génération d\'images', icon: Sparkles },
-  { to: '/admin/settings', label: 'Paramètres', icon: Settings },
+// Role-gating for the admin sidebar. Each nav entry declares the roles
+// allowed to see it; the sidebar filters itself by the current user's
+// role. 'president' always has implicit access (see hasAccess below) so
+// we don't have to list it on every row. 'salesman' is forward-looking
+// — authStore UserRole doesn't include it yet, but the moment the role
+// lands the UI Just Works.
+type NavRole = 'president' | 'admin' | 'salesman';
+
+const NAV_ITEMS: Array<{
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  badge?: 'pendingFulfillment';
+  roles: NavRole[];
+}> = [
+  { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true, roles: ['admin', 'salesman', 'president'] },
+  { to: '/admin/analytics', label: 'Analytique', icon: BarChart3, roles: ['admin', 'president'] },
+  { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag, badge: 'pendingFulfillment', roles: ['admin', 'salesman', 'president'] },
+  { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart, roles: ['admin', 'salesman', 'president'] },
+  { to: '/admin/products', label: 'Produits', icon: Package, roles: ['admin', 'president'] },
+  { to: '/admin/customers', label: 'Clients', icon: UserCircle, roles: ['admin', 'salesman', 'president'] },
+  { to: '/admin/quotes', label: 'Soumissions', icon: FileText, roles: ['admin', 'salesman', 'president'] },
+  { to: '/admin/vendors', label: 'Vendeurs', icon: Users, roles: ['admin', 'president'] },
+  { to: '/admin/users', label: 'Comptes & accès', icon: KeyRound, roles: ['admin', 'president'] },
+  { to: '/admin/emails', label: 'Courriels', icon: Mail, roles: ['admin', 'president'] },
+  { to: '/admin/automations', label: 'Automatisations', icon: Zap, roles: ['admin', 'president'] },
+  { to: '/admin/images', label: 'Génération d\'images', icon: Sparkles, roles: ['admin', 'president'] },
+  { to: '/admin/settings', label: 'Paramètres', icon: Settings, roles: ['admin', 'president'] },
 ];
+
+// Minimal inline role check. 'president' is an implicit superuser so the
+// role arrays above stay readable — we don't want every row to carry
+// 'president' when it always applies. Any user whose role isn't in the
+// allow list (including 'client'/'vendor' if they somehow reach the
+// admin shell) is denied. Kept inline so a later src/lib/permissions.ts
+// can replace this without touching the nav table itself.
+function hasAccess(userRole: string | undefined, allowed: NavRole[]): boolean {
+  if (!userRole) return false;
+  if (userRole === 'president') return true;
+  return (allowed as string[]).includes(userRole);
+}
+
+// Find the nav entry that matches the current URL. Uses startsWith so
+// deep links like /admin/orders/123 still resolve to the Orders entry.
+// The root /admin is matched exactly to avoid every path claiming the
+// dashboard row.
+function matchNavItem(pathname: string) {
+  // Prefer the longest matching `to` so /admin/quotes/new resolves to
+  // /admin/quotes and not to the /admin root.
+  let best: typeof NAV_ITEMS[number] | undefined;
+  for (const item of NAV_ITEMS) {
+    if (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + '/')) {
+      if (!best || item.to.length > best.to.length) best = item;
+    }
+  }
+  return best;
+}
 
 // Persist the desktop sidebar collapsed/expanded state across reloads.
 // Wrapped in try/catch because localStorage can throw in private-mode
@@ -97,6 +140,26 @@ export function AdminLayout() {
     }
   }, [desktopCollapsed]);
 
+  // Only show sidebar entries the current user is allowed to visit.
+  // Recomputed per render (cheap — 12 rows). If the user isn't logged
+  // in at all we bail out entirely below.
+  const visibleNavItems = NAV_ITEMS.filter(item => hasAccess(user?.role, item.roles));
+
+  // If auth hasn't hydrated a user yet, send them to the login page.
+  // AuthGuard normally catches this upstream, but the guard lives on
+  // the route level — if AdminLayout is ever reused outside the guard
+  // (or the guard is relaxed) we don't want to render the shell empty.
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // Figure out whether the current URL is a page the user is allowed to
+  // see. If not, we keep the sidebar rendered (with the filtered items)
+  // but swap the main content for a friendly "access denied" panel.
+  // Beats a silent 404 for a salesman who clicked a bookmarked link.
+  const activeItem = matchNavItem(location.pathname);
+  const routeAllowed = activeItem ? hasAccess(user.role, activeItem.roles) : true;
+
   const handleLogout = async () => {
     // Await the async signOut so the dynamic-import chain finishes
     // clearing cart + customizer stores BEFORE we navigate home.
@@ -134,7 +197,7 @@ export function AdminLayout() {
         </div>
 
         <nav className="flex-1 px-3 py-5 overflow-y-auto">
-          {NAV_ITEMS.map(item => {
+          {visibleNavItems.map(item => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -376,7 +439,38 @@ export function AdminLayout() {
         </header>
 
         <main id="main-content" tabIndex={-1} className="p-4 md:p-8 max-w-[1400px] focus:outline-none">
-          <Outlet />
+          {routeAllowed ? (
+            <Outlet />
+          ) : (
+            // Friendly access-denied card. Rendered inside the admin
+            // shell (not a full-page 404) so the user keeps the filtered
+            // sidebar and can click back to something they can access.
+            <div
+              role="alert"
+              aria-live="polite"
+              className="max-w-xl rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
+            >
+              <div className="w-12 h-12 rounded-xl bg-[#E8A838]/15 text-[#B37D10] flex items-center justify-center mb-4">
+                <Lock size={22} aria-hidden="true" />
+              </div>
+              <h1 className="text-lg font-bold text-zinc-900">Access denied</h1>
+              <p className="mt-2 text-sm text-zinc-600">
+                You don't have permission to view this page.
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {activeItem?.label
+                  ? `"${activeItem.label}" is reserved for other admin roles. Contact the president if you believe this is a mistake.`
+                  : 'This section is reserved for other admin roles.'}
+              </p>
+              <Link
+                to="/admin"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0052CC] px-4 py-2 text-sm font-semibold text-white hover:bg-[#003D99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 transition-colors"
+              >
+                <LayoutDashboard size={16} aria-hidden="true" />
+                Back to dashboard
+              </Link>
+            </div>
+          )}
         </main>
       </div>
 
