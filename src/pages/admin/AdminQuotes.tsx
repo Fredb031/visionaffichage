@@ -115,8 +115,12 @@ export default function AdminQuotes() {
             vendor: 'Admin',
             client: q.clientName || clientFromEmail || '—',
             items: Array.isArray(q.items) ? q.items.length : 0,
-            total: typeof q.total === 'number' ? q.total : 0,
-            discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+            // Guard against NaN/Infinity sneaking through typeof checks —
+            // a corrupted localStorage row (e.g. `total: NaN` after a
+            // failed numeric parse upstream) used to render literal 'NaN'
+            // in the admin table. Number.isFinite catches NaN and ±Infinity.
+            total: Number.isFinite(q.total) ? (q.total as number) : 0,
+            discount: Number.isFinite(q.discountValue) ? (q.discountValue as number) : 0,
             discountKind: kind,
             status: coerceStatus(q.status),
             age,
