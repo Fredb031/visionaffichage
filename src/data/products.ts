@@ -11,6 +11,22 @@ export type PrintZone = {
   extraPrice?: number;
 };
 
+/**
+ * Zone IDs that represent a centered front placement. Used by
+ * `pickDefaultZone` to avoid landing auto-placed logos on the off-center
+ * "coeur-gauche" (left chest) — which is `printZones[0]` on the zip hoodie
+ * (ATCF2600) and polos (S445 / L445 / S445LS), where x ≈ 14-16%.
+ */
+const CENTRAL_ZONE_IDS = new Set(['poitrine-centre', 'panneau-avant', 'face-avant']);
+
+/**
+ * Pick a sane default print zone: prefer a centered chest / front-panel
+ * zone, fall back to the first zone only when no central zone exists.
+ * Keeps the PrintZone shape untouched — this is purely selection logic.
+ */
+export const pickDefaultZone = (zones: PrintZone[]): PrintZone | undefined =>
+  zones.find(z => CENTRAL_ZONE_IDS.has(z.id)) ?? zones[0];
+
 export type ProductColor = {
   id: string;
   name: string;      // Nom affiché en français (comme sur le site)

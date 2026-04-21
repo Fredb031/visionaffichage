@@ -19,7 +19,7 @@ import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
-import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage } from '@/data/products';
+import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone } from '@/data/products';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
@@ -891,7 +891,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   {store.placementSides !== 'none' && (
                     <LogoUploader
                       onLogoReady={(previewUrl, processedUrl, file) => {
-                        const zone = product.printZones[0];
+                        const zone = pickDefaultZone(product.printZones);
                         const auto = autoPlaceOnUpload({ bbox: bboxRef.current, zone });
                         const placement: LogoPlacement = {
                           zoneId: zone?.id ?? 'centre',
@@ -993,7 +993,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <button
                       type="button"
                       onClick={() => {
-                        const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? product.printZones[0];
+                        const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? pickDefaultZone(product.printZones);
                         setCurrentPlacement({
                           ...currentPlacement!,
                           zoneId: zone?.id ?? 'poitrine-centre',

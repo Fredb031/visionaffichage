@@ -25,7 +25,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
   ImageOff, Move, Trash2, Type, X,
 } from 'lucide-react';
-import type { Product, PrintZone } from '@/data/products';
+import { pickDefaultZone, type Product, type PrintZone } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
 import { useLang } from '@/lib/langContext';
 
@@ -149,7 +149,7 @@ export function ProductCanvas({
   useEffect(() => { currentPlacementRef.current = currentPlacement; }, [currentPlacement]);
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
-    currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
+    currentPlacement?.zoneId ?? (pickDefaultZone(product.printZones)?.id ?? ''),
   );
   // Ref mirror of zoneId so canvas event listeners always read the current value
   const zoneIdRef = useRef(zoneId);
@@ -603,7 +603,7 @@ export function ProductCanvas({
             // so the user knows where the safe area is when placing a
             // back-side logo. (Previously only on front.)
             {
-              const zone = product.printZones[0];
+              const zone = pickDefaultZone(product.printZones);
               if (zone) {
                 const isLightGarment = (() => {
                   if (!garmentColor) return false;
@@ -770,7 +770,7 @@ export function ProductCanvas({
       const canvas = fc.current;
       const W = canvas.width as number;
       const H = canvas.height as number;
-      const zone = product.printZones[0];
+      const zone = pickDefaultZone(product.printZones);
       const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
       const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
       for (const asset of assets) {
@@ -858,7 +858,7 @@ export function ProductCanvas({
         cy = (livePlacement!.y! / 100) * H;
         initWidthPct = (livePlacement!.width ?? 26) / 100;
       } else {
-        const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
+        const zone = product.printZones.find(z => z.id === zoneId) ?? pickDefaultZone(product.printZones);
         cx = W / 2; cy = H * 0.36; initWidthPct = 0.26;
         if (zone) {
           cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
@@ -1075,7 +1075,7 @@ export function ProductCanvas({
       const canvas = fc.current;
       const W = canvas.width as number;
       const H = canvas.height as number;
-      const zone = product.printZones[0];
+      const zone = pickDefaultZone(product.printZones);
       const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
       const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
 
