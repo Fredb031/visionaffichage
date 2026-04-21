@@ -2,7 +2,9 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
+import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { useProducts } from '@/hooks/useProducts';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -82,6 +84,12 @@ export default function Products() {
   // sync effect below.
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [sortMode, setSortMode] = useState<SortMode>(initialSort);
+  // Task 2.16 — surface a RecentlyViewed row above the catalog grid so
+  // returning visitors see their last-browsed items one click away.
+  // Gated at >=2 items: a fresh visitor (0) or a single-view visitor
+  // (1) would otherwise see a near-empty strip that reads as clutter.
+  const { handles: recentlyViewedHandles } = useRecentlyViewed();
+  const showRecentlyViewed = recentlyViewedHandles.length >= 2;
 
   // Keep the URL in sync with category + sort + debounced search —
   // replace history so Back still returns to the previous page. All
@@ -607,7 +615,19 @@ export default function Products() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+              <>
+                {showRecentlyViewed && (
+                  // Task 2.16 — rendered inside the same max-w-[1200px] container
+                  // as the grid so its edges align with the product cards below.
+                  // RecentlyViewed internally renders a 2-col mobile / 4-col
+                  // desktop grid which reads as a horizontal strip on narrow
+                  // viewports and a tidy row on wide ones. Capped at 6 via the
+                  // `limit` prop so it never outruns the grid width.
+                  <div className="mb-8">
+                    <RecentlyViewed limit={6} />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
                 {filteredProducts.map((product, i) => {
                   // Defensive key fallback: an id might be missing on a
                   // brand-new product. Fall back to handle, then to
@@ -622,7 +642,8 @@ export default function Products() {
                     return null;
                   }
                 })}
-              </div>
+                </div>
+              </>
             )}
           </>
         )}
