@@ -107,7 +107,29 @@ export function centerOnZone(zone: PrintZone) {
 }
 
 /** Auto-placement on first upload: prefer the chest point if we have a
- * bbox, otherwise the declared default zone. */
-export function autoPlaceOnUpload(p: Params) {
+ * bbox, otherwise the declared default zone.
+ *
+ * `kind` tunes the vertical anchor: chest-height on a torso lands at
+ * `bbox.y + bbox.h * 0.25`, which is correct for shirts/hoodies but
+ * drops onto the visor of a cap or the hem of a beanie. For caps and
+ * beanies we center vertically on the bbox (crown-front is the widest
+ * printable surface in the product photo) and clamp width tighter so
+ * the logo doesn't overflow the small face. */
+export function autoPlaceOnUpload(
+  p: Params,
+  kind: 'garment' | 'cap' | 'beanie' = 'garment',
+) {
+  if (kind === 'cap' || kind === 'beanie') {
+    const { bbox, zone } = p;
+    if (bbox) {
+      const capWidth = Math.min(bbox.w * 0.55, bbox.h * 0.9, 32);
+      return centerOnGarment({
+        bbox: { ...bbox, cy: bbox.y + bbox.h * 0.5 },
+        zone,
+        widthPct: p.widthPct ?? capWidth,
+      });
+    }
+    return centerOnGarment(p);
+  }
   return centerOnChest(p);
 }

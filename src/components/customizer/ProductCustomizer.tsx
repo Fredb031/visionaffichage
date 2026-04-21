@@ -892,7 +892,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <LogoUploader
                       onLogoReady={(previewUrl, processedUrl, file) => {
                         const zone = pickDefaultZone(product.printZones);
-                        const auto = autoPlaceOnUpload({ bbox: bboxRef.current, zone });
+                        // Caps/beanies need vertical-center geometry —
+                        // the chest-height anchor lands on the visor or
+                        // hem. `product.category` is the reliable signal
+                        // ('cap' for casquettes, 'toque' for tuques/
+                        // beanies); SKU prefixes vary per vendor.
+                        const kind: 'garment' | 'cap' | 'beanie' =
+                          product.category === 'cap' ? 'cap'
+                          : product.category === 'toque' ? 'beanie'
+                          : 'garment';
+                        const auto = autoPlaceOnUpload({ bbox: bboxRef.current, zone }, kind);
                         const placement: LogoPlacement = {
                           zoneId: zone?.id ?? 'centre',
                           mode: 'preset',
