@@ -1,8 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Share2 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+
+const BEST_SCORE_KEY = 'va:mole-game-best';
+
+const readBestScore = (): number => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(BEST_SCORE_KEY);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writeBestScore = (n: number): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(BEST_SCORE_KEY, String(n));
+  } catch {
+    /* storage unavailable — silently ignore */
+  }
+};
+
+const clearBestScore = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(BEST_SCORE_KEY);
+  } catch {
+    /* storage unavailable — silently ignore */
+  }
+};
 
 interface MoleGameProps {
   isOpen: boolean;
@@ -67,6 +99,11 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [stars, setStars] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [bestScore, setBestScore] = useState<number>(() => readBestScore());
+  const [newRecord, setNewRecord] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const recordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const targetHits = 5;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moleTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null]);
@@ -94,9 +131,15 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
     if (!isOpen) {
       setHits(0); setTimeLeft(20); setGameStarted(false); setGameWon(false);
       setMoleStates(['down', 'down', 'down']);
+      setNewRecord(false);
+      setCopied(false);
+      if (recordTimerRef.current) { clearTimeout(recordTimerRef.current); recordTimerRef.current = null; }
+      if (copiedTimerRef.current) { clearTimeout(copiedTimerRef.current); copiedTimerRef.current = null; }
       gameOverRef.current = false;
       return;
     }
+    // Refresh best score on open in case it changed elsewhere
+    setBestScore(readBestScore());
     const t = setTimeout(() => setGameStarted(true), 500);
     return () => clearTimeout(t);
   }, [isOpen]);
@@ -139,6 +182,74 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
       moleTimers.current.forEach(t => { if (t) clearTimeout(t); });
     }
   }, [hits, gameWon]);
+
+  // Persist best score once the game ends (win or time-out). We read the
+  // latest stored value to avoid stale-closure races if another tab
+  // updated it while this game was running.
+  const gameOver = gameWon || (timeLeft === 0 && gameStarted);
+  useEffect(() => {
+    if (!gameOver) return;
+    const stored = readBestScore();
+    if (hits > stored) {
+      writeBestScore(hits);
+      setBestScore(hits);
+      setNewRecord(true);
+      if (recordTimerRef.current) clearTimeout(recordTimerRef.current);
+      recordTimerRef.current = setTimeout(() => {
+        setNewRecord(false);
+        recordTimerRef.current = null;
+      }, 3000);
+    } else {
+      setBestScore(stored);
+    }
+  }, [gameOver, hits]);
+
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearTimeout(recordTimerRef.current);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const handleShareScore = async () => {
+    const text = lang === 'en'
+      ? `I scored ${hits} in the mole game on Vision Affichage!`
+      : `J'ai fait ${hits} points au jeu des taupes sur Vision Affichage !`;
+    const shareData = {
+      title: 'Vision Affichage',
+      text,
+      url: typeof window !== 'undefined' ? window.location.origin : '',
+    };
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        /* user cancelled or share failed — fall through to clipboard */
+      }
+    }
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(`${text} ${shareData.url}`.trim());
+      }
+    } catch {
+      /* clipboard unavailable — swallow */
+    }
+    setCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => {
+      setCopied(false);
+      copiedTimerRef.current = null;
+    }, 2000);
+  };
+
+  const handleResetBest = () => {
+    if (typeof window === 'undefined') return;
+    const ok = window.confirm(lang === 'en' ? 'Reset best score?' : 'Réinitialiser le meilleur score ?');
+    if (!ok) return;
+    clearBestScore();
+    setBestScore(0);
+  };
 
   const handleWhack = (idx: number, e: React.MouseEvent | React.KeyboardEvent) => {
     if (moleStates[idx] !== 'up' || gameOverRef.current) return;
@@ -225,6 +336,24 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                   <div className="text-[10px] font-bold tracking-[1.5px] text-muted-foreground uppercase mt-0.5">{s.l}</div>
                 </div>
               ))}
+            </div>
+            {/* Best score display */}
+            <div className="flex items-center justify-center gap-2 px-5 py-1.5 bg-secondary/60 border-b border-border text-[11px] text-muted-foreground">
+              <span className="font-semibold">
+                {lang === 'en' ? `Best: ${bestScore}` : `Meilleur score : ${bestScore}`}
+              </span>
+              {bestScore > 0 && (
+                <>
+                  <span aria-hidden="true" className="opacity-40">·</span>
+                  <button
+                    type="button"
+                    onClick={handleResetBest}
+                    className="underline text-foreground/50 hover:text-foreground/80 bg-transparent border-none p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded-sm"
+                  >
+                    {lang === 'en' ? 'Reset' : 'Réinitialiser'}
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Game field */}
@@ -332,6 +461,18 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             <h3 className="text-[26px] font-extrabold text-primary mb-1.5">
               {lang === 'en' ? 'Nice, you won!' : 'Bravo, tu as gagné !'}
             </h3>
+            {newRecord && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
+              >
+                {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
+              </div>
+            )}
+            <p className="text-[12px] text-muted-foreground mb-2">
+              {lang === 'en' ? `Best: ${bestScore}` : `Meilleur score : ${bestScore}`}
+            </p>
             <p className="text-[13px] text-muted-foreground mb-4">
               {lang === 'en' ? '10% off your first order' : '10% de rabais sur ta première commande'}
             </p>
@@ -342,10 +483,23 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               {lang === 'en' ? 'Valid 7 days · Automatically applied to cart' : 'Valide 7 jours · Appliqué automatiquement au panier'}
             </p>
             <button
+              type="button"
               onClick={() => onClose(true)}
-              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88"
+              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
             >
               {lang === 'en' ? 'Start shopping' : 'Commencer à magasiner'}
+            </button>
+            <button
+              type="button"
+              onClick={handleShareScore}
+              className="mt-2 inline-flex items-center justify-center gap-2 w-full py-[11px] bg-transparent border border-border rounded-xl text-[13px] font-semibold text-foreground cursor-pointer transition-colors hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+            >
+              <Share2 width={15} height={15} aria-hidden="true" />
+              <span>
+                {copied
+                  ? (lang === 'en' ? 'Copied' : 'Copié')
+                  : (lang === 'en' ? 'Share my score' : 'Partager mon score')}
+              </span>
             </button>
           </div>
         ) : (
@@ -355,17 +509,42 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             <h3 className="text-[26px] font-extrabold text-primary mb-1.5">
               {lang === 'en' ? 'Time\'s up!' : 'Temps écoulé !'}
             </h3>
+            {newRecord && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
+              >
+                {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
+              </div>
+            )}
             <p className="text-[13px] text-muted-foreground mb-1">
               {lang === 'en' ? `You hit ${hits}/${targetHits} moles` : `Tu as frappé ${hits}/${targetHits} taupes`}
+            </p>
+            <p className="text-[12px] text-muted-foreground mb-1">
+              {lang === 'en' ? `Best: ${bestScore}` : `Meilleur score : ${bestScore}`}
             </p>
             <p className="text-[12px] text-muted-foreground mb-5">
               {lang === 'en' ? 'Tough one! You can still continue.' : 'C\'est dur ! Tu peux quand même continuer.'}
             </p>
             <button
+              type="button"
               onClick={() => onClose(false)}
-              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88"
+              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
             >
               {lang === 'en' ? 'Continue without discount' : 'Continuer sans rabais'}
+            </button>
+            <button
+              type="button"
+              onClick={handleShareScore}
+              className="mt-2 inline-flex items-center justify-center gap-2 w-full py-[11px] bg-transparent border border-border rounded-xl text-[13px] font-semibold text-foreground cursor-pointer transition-colors hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+            >
+              <Share2 width={15} height={15} aria-hidden="true" />
+              <span>
+                {copied
+                  ? (lang === 'en' ? 'Copied' : 'Copié')
+                  : (lang === 'en' ? 'Share my score' : 'Partager mon score')}
+              </span>
             </button>
           </div>
         )}
