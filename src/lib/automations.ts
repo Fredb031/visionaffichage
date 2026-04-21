@@ -20,8 +20,10 @@
 
 import { readLS, writeLS } from './storage';
 
+/** Runtime state of an automation — `active` fires on its trigger, `paused` short-circuits. */
 export type AutomationStatus = 'active' | 'paused';
 
+/** One execution record shown in the admin registry's recent-runs column. */
 export interface AutomationRun {
   /** ISO timestamp */
   at: string;
@@ -31,6 +33,7 @@ export interface AutomationRun {
   msg: string;
 }
 
+/** A single registered automation — stable id, human-readable trigger + action, and a recent-runs log. */
 export interface Automation {
   id: string;
   name: string;
@@ -211,6 +214,7 @@ const DEFAULTS: Automation[] = [
   },
 ];
 
+/** Seed registry of automations with their ship-default status and mock recent-runs. */
 export const AUTOMATIONS: ReadonlyArray<Automation> = DEFAULTS;
 
 // ───────────────── localStorage flag overrides ─────────────────
@@ -221,10 +225,13 @@ export const AUTOMATIONS: ReadonlyArray<Automation> = DEFAULTS;
 // registry shape change and so clearing the override (removing the key)
 // reverts to the ship-default.
 
+/** localStorage key holding the admin's automation status overrides. */
 export const AUTOMATION_FLAGS_KEY = 'vision-automation-flags';
 
+/** Map of automation id → admin-selected override status. */
 export type AutomationFlagMap = Record<string, AutomationStatus>;
 
+/** Read + validate the stored override map; returns `{}` if missing/corrupt. */
 export function readAutomationFlags(): AutomationFlagMap {
   const parsed = readLS<unknown>(AUTOMATION_FLAGS_KEY, {});
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -235,6 +242,7 @@ export function readAutomationFlags(): AutomationFlagMap {
   return out;
 }
 
+/** Persist the admin's automation override map; no-ops on SSR or quota errors. */
 export function writeAutomationFlags(flags: AutomationFlagMap): void {
   // writeLS handles the quota/private-mode guard + the SSR-safe early
   // return. Overrides just won't persist on failure — callers don't
