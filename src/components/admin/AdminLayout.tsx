@@ -413,6 +413,15 @@ export function AdminLayout() {
   const routeAllowed = activeItem ? hasAccess(user.role, activeItem.roles) : true;
 
   const handleLogout = async () => {
+    // Guard against accidental sign-outs — a single misclick in the
+    // sidebar would otherwise drop the admin back to the public site
+    // and lose any unsaved draft state further down the tree. The
+    // confirm stays lightweight (native dialog, no new deps) so the
+    // flow still works offline and in the smallest viewport.
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm('Se déconnecter de l\'admin Vision Affichage ?');
+      if (!ok) return;
+    }
     // Await the async signOut so the dynamic-import chain finishes
     // clearing cart + customizer stores BEFORE we navigate home.
     // Mirrors the Navbar + VendorLayout fixes.
@@ -460,12 +469,18 @@ export function AdminLayout() {
                 onClick={() => setMobileOpen(false)}
                 title={desktopCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${
+                  // Active state: brand-blue pill + bold + gold left border
+                  // so the current section stands out clearly against the
+                  // navy sidebar. NavLink emits aria-current="page" on the
+                  // active row automatically. The left border is swapped
+                  // for a full transparent one on inactive rows so hover +
+                  // active swaps never jitter width by 3px.
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] border-l-[3px] ${
                     desktopCollapsed ? 'md:justify-center' : ''
                   } ${
                     isActive
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      ? 'bg-[#0052CC] text-white font-bold border-[#E8A838] shadow-sm'
+                      : 'text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
