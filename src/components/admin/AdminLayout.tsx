@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard, Sun, Moon, Monitor } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -226,6 +226,38 @@ const COLLAPSE_KEY = 'admin:sidebarCollapsed';
 // against this timestamp: older ones get greyed out, newer ones stay
 // fully opaque. Stored as ms-since-epoch in a string for portability.
 const NOTIFS_READ_UNTIL_KEY = 'vision-admin-notifs-read-until';
+// Persisted dark-mode preference for the admin shell. Three values:
+// 'light' forces light, 'dark' forces dark, 'system' follows the OS
+// prefers-color-scheme media query. Stored as a single string so a
+// later migration can extend the enum without renaming the key.
+const THEME_KEY = 'vision-admin-theme';
+
+type AdminTheme = 'light' | 'dark' | 'system';
+
+// Read the stored theme preference. Defaults to 'system' so a brand-new
+// admin inherits their OS setting instead of being forced into light.
+// Guarded with try/catch for private-mode Safari / disabled storage.
+function readInitialTheme(): AdminTheme {
+  if (typeof window === 'undefined') return 'system';
+  try {
+    const raw = window.localStorage.getItem(THEME_KEY);
+    if (raw === 'light' || raw === 'dark' || raw === 'system') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'system';
+}
+
+// Resolve a theme mode to the effective "should we show dark?" boolean.
+// 'system' checks prefers-color-scheme at call time; 'dark'/'light' are
+// explicit overrides. Called both on initial mount and whenever the
+// user toggles the mode.
+function resolveIsDark(mode: AdminTheme): boolean {
+  if (mode === 'dark') return true;
+  if (mode === 'light') return false;
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 function readInitialCollapsed(): boolean {
   if (typeof window === 'undefined') return false;
@@ -259,6 +291,7 @@ export function AdminLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [notifsReadUntil, setNotifsReadUntil] = useState<number>(() => readNotifsReadUntil());
+  const [theme, setTheme] = useState<AdminTheme>(() => readInitialTheme());
   const notifContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -392,6 +425,48 @@ export function AdminLayout() {
     }
   }, [desktopCollapsed]);
 
+  // Apply the current theme to <html> and persist it. We toggle the
+  // `dark` class directly on documentElement (not body) so Tailwind's
+  // class-strategy variants fire everywhere — including portaled
+  // dialogs that attach to document.body. When mode === 'system' we
+  // subscribe to prefers-color-scheme so the shell follows the OS
+  // in real time (user flips dark mode in macOS → admin follows
+  // without a reload).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const root = document.documentElement;
+    const apply = () => {
+      const isDark = resolveIsDark(theme);
+      root.classList.toggle('dark', isDark);
+    };
+    apply();
+    try {
+      window.localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* ignore */
+    }
+    if (theme !== 'system' || !window.matchMedia) return;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    // Safari <14 only supports addListener/removeListener.
+    const handler = () => apply();
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handler);
+      return () => mql.removeEventListener('change', handler);
+    }
+    mql.addListener(handler);
+    return () => mql.removeListener(handler);
+  }, [theme]);
+
+  // Cycle light → dark → system on each click. Keeps the footer
+  // control to a single button so collapsed-sidebar mode still fits.
+  const cycleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light'));
+  }, []);
+
+  const themeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const themeLabel = theme === 'light' ? 'Clair' : theme === 'dark' ? 'Sombre' : 'Système';
+  const ThemeIcon = themeIcon;
+
   // Only show sidebar entries the current user is allowed to visit.
   // Recomputed per render (cheap — 12 rows). If the user isn't logged
   // in at all we bail out entirely below.
@@ -436,12 +511,12 @@ export function AdminLayout() {
   const mainPaddingClass = desktopCollapsed ? 'md:pl-16' : 'md:pl-64';
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <aside
         id="admin-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] dark:bg-[#1B3A6B] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Admin navigation"
@@ -531,6 +606,27 @@ export function AdminLayout() {
               ?
             </kbd>
           </button>
+          {/* Theme cycle toggle — Light → Dark → System. Single button
+              keeps the collapsed sidebar footprint identical to the
+              other rows. Icon reflects the current mode; aria-label
+              announces the next state so screen readers preview the
+              outcome of the click. */}
+          <button
+            type="button"
+            onClick={cycleTheme}
+            title={desktopCollapsed ? `Thème : ${themeLabel}` : undefined}
+            aria-label={`Thème actuel : ${themeLabel}. Cliquer pour changer.`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
+          >
+            <ThemeIcon size={16} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+            <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Thème</span>
+            <span
+              aria-hidden="true"
+              className={`text-[10px] font-semibold text-white/70 bg-white/10 border border-white/20 rounded px-1.5 py-0.5 ${desktopCollapsed ? 'md:hidden' : ''}`}
+            >
+              {themeLabel}
+            </span>
+          </button>
           <button
             type="button"
             onClick={handleLogout}
@@ -562,7 +658,7 @@ export function AdminLayout() {
       </aside>
 
       <div className={`transition-[padding] duration-200 ${mainPaddingClass}`}>
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200 px-4 md:px-8 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-4 md:px-8 py-3 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
@@ -573,7 +669,7 @@ export function AdminLayout() {
           >
             {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
-          <div className="text-sm text-zinc-500 hidden md:block">
+          <div className="text-sm text-zinc-500 dark:text-zinc-400 hidden md:block">
             {location.pathname === '/admin' ? 'Vue d\'ensemble' : 'Administration'}
           </div>
           <div className="flex items-center gap-3">
