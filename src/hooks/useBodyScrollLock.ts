@@ -9,6 +9,11 @@ import { useEffect } from 'react';
 // while a modal was still visible.
 let lockCount = 0;
 let priorOverflow: string | null = null;
+let priorPaddingRight: string | null = null;
+let priorPosition: string | null = null;
+let priorTop: string | null = null;
+let priorWidth: string | null = null;
+let capturedScrollY = 0;
 
 /**
  * Lock the document body's scroll while `active` is true. Used by
@@ -16,8 +21,20 @@ let priorOverflow: string | null = null;
  * when the user moves their wheel over the overlay.
  *
  * Uses a module-level ref count so stacked overlays cooperate:
- * body.style.overflow is set once when the first lock mounts and
- * restored only when the last one unmounts.
+ * body styles are set once when the first lock mounts and restored
+ * only when the last one unmounts.
+ *
+ * Preserves the current scroll position: on lock we capture
+ * `window.scrollY` and pin the body via `position: fixed; top: -Ny`
+ * so the viewport doesn't jump, then restore the scroll on unlock.
+ * Without this, `overflow: hidden` alone is enough to block wheel
+ * scrolling but iOS Safari and some Androids still reset to the top
+ * when the body becomes non-scrollable under a full-screen modal.
+ *
+ * Compensates for the scrollbar disappearing when overflow is hidden
+ * by adding `padding-right` equal to the previous scrollbar width,
+ * so the page doesn't jitter horizontally when a modal opens on
+ * desktop browsers that reserve scrollbar space.
  *
  * SSR / non-DOM environments: the hook is a no-op when `document` is
  * undefined (prerender, Node-based tests without jsdom). Without this
@@ -32,10 +49,40 @@ export function useBodyScrollLock(active: boolean): void {
     // DOM. useEffect normally doesn't fire server-side, but defensive
     // libs that polyfill effects (or a jsdom missing document.body)
     // have caused real crashes in this hook's history.
+    if (typeof window === 'undefined') return;
     if (typeof document === 'undefined' || !document.body) return;
     if (lockCount === 0) {
-      priorOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      const body = document.body;
+      // Measure scrollbar width BEFORE we hide overflow; afterwards
+      // window.innerWidth == documentElement.clientWidth and the diff
+      // collapses to zero, so compensation would silently no-op.
+      const scrollbarWidth = Math.max(
+        0,
+        window.innerWidth - document.documentElement.clientWidth,
+      );
+      capturedScrollY =
+        window.scrollY ||
+        window.pageYOffset ||
+        document.documentElement.scrollTop ||
+        0;
+      priorOverflow = body.style.overflow;
+      priorPaddingRight = body.style.paddingRight;
+      priorPosition = body.style.position;
+      priorTop = body.style.top;
+      priorWidth = body.style.width;
+      body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        // Add to any existing padding-right rather than overwriting,
+        // so layouts that already reserve space on body keep theirs.
+        const existing = parseFloat(priorPaddingRight) || 0;
+        body.style.paddingRight = `${existing + scrollbarWidth}px`;
+      }
+      // position:fixed + negative top preserves the visual viewport
+      // offset; width:100% keeps the body from collapsing to content
+      // width once it's out of normal flow.
+      body.style.position = 'fixed';
+      body.style.top = `-${capturedScrollY}px`;
+      body.style.width = '100%';
     }
     lockCount += 1;
     return () => {
@@ -47,9 +94,25 @@ export function useBodyScrollLock(active: boolean): void {
       lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0) {
         if (typeof document !== 'undefined' && document.body) {
-          document.body.style.overflow = priorOverflow ?? '';
+          const body = document.body;
+          body.style.overflow = priorOverflow ?? '';
+          body.style.paddingRight = priorPaddingRight ?? '';
+          body.style.position = priorPosition ?? '';
+          body.style.top = priorTop ?? '';
+          body.style.width = priorWidth ?? '';
+        }
+        if (typeof window !== 'undefined') {
+          // Restore the exact scroll the user was at when the first
+          // lock engaged. Without this the page would snap to top
+          // because position:fixed removed body from normal flow.
+          window.scrollTo(0, capturedScrollY);
         }
         priorOverflow = null;
+        priorPaddingRight = null;
+        priorPosition = null;
+        priorTop = null;
+        priorWidth = null;
+        capturedScrollY = 0;
       }
     };
   }, [active]);
