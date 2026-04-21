@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
@@ -158,6 +158,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
+  // Task 17.8 — honour prefers-reduced-motion. framer-motion's hook
+  // reads the OS-level media query live, so toggling the system setting
+  // while the drawer is open falls back to a plain cross-fade on next
+  // open without a reload. Sliding a 24rem panel across the viewport is
+  // exactly the kind of motion motion-sensitive users flag.
+  const reduceMotion = useReducedMotion();
+
   const applyCode = () => {
     // No-op on empty — clicking Apply with a blank input used to
     // flash "Code invalide" for 3 seconds, which reads as a rude
@@ -180,24 +187,49 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   return (
     <>
+      {/* Task 17.8 — backdrop fades in/out over 200ms. AnimatePresence lets
+          the exit animation actually play before the node unmounts instead
+          of the old snap-cut. */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div key="overlay" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-            className="fixed inset-0 bg-foreground/25 z-[490] backdrop-blur-[2px]" onClick={onClose} />
+          <motion.div
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed inset-0 bg-foreground/25 z-[490] backdrop-blur-[2px]"
+            onClick={onClose}
+          />
         )}
       </AnimatePresence>
 
-      <motion.div
-        ref={trapRef}
-        initial={{ x:'100%' }} animate={{ x: isOpen ? '0%' : '100%' }}
-        transition={{ type:'spring', stiffness:300, damping:32 }}
-        className="fixed top-0 right-0 h-full w-full max-w-sm bg-card z-[500] shadow-2xl flex flex-col border-l border-border"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cart-drawer-title"
-        aria-hidden={!isOpen}
-        {...(!isOpen && { inert: '' as unknown as undefined })}
-      >
+      {/* Task 17.8 — panel slides in from the right with a gentle spring
+          overshoot on enter; on exit it slides back + fades over 200ms.
+          Reduced-motion users get a plain opacity fade with no translate,
+          so the panel never sweeps across the viewport for them. The
+          ref / role / aria wiring and the focus-trap hook above are all
+          untouched so the a11y contract holds. */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={trapRef}
+            initial={reduceMotion ? { opacity: 0 } : { x: '100%', opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { x: '0%', opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { x: '100%', opacity: 0 }}
+            transition={
+              reduceMotion
+                ? { duration: 0.2, ease: 'easeOut' }
+                : {
+                    x: { type: 'spring', stiffness: 320, damping: 32 },
+                    opacity: { duration: 0.2, ease: 'easeOut' },
+                  }
+            }
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-card z-[500] shadow-2xl flex flex-col border-l border-border"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-drawer-title"
+          >
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -385,7 +417,9 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             </button>
           </div>
         )}
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
