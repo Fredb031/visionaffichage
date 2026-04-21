@@ -189,6 +189,35 @@ export default function Index() {
             </span>
           </h1>
 
+          {/* Metric strip — compact horizontal proof points directly
+              under the H1 to translate the numeric promise into tangible
+              credibility before the CTA. Uppercase wide-tracked caps +
+              navy text with a gold star, matching the trust-signal
+              typographic language used elsewhere on Index. */}
+          <div className={`mb-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] md:text-[12px] font-semibold tracking-[2.5px] uppercase text-primary ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
+            {lang === 'en' ? (
+              <>
+                <span>500+ companies</span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span className="inline-flex items-center gap-1">4.9 <span className="text-accent">★</span></span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span>5 business days</span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span>Made in Québec</span>
+              </>
+            ) : (
+              <>
+                <span>500+ entreprises</span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span className="inline-flex items-center gap-1">4,9 <span className="text-accent">★</span></span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span>5 jours ouvrables</span>
+                <span aria-hidden="true" className="text-primary/40">·</span>
+                <span>Fabriqué au Québec</span>
+              </>
+            )}
+          </div>
+
           {/* CTA */}
           <div className={heroStaggered ? 'animate-[staggerUp_0.7s_0.35s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}>
             <Link
