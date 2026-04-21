@@ -93,6 +93,26 @@ function CartItemPreview({ item }: { item: CartItemCustomization }) {
   );
 }
 
+// Task 5.7 — same helper as the Cart page (kept inline to avoid a
+// cross-surface import that would flip the dependency arrow from
+// Cart → CartDrawer to circular). Pulls live admin-configured codes so
+// a freshly-saved VISION25 shows up here too; gates on the "VISION"
+// prefix so private staff codes stay private.
+function getPublicPromoHints(): Array<{ code: string; rate: number; threshold: number }> {
+  let codes: Record<string, number>;
+  try { codes = getSettings().discountCodes ?? {}; } catch { codes = {}; }
+  const hints: Array<{ code: string; rate: number; threshold: number }> = [];
+  for (const [code, rate] of Object.entries(codes)) {
+    if (!code.startsWith('VISION')) continue;
+    if (typeof rate !== 'number' || !(rate > 0)) continue;
+    const m = code.match(/(\d+)$/);
+    const threshold = m ? parseInt(m[1], 10) : Math.round(rate * 100);
+    hints.push({ code, rate, threshold });
+  }
+  hints.sort((a, b) => a.rate - b.rate);
+  return hints;
+}
+
 // ── Cart drawer ──────────────────────────────────────────────────────────────
 export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -142,6 +162,12 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   };
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Task 5.7 — promo-code autocomplete state. `focused` + empty/partial
+  // input gates the popover; `activeIdx` drives arrow-key navigation
+  // (-1 == nothing highlighted, ArrowDown → 0).
+  const [promoFocused, setPromoFocused] = useState(false);
+  const [promoActiveIdx, setPromoActiveIdx] = useState(-1);
+  const promoWrapperRef = useRef<HTMLDivElement>(null);
   // Tracked so rapid re-submits don't stack timers + cleanup on unmount.
   const codeMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -180,11 +206,11 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // exactly the kind of motion motion-sensitive users flag.
   const reduceMotion = useReducedMotion();
 
-  const applyCode = () => {
+  const applyCode = (override?: string) => {
     // No-op on empty — clicking Apply with a blank input used to
     // flash "Code invalide" for 3 seconds, which reads as a rude
     // error for what's clearly a user who just hasn't typed anything.
-    const trimmed = codeInput.trim();
+    const trimmed = (override ?? codeInput).trim();
     if (!trimmed) return;
     const normalizedDisplay = trimmed.toUpperCase();
     const ok = cart.applyDiscount(trimmed);
@@ -193,11 +219,25 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         ? { ok: true, text: lang === 'en' ? `Code ${normalizedDisplay} applied!` : `Code ${normalizedDisplay} appliqué !` }
         : { ok: false, text: lang === 'en' ? 'Invalid code' : 'Code invalide' }
     );
+    if (ok) {
+      setCodeInput('');
+      setPromoActiveIdx(-1);
+    }
     if (codeMsgTimerRef.current) clearTimeout(codeMsgTimerRef.current);
     codeMsgTimerRef.current = setTimeout(() => {
       setCodeMsg(null);
       codeMsgTimerRef.current = null;
     }, 3000);
+  };
+
+  // Task 5.7 — suggestion picker: fill the visible input for the
+  // single frame before applyCode clears it on success, and trigger
+  // the apply flow immediately so one click (or Enter on a highlight)
+  // is enough.
+  const pickPromoSuggestion = (codeStr: string) => {
+    setCodeInput(codeStr);
+    setPromoActiveIdx(-1);
+    applyCode(codeStr);
   };
 
   return (
@@ -346,29 +386,126 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             // No-op on non-notched devices (inset resolves to 0px).
             style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
           >
-            {!cart.discountApplied ? (
-              <div className="flex gap-2">
-                <input
-                  value={codeInput}
-                  onChange={e => { setCodeInput(e.target.value.toUpperCase()); if (codeMsg && !codeMsg.ok) setCodeMsg(null); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } }}
-                  placeholder={t('codeRabais')}
-                  aria-label={t('codeRabais')}
-                  aria-invalid={codeMsg?.ok === false || undefined}
-                  className={`flex-1 border rounded-xl px-3 py-2.5 text-sm outline-none font-mono bg-secondary ${
-                    codeMsg?.ok === false ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={applyCode}
-                  disabled={!codeInput.trim()}
-                  className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            {!cart.discountApplied ? (() => {
+              // Task 5.7 — suggestion list filtered by the live input
+              // value (prefix match). We hide the popover the moment
+              // the typed code exactly matches a suggestion because at
+              // that point Enter / the Apply button is the obvious move
+              // — leaving it open would be noise.
+              const hints = getPublicPromoHints();
+              const typedUpper = codeInput.trim().toUpperCase();
+              const suggestions = hints.filter(h => !typedUpper || h.code.startsWith(typedUpper));
+              const showSuggestions =
+                promoFocused
+                && suggestions.length > 0
+                && (typedUpper === '' || !suggestions.some(s => s.code === typedUpper));
+              return (
+                <div
+                  className="relative"
+                  ref={promoWrapperRef}
+                  onBlur={e => {
+                    // Close only when focus actually leaves the wrapper;
+                    // clicking a suggestion keeps focus inside.
+                    if (!promoWrapperRef.current?.contains(e.relatedTarget as Node | null)) {
+                      setPromoFocused(false);
+                      setPromoActiveIdx(-1);
+                    }
+                  }}
                 >
-                  {t('appliquer')}
-                </button>
-              </div>
-            ) : (() => {
+                  <div className="flex gap-2">
+                    <input
+                      value={codeInput}
+                      onChange={e => { setCodeInput(e.target.value.toUpperCase()); setPromoActiveIdx(-1); if (codeMsg && !codeMsg.ok) setCodeMsg(null); }}
+                      onFocus={() => setPromoFocused(true)}
+                      onKeyDown={e => {
+                        if (e.key === 'ArrowDown' && showSuggestions) {
+                          e.preventDefault();
+                          setPromoActiveIdx(i => Math.min(suggestions.length - 1, i + 1));
+                        } else if (e.key === 'ArrowUp' && showSuggestions) {
+                          e.preventDefault();
+                          setPromoActiveIdx(i => Math.max(-1, i - 1));
+                        } else if (e.key === 'Escape' && showSuggestions) {
+                          setPromoFocused(false);
+                          setPromoActiveIdx(-1);
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (showSuggestions && promoActiveIdx >= 0 && promoActiveIdx < suggestions.length) {
+                            pickPromoSuggestion(suggestions[promoActiveIdx].code);
+                          } else {
+                            applyCode();
+                          }
+                        }
+                      }}
+                      placeholder={t('codeRabais')}
+                      aria-label={t('codeRabais')}
+                      aria-invalid={codeMsg?.ok === false || undefined}
+                      aria-autocomplete="list"
+                      aria-expanded={showSuggestions}
+                      aria-controls="promo-suggestions-drawer"
+                      aria-activedescendant={
+                        showSuggestions && promoActiveIdx >= 0 && promoActiveIdx < suggestions.length
+                          ? `promo-sugg-drawer-${suggestions[promoActiveIdx].code}`
+                          : undefined
+                      }
+                      role="combobox"
+                      autoComplete="off"
+                      className={`flex-1 border rounded-xl px-3 py-2.5 text-sm outline-none font-mono bg-secondary ${
+                        codeMsg?.ok === false ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => applyCode()}
+                      disabled={!codeInput.trim()}
+                      className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                    >
+                      {t('appliquer')}
+                    </button>
+                  </div>
+                  {showSuggestions && (
+                    <ul
+                      id="promo-suggestions-drawer"
+                      role="listbox"
+                      aria-label={lang === 'en' ? 'Public promo codes' : 'Codes promo publics'}
+                      className="absolute left-0 right-0 top-full mt-1 z-20 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
+                    >
+                      {suggestions.map((s, idx) => {
+                        const ratePct = Math.round(s.rate * 100);
+                        const thresholdLabel = lang === 'en'
+                          ? `${ratePct}% off (${s.threshold}+ units)`
+                          : `${ratePct} % off (${s.threshold}+ unités)`;
+                        const active = idx === promoActiveIdx;
+                        return (
+                          <li
+                            key={s.code}
+                            id={`promo-sugg-drawer-${s.code}`}
+                            role="option"
+                            aria-selected={active}
+                          >
+                            <button
+                              type="button"
+                              // onMouseDown so we fire BEFORE the input
+                              // blur tears the popover down. Without
+                              // this the click just collapses the list.
+                              onMouseDown={e => { e.preventDefault(); pickPromoSuggestion(s.code); }}
+                              onMouseEnter={() => setPromoActiveIdx(idx)}
+                              className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
+                                active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                              }`}
+                            >
+                              <span className="font-mono font-extrabold tracking-wider">{s.code}</span>
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {thresholdLabel}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              );
+            })() : (() => {
               // Task 5.8 — gold-highlighted savings line so the drawer
               // also confirms the win (the drawer previously only said
               // "Code X applied" with no dollar context).

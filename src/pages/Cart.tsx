@@ -41,6 +41,34 @@ const crossSellMap: Record<string, string[]> = {
 const SAVED_FOR_LATER_KEY = 'vision-saved-for-later';
 const SAVED_FOR_LATER_CAP = 20;
 
+// Task 5.7 — the hint list for the promo-code autocomplete. Drawn from
+// the same settings bag applyDiscount() resolves against so an admin
+// who adds VISION25 via /admin/settings sees it suggested too, but we
+// restrict to codes whose name starts with the public "VISION" prefix
+// so a private/staff code the owner set up (e.g. PRESSE2025) never
+// surfaces on the storefront. Threshold copy is static — the rate is
+// live, the "10+/15+/20+" units hint is a convention we ship with.
+export function getPublicPromoHints(): Array<{ code: string; rate: number; threshold: number }> {
+  let codes: Record<string, number>;
+  try { codes = getSettings().discountCodes ?? {}; } catch { codes = {}; }
+  const hints: Array<{ code: string; rate: number; threshold: number }> = [];
+  for (const [code, rate] of Object.entries(codes)) {
+    if (!code.startsWith('VISION')) continue;
+    if (typeof rate !== 'number' || !(rate > 0)) continue;
+    // Pull the trailing digits off "VISION10" → 10 as the threshold.
+    // Falls back to Math.round(rate * 100) so a "VISIONFLASH" sale-code
+    // still renders a plausible number instead of NaN/"+".
+    const m = code.match(/(\d+)$/);
+    const threshold = m ? parseInt(m[1], 10) : Math.round(rate * 100);
+    hints.push({ code, rate, threshold });
+  }
+  // Sort by rate ascending so the lowest-barrier code is the first
+  // suggestion — matches the way the admin table shows them and the
+  // way buyers read a ladder (10 → 15 → 20).
+  hints.sort((a, b) => a.rate - b.rate);
+  return hints;
+}
+
 function PromoCodeInput({
   onApply,
   placeholder,
@@ -52,19 +80,35 @@ function PromoCodeInput({
   applyLabel: string;
   invalidLabel: string;
 }) {
+  const { lang } = useLang();
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
+  const [focused, setFocused] = useState(false);
+  // -1 === nothing highlighted; ArrowDown from the text input picks
+  // index 0 on first press. Reset whenever the suggestion list shape
+  // changes so a stale index can't point past the array.
+  const [activeIdx, setActiveIdx] = useState(-1);
   // Ref-tracked so parent unmount + rapid re-submit don't leak / fight.
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dismiss the popover when focus moves fully out of the wrapper —
+  // but we can't use onBlur on the input alone because clicking a
+  // suggestion would race-fire blur before the click lands.
+  const wrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     return () => {
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
     };
   }, []);
 
-  const submit = () => {
-    if (!code.trim()) return;
-    const ok = onApply(code.trim());
+  const hints = getPublicPromoHints();
+  const trimmed = code.trim().toUpperCase();
+  const suggestions = hints.filter(h => !trimmed || h.code.startsWith(trimmed));
+  const showSuggestions = focused && suggestions.length > 0 && (trimmed === '' || !suggestions.some(s => s.code === trimmed));
+
+  const submit = (override?: string) => {
+    const raw = (override ?? code).trim();
+    if (!raw) return;
+    const ok = onApply(raw);
     if (!ok) {
       setError(true);
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
@@ -74,21 +118,68 @@ function PromoCodeInput({
       }, 2500);
     } else {
       setCode('');
+      setActiveIdx(-1);
     }
   };
 
+  const pickSuggestion = (codeStr: string) => {
+    // Fill the input for visual confirmation then immediately apply —
+    // if applyDiscount fails for a suggestion (settings race), the
+    // error surface still shows so the user isn't left guessing.
+    setCode(codeStr);
+    setActiveIdx(-1);
+    submit(codeStr);
+  };
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5">
+    <div className="space-y-1" ref={wrapperRef} onBlur={e => {
+      // Popover visibility hinges on focused — close only when focus
+      // actually leaves the wrapper (clicking a suggestion keeps focus
+      // inside it, so the click lands before we close).
+      if (!wrapperRef.current?.contains(e.relatedTarget as Node | null)) {
+        setFocused(false);
+        setActiveIdx(-1);
+      }
+    }}>
+      <div className="relative flex items-center gap-1.5">
         <Tag size={13} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
         <input
           type="text"
           value={code}
-          onChange={e => { setCode(e.target.value.toUpperCase()); setError(false); }}
-          onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+          onChange={e => { setCode(e.target.value.toUpperCase()); setError(false); setActiveIdx(-1); }}
+          onFocus={() => setFocused(true)}
+          onKeyDown={e => {
+            if (e.key === 'ArrowDown' && showSuggestions) {
+              e.preventDefault();
+              setActiveIdx(i => Math.min(suggestions.length - 1, i + 1));
+            } else if (e.key === 'ArrowUp' && showSuggestions) {
+              e.preventDefault();
+              setActiveIdx(i => Math.max(-1, i - 1));
+            } else if (e.key === 'Escape' && showSuggestions) {
+              // Just hide the popover; don't clobber what the user typed.
+              setFocused(false);
+              setActiveIdx(-1);
+            } else if (e.key === 'Enter') {
+              e.preventDefault();
+              if (showSuggestions && activeIdx >= 0 && activeIdx < suggestions.length) {
+                pickSuggestion(suggestions[activeIdx].code);
+              } else {
+                submit();
+              }
+            }
+          }}
           placeholder={placeholder}
           aria-label={placeholder}
           aria-invalid={error || undefined}
+          aria-autocomplete="list"
+          aria-expanded={showSuggestions}
+          aria-controls="promo-suggestions-cart"
+          aria-activedescendant={
+            showSuggestions && activeIdx >= 0 && activeIdx < suggestions.length
+              ? `promo-sugg-cart-${suggestions[activeIdx].code}`
+              : undefined
+          }
+          role="combobox"
           autoComplete="off"
           className={`flex-1 bg-secondary border rounded-lg px-2.5 py-1.5 text-xs uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/25 ${
             error ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
@@ -96,12 +187,53 @@ function PromoCodeInput({
         />
         <button
           type="button"
-          onClick={submit}
+          onClick={() => submit()}
           disabled={!code.trim()}
           className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:opacity-90 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
           {applyLabel}
         </button>
+        {showSuggestions && (
+          <ul
+            id="promo-suggestions-cart"
+            role="listbox"
+            aria-label={lang === 'en' ? 'Public promo codes' : 'Codes promo publics'}
+            className="absolute left-0 right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg overflow-hidden"
+          >
+            {suggestions.map((s, idx) => {
+              const ratePct = Math.round(s.rate * 100);
+              const thresholdLabel = lang === 'en'
+                ? `${ratePct}% off (${s.threshold}+ units)`
+                : `${ratePct} % off (${s.threshold}+ unités)`;
+              const active = idx === activeIdx;
+              return (
+                <li
+                  key={s.code}
+                  id={`promo-sugg-cart-${s.code}`}
+                  role="option"
+                  aria-selected={active}
+                >
+                  <button
+                    type="button"
+                    // onMouseDown so the click fires BEFORE the input's
+                    // blur tears the popover down. Using onClick alone
+                    // races with the wrapper onBlur and swallows picks.
+                    onMouseDown={e => { e.preventDefault(); pickSuggestion(s.code); }}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
+                      active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                    }`}
+                  >
+                    <span className="font-mono font-extrabold tracking-wider">{s.code}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      {thresholdLabel}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       {error && (
         <p className="text-[10px] text-rose-600 font-semibold pl-5" role="alert">{invalidLabel}</p>
