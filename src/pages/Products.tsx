@@ -590,6 +590,18 @@ export default function Products() {
       {/* Content */}
       <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-9 pb-32">
         {isLoading ? (
+          // Task 2.5 — skeleton mirrors ProductCard's real DOM so the
+          // catalog doesn't visually jump when the fetch resolves.
+          // Matching knobs (kept in sync with ProductCard.tsx):
+          //   - Outer: border-border rounded-[18px] bg-card
+          //   - Image container: aspectRatio 1 + bg-secondary
+          //   - Info: p-3.5 pb-4, three stacked placeholder lines
+          //     (title w-3/4, meta w-1/2, price w-1/3)
+          //   - Grid columns: 2 / md:3 / lg:4 — identical to the real
+          //     grid below so first-paint column count is stable
+          // prefers-reduced-motion disables the shimmer keyframe —
+          // static placeholder is still semantically the same loading
+          // state, it just doesn't animate.
           <div
             className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
             role="status"
@@ -597,9 +609,45 @@ export default function Products() {
             aria-label={lang === 'en' ? 'Loading products' : 'Chargement des produits'}
           >
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" aria-hidden="true" />
+              <div
+                key={i}
+                className="va-skel-card border border-border rounded-[18px] overflow-hidden bg-card"
+                aria-hidden="true"
+              >
+                <div
+                  className="va-skel-block relative overflow-hidden bg-secondary"
+                  style={{ aspectRatio: '1' }}
+                />
+                <div className="p-3.5 pb-4">
+                  <div className="va-skel-block h-3 w-3/4 rounded bg-secondary mb-2" />
+                  <div className="va-skel-block h-2.5 w-1/2 rounded bg-secondary mb-3" />
+                  <div className="va-skel-block h-3 w-1/3 rounded bg-secondary" />
+                </div>
+              </div>
             ))}
             <span className="sr-only">{lang === 'en' ? 'Loading products…' : 'Chargement des produits…'}</span>
+            <style>{`
+              @keyframes va-skel-shimmer {
+                0%   { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+              }
+              .va-skel-block {
+                background-image: linear-gradient(
+                  90deg,
+                  hsl(var(--secondary)) 0%,
+                  hsl(var(--muted)) 50%,
+                  hsl(var(--secondary)) 100%
+                );
+                background-size: 200% 100%;
+                animation: va-skel-shimmer 1.4s ease-in-out infinite;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .va-skel-block {
+                  animation: none;
+                  background-image: none;
+                }
+              }
+            `}</style>
           </div>
         ) : isError ? (
           // Shopify Storefront returned an error (network, auth, 5xx).
