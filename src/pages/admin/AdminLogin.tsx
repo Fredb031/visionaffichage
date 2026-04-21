@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
@@ -22,6 +22,14 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
+  // CapsLock inline hint: only shows while the password input is
+  // focused AND caps lock is currently on. Catches the "why is my
+  // password wrong" failure mode before the user even submits.
+  const [capsOn, setCapsOn] = useState(false);
+  const [pwdFocused, setPwdFocused] = useState(false);
+  const handleCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsOn(e.getModifierState('CapsLock'));
+  };
 
   const redirectTo = (location.state as { from?: string } | null)?.from;
 
@@ -177,21 +185,30 @@ export default function AdminLogin() {
                   setPassword(e.target.value);
                   if (error) clearError();
                 }}
+                onKeyDown={handleCapsCheck}
+                onKeyUp={handleCapsCheck}
+                onFocus={() => setPwdFocused(true)}
+                onBlur={() => setPwdFocused(false)}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
-                className="w-full pl-10 pr-16 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/10"
+                className="w-full pl-10 pr-11 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/10"
               />
               <button
                 type="button"
                 onClick={() => setShowPwd(s => !s)}
-                aria-label={showPwd ? 'Cacher le mot de passe' : 'Afficher le mot de passe'}
+                aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPwd}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded px-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded p-1"
               >
-                {showPwd ? 'Cacher' : 'Voir'}
+                {showPwd ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
             </div>
+            {pwdFocused && capsOn && (
+              <p className="mt-1 text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
+                <span aria-hidden="true">⇪</span> Caps Lock est activé
+              </p>
+            )}
           </label>
 
           <div className="flex items-center justify-end pt-1">

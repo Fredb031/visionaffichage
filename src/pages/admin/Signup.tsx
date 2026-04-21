@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore, isPresidentEmailCandidate } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
@@ -22,6 +22,19 @@ export default function Signup() {
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Per-input show/hide state. Independent so flipping one doesn't
+  // accidentally reveal the other — the confirm field's whole job is to
+  // catch typos in the primary, so they must stay decoupled.
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  // CapsLock hint only renders while a password input is focused AND
+  // caps lock is on. We track the focused field and the caps state
+  // separately so blurring clears the hint even if caps is still on.
+  const [capsOn, setCapsOn] = useState(false);
+  const [pwdFocus, setPwdFocus] = useState<null | 'password' | 'confirm'>(null);
+  const handleCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsOn(e.getModifierState('CapsLock'));
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,15 +168,33 @@ export default function Signup() {
               <div className="mt-1.5 relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
-                  type="password"
+                  type={showPwd ? 'text' : 'password'}
                   value={password}
                   onChange={e => { setPassword(e.target.value); if (error) clearError(); }}
+                  onKeyDown={handleCapsCheck}
+                  onKeyUp={handleCapsCheck}
+                  onFocus={() => setPwdFocus('password')}
+                  onBlur={() => setPwdFocus(prev => (prev === 'password' ? null : prev))}
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
+                  className="w-full pl-10 pr-11 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(s => !s)}
+                  aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showPwd}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded p-1"
+                >
+                  {showPwd ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                </button>
               </div>
+              {pwdFocus === 'password' && capsOn && (
+                <p className="mt-1 text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
+                  <span aria-hidden="true">⇪</span> Caps Lock est activé
+                </p>
+              )}
             </label>
 
             <label className="block">
@@ -174,20 +205,38 @@ export default function Signup() {
                   const mismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
                   return (
                     <input
-                      type="password"
+                      type={showConfirm ? 'text' : 'password'}
                       value={confirm}
                       onChange={e => setConfirm(e.target.value)}
+                      onKeyDown={handleCapsCheck}
+                      onKeyUp={handleCapsCheck}
+                      onFocus={() => setPwdFocus('confirm')}
+                      onBlur={() => setPwdFocus(prev => (prev === 'confirm' ? null : prev))}
                       required
                       minLength={8}
                       autoComplete="new-password"
                       aria-invalid={mismatch || undefined}
-                      className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none ${
+                      className={`w-full pl-10 pr-11 py-3 border rounded-xl text-sm outline-none ${
                         mismatch ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
                       }`}
                     />
                   );
                 })()}
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(s => !s)}
+                  aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showConfirm}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded p-1"
+                >
+                  {showConfirm ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                </button>
               </div>
+              {pwdFocus === 'confirm' && capsOn && (
+                <p className="mt-1 text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
+                  <span aria-hidden="true">⇪</span> Caps Lock est activé
+                </p>
+              )}
             </label>
 
             <button
