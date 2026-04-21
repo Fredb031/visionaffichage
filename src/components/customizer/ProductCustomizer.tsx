@@ -28,6 +28,7 @@ import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { fmtMoney } from '@/lib/format';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -1038,7 +1039,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           <span className={`text-[11px] font-extrabold ${isFree ? 'text-green-600' : 'text-muted-foreground'}`}>
                             {isFree
                               ? (lang === 'en' ? 'Included' : 'Inclus')
-                              : `+${z.extraPrice?.toFixed(2)} $`}
+                              : `+${fmtMoney(z.extraPrice, lang)}`}
                           </span>
                         </button>
                       );
@@ -1175,8 +1176,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                                 <span className="w-3.5 h-3.5 rounded-full ring-1 ring-border flex-shrink-0 shadow-sm" style={{ background: g.hex }} />
                                 <span className="font-extrabold text-xs flex-shrink-0">{g.name}</span>
                                 <span className="ml-auto text-[11px] font-bold text-foreground/70">
-                                  {g.qty} × {unitPrice.toFixed(2)} $
-                                  <span className="ml-1.5 font-black text-foreground">= {groupLineTotal.toFixed(2)} $</span>
+                                  {g.qty} × {fmtMoney(unitPrice, lang)}
+                                  <span className="ml-1.5 font-black text-foreground">= {fmtMoney(groupLineTotal, lang)}</span>
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-1">
@@ -1210,14 +1211,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         : store.placementSides === 'back'  ? (lang === 'en' ? 'Back only'  : 'Dos seulement')
                         : (lang === 'en' ? 'Front + Back' : 'Devant + Dos')],
                       [t('quantiteTotale'), `${totalQty} ${t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}`],
-                      [t('prixUnitaire'),   `${product.basePrice.toFixed(2)} $`],
+                      [t('prixUnitaire'),   fmtMoney(product.basePrice, lang)],
                       [
                         t('impression'),
                         store.placementSides === 'none'
                           ? (lang === 'en' ? 'Not included' : 'Non inclus')
                           : store.placementSides === 'both'
-                            ? `${PRINT_PRICE.toFixed(2)} $ · ${lang === 'en' ? 'front + back included' : 'recto-verso inclus'}`
-                            : `${PRINT_PRICE.toFixed(2)} $`,
+                            ? `${fmtMoney(PRINT_PRICE, lang)} · ${lang === 'en' ? 'front + back included' : 'recto-verso inclus'}`
+                            : fmtMoney(PRINT_PRICE, lang),
                       ],
                     ].map(([l, v]) => (
                       <div key={l} className="flex justify-between text-sm">
@@ -1239,7 +1240,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                               {lang === 'en' ? 'Subtotal' : 'Sous-total'}
                             </span>
                             <span className={`font-bold ${hasDiscount ? 'text-muted-foreground line-through decoration-muted-foreground/40' : ''}`}>
-                              {subtotal.toFixed(2)} $
+                              {fmtMoney(subtotal, lang)}
                             </span>
                           </div>
                           {hasDiscount ? (
@@ -1251,7 +1252,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                                 <span className="text-emerald-700 font-bold">{t('rabaisQuantite')}</span>
                               </span>
                               <span className="font-black text-emerald-600">
-                                −{savings.toFixed(2)} $
+                                −{fmtMoney(savings, lang)}
                               </span>
                             </div>
                           ) : (
@@ -1270,7 +1271,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     })()}
                     <div className="border-t border-border pt-2.5 flex items-baseline justify-between">
                       <span className="font-black">{t('totalEstime')}</span>
-                      <span className="font-black text-primary text-xl tracking-tight">{totalPrice.toFixed(2)} $</span>
+                      <span className="font-black text-primary text-xl tracking-tight">{fmtMoney(totalPrice, lang)}</span>
                     </div>
                   </div>
 
@@ -1353,7 +1354,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
                         </span>
                         <span className="text-muted-foreground/50">·</span>
-                        <span className="font-extrabold text-foreground">{totalPrice.toFixed(2)} $</span>
+                        <span className="font-extrabold text-foreground">{fmtMoney(totalPrice, lang)}</span>
                         {hasDiscount && (
                           <span className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-wider">
                             −{Math.round(BULK_DISCOUNT_RATE * 100)}%
@@ -1403,7 +1404,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               <div className="text-[10px] text-muted-foreground">
                 {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
               </div>
-              <div className="text-sm font-black text-primary">{totalPrice.toFixed(2)} $</div>
+              <div className="text-sm font-black text-primary">{fmtMoney(totalPrice, lang)}</div>
             </div>
           )}
 

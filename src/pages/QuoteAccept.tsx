@@ -5,6 +5,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { LogoUploadDropzone } from '@/components/LogoUploadDropzone';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { fmtMoney } from '@/lib/format';
 
 interface MockLineItem {
   id: string;
@@ -144,8 +145,8 @@ export default function QuoteAccept() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="font-extrabold text-[#0052CC]">{(it.unit * it.qty).toFixed(2)} $</div>
-                      <div className="text-[10px] text-muted-foreground">{it.unit.toFixed(2)} $ / {lang === 'en' ? 'unit' : 'unité'}</div>
+                      <div className="font-extrabold text-[#0052CC]">{fmtMoney(it.unit * it.qty, lang)}</div>
+                      <div className="text-[10px] text-muted-foreground">{fmtMoney(it.unit, lang)} / {lang === 'en' ? 'unit' : 'unité'}</div>
                     </div>
                   </div>
                 ))}
@@ -215,24 +216,24 @@ export default function QuoteAccept() {
               <div className="space-y-1.5 text-sm border-y border-border py-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
-                  <span className="font-semibold">{subtotal.toFixed(2)} $</span>
+                  <span className="font-semibold">{fmtMoney(subtotal, lang)}</span>
                 </div>
                 <div className="flex justify-between text-emerald-700">
                   <span className="font-semibold">
                     {lang === 'en' ? 'Discount' : 'Rabais'} ({MOCK_QUOTE.discount.value}%)
                   </span>
-                  <span className="font-bold">- {discountAmount.toFixed(2)} $</span>
+                  <span className="font-bold">- {fmtMoney(discountAmount, lang)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{lang === 'en' ? 'Tax' : 'Taxes'} (14.975%)</span>
-                  <span className="font-semibold">{tax.toFixed(2)} $</span>
+                  <span className="font-semibold">{fmtMoney(tax, lang)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-baseline">
                 <span className="text-lg font-extrabold">Total</span>
                 <div className="text-right">
-                  <div className="text-2xl font-extrabold text-[#0052CC] leading-none">{total.toFixed(2)} $</div>
+                  <div className="text-2xl font-extrabold text-[#0052CC] leading-none">{fmtMoney(total, lang)}</div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider">CAD · taxes incluses</div>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RA
 import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
 import { filterRealColors } from '@/lib/colorFilter';
+import { fmtMoney } from '@/lib/format';
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -224,11 +225,11 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             return (
               <div className="mt-2 space-y-1">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[14px] font-extrabold text-primary">{unit.toFixed(2)} $</span>
+                  <span className="text-[14px] font-extrabold text-primary">{fmtMoney(unit, lang)}</span>
                   <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'unit' : 'unité'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-green-700">{bulk.toFixed(2)} $</span>
+                  <span className="text-[11px] font-bold text-green-700">{fmtMoney(bulk, lang)}</span>
                   <span className="text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
                     {BULK_DISCOUNT_THRESHOLD}+ = -{Math.round(BULK_DISCOUNT_RATE * 100)}%
                   </span>
@@ -239,11 +240,12 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             <div className="mt-2">
               <span className="text-[14px] font-extrabold text-primary">{(() => {
                 // Defensive: price.amount can be missing/non-numeric on
-                // a partial Shopify response. NaN → "—" so we render
-                // something visible instead of "NaN $".
+                // a partial Shopify response. fmtMoney handles NaN /
+                // nullish by returning '—' so we render something visible
+                // instead of 'NaN $'.
                 const raw = price?.amount;
                 const n = raw != null ? parseFloat(raw) : NaN;
-                return Number.isFinite(n) ? `${n.toFixed(2)} $` : '— $';
+                return fmtMoney(n, lang);
               })()}</span>
             </div>
           )}
