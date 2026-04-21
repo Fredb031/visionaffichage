@@ -231,6 +231,36 @@ export default function ProductDetail() {
     ? parseFloat(selectedVariant.price.amount).toFixed(2)
     : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2);
 
+  // Per-variant stock ceiling for the BulkCalculator. The calculator is
+  // keyed on `handle` (intentionally, so size/color tweaks don't blow
+  // away the user's chosen qty — see the BulkCalculator key comment
+  // below). But that means qty can outlast a variant switch into a
+  // lower-stock combo (e.g. 200 of Royal/M then switch to Sky Blue/XS
+  // which only has 14). Compute a best-effort ceiling from Shopify's
+  // availableForSale + SanMar's byColorSize map; the calculator clamps
+  // qty down to it on change, without unmounting. Undefined = unknown,
+  // leave qty alone (typical path when SanMar edge fn isn't deployed).
+  const variantMaxQty: number | undefined = (() => {
+    if (selectedVariant && selectedVariant.availableForSale === false) return 0;
+    const byColorSize = stock?.byColorSize;
+    if (!byColorSize || byColorSize.size === 0) return undefined;
+    const colorOpt = options.find((o: { name: string }) => /color|colour|couleur/i.test(o.name));
+    const sizeOpt = options.find((o: { name: string }) => /size|taille/i.test(o.name));
+    const color = colorOpt ? currentOptions[colorOpt.name] : undefined;
+    const size = sizeOpt ? currentOptions[sizeOpt.name] : undefined;
+    if (!color || !size) return undefined;
+    // SanMar keys are raw strings; match case-insensitively so 'Black'
+    // vs 'BLACK' / 'S' vs 's' differences between Shopify option labels
+    // and SanMar partColor/labelSize don't silently skip the clamp.
+    const norm = (s: string) => s.toLowerCase().trim();
+    const wanted = `${norm(color)}|${norm(size)}`;
+    for (const [key, qty] of byColorSize.entries()) {
+      const [k1, k2] = key.split('|');
+      if (k1 && k2 && `${norm(k1)}|${norm(k2)}` === wanted) return qty;
+    }
+    return undefined;
+  })();
+
   const currency = product.priceRange.minVariantPrice.currencyCode;
 
   return (
@@ -416,7 +446,7 @@ export default function ProductDetail() {
               // Keep qty stable across variant (color/size) switches on the
               // *same* product so size/color tweaks don't reset the user's
               // chosen quantity.
-              return <BulkCalculator key={handle} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />;
+              return <BulkCalculator key={handle} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
             })()}
 
             {/* Compact info row: stock + size guide + delivery */}
@@ -649,8 +679,24 @@ export default function ProductDetail() {
   );
 }
 
-function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en' }) {
+function BulkCalculator({ unitWithPrint, discountedUnit, lang, variantMaxQty }: { unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en'; variantMaxQty?: number }) {
   const [qty, setQty] = useState(12);
+
+  // When the user switches to a variant (color/size) with less stock
+  // than their current qty, clamp down so the estimate can't quote
+  // more units than the variant actually has. We don't remount the
+  // calculator on variant change (that would blow away a deliberately
+  // chosen qty on every swatch click — see the `key={handle}` comment
+  // in ProductDetail); instead, only shrink qty when the new ceiling
+  // is lower, and floor at 1 so the input never reads 0 mid-edit.
+  // If variantMaxQty is undefined (SanMar edge fn not deployed, or no
+  // color+size resolved yet) we leave qty alone.
+  useEffect(() => {
+    if (typeof variantMaxQty !== 'number' || !Number.isFinite(variantMaxQty)) return;
+    const ceiling = Math.max(1, variantMaxQty);
+    setQty(q => (q > ceiling ? ceiling : q));
+  }, [variantMaxQty]);
+
   const isBulk = qty >= 12;
   const unit = isBulk ? discountedUnit : unitWithPrint;
   const total = unit * qty;
@@ -667,7 +713,14 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
       maximumFractionDigits: 2,
     });
 
-  const bump = (delta: number) => setQty(q => Math.max(1, q + delta));
+  const bump = (delta: number) => setQty(q => {
+    const next = Math.max(1, q + delta);
+    if (typeof variantMaxQty === 'number' && Number.isFinite(variantMaxQty)) {
+      const ceiling = Math.max(1, variantMaxQty);
+      return Math.min(next, ceiling);
+    }
+    return next;
+  });
 
   return (
     <div className="bg-gradient-to-br from-secondary/60 to-background border border-border rounded-xl p-4">
@@ -691,7 +744,13 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
           min="1"
           inputMode="numeric"
           value={qty}
-          onChange={e => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+          onChange={e => setQty(() => {
+            const raw = Math.max(1, parseInt(e.target.value) || 1);
+            if (typeof variantMaxQty === 'number' && Number.isFinite(variantMaxQty)) {
+              return Math.min(raw, Math.max(1, variantMaxQty));
+            }
+            return raw;
+          })}
           className="flex-1 text-center text-2xl font-extrabold bg-background border border-border rounded-lg py-1.5 outline-none focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           aria-label={lang === 'en' ? 'Quantity' : 'Quantité'}
         />
