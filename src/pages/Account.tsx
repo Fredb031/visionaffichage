@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
@@ -12,6 +13,32 @@ import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 import { normalizeInvisible } from '@/lib/utils';
 
+// Law 25 (Québec) account-deletion request queue. We persist the
+// request in localStorage so an admin can drain it manually while the
+// real Supabase deletion hook is pending. Cap at 100 to prevent an
+// unbounded grow on a shared browser.
+// TODO(backend): wire this to a Supabase Edge Function that removes
+// the auth user + all profile/orders rows, then clear the matching
+// entry from the queue. Until then an admin processes these manually.
+const DELETION_QUEUE_KEY = 'vision-account-deletion-requests';
+const DELETION_QUEUE_MAX = 100;
+interface DeletionRequest {
+  userId: string;
+  email: string;
+  requestedAt: string;
+}
+function enqueueDeletionRequest(req: DeletionRequest) {
+  try {
+    const raw = localStorage.getItem(DELETION_QUEUE_KEY);
+    const existing: DeletionRequest[] = raw ? JSON.parse(raw) : [];
+    const list = Array.isArray(existing) ? existing : [];
+    const next = [req, ...list].slice(0, DELETION_QUEUE_MAX);
+    localStorage.setItem(DELETION_QUEUE_KEY, JSON.stringify(next));
+  } catch (e) {
+    console.warn('[Account] Could not persist deletion request:', e);
+  }
+}
+
 export default function Account() {
   const { lang } = useLang();
   const navigate = useNavigate();
@@ -19,6 +46,10 @@ export default function Account() {
   const signOut = useAuthStore(s => s.signOut);
   const loading = useAuthStore(s => s.loading);
   const [hydrated, setHydrated] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const verificationWord = lang === 'en' ? 'DELETE' : 'SUPPRIMER';
+  const canConfirmDelete = deleteConfirm.trim().toUpperCase() === verificationWord;
 
   useEffect(() => {
     if (!loading) setHydrated(true);
@@ -96,6 +127,24 @@ export default function Account() {
   const handleLogout = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!canConfirmDelete || !user) return;
+    enqueueDeletionRequest({
+      userId: user.id,
+      email: user.email,
+      requestedAt: new Date().toISOString(),
+    });
+    setDeleteOpen(false);
+    setDeleteConfirm('');
+    await signOut();
+    navigate('/');
+    toast.success(
+      lang === 'en'
+        ? 'Deletion request logged. We will contact you within 24h.'
+        : 'Demande de suppression enregistrée. On vous contactera sous 24h.'
+    );
   };
 
   const totalSpent = myOrders.reduce((s, o) => s + o.total, 0);
@@ -281,7 +330,98 @@ export default function Account() {
           <LogOut size={14} aria-hidden="true" />
           {lang === 'en' ? 'Sign out' : 'Déconnexion'}
         </button>
+
+        {/* Danger zone — Law 25 self-serve deletion request. Muted/border
+            styling keeps it visually separated from the rest of the page
+            so a casual click is unlikely. Actual destructive action hides
+            behind a typed-verification modal. */}
+        <section
+          aria-labelledby="danger-zone-heading"
+          className="mt-8 bg-white border border-border rounded-2xl p-5 md:p-6"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-[#DC2626] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <h2 id="danger-zone-heading" className="font-bold text-[#DC2626]">
+                {lang === 'en' ? 'Danger zone' : 'Zone dangereuse'}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                {lang === 'en'
+                  ? 'Permanently request deletion of your account and associated data. This is irreversible.'
+                  : 'Demander la suppression définitive de votre compte et des données associées. Cette action est irréversible.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(true)}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                {lang === 'en' ? 'Delete my account' : 'Supprimer mon compte'}
+              </button>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {deleteOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-heading"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
+          onClick={() => { setDeleteOpen(false); setDeleteConfirm(''); }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-[#DC2626]/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-[#DC2626]" aria-hidden="true" />
+              </div>
+              <h3 id="delete-dialog-heading" className="text-lg font-extrabold text-foreground mt-1">
+                {lang === 'en' ? 'Delete your account?' : 'Supprimer votre compte ?'}
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+              {lang === 'en'
+                ? `This action is irreversible. All your orders, addresses, and preferences will be deleted within 30 days (Law 25 obligation). Type ${verificationWord} to confirm.`
+                : `Cette action est irréversible. Toutes vos commandes, adresses, et préférences seront supprimées sous 30 jours (obligation Loi 25). Tapez ${verificationWord} pour confirmer.`}
+            </p>
+            <label htmlFor="delete-confirm-input" className="sr-only">
+              {lang === 'en' ? `Type ${verificationWord} to confirm` : `Tapez ${verificationWord} pour confirmer`}
+            </label>
+            <input
+              id="delete-confirm-input"
+              type="text"
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder={verificationWord}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm font-mono tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:border-[#DC2626]"
+            />
+            <div className="flex gap-3 mt-5 justify-end">
+              <button
+                type="button"
+                onClick={() => { setDeleteOpen(false); setDeleteConfirm(''); }}
+                className="px-4 py-2 rounded-lg text-sm font-bold border border-border bg-background hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              >
+                {lang === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={!canConfirmDelete}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-1"
+              >
+                {lang === 'en' ? 'Confirm deletion' : 'Confirmer la suppression'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AIChat />
       <BottomNav />
