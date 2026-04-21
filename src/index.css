@@ -60,6 +60,21 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground antialiased; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* Global default focus-visible ring (Task 6.1).
+     `:where()` keeps specificity at 0 so any component-level
+     focus-visible:* override wins via Tailwind's higher specificity. */
+  :where(button, a, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"]), input, select, textarea):focus-visible {
+    outline: 2px solid #E8A838;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Skip-links render as .sr-only until focused and carry their own
+     visible styling — don't paint the default ring on the offscreen box. */
+  .sr-only:focus-visible {
+    outline: none;
+  }
 }
 
 @layer utilities {
