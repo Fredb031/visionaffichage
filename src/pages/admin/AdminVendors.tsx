@@ -1,6 +1,13 @@
+/** Admin vendors page — manages the sales team roster (seed + localStorage
+ * custom invites). Features a MTD leaderboard, sortable metric columns,
+ * per-vendor inline rename, CSV export of the vendor list, an Actif/Inactif
+ * status filter, and a link out to the public `/vendor/:vendorId` profile
+ * for vendors that have one. Admin-level "Exporter tous les vendeurs"
+ * commission CSV is gated on `orders:read`.
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown, Pencil, ExternalLink } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
 import { plural } from '@/lib/i18n';
@@ -86,6 +93,80 @@ function formatMonthLabel(ym: string): string {
   return d.toLocaleDateString('fr-CA', { month: 'short', year: 'numeric' });
 }
 
+// Seed vendor IDs map to public /vendor/:vendorId profiles (see
+// VENDOR_PROFILES in pages/vendor/VendorProfile.tsx). Custom vendors
+// invited through the admin modal don't have a public profile yet, so
+// the row link is suppressed for them to avoid a 404-like empty page.
+const PUBLIC_PROFILE_IDS: ReadonlySet<string> = new Set(['1', '2', '3']);
+
+// Status model — no real `status` column exists on VendorRecord yet;
+// we derive it from observable activity. A vendor with zero sent quotes
+// AND zero revenue AND the "Invitation envoyée" placeholder is treated
+// as Inactif (freshly invited, never engaged). Everyone else is Actif.
+type VendorStatus = 'active' | 'inactive';
+type StatusFilter = 'all' | VendorStatus;
+function deriveStatus(v: { quotesSent: number; revenue: number; lastActive: string }): VendorStatus {
+  if (v.quotesSent > 0 || v.revenue > 0) return 'active';
+  if (v.lastActive === 'Invitation envoyée') return 'inactive';
+  return 'active';
+}
+const STATUS_LABEL: Record<VendorStatus, string> = { active: 'Actif', inactive: 'Inactif' };
+
+// Extract the invite timestamp from a custom vendor id of the shape
+// `cus-${Date.now()}-${suffix}`; returns null for seed ids ('1','2','3')
+// or any malformed id so the CSV falls back to em-dash rather than a
+// misleading 1970-01-01.
+function createdAtFromId(id: string): Date | null {
+  const m = /^cus-(\d+)-/.exec(id);
+  if (!m) return null;
+  const ts = Number(m[1]);
+  if (!Number.isFinite(ts) || ts <= 0) return null;
+  const d = new Date(ts);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+function formatCreatedAt(id: string): string {
+  const d = createdAtFromId(id);
+  if (!d) return '—';
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+/** CSV export of the filtered vendor list. Columns: Nom, Courriel,
+ * Statut, Commission (MTD, 2 decimals, no symbol), Créé le. Mirrors
+ * the AdminOrders helper: RFC 4180 escaping, formula-injection guard
+ * (leading = + - @ \t \r → prefixed with a tab so Excel/Sheets render
+ * as text), UTF-8 BOM so Excel-on-Windows handles Québécois accents,
+ * fr-CA dates. Blob URL revoked after 1s to avoid pinning memory and
+ * to give Safari time to begin the download before the URL dies.
+ */
+function exportVendorsCsv(
+  rows: Array<{ name: string; email: string; status: VendorStatus; commission: number; id: string }>,
+): void {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = ['Nom', 'Courriel', 'Statut', 'Commission', 'Créé le'];
+  const body = rows.map(r => [
+    r.name,
+    r.email,
+    STATUS_LABEL[r.status],
+    r.commission.toFixed(2),
+    formatCreatedAt(r.id),
+  ]);
+  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vendors-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function AdminVendors() {
   useDocumentTitle('Vendeurs — Admin Vision Affichage');
   // URL-backed sort so reload preserves the admin's chosen ranking and
@@ -99,10 +180,14 @@ export default function AdminVendors() {
   const initialDir: SortDir = searchParams.get('dir') === 'asc' ? 'asc' : 'desc';
   const urlMonth = searchParams.get('month');
   const initialMonth = urlMonth && /^\d{4}-\d{2}$/.test(urlMonth) ? urlMonth : currentYearMonth();
+  const urlStatus = searchParams.get('status');
+  const initialStatus: StatusFilter =
+    urlStatus === 'active' || urlStatus === 'inactive' ? urlStatus : 'all';
 
   const [sort, setSort] = useState<VendorSort>(initialSort);
   const [sortDir, setSortDir] = useState<SortDir>(initialDir);
   const [month, setMonth] = useState<string>(initialMonth);
+  const [status, setStatus] = useState<StatusFilter>(initialStatus);
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
   // Name-override store — lets admin/president rename any vendor card
@@ -131,10 +216,11 @@ export default function AdminVendors() {
     if (sort !== 'default' && sortDir !== 'desc') next.set('dir', sortDir);
     else next.delete('dir');
     if (month !== currentYearMonth()) next.set('month', month); else next.delete('month');
+    if (status !== 'all') next.set('status', status); else next.delete('status');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [sort, sortDir, month, query, searchParams, setSearchParams]);
+  }, [sort, sortDir, month, query, status, searchParams, setSearchParams]);
 
   useEffect(() => {
     // readLS handles the JSON.parse failure path so a corrupted blob
@@ -380,6 +466,22 @@ export default function AdminVendors() {
     });
   }, [customVendors]);
 
+  // Vendor-list CSV — a simpler "who's on the team" export distinct
+  // from the commission CSV below. Uses the currently filtered `all`
+  // list so a narrowed search / status filter is respected. Commission
+  // column is MTD for the selected month so the header-less numeric
+  // pairs with the month picker without forcing a second selector.
+  const onExportVendorsCsv = useCallback(() => {
+    const rows = all.map(v => ({
+      id: v.id,
+      name: nameOverrides[v.id] ?? v.name,
+      email: v.email,
+      status: deriveStatus(v),
+      commission: v.mtdCommission,
+    }));
+    exportVendorsCsv(rows);
+  }, [all, nameOverrides]);
+
   const onExportAllCsv = useCallback(() => {
     // Export with override-aware names so the finance CSV matches what
     // the admin sees in the UI — otherwise a vendor renamed via task
@@ -436,7 +538,7 @@ export default function AdminVendors() {
     // Strip ZWSP before matching so a paste-from-Slack search term
     // still matches vendors with invisible chars in their imported name.
     const q = normalizeInvisible(query).trim().toLowerCase();
-    const filtered = q
+    const searched = q
       ? enriched.filter(v => {
           // Search the override-aware display name so a vendor renamed
           // inline via task 9.6 is still reachable by their new label
@@ -448,6 +550,12 @@ export default function AdminVendors() {
           return name.includes(q) || email.includes(q);
         })
       : enriched;
+    // Status filter layered on top of search — narrow to Actif/Inactif
+    // after name/email match so an admin can search "sophie" then flip
+    // to Inactif without losing the search scope.
+    const filtered = status === 'all'
+      ? searched
+      : searched.filter(v => deriveStatus(v) === status);
     if (sort === 'default') return filtered;
     const arr = [...filtered];
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -463,7 +571,7 @@ export default function AdminVendors() {
     };
     arr.sort((a, b) => (keyFor(a) - keyFor(b)) * dir);
     return arr;
-  }, [enriched, sort, sortDir, query, nameOverrides]);
+  }, [enriched, sort, sortDir, query, status, nameOverrides]);
 
   // Leaderboard is always sorted by MTD sales desc so the ranking is
   // stable regardless of the column the admin chose for the card grid
@@ -530,6 +638,17 @@ export default function AdminVendors() {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            onClick={onExportVendorsCsv}
+            disabled={all.length === 0}
+            aria-label="Exporter la liste des vendeurs filtrés en CSV"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-white border border-zinc-300 text-zinc-700 rounded-lg hover:border-[#0052CC] hover:text-[#0052CC] shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+            title={all.length === 0 ? 'Aucun vendeur à exporter' : `Exporter ${all.length} vendeur${all.length > 1 ? 's' : ''} en CSV`}
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
           {canExport && (
             <button
               type="button"
@@ -640,6 +759,40 @@ export default function AdminVendors() {
           </ol>
         </section>
       )}
+
+      {/* Segmented Actif/Inactif filter — Inactif surfaces vendors who
+          were invited but never sent a quote or booked revenue (i.e. the
+          "Invitation envoyée" cohort). Status is derived, not stored,
+          so it stays accurate as custom vendors start transacting. */}
+      <div
+        role="group"
+        aria-label="Filtrer les vendeurs par statut"
+        className="flex items-center gap-2 flex-wrap text-xs bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2"
+      >
+        <span className="text-zinc-500 font-semibold mr-1">Statut :</span>
+        {([
+          { key: 'all',      label: 'Tout' },
+          { key: 'active',   label: 'Actif' },
+          { key: 'inactive', label: 'Inactif' },
+        ] as Array<{ key: StatusFilter; label: string }>).map(seg => {
+          const active = status === seg.key;
+          return (
+            <button
+              key={seg.key}
+              type="button"
+              onClick={() => setStatus(seg.key)}
+              aria-pressed={active}
+              className={`inline-flex items-center px-2.5 py-1 rounded-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
+                active
+                  ? 'bg-[#0052CC] text-white shadow-sm'
+                  : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#0052CC]/40 hover:text-[#0052CC]'
+              }`}
+            >
+              {seg.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Sortable metric columns — clicking a header toggles the sort
           key on the card grid below. Desc is the default on first click
@@ -860,15 +1013,36 @@ export default function AdminVendors() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-500">Actif {v.lastActive}</span>
-                <a
-                  href={`mailto:${v.email}`}
-                  aria-label={`Contacter ${shownName} par courriel`}
-                  className="text-[#0052CC] font-bold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
-                >
-                  Contacter →
-                </a>
+              <div className="flex items-center justify-between text-xs gap-2">
+                <span className="text-zinc-500 truncate">Actif {v.lastActive}</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Public-profile link — only vendors present in the
+                      VENDOR_PROFILES map at /vendor/:vendorId get this
+                      link. Custom vendors invited via this page don't
+                      yet have a profile entry, so the link is hidden to
+                      avoid routing admins to a "profil introuvable"
+                      empty state. */}
+                  {PUBLIC_PROFILE_IDS.has(v.id) && (
+                    <Link
+                      to={`/vendor/${v.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Voir le profil public de ${shownName} (nouvel onglet)`}
+                      className="inline-flex items-center gap-1 text-zinc-500 hover:text-[#0052CC] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                      title="Voir le profil public"
+                    >
+                      Profil
+                      <ExternalLink size={10} aria-hidden="true" />
+                    </Link>
+                  )}
+                  <a
+                    href={`mailto:${v.email}`}
+                    aria-label={`Contacter ${shownName} par courriel`}
+                    className="text-[#0052CC] font-bold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                  >
+                    Contacter →
+                  </a>
+                </div>
               </div>
             </div>
           );
