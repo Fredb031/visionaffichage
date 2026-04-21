@@ -8,10 +8,21 @@ import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+// Task 17.9 — position top-right so toasts don't collide with the
+// bottom-mounted cart drawer / sticky mobile CTA. pauseWhenPageIsHidden
+// is sonner's default but we set it explicitly so the behaviour is
+// discoverable in source. Pause-on-hover is also on by default in
+// sonner and needs no prop. closeButton lets users dismiss early;
+// 4s is our standard duration (per-call toast.success/error can still
+// override via their own `duration` option).
 const Toaster = ({ ...props }: ToasterProps) => (
   <Sonner
     theme="system"
     className="toaster group"
+    position="top-right"
+    duration={4000}
+    closeButton
+    pauseWhenPageIsHidden
     toastOptions={{
       classNames: {
         toast:
