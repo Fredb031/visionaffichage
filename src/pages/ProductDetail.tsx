@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense, lazy, useMemo, useRef, type KeyboardEventHandler } from 'react';
+import { useEffect, useState, Suspense, lazy, useMemo, useRef, useId, type KeyboardEventHandler } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, colorNameToHex } from '@/lib/shopify';
@@ -13,10 +13,11 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2 } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
-import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
+import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
+import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -691,7 +692,7 @@ export default function ProductDetail() {
               // Keep qty stable across variant (color/size) switches on the
               // *same* product so size/color tweaks don't reset the user's
               // chosen quantity.
-              return <BulkCalculator key={handle} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
+              return <BulkCalculator key={handle} basePrice={shopifyBase} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
             })()}
 
             {/* Compact info row: stock + size guide + delivery.
@@ -1140,8 +1141,42 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
   );
 }
 
-function BulkCalculator({ unitWithPrint, discountedUnit, lang, variantMaxQty }: { unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en'; variantMaxQty?: number }) {
+function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, variantMaxQty }: { basePrice: number; unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en'; variantMaxQty?: number }) {
   const [qty, setQty] = useState(12);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const breakdownId = useId();
+  const breakdownRef = useRef<HTMLDivElement | null>(null);
+  const breakdownBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Close the breakdown popover on Escape and on outside click — keeps
+  // keyboard and touch users able to dismiss it without hunting for the
+  // trigger icon again. Hover open/close is handled by onMouseEnter /
+  // onMouseLeave on the wrapper; click toggles for touch devices where
+  // hover events never fire.
+  useEffect(() => {
+    if (!breakdownOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setBreakdownOpen(false);
+        breakdownBtnRef.current?.focus();
+      }
+    };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        breakdownRef.current && !breakdownRef.current.contains(target) &&
+        breakdownBtnRef.current && !breakdownBtnRef.current.contains(target)
+      ) {
+        setBreakdownOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [breakdownOpen]);
 
   // When the user switches to a variant (color/size) with less stock
   // than their current qty, clamp down so the estimate can't quote
@@ -1162,6 +1197,18 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang, variantMaxQty }: 
   const unit = isBulk ? discountedUnit : unitWithPrint;
   const total = unit * qty;
   const savings = isBulk ? (unitWithPrint - discountedUnit) * qty : 0;
+
+  // Line-item breakdown surfaced in the tooltip. The PDP calculator
+  // assumes a single print placement (the fuller multi-placement math
+  // lives inside the customizer); we still expose the 'placements' row
+  // so buyers see the fee isn't free and recognize it'll scale if they
+  // add more sides in the customizer.
+  const placementCount = 1;
+  const printFeePerUnit = PRINT_PRICE * placementCount;
+  const subtotalBeforeDiscount = unitWithPrint * qty;
+  const discountPct = Math.round(BULK_DISCOUNT_RATE * 100);
+  const discountAmount = isBulk ? subtotalBeforeDiscount - total : 0;
+  const effectivePerUnit = qty > 0 ? total / qty : unit;
 
   // Use fr-CA / en-CA locale so French users see '27,54 $' with a comma
   // separator (matches cart totals, quote rows, admin dashboards,
@@ -1229,7 +1276,101 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang, variantMaxQty }: 
           {qty} × {fmt(unit)} $
         </span>
         <div className="text-right">
-          <div className="text-2xl font-extrabold text-foreground">{fmt(total)} $</div>
+          <div className="flex items-center justify-end gap-1.5">
+            <div
+              className="relative"
+              onMouseEnter={() => setBreakdownOpen(true)}
+              onMouseLeave={() => setBreakdownOpen(false)}
+            >
+              <button
+                ref={breakdownBtnRef}
+                type="button"
+                onClick={() => setBreakdownOpen(v => !v)}
+                onFocus={() => setBreakdownOpen(true)}
+                onBlur={e => {
+                  // Only close on blur when focus leaves the wrapper entirely —
+                  // otherwise tabbing into the popover itself would slam it shut.
+                  const next = e.relatedTarget as Node | null;
+                  if (!next || !breakdownRef.current?.contains(next)) {
+                    setBreakdownOpen(false);
+                  }
+                }}
+                aria-label={lang === 'en' ? 'Show price breakdown' : 'Afficher le détail du prix'}
+                aria-describedby={breakdownId}
+                aria-expanded={breakdownOpen}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              >
+                <HelpCircle size={14} aria-hidden="true" />
+              </button>
+              {breakdownOpen && (
+                <div
+                  ref={breakdownRef}
+                  id={breakdownId}
+                  role="tooltip"
+                  tabIndex={-1}
+                  className="absolute right-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-xl bg-[#0B1E3F] text-white shadow-2xl ring-1 ring-white/10 p-4 text-left"
+                >
+                  <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#C9A34E] mb-2">
+                    {lang === 'en' ? 'Price breakdown' : 'Détail du prix'}
+                  </div>
+                  <dl className="text-xs space-y-1.5">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-white/70">
+                        {lang === 'en' ? 'Base unit price' : 'Prix unitaire de base'}
+                      </dt>
+                      <dd className="font-semibold tabular-nums">{fmtMoney(basePrice, lang)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-white/70">
+                        {lang === 'en'
+                          ? `Print fee (${fmtMoney(PRINT_PRICE, lang)} × ${placementCount} side)`
+                          : `Impression (${fmtMoney(PRINT_PRICE, lang)} × ${placementCount} côté)`}
+                      </dt>
+                      <dd className="font-semibold tabular-nums">{fmtMoney(printFeePerUnit, lang)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4 pt-1.5 border-t border-white/15">
+                      <dt className="text-white/70">
+                        {lang === 'en' ? `Subtotal (${qty} × unit)` : `Sous-total (${qty} × unité)`}
+                      </dt>
+                      <dd className="font-semibold tabular-nums">{fmtMoney(subtotalBeforeDiscount, lang)}</dd>
+                    </div>
+                    {isBulk ? (
+                      <div className="flex justify-between gap-4 text-[#C9A34E]">
+                        <dt className="font-semibold">
+                          {lang === 'en'
+                            ? `Bulk discount (−${discountPct}%)`
+                            : `Rabais volume (−${discountPct} %)`}
+                        </dt>
+                        <dd className="font-extrabold tabular-nums">−{fmtMoney(discountAmount, lang)}</dd>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between gap-4 text-white/50 italic">
+                        <dt>
+                          {lang === 'en'
+                            ? `Bulk discount at ${BULK_DISCOUNT_THRESHOLD}+`
+                            : `Rabais volume dès ${BULK_DISCOUNT_THRESHOLD}+`}
+                        </dt>
+                        <dd className="tabular-nums">—</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4 pt-1.5 border-t border-white/15">
+                      <dt className="font-bold">
+                        {lang === 'en' ? 'Total' : 'Total'}
+                      </dt>
+                      <dd className="font-extrabold tabular-nums">{fmtMoney(total, lang)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-white/70">
+                        {lang === 'en' ? 'Effective per unit' : 'Coût réel par unité'}
+                      </dt>
+                      <dd className="font-semibold tabular-nums">{fmtMoney(effectivePerUnit, lang)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+            </div>
+            <div className="text-2xl font-extrabold text-foreground">{fmt(total)} $</div>
+          </div>
           {savings > 0 && (
             <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
               {lang === 'en' ? 'Save' : 'Économise'} {fmt(savings)} $
