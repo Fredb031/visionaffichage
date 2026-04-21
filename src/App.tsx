@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { SkipLink } from "@/components/SkipLink";
 import { LangProvider, useLang } from "@/lib/langContext";
@@ -91,6 +92,143 @@ const LazyFallback = () => {
   );
 };
 
+// AnimatePresence needs useLocation() to key routes, which requires being
+// inside <BrowserRouter>. This inner component renders the routed tree and
+// cross-fades between route elements on pathname change. useReducedMotion
+// collapses the transition to an instant swap for users who opt out of
+// motion, so we don't defy their OS setting.
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  const reduce = useReducedMotion();
+  const transition = reduce
+    ? { duration: 0 }
+    : { duration: 0.15, ease: 'easeOut' as const };
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={reduce ? { opacity: 1 } : { opacity: 0 }}
+        transition={transition}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Index />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/product/:handle" element={<ProductDetail />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/track" element={<TrackOrder />} />
+          <Route path="/track/:orderNumber" element={<TrackOrder />} />
+          <Route path="/account" element={<Account />} />
+
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/signup" element={<Signup />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
+          <Route path="/admin/accept-invite/:token" element={<AcceptInvite />} />
+          <Route
+            path="/admin"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="vendors" element={<AdminVendors />} />
+            <Route
+              path="users"
+              element={
+                <RequirePermission permission="users:read">
+                  <AdminUsers />
+                </RequirePermission>
+              }
+            />
+            <Route path="customers" element={<AdminCustomers />} />
+            <Route path="customers/:customerId" element={<AdminCustomerDetail />} />
+            <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="quotes" element={<AdminQuotes />} />
+            <Route
+              path="emails"
+              element={
+                <RequirePermission permission="emails:read">
+                  <AdminEmails />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="emails/templates"
+              element={
+                <RequirePermission permission="emails:read">
+                  <AdminEmails />
+                </RequirePermission>
+              }
+            />
+            <Route path="images" element={<AdminImageGen />} />
+            <Route
+              path="automations"
+              element={
+                <RequirePermission permission="automations:read">
+                  <AdminAutomations />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <RequirePermission permission="settings:read">
+                  <AdminSettings />
+                </RequirePermission>
+              }
+            />
+          </Route>
+
+          <Route
+            path="/vendor"
+            element={
+              <AuthGuard requiredRole={["vendor", "admin"]}>
+                <VendorLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<VendorDashboard />} />
+            <Route path="quotes" element={<QuoteList />} />
+          </Route>
+          <Route
+            path="/vendor/quotes/new"
+            element={
+              <AuthGuard requiredRole={["vendor", "admin"]}>
+                <QuoteBuilder />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/quotes/new"
+            element={
+              <AuthGuard requiredRole="admin">
+                <QuoteBuilder />
+              </AuthGuard>
+            }
+          />
+
+          <Route path="/quote/:id" element={<QuoteAccept />} />
+
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/returns" element={<Returns />} />
+          <Route path="/accessibility" element={<Accessibility />} />
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LangProvider>
@@ -101,118 +239,7 @@ const App = () => (
             <SkipLink />
             <ScrollToTop />
             <Suspense fallback={<LazyFallback />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/product/:handle" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/track" element={<TrackOrder />} />
-                <Route path="/track/:orderNumber" element={<TrackOrder />} />
-                <Route path="/account" element={<Account />} />
-
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/signup" element={<Signup />} />
-                <Route path="/admin/forgot-password" element={<ForgotPassword />} />
-                <Route path="/admin/reset-password" element={<ResetPassword />} />
-                <Route path="/admin/accept-invite/:token" element={<AcceptInvite />} />
-                <Route
-                  path="/admin"
-                  element={
-                    <AuthGuard requiredRole="admin">
-                      <AdminLayout />
-                    </AuthGuard>
-                  }
-                >
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="orders" element={<AdminOrders />} />
-                  <Route path="products" element={<AdminProducts />} />
-                  <Route path="vendors" element={<AdminVendors />} />
-                  <Route
-                    path="users"
-                    element={
-                      <RequirePermission permission="users:read">
-                        <AdminUsers />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route path="customers" element={<AdminCustomers />} />
-                  <Route path="customers/:customerId" element={<AdminCustomerDetail />} />
-                  <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
-                  <Route path="analytics" element={<AdminAnalytics />} />
-                  <Route path="quotes" element={<AdminQuotes />} />
-                  <Route
-                    path="emails"
-                    element={
-                      <RequirePermission permission="emails:read">
-                        <AdminEmails />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route
-                    path="emails/templates"
-                    element={
-                      <RequirePermission permission="emails:read">
-                        <AdminEmails />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route path="images" element={<AdminImageGen />} />
-                  <Route
-                    path="automations"
-                    element={
-                      <RequirePermission permission="automations:read">
-                        <AdminAutomations />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route
-                    path="settings"
-                    element={
-                      <RequirePermission permission="settings:read">
-                        <AdminSettings />
-                      </RequirePermission>
-                    }
-                  />
-                </Route>
-
-                <Route
-                  path="/vendor"
-                  element={
-                    <AuthGuard requiredRole={["vendor", "admin"]}>
-                      <VendorLayout />
-                    </AuthGuard>
-                  }
-                >
-                  <Route index element={<VendorDashboard />} />
-                  <Route path="quotes" element={<QuoteList />} />
-                </Route>
-                <Route
-                  path="/vendor/quotes/new"
-                  element={
-                    <AuthGuard requiredRole={["vendor", "admin"]}>
-                      <QuoteBuilder />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/admin/quotes/new"
-                  element={
-                    <AuthGuard requiredRole="admin">
-                      <QuoteBuilder />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route path="/quote/:id" element={<QuoteAccept />} />
-
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/returns" element={<Returns />} />
-                <Route path="/accessibility" element={<Accessibility />} />
-
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <AnimatedRoutes />
             </Suspense>
           </BrowserRouter>
         </ErrorBoundary>
