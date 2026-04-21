@@ -10,6 +10,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { normalizeInvisible } from '@/lib/utils';
 import { logAdminAction } from '@/lib/auditLog';
+import { downloadCsv } from '@/lib/csv';
 
 const PAGE_SIZE = 20;
 
@@ -129,17 +130,13 @@ function expiryState(iso: string | undefined): 'expired' | 'tomorrow' | null {
 
 /** Generate and download a CSV for the currently filtered quote list.
  * Columns (in this order): Numéro, Vendeur, Client, Courriel, Statut,
- * Total, Créée, Expire. Mirrors the AdminOrders helper — same formula-
- * injection guard (OWASP CSV injection), RFC 4180 quoting, UTF-8 BOM so
- * Excel decodes accents without a prompt. Total is plain numeric (2
- * decimals, no '$') so the column stays parseable as a number. */
+ * Total, Créée, Expire. Delegates quoting / BOM / injection-guard to
+ * {@link downloadCsv} so this file stays focused on column shape. Total
+ * is plain numeric (2 decimals, no '$') so the column stays parseable
+ * as a number. Filename keeps the page-specific `quotes-YYYY-MM-DD.csv`
+ * pattern (not the `vision-*` helper) so existing download folders /
+ * Finance macros keep working. */
 function exportQuotesCsv(rows: QuoteRow[]) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = ['Numéro', 'Vendeur', 'Client', 'Courriel', 'Statut', 'Total', 'Créée', 'Expire'];
   const body = rows.map(q => [
     q.number,
@@ -152,16 +149,7 @@ function exportQuotesCsv(rows: QuoteRow[]) {
     formatQuoteDate(q.createdAt),
     formatQuoteDate(q.expiresAt),
   ]);
-  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `quotes-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadCsv([header, ...body], `quotes-${new Date().toISOString().slice(0, 10)}.csv`);
   toast.success(`${rows.length} soumission${rows.length > 1 ? 's' : ''} exportée${rows.length > 1 ? 's' : ''}`);
 }
 
