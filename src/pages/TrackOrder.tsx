@@ -102,8 +102,15 @@ export default function TrackOrder() {
     if (!order || currentStage === 'delivered') return null;
     const created = new Date(order.createdAt);
     const days = currentStage === 'pending' ? 5 : currentStage === 'production' ? 3 : 1;
-    const nominal = created.getTime() + days * 86400000;
+    const createdMs = created.getTime();
     const floor = Date.now() + 86400000;
+    // If createdAt is malformed (Shopify snapshot edge case, missing
+    // timestamp, or an admin-edited row) createdMs is NaN and every
+    // arithmetic derivation stays NaN — Math.max(NaN, floor) is NaN,
+    // which renders as "Invalid Date". Fall back to the floor so the
+    // user still sees a sensible "earliest tomorrow" ETA instead of
+    // literal "Invalid Date" shouting from the badge.
+    const nominal = Number.isFinite(createdMs) ? createdMs + days * 86400000 : floor;
     const target = new Date(Math.max(nominal, floor));
     return target.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', day: 'numeric', month: 'long' });
   })();
