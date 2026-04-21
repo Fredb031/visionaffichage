@@ -94,10 +94,35 @@ export function StepsTimeline() {
         </div>
 
         <div className="relative">
+          {/* Dashed connector — desktop horizontal, mobile vertical.
+              Sits behind the circles (z-0) and gives the steps a real
+              through-line so they read as a flow, not an unordered list.
+              Aligned to the circle center (80px circle → center at 40px). */}
+          <svg
+            className="hidden md:block absolute top-10 left-0 right-0 w-full h-[2px] -translate-y-1/2 z-0 pointer-events-none"
+            aria-hidden="true"
+            preserveAspectRatio="none"
+            viewBox="0 0 100 2"
+          >
+            <line
+              x1="0" y1="1" x2="100" y2="1"
+              stroke="#E8A838"
+              strokeOpacity="0.3"
+              strokeWidth="2"
+              strokeDasharray="1.2 1.8"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          <div
+            className="md:hidden absolute top-10 bottom-10 left-1/2 -translate-x-1/2 w-0 border-l-2 border-dashed z-0 pointer-events-none"
+            style={{ borderColor: 'rgba(232, 168, 56, 0.3)' }}
+            aria-hidden="true"
+          />
+
           {/* Base progress rail — draws in on scroll-into-view, then the
               coloured gradient drifts across it forever. */}
           <div
-            className="absolute top-10 left-0 right-0 h-[2px] bg-border overflow-hidden"
+            className="absolute top-10 left-0 right-0 h-[2px] bg-border overflow-hidden z-0"
             aria-hidden="true"
           >
             <div
@@ -111,7 +136,7 @@ export function StepsTimeline() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
             {steps.map((step, i) => {
               const Icon = step.icon;
               const accent = step.accent;
