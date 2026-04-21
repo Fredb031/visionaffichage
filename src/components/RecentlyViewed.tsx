@@ -5,15 +5,6 @@ import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
-// Storage key + same-tab sync event must match useRecentlyViewed.ts.
-// Duplicated here because the hook doesn't expose a clear() method —
-// rather than widen the hook's public surface for a single consumer,
-// we clear localStorage directly and broadcast the same custom event
-// the hook already listens for so every mounted instance re-reads and
-// drops the list in the same tick.
-const STORAGE_KEY = 'vision-recently-viewed';
-const SAME_TAB_EVENT = 'vision-recently-viewed-change';
-
 /**
  * Shows up to 8 of the user's most-recently-viewed products. Used on
  * the cart empty state as a gentle prompt ('here's what you were
@@ -28,7 +19,7 @@ const SAME_TAB_EVENT = 'vision-recently-viewed-change';
  */
 export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
   const { lang } = useLang();
-  const { handles } = useRecentlyViewed();
+  const { handles, clear } = useRecentlyViewed();
 
   const items = handles
     .map(h => PRODUCTS.find(p => p.shopifyHandle === h))
@@ -37,19 +28,17 @@ export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
 
   if (items.length === 0) return null;
 
-  // Clear the persisted history after a confirm prompt. The hook
-  // exposes no clear()/remove() today, so we wipe localStorage and
-  // dispatch the hook's same-tab event — every mounted instance of
-  // useRecentlyViewed re-reads storage on that event and flips to an
-  // empty array, which collapses this section (items.length === 0
-  // returns null) on the same render pass.
+  // Clear the persisted history after a confirm prompt. Delegate to
+  // the hook's clear() — it owns the storage key + same-tab event
+  // broadcast, so every mounted instance of useRecentlyViewed flips
+  // to an empty array in the same tick and this section collapses
+  // (items.length === 0 returns null) on the same render pass.
   const handleClear = () => {
     const msg = lang === 'en'
       ? 'Clear recently viewed products?'
       : 'Effacer les produits récemment consultés ?';
     if (!window.confirm(msg)) return;
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
-    try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+    clear();
   };
 
   return (
