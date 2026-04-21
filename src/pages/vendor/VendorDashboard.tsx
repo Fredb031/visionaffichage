@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
+import { Sparkline } from '@/components/admin/Sparkline';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthStore } from '@/stores/authStore';
 import { hasPermission } from '@/lib/permissions';
@@ -31,6 +32,120 @@ import {
 // their own dashboard has orders:write too, but the button is gated on
 // a stricter role check (admin+) because a salesman marking their own
 // commission as paid would short-circuit the accountability loop.
+
+// --- Live ticker mock helpers (Task 10.1) --------------------------------
+//
+// We don't have a daily-commission time series yet (the commissions lib
+// only exposes a monthly summary). Until the backend grows a payout log
+// we synthesize a 7-day series from the current month total using the
+// same seeded-pseudo-noise pattern AdminProducts uses for its inventory
+// sparkline: djb2 hash + mulberry32 so the shape is deterministic per
+// (vendor, ISO week) and doesn't flicker between renders.
+//
+// TODO(backend): swap synthetic7DaySeries() for a query against a real
+// daily-commission log (e.g. sum commissions by createdAt::date for the
+// last 7 days). The <Sparkline /> consumer stays identical.
+
+function djb2Hash(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function isoWeekKey(d: Date): string {
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${target.getUTCFullYear()}-w${week}`;
+}
+
+/** MOCK: distribute a monthly commission total across 7 days with
+ *  deterministic pseudo-noise. Last point is "today" and is biased to
+ *  land near the average so the big number and the sparkline tail line
+ *  up visually. Returns 7 values, oldest first. */
+function synthetic7DaySeries(vendorId: string, monthTotal: number, todayCommission: number): number[] {
+  const seed = djb2Hash(`${vendorId}::${isoWeekKey(new Date())}`);
+  const rand = mulberry32(seed);
+  // Target average per day — split the month across ~22 business days
+  // then multiply by 7 to get a "last week" chunk. Clamp to avoid a
+  // flat-zero series when the vendor has no sales yet this month.
+  const weekBudget = Math.max(monthTotal * (7 / 22), 1);
+  const avg = weekBudget / 7;
+  const series: number[] = [];
+  for (let i = 0; i < 7; i++) {
+    const jitter = (rand() - 0.5) * 0.6; // ±30%
+    const v = avg * (1 + jitter);
+    series.push(Math.max(0, Math.round(v * 100) / 100));
+  }
+  // Anchor today's point to the real count-up value so the ticker and
+  // sparkline tail visibly agree.
+  if (todayCommission > 0) series[series.length - 1] = Math.round(todayCommission * 100) / 100;
+  return series;
+}
+
+/** Today's commission earned — filter the vendor summary down to
+ *  orders created today (local time). */
+function todayCommissionTotal(summary: VendorCommissionSummary): number {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  let total = 0;
+  for (const line of summary.lines) {
+    const created = new Date(line.order.createdAt);
+    if (created.getFullYear() === y && created.getMonth() === m && created.getDate() === d) {
+      total += line.commission;
+    }
+  }
+  return Math.round(total * 100) / 100;
+}
+
+/** Count-up animation hook. Eases from `from` to `to` over `durationMs`
+ *  using requestAnimationFrame + ease-out cubic. Returns the current
+ *  value. Respects `prefers-reduced-motion` by snapping straight to `to`. */
+function useCountUp(to: number, durationMs = 900): number {
+  const [value, setValue] = useState(to);
+  const fromRef = useRef(to);
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      fromRef.current = to;
+      setValue(to);
+      return;
+    }
+    const from = fromRef.current;
+    if (from === to) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const v = from + (to - from) * eased;
+      setValue(Math.round(v * 100) / 100);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, durationMs]);
+  return value;
+}
 
 function formatMonth(ym: string, lang: 'fr' | 'en'): string {
   const [ys, ms] = ym.split('-');
@@ -176,6 +291,18 @@ export default function VendorDashboard() {
   );
 
   const months = useMemo(() => listVendorMonths(fullSummary), [fullSummary]);
+
+  // Live ticker inputs — today's real commission (from full summary,
+  // independent of the month picker so the banner keeps showing "today"
+  // even when the vendor is browsing a prior month) and the synthetic
+  // 7-day series. Both recompute on every refreshToken bump via
+  // fullSummary, so vision-commission-change re-animates the number.
+  const todayCommission = useMemo(() => todayCommissionTotal(fullSummary), [fullSummary]);
+  const animatedToday = useCountUp(todayCommission);
+  const last7Days = useMemo(
+    () => synthetic7DaySeries(vendorId, fullSummary.totalCommission, todayCommission),
+    [vendorId, fullSummary.totalCommission, todayCommission],
+  );
 
   const onMarkPaid = useCallback((orderId: number | string) => {
     markCommissionPaid(orderId);
@@ -342,6 +469,55 @@ export default function VendorDashboard() {
           )}
         </div>
       </header>
+
+      {/* Live commission ticker — Task 10.1.
+          Big navy count-up number for today's commission earned, gold
+          sparkline for the last 7 days. Re-animates whenever the
+          underlying commissions change (mark-paid, credit re-attribution,
+          or a cross-tab write) via the vision-commission-change hook
+          below. */}
+      <section
+        aria-label={L('Commission en direct', 'Live commission')}
+        className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-white via-white to-[#1B3A6B]/[0.04] px-5 py-4 sm:px-6 sm:py-5"
+      >
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#E8A838] opacity-60 animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8A838]" />
+              </span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                {L('Commission en direct', 'Live commission')}
+              </span>
+            </div>
+            <div
+              className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-tight text-[#1B3A6B] tabular-nums"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {formatMoney(animatedToday, lang)}
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">
+              {L('Gagnée aujourd\u2019hui', 'Earned today')}
+              {' · '}
+              {L('7 derniers jours', 'Last 7 days')}
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <Sparkline
+              data={last7Days}
+              width={180}
+              height={56}
+              strokeWidth={2}
+              ariaLabel={L(
+                'Commission des 7 derniers jours',
+                'Commission over the last 7 days',
+              )}
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
