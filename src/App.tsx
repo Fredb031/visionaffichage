@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
+import { CookieConsent } from "@/components/CookieConsent";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
@@ -85,6 +86,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LangProvider>
       <Sonner />
+      <CookieConsent />
       <ErrorBoundary>
           <BrowserRouter>
             <SkipLink />
