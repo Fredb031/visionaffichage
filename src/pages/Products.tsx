@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
@@ -70,32 +71,30 @@ export default function Products() {
     return (SORT_VALUES as readonly string[]).includes(raw ?? '') ? (raw as SortMode) : 'popularity';
   })();
   const [activeCategory, setActiveCategory] = useState(initialCat);
-  const [searchQuery, setSearchQuery] = useState('');
-  // Debounce the search query so the filter doesn't recompute on every
-  // keystroke during fast typing. The input still updates immediately
-  // (`searchQuery` drives the controlled input + clear button), but
-  // `debouncedQuery` lags ~275ms and is what actually feeds filter logic.
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  // Hydrate the search field from ?q= so shareable URLs like
+  // /products?q=hoodie round-trip back into the same filtered view.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
+  // Task 7.11 — debounce the search query so the filter AND the URL
+  // sync don't re-fire on every keystroke. The controlled input value
+  // (`searchQuery`) updates instantly so typing never feels laggy,
+  // while `debouncedQuery` lags 300ms and is what actually drives the
+  // expensive filter pipeline and the history.replaceState in the URL
+  // sync effect below.
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [sortMode, setSortMode] = useState<SortMode>(initialSort);
 
-  useEffect(() => {
-    // Clearing the field should feel instant — no reason to keep stale
-    // results on screen for 275ms after the user hits the X button.
-    if (searchQuery === '') {
-      setDebouncedQuery('');
-      return;
-    }
-    const t = setTimeout(() => setDebouncedQuery(searchQuery), 275);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  // Keep the URL in sync with category + sort — replace history so
-  // Back still returns to the previous page. Combines both params in
-  // a single pass so we don't fire two consecutive history replaces.
+  // Keep the URL in sync with category + sort + debounced search —
+  // replace history so Back still returns to the previous page. All
+  // three params are combined in a single pass so we don't fire
+  // consecutive history replaces, and the search param is keyed off
+  // `debouncedQuery` (not `searchQuery`) so we don't push a new URL
+  // on every keystroke while the user is still typing.
   useEffect(() => {
     const curCat = searchParams.get('cat') ?? 'overview';
     const curSort = searchParams.get('sort') ?? 'popularity';
-    if (activeCategory === curCat && sortMode === curSort) return;
+    const curQ = searchParams.get('q') ?? '';
+    const trimmedQ = debouncedQuery.trim();
+    if (activeCategory === curCat && sortMode === curSort && trimmedQ === curQ) return;
     const next = new URLSearchParams(searchParams);
     if (activeCategory === 'overview') next.delete('cat');
     else next.set('cat', activeCategory);
@@ -103,8 +102,12 @@ export default function Products() {
     // link stays clean and shareable ?sort=... URLs stay meaningful.
     if (sortMode === 'popularity') next.delete('sort');
     else next.set('sort', sortMode);
+    // Empty search is the default — omit ?q= entirely instead of
+    // leaving ?q= dangling in the URL bar.
+    if (trimmedQ === '') next.delete('q');
+    else next.set('q', trimmedQ);
     setSearchParams(next, { replace: true });
-  }, [activeCategory, sortMode, searchParams, setSearchParams]);
+  }, [activeCategory, sortMode, debouncedQuery, searchParams, setSearchParams]);
 
   // Also sync URL → state so browser Back/Forward actually updates the
   // visible filter. Without this, the state → URL effect above would
@@ -117,8 +120,15 @@ export default function Products() {
     const urlSort: SortMode = (SORT_VALUES as readonly string[]).includes(urlSortRaw)
       ? (urlSortRaw as SortMode)
       : 'popularity';
+    const urlQ = searchParams.get('q') ?? '';
     if (urlCat !== activeCategory) setActiveCategory(urlCat);
     if (urlSort !== sortMode) setSortMode(urlSort);
+    // Only push back into searchQuery when the URL's q differs from
+    // the already-debounced copy. Comparing against debouncedQuery
+    // (not searchQuery) avoids a feedback loop where mid-typing the
+    // URL-sync effect hasn't yet written the new q, and we'd clobber
+    // the live input with the stale URL value on every re-render.
+    if (urlQ !== debouncedQuery.trim()) setSearchQuery(urlQ);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   const searchDesktopRef = useRef<HTMLInputElement>(null);
