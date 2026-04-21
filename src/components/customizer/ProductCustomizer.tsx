@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, ChevronRight, ChevronLeft, Check, Download } from 'lucide-react';
+import { X, ShoppingBag, ChevronRight, ChevronLeft, Check, Download, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
@@ -310,6 +310,41 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     prevTotalQtyRef.current = curr;
   }, [_currentTotalQty, lang]);
 
+  // Task 4.15 — "Partager le design". Pre-apply `?c=&p=` URL params
+  // from a shared link once on mount, AFTER the unconditional reset()
+  // effect above has wiped state and displayColors has resolved.
+  // Best-effort: if the colour slug no longer matches a displayed
+  // variant or the placement code is unknown we silently ignore the
+  // param rather than yanking the user to a broken state. Fires once
+  // per mount via a ref — re-applying on every render would fight
+  // the user's subsequent colour picks.
+  const sharedApplyRef = useRef(false);
+  useEffect(() => {
+    if (sharedApplyRef.current) return;
+    if (!product) return;
+    if (!displayColors.length) return;
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const colorSlug = params.get('c');
+    const placementCode = params.get('p');
+    if (!colorSlug && !placementCode) return;
+    sharedApplyRef.current = true;
+    if (colorSlug) {
+      const norm = (s: string) =>
+        s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+      const match = displayColors.find(c => norm(c.colorName) === colorSlug);
+      if (match) {
+        setShopifyColor(match);
+        store.setColor(match.variantId);
+      }
+    }
+    if (placementCode && ['front', 'back', 'both', 'none'].includes(placementCode)) {
+      store.setPlacementSides(placementCode as PlacementSides);
+      if (placementCode === 'back') store.setView('back');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, displayColors.length]);
+
   // Early return comes AFTER all hooks so hook call order stays stable
   // across renders. Critical for React — otherwise it crashes with
   // "Maximum update depth exceeded" once the product is missing.
@@ -327,6 +362,58 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  // Task 4.15 — Build a shareable URL carrying the user's current
+  // colour + placement choice so a teammate can open the same PDP with
+  // the customizer pre-opened and pre-configured (they still upload
+  // their own logo — the blob never leaves the uploader's browser).
+  // Keys: c (colour slug) · p (placementSides). Intentionally short so
+  // the URL is paste-friendly in Teams / email / Slack. The recipient
+  // lands on /product/:handle?customize=1 which auto-opens the modal.
+  const buildShareUrl = (): string => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const handle = product.shopifyHandle;
+    const slug = (s: string) =>
+      s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+    const colorName = shopifyColor?.colorName ?? activeColor?.name ?? '';
+    const qs = new URLSearchParams();
+    if (colorName) qs.set('c', slug(colorName));
+    qs.set('p', store.placementSides);
+    qs.set('customize', '1');
+    return `${origin}/product/${handle}?${qs.toString()}`;
+  };
+
+  const handleShareLink = async () => {
+    const url = buildShareUrl();
+    const successMsg = 'Lien copié — partagez-le avec votre équipe';
+    const failMsg = lang === 'en'
+      ? 'Could not copy — long-press the URL to copy it manually'
+      : 'Impossible de copier — appuyez longuement sur l\u2019URL pour la copier';
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success(successMsg);
+        return;
+      }
+      // Fallback: off-screen textarea + execCommand('copy'). Covers
+      // older Safari + non-secure contexts where navigator.clipboard
+      // is undefined. Kept invisible so it doesn't steal focus visibly.
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) toast.success(successMsg);
+      else toast.error(failMsg);
+    } catch {
+      toast.error(failMsg);
+    }
   };
 
   // The active ProductColor — resolved from the strict, Drive-backed
@@ -1450,17 +1537,35 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {/* Step 3 (was Step 4) — Summary */}
               {store.step === 3 && (
                 <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h3 className="text-sm font-black">{t('resume')}</h3>
-                    <button
-                      type="button"
-                      onClick={handleDownloadMockup}
-                      className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline"
-                      aria-label={lang === 'en' ? 'Download mockup PNG' : 'Télécharger le visuel PNG'}
-                    >
-                      <Download size={12} />
-                      {lang === 'en' ? 'Download PNG' : 'Télécharger PNG'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {/* Task 4.15 — Share config link. Only shown once a
+                          logo is placed so the recipient has something
+                          worth opening. The link encodes colour +
+                          placement; the shared receiver re-uploads their
+                          own logo (we don't exfil the uploader's blob). */}
+                      {anyLogoUploaded && (
+                        <button
+                          type="button"
+                          onClick={handleShareLink}
+                          className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+                          aria-label="Copier le lien de ma configuration"
+                        >
+                          <Share2 size={12} aria-hidden="true" />
+                          Copier le lien de ma config
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleDownloadMockup}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline"
+                        aria-label={lang === 'en' ? 'Download mockup PNG' : 'Télécharger le visuel PNG'}
+                      >
+                        <Download size={12} />
+                        {lang === 'en' ? 'Download PNG' : 'Télécharger PNG'}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Per-color × size itemized breakdown — mockup-style confirmation.
