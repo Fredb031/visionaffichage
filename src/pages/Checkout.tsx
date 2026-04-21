@@ -6,7 +6,7 @@ import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useLang } from '@/lib/langContext';
-import { isValidEmail } from '@/lib/utils';
+import { isValidEmail, isValidCanadianPostal } from '@/lib/utils';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
@@ -154,11 +154,10 @@ export default function Checkout() {
   };
 
   // Canadian postal code: H2X 1Y2 (letter-digit-letter space? digit-letter-digit).
-  // Lenient on the space — accept with or without. Without this, the
-  // 'Continue' button enabled for 'foo' input and the user only learned
-  // at Shopify's checkout that the address was invalid.
-  const isValidCanadianPostal = /^[A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d$/i
-    .test(form.postalCode.trim());
+  // Lenient on the space and case — accept "H2X 1Y2", "H2X1Y2", "h2x1y2".
+  // Without this, the 'Continue' button enabled for 'foo' input and the
+  // user only learned at Shopify's checkout that the address was invalid.
+  const postalValid = isValidCanadianPostal(form.postalCode);
   // Phone is optional, but if the user typed something it must be a
   // plausible NANP 10-digit number once punctuation is stripped.
   // Without this, Shopify's checkout rejects the line at submission
@@ -169,7 +168,7 @@ export default function Checkout() {
   const infoValid =
     isValidEmail(form.email) &&
     form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
-    form.city.trim() && isValidCanadianPostal && isValidPhone;
+    form.city.trim() && postalValid && isValidPhone;
 
   const handlePay = async () => {
     if (!acceptedTerms) return;
@@ -478,7 +477,7 @@ export default function Checkout() {
                       // Show the red invalid state only AFTER the user has
                       // typed something — empty input shouldn't look like
                       // an error on first load.
-                      ariaInvalid={form.postalCode.trim().length > 0 && !isValidCanadianPostal}
+                      ariaInvalid={form.postalCode.trim().length > 0 && !postalValid}
                     />
                     <Input
                       value={form.phone}

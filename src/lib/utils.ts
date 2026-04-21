@@ -42,3 +42,16 @@ export function isValidEmail(value: string): boolean {
   if (domain.split('.').some(label => label.startsWith('-') || label.endsWith('-'))) return false;
   return true;
 }
+
+// Canadian postal code: H2X 1Y2 — letter-digit-letter (space?) digit-letter-digit.
+// Excluded letters (D, F, I, O, Q, U, W, Z in specific positions) follow
+// Canada Post's assignment rules. We normalize invisible chars, trim, and
+// uppercase so "h2x1y2", "H2X 1Y2", and "H2X\u200B1Y2" all accept. Without
+// this the 'Continue' button enabled on 'foo' input and the user only
+// learned at Shopify's checkout that the address was invalid.
+const CANADIAN_POSTAL_RE = /^[A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d$/;
+
+export function isValidCanadianPostal(value: string): boolean {
+  const v = normalizeInvisible(value).trim().toUpperCase();
+  return CANADIAN_POSTAL_RE.test(v);
+}
