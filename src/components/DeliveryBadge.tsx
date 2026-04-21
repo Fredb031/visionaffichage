@@ -51,6 +51,14 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
     return lang === 'en' ? `Arrives ${cap}` : `Arrivée ${cap}`;
   })();
 
+  // Tooltip elaboration — expands the short label into a full SLA
+  // sentence so shoppers hovering the badge understand the promise
+  // (production + shipping window) without having to click through.
+  // Keyboard users also get this via aria-label on focus.
+  const tooltip = lang === 'en'
+    ? 'Standard shipping — estimated delivery within 5 business days from order. Orders placed after 3pm ship the next business day.'
+    : 'Expédition standard — livraison estimée sous 5 jours ouvrables à partir de la commande. Les commandes passées après 15h sont expédiées le jour ouvrable suivant.';
+
   const sizeCls = {
     sm: 'text-[10px] px-2 py-0.5 gap-1',
     md: 'text-[11px] px-2.5 py-1 gap-1.5',
@@ -66,7 +74,11 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
   }[variant];
 
   return (
-    <span className={`inline-flex items-center font-bold uppercase tracking-wider rounded-full ${sizeCls} ${variantCls} ${className}`}>
+    <span
+      className={`inline-flex items-center font-bold uppercase tracking-wider rounded-full ${sizeCls} ${variantCls} ${className}`}
+      title={tooltip}
+      aria-label={`${label} — ${tooltip}`}
+    >
       <Zap size={iconSize} strokeWidth={2.5} className="flex-shrink-0" aria-hidden="true" />
       {label}
     </span>
