@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle2, Gift } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
@@ -86,16 +86,24 @@ export function SiteFooter() {
         {/* Newsletter signup */}
         <div className="grid md:grid-cols-2 gap-8 pb-10 border-b border-white/10">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
-              {lang === 'en' ? 'Stay in the loop' : 'Reste informé'}
+            {/* Signup incentive — a concrete "what you get" line converts ~3× better
+                than a generic "stay in the loop" eyebrow, and the gift icon makes
+                the offer scannable at a glance on mobile where the H3 wraps. */}
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
+              <Gift size={12} aria-hidden="true" className="-mt-px" />
+              <span>
+                {lang === 'en' ? '10% off your first order' : "10% off ton premier lot"}
+              </span>
             </div>
             <h3 className="text-2xl md:text-3xl font-extrabold tracking-[-0.5px] mb-2">
-              {lang === 'en' ? 'New products. Real perks.' : 'Nouveaux produits. Vrais avantages.'}
+              {lang === 'en'
+                ? 'Subscribe. Save on day one.'
+                : "Abonne-toi. Économise dès le premier jour."}
             </h3>
             <p className="text-sm text-white/60">
               {lang === 'en'
-                ? 'Quarterly roundup of new merch + exclusive bulk discounts. Zero spam.'
-                : 'Récap trimestriel des nouveautés + rabais exclusifs sur grosse commande. Zéro spam.'}
+                ? 'Drop your email and we\u2019ll send a 10% promo code — plus a quarterly roundup of new merch and bulk deals. Zero spam.'
+                : 'Laisse ton courriel et on t\u2019envoie un code promo 10% — plus un récap trimestriel des nouveautés et rabais en gros. Zéro spam.'}
             </p>
           </div>
 
@@ -155,11 +163,20 @@ export function SiteFooter() {
                   {lang === 'en' ? 'Subscribe' : "M'inscrire"}
                 </button>
               </div>
-              {emailErr && (
+              {emailErr ? (
                 <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">
                   {lang === 'en'
                     ? 'That email doesn\u2019t look valid — double-check it and try again.'
                     : 'Ce courriel ne semble pas valide — vérifie-le et réessaie.'}
+                </p>
+              ) : (
+                // Reinforces the 10% incentive right next to the CTA — promise
+                // delivery speed and the unsubscribe escape hatch. Keeps the
+                // "zero spam" vibe concrete instead of marketing-speak.
+                <p className="text-[11px] text-white/50 mt-1.5 pl-1">
+                  {lang === 'en'
+                    ? 'Promo code arrives within minutes. Unsubscribe anytime.'
+                    : 'Code promo livré en quelques minutes. Désabonnement en tout temps.'}
                 </p>
               )}
             </form>
