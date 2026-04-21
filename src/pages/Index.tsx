@@ -152,41 +152,12 @@ export default function Index() {
             </p>
           </div>
 
-          {/* H1 — editorial weight contrast: the verbs whisper (Lora italic
-              300) so the two numerical promises ("3 minutes." / "5 days.")
-              crash down in 800-weight sans. This is the one spot where
-              Vision's pitch lives or dies, so the typography earns its
-              drama here and stays quiet everywhere else on the page. The
-              accent duration stays navy (text-primary) to keep brand
-              palette intact. */}
-          <h1 className={`text-[clamp(48px,7.5vw,92px)] leading-[0.92] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            <span className="font-lora italic font-light text-[0.62em] tracking-[-0.5px] text-foreground/70 block mb-[-0.08em]">
-              {t('h1line1')}
-            </span>
-            <span className="font-extrabold block">
-              {t('h1line2')}
-            </span>
-            <span className="block text-primary">
-              {(() => {
-                // Split the accent line at the first digit so the numeric
-                // promise ("5 days.") dominates while the lead-in verb
-                // ("Received in" / "Reçue en") echoes the Lora whisper
-                // above. Falls back gracefully if translation ever ships
-                // without a digit.
-                const raw = t('h1accent');
-                const m = raw.match(/^(.*?)(\d.*)$/);
-                if (!m) return <span className="font-extrabold">{raw}</span>;
-                const [, lead, rest] = m;
-                return (
-                  <>
-                    <span className="font-lora italic font-light text-[0.62em] tracking-[-0.5px] text-primary/75 mr-[0.18em]">
-                      {lead.trim()}
-                    </span>
-                    <span className="font-extrabold">{rest}</span>
-                  </>
-                );
-              })()}
-            </span>
+          {/* H1 — clean, professional, conversion-focused. Uniform extrabold
+              reads as confident/trustworthy for a B2B merch buyer; navy
+              accent line anchors the brand palette without typographic
+              gymnastics. */}
+          <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            {t('h1line1')}<br />{t('h1line2')}<span className="block text-primary">{t('h1accent')}</span>
           </h1>
 
           {/* Metric strip — compact horizontal proof points directly
