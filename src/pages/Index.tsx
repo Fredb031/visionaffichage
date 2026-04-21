@@ -18,7 +18,7 @@ import { CountUp } from '@/components/CountUp';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Brush, PackageCheck, CreditCard, Smartphone, ShoppingBag, Lock, ChevronDown } from 'lucide-react';
+import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 
@@ -705,11 +705,11 @@ export default function Index() {
       </FadeIn>
 
       {/* Trust badges row — sits just above the footer so the final
-          pre-footer impression is the payment-safety promise. Using
-          text-style pill labels (no external logos) to keep clear of
-          brand-mark license complexity; lucide-react icons stand in
-          for the payment categories. Muted greys keep the row calm
-          so it reads as reassurance, not a sales element. */}
+          pre-footer impression is the payment-safety promise. Pure
+          text/SVG treatment per pill (no external brand marks) so we
+          avoid trademark-license complexity while still giving each
+          rail a distinguishable look. Muted greys keep the row calm
+          so it reads as reassurance, not a sales element. Task 1.24. */}
       <FadeIn>
         <section className="border-t border-border py-8 px-6 md:px-10 bg-background">
           <div className="max-w-[1060px] mx-auto">
@@ -719,23 +719,48 @@ export default function Index() {
                 {lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}
               </span>
             </div>
-            <ul className="flex flex-wrap items-center justify-center gap-2">
-              {[
-                { label: 'Visa',        Icon: CreditCard },
-                { label: 'Mastercard',  Icon: CreditCard },
-                { label: 'Amex',        Icon: CreditCard },
-                { label: 'Apple Pay',   Icon: Smartphone },
-                { label: 'Google Pay',  Icon: Smartphone },
-                { label: 'Shopify',     Icon: ShoppingBag },
-              ].map(({ label, Icon }) => (
-                <li
-                  key={label}
-                  className="inline-flex items-center gap-1.5 h-[26px] px-3 rounded-full border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.3px] text-muted-foreground"
-                >
-                  <Icon size={12} strokeWidth={2} aria-hidden="true" />
-                  <span>{label}</span>
-                </li>
-              ))}
+            <ul className="flex flex-wrap items-center justify-center gap-3">
+              {/* Visa — italic wordmark in a rounded border. */}
+              <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-black italic tracking-[1px] text-muted-foreground">
+                VISA
+              </li>
+              {/* Mastercard — two overlapping circles idiomatic of the mark,
+                  rendered in muted grey so we don't reproduce the brand colours. */}
+              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[10px] font-semibold tracking-[0.3px] text-muted-foreground">
+                <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true">
+                  <circle cx="8" cy="7" r="6" fill="currentColor" opacity="0.45" />
+                  <circle cx="14" cy="7" r="6" fill="currentColor" opacity="0.25" />
+                </svg>
+                <span>Mastercard</span>
+              </li>
+              {/* AMEX — compact text pill. */}
+              <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-black tracking-[1px] text-muted-foreground">
+                AMEX
+              </li>
+              {/* Apple Pay — "Pay" wordmark prefixed by a neutral rounded-square
+                  glyph (no Apple logo, no fruit silhouette — just a placeholder
+                  mark so the pill has visual weight). */}
+              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
+                <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
+                  <rect x="1" y="1" width="8" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                </svg>
+                <span>Apple&nbsp;Pay</span>
+              </li>
+              {/* Google Pay — "G Pay" style with a plain circled G letter. */}
+              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  <text x="6" y="8.2" textAnchor="middle" fontSize="6.4" fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">G</text>
+                </svg>
+                <span>Google&nbsp;Pay</span>
+              </li>
+              {/* Shopify — bag glyph + text, consistent with the commerce vibe. */}
+              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M3 4 V3.2 A2.8 2.8 0 0 1 8.6 3.2 V4 H10 L9.2 10.5 H2.8 L2 4 Z" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+                </svg>
+                <span>Shopify</span>
+              </li>
             </ul>
           </div>
         </section>
