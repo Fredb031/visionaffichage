@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:smoke": "playwright test tests/smoke.spec.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",

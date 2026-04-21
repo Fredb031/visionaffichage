@@ -1,0 +1,17 @@
+name: Smoke
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npx vite build
+      - run: npx vite preview --port 4173 &
+      - run: sleep 5 && npm run test:smoke
