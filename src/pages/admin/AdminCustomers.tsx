@@ -1,17 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
   SHOPIFY_STATS,
-  SHOPIFY_SNAPSHOT_META,
   type ShopifyCustomerSnapshot,
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { TablePagination } from '@/components/admin/TablePagination';
@@ -51,8 +47,8 @@ export default function AdminCustomers() {
 
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<CustomerFilter>(initialFilter);
-  const [selected, setSelected] = useState<ShopifyCustomerSnapshot | null>(null);
   const [page, setPage] = useState(0);
+  const navigate = useNavigate();
   // Cmd+K focuses the search input; Esc clears + blurs while focused.
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
   // Distinct admin tab title — admins routinely have multiple admin
@@ -88,14 +84,6 @@ export default function AdminCustomers() {
       if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
     };
   }, []);
-
-  useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
-  // Lock body scroll + trap focus while the customer detail drawer is
-  // open — same pattern as AdminOrders. Without these the scroll wheel
-  // over the backdrop moves the underlying table (reads as broken on
-  // mobile), and Tab escapes into the dimmed list.
-  useBodyScrollLock(!!selected);
-  const trapRef = useFocusTrap<HTMLDivElement>(!!selected);
 
   const filtered = useMemo(() => {
     // Strip invisibles on both sides so a paste-from-Slack search term
@@ -213,7 +201,7 @@ export default function AdminCustomers() {
                 pageItems.map(c => (
                   <tr
                     key={c.id}
-                    onClick={() => setSelected(c)}
+                    onClick={() => navigate(`/admin/customers/${c.id}`)}
                     onKeyDown={e => {
                       // Make the row keyboard-activatable. The visual cursor:pointer
                       // and onClick suggested it was a "link" but keyboard / screen-
@@ -221,7 +209,7 @@ export default function AdminCustomers() {
                       // a mouse — Tab landed on nothing, Enter did nothing.
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        setSelected(c);
+                        navigate(`/admin/customers/${c.id}`);
                       }
                     }}
                     role="button"
@@ -270,136 +258,6 @@ export default function AdminCustomers() {
         />
       </div>
 
-      {selected && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex justify-end"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="customer-detail-title"
-          onClick={() => setSelected(null)}
-        >
-          <div ref={trapRef} tabIndex={-1} className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl focus:outline-none" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                aria-label="Fermer"
-                className="float-right text-zinc-400 hover:text-zinc-700 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded px-1"
-              >
-                Fermer
-              </button>
-              <div className="flex items-center gap-3 mb-5">
-                <div
-                  className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-lg font-extrabold"
-                  aria-hidden="true"
-                >
-                  {initials(selected)}
-                </div>
-                <div>
-                  <h2 id="customer-detail-title" className="text-xl font-extrabold">{fullName(selected)}</h2>
-                  <div className="text-xs text-zinc-500">Client depuis le {formatDate(selected.createdAt)}</div>
-                </div>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <InfoRow icon={Mail} label="Courriel">
-                  <a
-                    href={`mailto:${selected.email}`}
-                    aria-label={`Envoyer un courriel à ${selected.email}`}
-                    className="text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded break-all"
-                  >
-                    {selected.email}
-                  </a>
-                </InfoRow>
-                {selected.phone && (
-                  <InfoRow icon={Phone} label="Téléphone">
-                    <a
-                      href={`tel:${selected.phone}`}
-                      aria-label={`Appeler ${selected.phone}`}
-                      className="text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
-                    >
-                      {selected.phone}
-                    </a>
-                  </InfoRow>
-                )}
-                {selected.city && (
-                  <InfoRow icon={MapPin} label="Adresse">
-                    {selected.city}{selected.province ? `, ${selected.province}` : ''}
-                  </InfoRow>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-200">
-                  <div className="bg-zinc-50 rounded-xl p-3">
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Commandes</div>
-                    <div className="text-2xl font-extrabold mt-1">{selected.ordersCount}</div>
-                  </div>
-                  <div className="bg-zinc-50 rounded-xl p-3">
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Dépensé</div>
-                    {/* Mirror the table's '—' treatment for zero-spend
-                        prospects so the two views don't disagree — the
-                        row shows a dash but the detail panel was
-                        displaying '0,00 $', making the same customer
-                        look paying vs non-paying depending on where
-                        you read them. */}
-                    <div className="text-2xl font-extrabold mt-1">
-                      {selected.totalSpent > 0
-                        ? `${selected.totalSpent.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $`
-                        : <span className="text-zinc-300">—</span>}
-                    </div>
-                  </div>
-                </div>
-
-                {(() => {
-                  // Trim + drop empties up front so ',, premium,' doesn't
-                  // render two blank pills alongside the 'premium' one,
-                  // and we still hide the whole section when every entry
-                  // was whitespace (the old `selected.tags &&` guard only
-                  // caught the empty-string case).
-                  const tags = selected.tags
-                    ? selected.tags.split(',').map(t => t.trim()).filter(Boolean)
-                    : [];
-                  if (tags.length === 0) return null;
-                  return (
-                    <div>
-                      <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Tags</div>
-                      <div className="flex flex-wrap gap-1">
-                        {tags.map((t, i) => (
-                          <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <a
-                  href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/customers/${selected.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Voir ${fullName(selected)} dans Shopify Admin (nouvel onglet)`}
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
-                >
-                  Voir dans Shopify Admin
-                  <ExternalLink size={13} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ icon: Icon, label, children }: { icon: typeof Mail; label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <Icon size={15} className="text-zinc-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
-      <div>
-        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{label}</div>
-        <div className="text-sm">{children}</div>
-      </div>
     </div>
   );
 }
