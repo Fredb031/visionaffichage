@@ -1117,11 +1117,18 @@ export default function ProductDetail() {
                     <p className="text-base font-bold text-foreground leading-snug mb-3">
                       {desc.tagline}
                     </p>
-                    {desc.paragraphs.map((p, i) => (
-                      <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
-                        {p}
-                      </p>
-                    ))}
+                    {/* Task 3.14 — On mobile the multi-paragraph fabric/care
+                        copy was pushing the Add-to-cart button well below
+                        the fold. We collapse it to a teaser on <md and
+                        keep the full body visible on desktop. The teaser
+                        is a truncated first paragraph (~150 chars);
+                        tapping the gold link toggles to the full copy
+                        with a max-height transition that respects
+                        prefers-reduced-motion. */}
+                    <CollapsibleDescription
+                      paragraphs={desc.paragraphs}
+                      lang={lang}
+                    />
                   </div>
 
                   <div className="pt-3 border-t border-border">
@@ -1214,6 +1221,94 @@ export default function ProductDetail() {
       <AIChat />
       <BottomNav />
     </div>
+  );
+}
+
+/**
+ * Task 3.14 — mobile-only collapsible description.
+ *
+ * Renders the full paragraph list on desktop (>=md) and a ~150-char
+ * teaser with a "Voir plus / Voir moins" gold link on mobile. The
+ * expanded state uses a `max-height` transition with a generous
+ * fallback ceiling so variable copy lengths still animate cleanly;
+ * `motion-reduce` callers get the state change without the animation.
+ *
+ * We keep this colocated with ProductDetail since it's a one-off and
+ * lifting it to /components would need props typing + tests just to
+ * own a single toggle.
+ */
+function CollapsibleDescription({
+  paragraphs,
+  lang,
+}: {
+  paragraphs: string[];
+  lang: 'fr' | 'en';
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
+  const joined = paragraphs.join(' ');
+  const TEASER_LEN = 150;
+  const needsToggle = joined.length > TEASER_LEN;
+  // Trim at a word boundary so we don't cut mid-word and produce
+  // "the fabric is comf…" — hunt backwards from the raw slice.
+  const teaser = (() => {
+    if (!needsToggle) return joined;
+    const raw = joined.slice(0, TEASER_LEN);
+    const lastSpace = raw.lastIndexOf(' ');
+    return (lastSpace > 80 ? raw.slice(0, lastSpace) : raw).trimEnd() + '…';
+  })();
+
+  const moreLabel = lang === 'en' ? 'Show more' : 'Voir plus';
+  const lessLabel = lang === 'en' ? 'Show less' : 'Voir moins';
+
+  return (
+    <>
+      {/* Desktop: always render the full body, no collapse UI. Hidden
+          on mobile so we don't ship both copies to the DOM twice. */}
+      <div className="hidden md:block">
+        {paragraphs.map((p, i) => (
+          <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
+            {p}
+          </p>
+        ))}
+      </div>
+
+      {/* Mobile: teaser + collapsible full body. We keep the full text
+          in the DOM (not conditionally rendered) so the max-height
+          transition has something to animate into. */}
+      <div className="md:hidden">
+        {!expanded && needsToggle && (
+          <p className="text-muted-foreground text-sm leading-relaxed mb-2">
+            {teaser}
+          </p>
+        )}
+        <div
+          id={contentId}
+          aria-hidden={!expanded && needsToggle ? 'true' : undefined}
+          className={
+            'overflow-hidden transition-[max-height] duration-300 ease-out motion-reduce:transition-none ' +
+            (expanded || !needsToggle ? 'max-h-[2000px]' : 'max-h-0')
+          }
+        >
+          {paragraphs.map((p, i) => (
+            <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
+              {p}
+            </p>
+          ))}
+        </div>
+        {needsToggle && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-controls={contentId}
+            className="mt-1 text-sm font-semibold text-gold hover:text-gold-light underline underline-offset-4 decoration-gold/40 hover:decoration-gold transition-colors"
+          >
+            {expanded ? lessLabel : moreLabel}
+          </button>
+        )}
+      </div>
+    </>
   );
 }
 
