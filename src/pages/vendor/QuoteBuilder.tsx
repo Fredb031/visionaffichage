@@ -171,6 +171,12 @@ export default function QuoteBuilder() {
     // clientName and drop the comma + space when there's nothing to
     // address.
     const cleanClientName = normalizeInvisible(clientName).trim();
+    // Scrub + normalize the recipient too: a ZWSP or trailing space
+    // pasted from Slack would otherwise flow into the mailto URL as
+    // percent-encoded garbage ("client%E2%80%8B@foo.com"), producing
+    // a broken recipient the mail client can't resolve. The quote
+    // itself already persists a cleaned value via persistQuote().
+    const cleanClientEmail = normalizeInvisible(clientEmail).trim();
     const salutation = cleanClientName ? `Bonjour ${cleanClientName},` : 'Bonjour,';
     const body = encodeURIComponent(
       `${salutation}\n\n` +
@@ -185,9 +191,14 @@ export default function QuoteBuilder() {
       `Livraison en 5 jours ouvrables après confirmation.\n\n` +
       `— L'équipe Vision Affichage`,
     );
-    // Encode the recipient too — merchants occasionally enter an email
-    // with `+alias@…` or spaces that would break the URL otherwise.
-    window.location.href = `mailto:${encodeURIComponent(clientEmail)}?subject=${subject}&body=${body}`;
+    // Do NOT encodeURIComponent the recipient — that turns "@" into
+    // "%40" which several desktop mail clients (Outlook, Thunderbird,
+    // some macOS Mail versions) fail to unescape into the To: field,
+    // leaving it blank and forcing the vendor to retype the address.
+    // canSend already gated on isValidEmail, so cleanClientEmail is
+    // guaranteed to only contain chars safe in the mailto addr-spec
+    // ([A-Za-z0-9._%+-]@[A-Za-z0-9.-]+\.[A-Za-z]{2,}).
+    window.location.href = `mailto:${cleanClientEmail}?subject=${subject}&body=${body}`;
   };
 
   return (
