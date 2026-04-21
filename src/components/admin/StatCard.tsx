@@ -22,7 +22,18 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
     red: 'from-rose-500/10 to-rose-500/5 text-rose-700',
   }[accent];
 
+  // Guard against NaN/Infinity (stat sources can divide by zero when a
+  // period has no prior data) — rendering "NaN%" or "Infinity%" in the
+  // delta pill looked broken. A non-finite delta is treated the same as
+  // "no delta": the pill is hidden, only the optional deltaLabel shows.
+  const hasFiniteDelta = delta !== undefined && Number.isFinite(delta);
   const isPositive = (delta ?? 0) >= 0;
+  // Round to one decimal so 12.3456789% renders as 12.3% — keeps the
+  // pill narrow and avoids the jittery width changes we saw when
+  // delta values updated across periods.
+  const formattedDelta = hasFiniteDelta
+    ? (Math.round(Math.abs(delta!) * 10) / 10).toLocaleString('fr-CA')
+    : '';
 
   return (
     <div className="bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-shadow">
@@ -35,17 +46,17 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
         )}
       </div>
       <div className="text-3xl font-extrabold text-zinc-900 tracking-tight">{value}</div>
-      {(delta !== undefined || deltaLabel) && (
+      {(hasFiniteDelta || deltaLabel) && (
         <div className="flex items-center gap-1 mt-2">
-          {delta !== undefined && (
+          {hasFiniteDelta && (
             <span
               className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
                 isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
               }`}
-              aria-label={`${isPositive ? 'en hausse' : 'en baisse'} de ${Math.abs(delta)}%`}
+              aria-label={`${isPositive ? 'en hausse' : 'en baisse'} de ${formattedDelta} pour cent`}
             >
               {isPositive ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}
-              {Math.abs(delta)}%
+              {formattedDelta}%
             </span>
           )}
           {deltaLabel && <span className="text-[11px] text-zinc-500">{deltaLabel}</span>}
