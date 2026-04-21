@@ -15,6 +15,7 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import { normalizeInvisible } from '@/lib/utils';
 import { fmtMoney } from '@/lib/format';
 import { plural } from '@/lib/plural';
+import { downloadCsv } from '@/lib/csv';
 
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
@@ -64,22 +65,12 @@ interface EnrichedCustomer extends ShopifyCustomerSnapshot {
 }
 
 /** Generate and download a CSV for the currently filtered customer list.
- * Mirrors the AdminOrders export idiom: RFC-4180 quoting, formula-
- * injection-safe escaping (cells starting with '=' '+' '-' '@' are
- * prefixed with a tab so Excel / Google Sheets treat them as text
- * instead of formulas — OWASP CSV injection), UTF-8 BOM up front so
- * Excel reads accents correctly, and fr-CA date formatting. No
+ * Delegates the RFC-4180 quoting, CSV-injection guard (cells starting
+ * with '=' '+' '-' '@' / TAB / CR get a tab prefix), UTF-8 BOM, and
+ * CRLF line endings to the shared @/lib/csv helper so every admin
+ * export stays in lockstep. Filename + columns are preserved. No
  * currency symbol on totalSpent — keeps the column numeric-parseable. */
 function exportCustomersCsv(customers: EnrichedCustomer[]) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    // Wrap when the value contains a delimiter/quote/newline OR when we
-    // prefixed a tab above (defensive — a bare leading tab in a field
-    // confuses Numbers.app's CSV auto-detect). Double inner quotes.
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = ['Nom', 'Courriel', 'Téléphone', 'Étiquettes', 'Commandes', 'Total dépensé', 'Inscrit le'];
   const rows = customers.map(c => [
     fullName(c),
@@ -96,16 +87,7 @@ function exportCustomersCsv(customers: EnrichedCustomer[]) {
     c.lifetimeValue.toFixed(2),
     formatDate(c.createdAt),
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadCsv([header, ...rows], `customers-${new Date().toISOString().slice(0, 10)}.csv`);
   toast.success(`${customers.length} client${customers.length > 1 ? 's' : ''} exporté${customers.length > 1 ? 's' : ''}`);
 }
 
