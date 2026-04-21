@@ -20,7 +20,7 @@
  *   NOT a replacement for a proper server-side allowlist.
  */
 
-interface SanitizeTextOpts {
+export interface SanitizeTextOpts {
   /** Hard cap on the returned string length. Defaults to 10_000 so a
    *  pathological paste can't balloon a localStorage write beyond the
    *  browser quota and take down unrelated features. Callers with
