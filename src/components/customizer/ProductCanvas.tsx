@@ -18,7 +18,7 @@
  * as separate components and showed the SAME thing twice, which is why the
  * customizer felt "double".
  */
-import { useEffect, useRef, useState, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -1160,19 +1160,71 @@ export function ProductCanvas({
   };
 
   // Delete/Backspace key removes the currently selected canvas object.
-  // (Skips when user is typing in an IText — fabric.js handles editing
-  // mode separately so backspace inside an editing text won't nuke it.)
+  // Arrow keys nudge the selected object by 1 px (default) / 5 px (Shift)
+  // / 10 px (Cmd or Ctrl). Both behaviours share the same global listener
+  // so they inherit the same step-1 gate and INPUT/TEXTAREA/contenteditable
+  // guard. (Skips when user is typing in an IText — fabric.js handles
+  // editing mode separately so backspace inside an editing text won't nuke
+  // it, and arrow keys should move the caret, not the whole object.)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!showPlacementTools) return;
       if (!fc.current) return;
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+
+      const isArrow = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+      const isDelete = e.key === 'Delete' || e.key === 'Backspace';
+      if (!isArrow && !isDelete) return;
+
       const active = fc.current.getActiveObject();
       if (!active) return;
-      // Don't delete the photo, tint, or print-zone outline
+      // Don't touch the photo, tint, or print-zone outline — those are
+      // background infrastructure, not user content.
       if (active === photoObj.current || active === tintObj.current || active === maskRef.current) return;
+      // If the active IText is in edit mode, let fabric handle arrows/delete
+      // (caret movement, character delete) instead of moving/removing the object.
+      if ((active as unknown as { isEditing?: boolean }).isEditing) return;
+
+      if (isArrow) {
+        // Cmd (macOS) / Ctrl (Windows) = 10 px, Shift = 5 px, default = 1 px.
+        // Cmd/Ctrl wins over Shift if both modifiers are held.
+        const step = (e.metaKey || e.ctrlKey) ? 10 : e.shiftKey ? 5 : 1;
+        let dx = 0, dy = 0;
+        if (e.key === 'ArrowUp')    dy = -step;
+        if (e.key === 'ArrowDown')  dy =  step;
+        if (e.key === 'ArrowLeft')  dx = -step;
+        if (e.key === 'ArrowRight') dx =  step;
+        active.set({
+          left: (active.left ?? 0) + dx,
+          top:  (active.top  ?? 0) + dy,
+        });
+        active.setCoords?.();
+        fc.current.requestRenderAll?.();
+        // Nudging counts as manual placement — matches drag/align-left/right
+        // behaviour. Text assets aren't in the placement store so emit only
+        // when we just moved the logo.
+        if (active === logoObj.current) {
+          emitRef.current(active, 'manual');
+        }
+        // One-time hint: teach the Shift / Ctrl modifiers the first time
+        // someone actually uses arrow nudge. Gated on localStorage so we
+        // don't spam them every session.
+        try {
+          const seen = localStorage.getItem('vision-customizer-nudge-hint-seen');
+          if (!seen) {
+            toast('Astuce : Shift+Flèche = 5 px · Ctrl+Flèche = 10 px');
+            localStorage.setItem('vision-customizer-nudge-hint-seen', '1');
+          }
+        } catch {
+          // localStorage can throw in private mode / blocked storage —
+          // swallow; the nudge itself still worked.
+        }
+        e.preventDefault();
+        return;
+      }
+
+      // Delete / Backspace branch
       // If it's a text we tracked, also remove from our state
       const textId = Array.from(textObjects.current.entries()).find(([, obj]) => obj === active)?.[0];
       if (textId) {
@@ -1192,61 +1244,10 @@ export function ProductCanvas({
     // removeTextAsset is stable within a render; a dep here would just force
     // us to memoize it for no behavioural gain. The handler always reads
     // fresh state via refs. showPlacementTools is included so the early
-    // bail-out reflects the current step (step 3/4 must not delete the logo).
+    // bail-out reflects the current step (step 3/4 must not delete the logo
+    // or nudge it — review/checkout steps are read-only).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPlacementTools]);
-
-  // Keyboard arrow nudge — competitor pattern (CustomInk, Printful, Figma).
-  // When the canvas wrapper has focus and an arrow key is pressed, shift
-  // the active logo (or selected text) by 1px. Shift = 5px, Alt = 10px for
-  // coarser positioning. We update x/y on the fabric object directly and
-  // emit the new placement so the store stays the source of truth.
-  //
-  // Scoped to the container (not window) so arrow keys in the checkout /
-  // page body still scroll as expected. The container is made tabbable via
-  // tabIndex=0 below so users can Tab into it from the keyboard.
-  const handleContainerKeyDown = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (!fc.current) return;
-    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    // Don't hijack arrow keys while the user is typing inside an input,
-    // textarea, or editing an IText on the canvas.
-    const tgt = e.target as HTMLElement | null;
-    if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
-    const active = fc.current.getActiveObject() ?? logoObj.current;
-    if (!active) return;
-    // Never nudge the photo, tint, or print-zone outline — those are
-    // background infrastructure, not user content.
-    if (active === photoObj.current || active === tintObj.current || active === maskRef.current) return;
-    // If the active IText is in edit mode, let fabric handle the arrow
-    // (caret movement) instead of moving the whole object.
-    if ((active as unknown as { isEditing?: boolean }).isEditing) return;
-
-    // 1px default, Shift = 5px, Alt = 10px. Alt wins over Shift if both.
-    const step = e.altKey ? 10 : e.shiftKey ? 5 : 1;
-    let dx = 0, dy = 0;
-    if (e.key === 'ArrowUp')    dy = -step;
-    if (e.key === 'ArrowDown')  dy =  step;
-    if (e.key === 'ArrowLeft')  dx = -step;
-    if (e.key === 'ArrowRight') dx =  step;
-
-    active.set({
-      left: (active.left ?? 0) + dx,
-      top:  (active.top  ?? 0) + dy,
-    });
-    active.setCoords?.();
-    fc.current.requestRenderAll?.();
-
-    // Respect placement store: only emit when it's the logo. Text asset
-    // positions aren't tracked in the placement store — they live in the
-    // fabric canvas + textAssets list, so a nudge there is visual-only.
-    // Any arrow-key nudge means the user is manually positioning, so we
-    // flip the zoneId to 'manual' (matches drag/align-left/align-right
-    // behaviour in emit + the align-toolbar handlers above).
-    if (active === logoObj.current) {
-      emitRef.current(active, 'manual');
-    }
-    e.preventDefault();
-  }, []);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -1257,11 +1258,10 @@ export function ProductCanvas({
       <div
         ref={containerRef}
         tabIndex={0}
-        onKeyDown={handleContainerKeyDown}
         role="application"
         aria-label={lang === 'en'
-          ? 'Product canvas. Use arrow keys to nudge the logo (Shift = 5px, Alt = 10px).'
-          : "Canvas du produit. Utilise les flèches pour déplacer le logo (Maj = 5 px, Alt = 10 px)."}
+          ? 'Product canvas. Use arrow keys to nudge the selected item (Shift = 5px, Ctrl/Cmd = 10px).'
+          : "Canvas du produit. Utilise les flèches pour déplacer l'élément sélectionné (Maj = 5 px, Ctrl/Cmd = 10 px)."}
         className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] aspect-[5/6] md:aspect-[1/1.05] lg:aspect-[1.28/1] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Subtle radial accent in the corner — looks like studio lighting */}
