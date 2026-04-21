@@ -14,6 +14,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
+import { downloadCsv } from '@/lib/csv';
 
 const PAGE_SIZE = 25;
 
@@ -166,17 +167,14 @@ const AGE_BUCKET_MS: Record<Exclude<AgeBucket, 'all'>, number> = {
 };
 
 /** Generate + download a CSV for the currently filtered abandoned-cart
- * list. Mirrors the AdminOrders helper verbatim for the injection guard
- * and BOM handling so Excel/Numbers handle accents + leading
+ * list. Delegates escaping + BOM + anchor-click dance to the shared
+ * `@/lib/csv` helper so Excel/Numbers handle accents + leading
  * '=' / '+' / '-' / '@' safely (OWASP formula injection). Columns:
- * Courriel, Nom, Articles, Total, Abandonné le. Date formatted fr-CA. */
+ * Courriel, Nom, Articles, Total, Abandonné le. Date formatted fr-CA.
+ * Filename keeps the legacy `abandoned-carts-<UTC-YYYY-MM-DD>.csv`
+ * pattern (not `vision-*`) so archived downloads on ops laptops stay
+ * greppable. */
 function exportAbandonedCartsCsv(carts: ReadonlyArray<ShopifyAbandonedCheckoutSnapshot>) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = ['Courriel', 'Nom', 'Articles', 'Total', 'Abandonné le'];
   const rows = carts.map(c => [
     c.email,
@@ -186,16 +184,8 @@ function exportAbandonedCartsCsv(carts: ReadonlyArray<ShopifyAbandonedCheckoutSn
     c.total.toFixed(2),
     new Date(c.createdAt).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' }),
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `abandoned-carts-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = `abandoned-carts-${new Date().toISOString().slice(0, 10)}.csv`;
+  downloadCsv([header, ...rows], filename);
   toast.success(`${carts.length} panier${carts.length > 1 ? 's' : ''} exporté${carts.length > 1 ? 's' : ''}`);
 }
 
