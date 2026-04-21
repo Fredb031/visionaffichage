@@ -104,18 +104,25 @@ const ATCF2500_COLORS: ProductColor[] = [
   { id: 'navy',             name: 'Marine',            nameEn: 'Navy',             hex: '#1D2B4F' },
   { id: 'steel-grey',       name: 'Gris acier',        nameEn: 'Steel Grey',       hex: '#6E7278' },
   { id: 'dark-heather',     name: 'Gris foncé chiné',  nameEn: 'Dark Heather',     hex: '#3E3F42' },
-  { id: 'light-heather',    name: 'Gris pâle chiné',   nameEn: 'Light Heather',    hex: '#B8B9BC' },
+  // Dropped: Light Heather — no matching Drive image on ATCF2500/Y2500/F2600/F2400;
+  // the alt-slug chain doesn't reach a light-heather asset, so the swatch
+  // displayed the generic fallback and misled buyers. Audit: 2026-04-20.
   { id: 'red',              name: 'Rouge',             nameEn: 'Red',              hex: '#B91C1C' },
   { id: 'true-royal',       name: 'Bleu royal',        nameEn: 'True Royal',       hex: '#1E40AF' },
   { id: 'forest-green',     name: 'Vert forêt',        nameEn: 'Forest Green',     hex: '#14532D' },
+  // Burgundy kept: the `burgundy → maroon` alt slug (added below) now
+  // resolves maroon_022017 / maroon_cil so the swatch has real photography.
   { id: 'burgundy',         name: 'Bourgogne',         nameEn: 'Burgundy',         hex: '#7F1D1D' },
   { id: 'purple',           name: 'Mauve',             nameEn: 'Purple',           hex: '#4C1D95' },
   { id: 'gold',             name: 'Or',                nameEn: 'Gold',             hex: '#B45309' },
   { id: 'charcoal',         name: 'Charbon',           nameEn: 'Charcoal',         hex: '#374151' },
   { id: 'military-green',   name: 'Vert militaire',    nameEn: 'Military Green',   hex: '#3F4F2A' },
-  { id: 'black-heather',    name: 'Noir chiné',        nameEn: 'Black Heather',    hex: '#2A2A2A' },
+  // Dropped: Black Heather — no heather/black_heather Drive image on
+  // ATCF2500 and extending the alt chain would collide with Dark Heather.
   { id: 'true-red',         name: 'Rouge vif',         nameEn: 'True Red',         hex: '#DC2626' },
-  { id: 'cardinal',         name: 'Cardinal',          nameEn: 'Cardinal',         hex: '#991B1B' },
+  // Dropped: Cardinal — audit found no cardinal/maroon/sangria asset on
+  // ATCF2500 bodies; keeping it on ATC1000 only (where maroon_022017
+  // resolves via the maroon alt slug).
   { id: 'natural',          name: 'Naturel',           nameEn: 'Natural',          hex: '#F5F0E8' },
 ];
 
@@ -150,7 +157,10 @@ const POLO_S445_COLORS: ProductColor[] = [
   { id: 'forest-green', name: 'Vert forêt',   nameEn: 'Forest Green', hex: '#14532D' },
   { id: 'gold',         name: 'Or',           nameEn: 'Gold',         hex: '#B45309' },
   { id: 'charcoal',     name: 'Charbon',      nameEn: 'Charcoal',     hex: '#374151' },
-  { id: 'cardinal',     name: 'Cardinal',     nameEn: 'Cardinal',     hex: '#991B1B' },
+  // Dropped: Cardinal — audit 2026-04-20 confirmed no cardinal asset
+  // on S445, L445, S350, L350 and the alt chain cardinal→maroon/sangria
+  // finds nothing on those polo bodies either. Showing it led to the
+  // generic product fallback being rendered instead of a real colour.
 ];
 
 const CAP_ATC6606_COLORS: ProductColor[] = [
@@ -1055,7 +1065,7 @@ const COLOR_ALT_SLUGS: Record<string, readonly string[]> = {
   // `military_green` is kept last as a deep fallback for bodies (C100 beanie,
   // caps) that only ship with a military/olive green and no true forest.
   forest_green: ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green', 'military_green', 'militarygreen'],
-  forestgreen:  ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green', 'military_green', 'militarygreen'],
+  forestgreen:  ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green', 'military_green', 'militarygreen', 'foredtgreen'],
   darkgreen:    ['darkgreen', 'forestgreen', 'forest', 'dark_green', 'dark_gree'],
   // Grey family — order matters: closest visual match first. "Steel Grey"
   // (Gris acier, #6E7278) has no direct image in any SKU, so we fall back to
@@ -1089,6 +1099,9 @@ const COLOR_ALT_SLUGS: Record<string, readonly string[]> = {
   natural:      ['natural', 'sand', 'oatmeal_heather', 'oatmealheather'],
   charcoal:     ['charcoal', 'coalgrey', 'coal_grey', 'darkgrey', 'dark_grey', 'darkheathergrey', 'greyconcrete', 'irongrey'],
   maroon:       ['maroon', 'burgundy'],
+  // Reverse direction: nameEn 'Burgundy' slugs to 'burgundy', alt to maroon
+  // so ATCF2500/Y2500/F2600/F2400/C100 all resolve burgundy→maroon_*.jpg.
+  burgundy:     ['burgundy', 'maroon'],
   kelly:        ['kellygreen', 'kelly_green', 'kelly'],
   black:        ['black'],
   white:        ['white'],
