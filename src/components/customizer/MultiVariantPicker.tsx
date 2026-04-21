@@ -157,6 +157,12 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
   const clearAllSizes = () => {
     // Wipe every row — "Effacer" is a full reset, not just the active
     // color, because presets also operate across all active colors.
+    // Guard with a confirm when there's a non-trivial pick so a misclick
+    // doesn't wipe a painstakingly-built multi-color order.
+    if (totalQty > 0) {
+      const msg = lang === 'en' ? 'Clear quantities?' : 'Effacer les quantités ?';
+      if (typeof window !== 'undefined' && !window.confirm(msg)) return;
+    }
     onChange([]);
   };
 
@@ -168,7 +174,10 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
     // over qty=N and each producing qty=N+1.
     onChange(prev => {
       const current = prev.find(v => v.colorId === color.variantId && v.size === size)?.qty ?? 0;
-      const nextQty = Math.max(0, nextQtyFn(current));
+      // Clamp to [0, 1000] — upper bound prevents a stuck-key / typo from
+      // exploding the price math downstream (1000 per size is already well
+      // past any realistic bulk order).
+      const nextQty = Math.max(0, Math.min(1000, nextQtyFn(current)));
       const filtered = prev.filter(v => !(v.colorId === color.variantId && v.size === size));
       if (nextQty <= 0) return filtered;
       const sizeOpt = color.sizeOptions?.find(s => s.size === size);
@@ -407,6 +416,19 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
             </div>
           );
         })()}
+        {/* Live total directly under the size grid — the discount banner
+            at the top shows progress toward the rabais, but a plain
+            "Total : N articles" line right where the user is clicking
+            makes the running count impossible to miss. */}
+        <div
+          className="mt-2 flex items-center justify-end text-[11px] font-bold text-muted-foreground"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {lang === 'en'
+            ? `Total: ${totalQty} item${totalQty !== 1 ? 's' : ''}`
+            : `Total : ${totalQty} article${totalQty !== 1 ? 's' : ''}`}
+        </div>
       </div>
 
       {/* Summary of all picked color × size combinations */}
