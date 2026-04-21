@@ -16,11 +16,13 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- PWA manifest — lets users 'Add to Home Screen' on mobile and
-         controls the theme/color of the installed app. -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+         controls the theme/color of the installed app. manifest.json is
+         the canonical PWA manifest (full icon set incl. maskable);
+         manifest.webmanifest is kept for legacy/back-compat. -->
+    <link rel="manifest" href="/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Vision" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Open Graph -->
     <meta property="og:site_name" content="Vision Affichage" />
