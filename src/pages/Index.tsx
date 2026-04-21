@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
 
@@ -82,6 +83,17 @@ function FadeIn({ children, className = '' }: { children: React.ReactNode; class
 
 export default function Index() {
   const { t, lang } = useLang();
+  // Task 8.12 — homepage-specific SEO snippet. The index.html default
+  // ("Personnalise tes vêtements…") is tuned for the generic crawl, but
+  // the homepage itself deserves a pitch that matches its copy: merch
+  // for QC companies, free quote, 5-day turnaround, local. Bilingual so
+  // Google's en-CA index gets English copy when the user toggles EN.
+  useDocumentTitle(
+    lang === 'en' ? 'Vision Affichage — Custom merch' : 'Vision Affichage — Merch d\u2019entreprise personnalisé',
+    lang === 'en'
+      ? 'Vision Affichage — Custom merch for Québec businesses. Free quote, 5-day turnaround, 100% local.'
+      : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. Soumission gratuite, 5 jours ouvrables, 100 % local.',
+  );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [showGame, setShowGame] = useState(false);

@@ -28,7 +28,16 @@ const CONTACT_CAP = 200;
 
 export default function Contact() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'Contact — Vision Affichage' : 'Contact — Vision Affichage');
+  // Task 8.12 — contact page meta description. Google snippet now
+  // advertises the locality (Saint-Hyacinthe, QC), the channels (phone,
+  // email, form) and the 24h response promise, instead of the generic
+  // homepage pitch inherited from index.html.
+  useDocumentTitle(
+    lang === 'en' ? 'Contact — Vision Affichage' : 'Contact — Vision Affichage',
+    lang === 'en'
+      ? 'Contact Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Response within 24h.'
+      : 'Contactez Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Réponse sous 24h.',
+  );
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

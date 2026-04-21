@@ -19,8 +19,15 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function About() {
   const { lang } = useLang();
+  // Task 8.12 — /about meta description. Shares the founding story
+  // framing (QC printer + merchandiser established in Saint-Hyacinthe)
+  // so buyers vetting the brand on Google land on this page instead of
+  // /. Bilingual copy tracks the language toggle.
   useDocumentTitle(
     lang === 'en' ? 'About — Vision Affichage' : 'À propos — Vision Affichage',
+    lang === 'en'
+      ? 'The Vision Affichage story — printer and merchandiser established in Saint-Hyacinthe, Québec.'
+      : 'L\u2019histoire de Vision Affichage — imprimeur et marchandiseur établi à Saint-Hyacinthe, Québec.',
   );
 
   // Value cards — icons picked to echo Contact.tsx's iconography style

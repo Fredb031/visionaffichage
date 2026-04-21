@@ -142,7 +142,16 @@ export default function Products() {
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
-  useDocumentTitle(lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage');
+  // Task 8.12 — catalog-specific meta description. Google SERP for
+  // "/products" previously inherited the homepage default, so the
+  // snippet pitched "personnalise tes vêtements" instead of the catalog
+  // itself. Bilingual copy swaps when the user toggles EN.
+  useDocumentTitle(
+    lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage',
+    lang === 'en'
+      ? 'Full catalog of customizable merch — t-shirts, hoodies, polos, caps. Secure checkout, printed in Québec.'
+      : 'Catalogue complet de merchs personnalisables — t-shirts, hoodies, polos, casquettes. Paiement sécurisé, imprimé au Québec.',
+  );
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —
   // standard power-user shortcut on commerce sites (Linear, Vercel, etc.)

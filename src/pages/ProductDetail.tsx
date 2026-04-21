@@ -27,6 +27,7 @@ import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useProductColors } from '@/hooks/useProductColors';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -96,16 +97,27 @@ export default function ProductDetail() {
     setSelectedOptions({});
   }, [handle]);
 
-  // Set a product-specific document title so browser tabs, bookmarks,
-  // and shared links reflect the actual product instead of the default
-  // site title. Restore on unmount so SPA nav doesn't leak stale titles.
-  useEffect(() => {
-    if (!product) return;
-    const prev = document.title;
-    const label = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
-    document.title = `${label} ${localProduct?.sku ?? ''} — Vision Affichage`.trim();
-    return () => { document.title = prev; };
-  }, [product, localProduct, lang]);
+  // Set a product-specific document title + meta description so browser
+  // tabs, bookmarks, shared links, AND Google SERP snippets reflect the
+  // actual product instead of the default site title/description.
+  // Restore on unmount so SPA nav doesn't leak stale values.
+  //
+  // Task 8.12 — meta description is now dynamic based on product name
+  // + category label (e.g. "Hoodies unisexe ATCF2500 — personnalise ton
+  // logo. Livré en 5 jours au Québec."). Falls back to the product
+  // title when the local catalog doesn't know this handle yet.
+  const pdpTitle = product
+    ? `${localProduct ? categoryLabel(localProduct.category, lang) : product.title} ${localProduct?.sku ?? ''} — Vision Affichage`.trim()
+    : lang === 'en' ? 'Product — Vision Affichage' : 'Produit — Vision Affichage';
+  const pdpDescription = product
+    ? (() => {
+        const label = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+        return lang === 'en'
+          ? `${product.title} — ${label}. Customize with your logo, printed in Québec, delivered in 5 business days.`
+          : `${product.title} — ${label}. Personnalise avec ton logo, imprimé au Québec, livré en 5 jours ouvrables.`;
+      })()
+    : undefined;
+  useDocumentTitle(pdpTitle, pdpDescription);
 
   // Inject Product JSON-LD so Google shows rich product results
   // (price, image, brand) on SERPs. Data lives inside a script tag in
