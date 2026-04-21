@@ -129,19 +129,52 @@ export default function ProductDetail() {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
       },
     };
-    // Breadcrumbs give Google the 'Home › Products › <Product>' chain
-    // to render under the URL in SERP. Independent script so the two
+    // Breadcrumbs give Google the 'Home › Products › <Category> › <Product>'
+    // chain to render under the URL in SERP. Mirrors the visible nav so
+    // SERP preview matches on-page UI (Google rejects schemas that drift
+    // from rendered breadcrumb text). Independent script so the two
     // schemas can be read separately by the crawler.
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://visionaffichage.com';
     const productLabel = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+    const catSlug = (() => {
+      if (!localProduct) return null;
+      const c = localProduct.category;
+      if (c === 'hoodie' || c === 'crewneck') return 'chandails';
+      if (c === 'tshirt' || c === 'longsleeve' || c === 'sport') return 'tshirts';
+      if (c === 'polo') return 'polos';
+      if (c === 'cap' || c === 'toque') return 'headwear';
+      return null;
+    })();
+    const catCrumbName = (() => {
+      switch (catSlug) {
+        case 'chandails': return lang === 'en' ? 'Sweaters' : 'Chandails';
+        case 'tshirts':   return 'T-Shirts';
+        case 'polos':     return 'Polos';
+        case 'headwear':  return lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques';
+        default: return null;
+      }
+    })();
+    const crumbItems: Array<Record<string, unknown>> = [
+      { '@type': 'ListItem', position: 1, name: lang === 'en' ? 'Home' : 'Accueil', item: `${origin}/` },
+      { '@type': 'ListItem', position: 2, name: lang === 'en' ? 'Products' : 'Produits', item: `${origin}/products` },
+    ];
+    if (catSlug && catCrumbName) {
+      crumbItems.push({
+        '@type': 'ListItem',
+        position: 3,
+        name: catCrumbName,
+        item: `${origin}/products?cat=${catSlug}`,
+      });
+    }
+    crumbItems.push({
+      '@type': 'ListItem',
+      position: crumbItems.length + 1,
+      name: productLabel,
+    });
     const breadcrumbs = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: lang === 'en' ? 'Home' : 'Accueil', item: `${origin}/` },
-        { '@type': 'ListItem', position: 2, name: lang === 'en' ? 'Products' : 'Produits', item: `${origin}/products` },
-        { '@type': 'ListItem', position: 3, name: productLabel },
-      ],
+      itemListElement: crumbItems,
     };
     const el = document.createElement('script');
     el.type = 'application/ld+json';
@@ -340,6 +373,101 @@ export default function ProductDetail() {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
+        {/* Breadcrumb (§3.10): Home → Products → Category → Product.
+            Mirrors the JSON-LD BreadcrumbList fed to Google so the
+            visible trail and the structured-data trail agree. Each
+            non-terminal crumb is a link; the final crumb is marked
+            aria-current so screen readers announce "current page".
+            Falls back to product.title when a handle isn't in the
+            local catalogue (new Shopify product not yet synced).
+
+            Also keeps the Back-to-products affordance for thumb-reach
+            mobile users — rendered on its own row under the crumbs so
+            the chevron chain isn't polluted by a leading arrow. */}
+        {(() => {
+          // Map Product.category → Products.tsx filter slug so the
+          // category crumb actually lands on the right filtered grid
+          // (see matchesCategory in /src/pages/Products.tsx).
+          const categorySlug = (() => {
+            if (!localProduct) return null;
+            const c = localProduct.category;
+            if (c === 'hoodie' || c === 'crewneck') return 'chandails';
+            if (c === 'tshirt' || c === 'longsleeve' || c === 'sport') return 'tshirts';
+            if (c === 'polo') return 'polos';
+            if (c === 'cap' || c === 'toque') return 'headwear';
+            return null;
+          })();
+          const categoryCrumbLabel = (() => {
+            // Use the same EN/FR category tab labels the Products page
+            // uses, not categoryLabel() (which is the singular garment
+            // label: "T-Shirt"). Breadcrumbs read as plural sections.
+            switch (categorySlug) {
+              case 'chandails': return lang === 'en' ? 'Sweaters' : 'Chandails';
+              case 'tshirts':   return 'T-Shirts';
+              case 'polos':     return 'Polos';
+              case 'headwear':  return lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques';
+              default: return null;
+            }
+          })();
+          const productCrumb = localProduct
+            ? categoryLabel(localProduct.category, lang)
+            : product.title;
+          const homeLabel = lang === 'en' ? 'Home' : 'Accueil';
+          const productsLabel = lang === 'en' ? 'Products' : 'Produits';
+          return (
+            <nav
+              aria-label={lang === 'en' ? 'Breadcrumb' : "Fil d'Ariane"}
+              className="mb-2"
+            >
+              <ol className="flex items-center flex-wrap gap-1.5 text-sm text-muted-foreground">
+                <li>
+                  <Link
+                    to="/"
+                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                  >
+                    {homeLabel}
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="text-muted-foreground/50">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </li>
+                <li>
+                  <Link
+                    to="/products"
+                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                  >
+                    {productsLabel}
+                  </Link>
+                </li>
+                {categorySlug && categoryCrumbLabel && (
+                  <>
+                    <li aria-hidden="true" className="text-muted-foreground/50">
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </li>
+                    <li>
+                      <Link
+                        to={`/products?cat=${categorySlug}`}
+                        className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                      >
+                        {categoryCrumbLabel}
+                      </Link>
+                    </li>
+                  </>
+                )}
+                <li aria-hidden="true" className="text-muted-foreground/50">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </li>
+                <li
+                  aria-current="page"
+                  className="text-foreground font-medium truncate max-w-[55vw] sm:max-w-none"
+                  title={productCrumb}
+                >
+                  {productCrumb}
+                </li>
+              </ol>
+            </nav>
+          );
+        })()}
         <Link
           to="/products"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
