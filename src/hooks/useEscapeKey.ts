@@ -19,6 +19,12 @@ export function useEscapeKey(
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // Respect deeper handlers that already consumed the Esc — e.g. a
+      // combobox inside a modal clearing its own input, or a datepicker
+      // popover closing itself. Without this guard the outer overlay
+      // would also dismiss on the same keystroke, forcing the user to
+      // reopen it after every inline cancel.
+      if (e.defaultPrevented) return;
       if (skipInTextInputs) {
         const t = e.target as HTMLElement | null;
         const tag = t?.tagName;
