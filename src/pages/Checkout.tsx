@@ -290,9 +290,40 @@ export default function Checkout() {
       }, 4000);
     } catch (err) {
       console.error('Checkout error:', err);
-      toast.error(lang === 'en'
-        ? 'Something went wrong. Please try again or call us.'
-        : 'Une erreur est survenue. Réessaie ou appelle-nous.');
+      // Distinguish a transient network blip (offline, DNS hiccup, CORS
+      // preflight dropped) from a real failure. fetch() throws a plain
+      // TypeError in all those cases and never sets an HTTP status, so
+      // the message check below is the only reliable signal we get in
+      // the browser. When we detect one, attach a one-click Retry to
+      // the toast so the user doesn't have to fish for the Pay button
+      // again after their wifi re-associates — the form is already
+      // filled, the cart is already built, re-running handlePay is
+      // idempotent (the Shopify cart sync is a no-op once complete).
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      const isNetBlip =
+        (err instanceof TypeError) ||
+        msg.includes('network') ||
+        msg.includes('failed to fetch') ||
+        msg.includes('load failed') ||
+        (typeof navigator !== 'undefined' && navigator.onLine === false);
+      if (isNetBlip) {
+        toast.error(
+          lang === 'en'
+            ? 'Network hiccup. Check your connection and retry.'
+            : 'Problème de réseau. Vérifie ta connexion et réessaie.',
+          {
+            action: {
+              label: lang === 'en' ? 'Retry' : 'Réessayer',
+              onClick: () => { void handlePay(); },
+            },
+            duration: 10_000,
+          },
+        );
+      } else {
+        toast.error(lang === 'en'
+          ? 'Something went wrong. Please try again or call us.'
+          : 'Une erreur est survenue. Réessaie ou appelle-nous.');
+      }
       setProcessing(false);
     }
   };
