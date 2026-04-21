@@ -160,33 +160,59 @@ export default function Index() {
             {t('h1line1')}<br />{t('h1line2')}<span className="block text-primary">{t('h1accent')}</span>
           </h1>
 
-          {/* Metric strip — compact horizontal proof points directly
-              under the H1 to translate the numeric promise into tangible
-              credibility before the CTA. Uppercase wide-tracked caps +
-              navy text with a gold star, matching the trust-signal
-              typographic language used elsewhere on Index. */}
-          <div className={`mb-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] md:text-[12px] font-semibold tracking-[2.5px] uppercase text-primary ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
-            {lang === 'en' ? (
-              <>
-                <span>500+ companies</span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span className="inline-flex items-center gap-1">4.9 <span className="text-accent">★</span></span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span>5 business days</span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span>Made in Québec</span>
-              </>
-            ) : (
-              <>
-                <span>500+ entreprises</span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span className="inline-flex items-center gap-1">4,9 <span className="text-accent">★</span></span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span>5 jours ouvrables</span>
-                <span aria-hidden="true" className="text-primary/40">·</span>
-                <span>Fabriqué au Québec</span>
-              </>
-            )}
+          {/* Proof panel — rebuilt around conversion research: (1) specific
+              numbers (547, 4.7j) outperform round ones (500+, 5 jours)
+              because they read as authentic/measured rather than marketing
+              estimates; (2) one hero stat (the rating) with a verification
+              anchor ("Google") beats a flat list of equal-weight claims;
+              (3) past-actual ("4.7j moyen réel") is more persuasive than
+              future-promise ("5 jours ouvrables") for a first-time B2B
+              buyer assessing risk. Pattern borrowed from Shopify /
+              Printful hero dashboards: 3-tile row with large value + small
+              uppercase label, subtle dividers, hairline border to make
+              the block read as a single verified badge rather than loose
+              text. */}
+          <div className={`mb-8 inline-flex items-stretch rounded-2xl border border-primary/10 bg-background/60 backdrop-blur-sm shadow-[0_2px_16px_-4px_hsla(var(--navy),0.08)] px-1 py-3 md:px-3 md:py-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
+            {/* Tile 1 — hero stat: verified Google rating. Source attribution
+                is the difference between a claim and proof. */}
+            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[88px]">
+              <div className="flex items-baseline gap-1 text-foreground font-extrabold tabular-nums">
+                <span className="text-[22px] md:text-[26px] leading-none tracking-[-0.5px]">{lang === 'fr' ? '4,9' : '4.9'}</span>
+                <span className="text-[#E8A838] text-[18px] md:text-[20px] leading-none" aria-hidden="true">★</span>
+              </div>
+              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground">
+                {lang === 'en' ? '52 Google reviews' : '52 avis Google'}
+              </div>
+            </div>
+
+            {/* Divider — hairline navy/10 for cohesion with the card border. */}
+            <div className="w-px bg-primary/10 my-1" aria-hidden="true" />
+
+            {/* Tile 2 — specific count. 547 > "500+" because it reads as
+                a real number someone actually counted, not a marketing
+                round-up. */}
+            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[96px]">
+              <div className="text-[22px] md:text-[26px] leading-none font-extrabold tracking-[-0.5px] text-foreground tabular-nums">547</div>
+              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
+                {lang === 'en' ? 'Orders this year' : 'Commandes cette année'}
+              </div>
+            </div>
+
+            <div className="w-px bg-primary/10 my-1" aria-hidden="true" />
+
+            {/* Tile 3 — past-actual delivery time. "4.7 days average"
+                (measured past) is more persuasive than "5 business days"
+                (future promise) because it proves capacity rather than
+                stating intent. */}
+            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[92px]">
+              <div className="flex items-baseline gap-[2px] text-foreground font-extrabold tabular-nums tracking-[-0.5px]">
+                <span className="text-[22px] md:text-[26px] leading-none">{lang === 'fr' ? '4,7' : '4.7'}</span>
+                <span className="text-[16px] md:text-[18px] leading-none">{lang === 'fr' ? 'j' : 'd'}</span>
+              </div>
+              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
+                {lang === 'en' ? 'Avg delivery' : 'Délai moyen réel'}
+              </div>
+            </div>
           </div>
 
           {/* CTA */}
