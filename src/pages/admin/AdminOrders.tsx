@@ -14,6 +14,7 @@ import { normalizeInvisible } from '@/lib/utils';
 import { readLS, writeLS } from '@/lib/storage';
 import { buildLogoFilename, triggerBlobDownload } from '@/lib/logoVectorize';
 import { logAdminAction } from '@/lib/auditLog';
+import { downloadCsv } from '@/lib/csv';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
@@ -56,25 +57,11 @@ const TIME_FMT = new Intl.DateTimeFormat('fr-CA', { hour: '2-digit', minute: '2-
 
 /** Generate and download a CSV for the currently filtered order list.
  * Columns (in this order): #, Date, Client, Courriel, Statut, Articles,
- * Total. Escapes double quotes per RFC 4180 and wraps every field so
- * commas inside customer names don't shift columns. Cells whose first
- * char is one of '=' '+' '-' '@' are prefixed with a single tab so
- * Excel / Google Sheets treat them as text instead of formulas — a
- * customer named '=cmd|...' or an order note starting with '@' would
- * otherwise execute as a formula when the admin opens the CSV (CSV
- * injection / "formula injection", OWASP). The tab keeps the value
- * readable while neutralising the formula trigger. UTF-8 BOM up front
- * so Excel reads accents correctly without a manual encoding prompt. */
+ * Total. Delegates to the shared `downloadCsv` helper from `@/lib/csv`
+ * so the escape policy (RFC 4180 always-quote, formula-injection guard,
+ * UTF-8 BOM, CRLF) is identical to every other admin export. Filename
+ * keeps the `orders-YYYY-MM-DD.csv` pattern the admin team relies on. */
 function exportOrdersCsv(orders: Array<ShopifyOrderSnapshot & { fulfillmentStatus: ShopifyOrderSnapshot['fulfillmentStatus'] }>) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    // Wrap when the value contains a delimiter/quote/newline OR when we
-    // prefixed a tab above (defensive — a bare leading tab in a field
-    // confuses Numbers.app's CSV auto-detect). Double inner quotes.
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   // Status label: prefer fulfillment (ready-to-ship is the interesting
   // axis when an admin scans a CSV) then financial. Falls back to '—'.
   const statusLabel = (o: ShopifyOrderSnapshot) => {
@@ -96,16 +83,8 @@ function exportOrdersCsv(orders: Array<ShopifyOrderSnapshot & { fulfillmentStatu
     // No currency symbol — keeps the column numeric-parseable in Excel.
     o.total.toFixed(2),
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  downloadCsv([header, ...rows], filename);
   toast.success(`${orders.length} commande${orders.length > 1 ? 's' : ''} exportée${orders.length > 1 ? 's' : ''}`);
 }
 
