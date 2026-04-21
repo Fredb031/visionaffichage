@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -40,16 +40,47 @@ function readInitialCollapsed(): boolean {
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(readInitialCollapsed);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
+
+  // Aggregate notification counts from the Shopify snapshot. Pending
+  // orders = financialStatus==='pending' (awaiting capture), abandoned
+  // carts = total abandoned checkouts, failed payments = orders that
+  // were authorized/voided (never captured successfully). The "total"
+  // drives the badge-dot visibility in the header bell.
+  const pendingOrdersCount = SHOPIFY_STATS.pendingPayments;
+  const abandonedCartsCount = SHOPIFY_STATS.abandonedCheckoutsCount;
+  const failedPaymentsCount = 0;
+  const totalNotifications = pendingOrdersCount + abandonedCartsCount + failedPaymentsCount;
+  const hasUnread = totalNotifications > 0;
 
   // Close the mobile sidebar when the route changes (user clicked a
   // link) and when Escape is pressed, so keyboard users can dismiss
   // the overlay without hunting for the close button.
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEscapeKey(mobileOpen, useCallback(() => setMobileOpen(false), []));
+  // Close notifications dropdown on Escape + route change.
+  useEscapeKey(notifOpen, useCallback(() => setNotifOpen(false), []));
+  useEffect(() => { setNotifOpen(false); }, [location.pathname]);
+
+  // Click-outside to dismiss the notifications dropdown. Uses
+  // mousedown (not click) so a click on another trigger closes this
+  // first and the new one opens immediately.
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const el = notifContainerRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [notifOpen]);
   // Lock body scroll while the mobile sidebar is open. Without this,
   // momentum scroll on iOS leaks through the backdrop and the page
   // behind keeps moving while the menu sits frozen on top.
@@ -193,6 +224,135 @@ export function AdminLayout() {
             {location.pathname === '/admin' ? 'Vue d\'ensemble' : 'Administration'}
           </div>
           <div className="flex items-center gap-3">
+            {/* Notifications dropdown — aggregates actionable Shopify
+                events (pending orders, abandoned carts, failed
+                payments). Clicking a row routes to the relevant admin
+                page; closing/escape/clicking outside dismisses. */}
+            <div ref={notifContainerRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setNotifOpen(o => !o)}
+                className="relative w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+                aria-label={
+                  hasUnread
+                    ? `Notifications, ${totalNotifications} non lue${totalNotifications > 1 ? 's' : ''}`
+                    : 'Notifications'
+                }
+                aria-haspopup="menu"
+                aria-expanded={notifOpen}
+                aria-controls="admin-notifications-menu"
+              >
+                <Bell size={20} aria-hidden="true" className="text-zinc-700" />
+                {hasUnread && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#E8A838] ring-2 ring-white"
+                  />
+                )}
+              </button>
+
+              {notifOpen && (
+                <div
+                  id="admin-notifications-menu"
+                  role="menu"
+                  aria-label="Notifications"
+                  className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white shadow-xl z-40 overflow-hidden"
+                >
+                  <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+                    <div className="text-sm font-bold text-zinc-900">Notifications</div>
+                    <div className="text-[11px] text-zinc-500">
+                      {hasUnread
+                        ? `${totalNotifications} non lue${totalNotifications > 1 ? 's' : ''}`
+                        : 'Tout est à jour'}
+                    </div>
+                  </div>
+                  <ul className="max-h-96 overflow-y-auto py-1">
+                    <li>
+                      <Link
+                        to="/admin/orders"
+                        role="menuitem"
+                        onClick={() => setNotifOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
+                      >
+                        <span className="w-8 h-8 shrink-0 rounded-lg bg-[#E8A838]/15 text-[#B37D10] flex items-center justify-center">
+                          <ShoppingBag size={16} aria-hidden="true" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13px] font-semibold text-zinc-900">
+                            Commandes en attente
+                          </span>
+                          <span className="block text-[12px] text-zinc-500">
+                            {pendingOrdersCount === 0
+                              ? 'Aucune commande en attente de paiement'
+                              : `${pendingOrdersCount} commande${pendingOrdersCount > 1 ? 's' : ''} en attente de paiement`}
+                          </span>
+                        </span>
+                        {pendingOrdersCount > 0 && (
+                          <span className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
+                            {pendingOrdersCount}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/abandoned-carts"
+                        role="menuitem"
+                        onClick={() => setNotifOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
+                      >
+                        <span className="w-8 h-8 shrink-0 rounded-lg bg-[#0052CC]/10 text-[#0052CC] flex items-center justify-center">
+                          <ShoppingCart size={16} aria-hidden="true" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13px] font-semibold text-zinc-900">
+                            Paniers abandonnés
+                          </span>
+                          <span className="block text-[12px] text-zinc-500">
+                            {abandonedCartsCount === 0
+                              ? 'Aucun panier abandonné récent'
+                              : `${abandonedCartsCount} panier${abandonedCartsCount > 1 ? 's' : ''} à récupérer`}
+                          </span>
+                        </span>
+                        {abandonedCartsCount > 0 && (
+                          <span className="text-[10px] font-extrabold bg-[#0052CC] text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
+                            {abandonedCartsCount}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/orders"
+                        role="menuitem"
+                        onClick={() => setNotifOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 focus:outline-none focus-visible:bg-zinc-50 transition-colors"
+                      >
+                        <span className="w-8 h-8 shrink-0 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                          <CreditCard size={16} aria-hidden="true" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13px] font-semibold text-zinc-900">
+                            Paiements échoués
+                          </span>
+                          <span className="block text-[12px] text-zinc-500">
+                            {failedPaymentsCount === 0
+                              ? 'Aucun échec de paiement'
+                              : `${failedPaymentsCount} paiement${failedPaymentsCount > 1 ? 's' : ''} à revoir`}
+                          </span>
+                        </span>
+                        {failedPaymentsCount > 0 && (
+                          <span className="text-[10px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center">
+                            {failedPaymentsCount}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
             <div className="text-right hidden md:block">
               <div className="text-[13px] font-bold leading-tight flex items-center justify-end gap-1">
                 {user?.role === 'president' && (
