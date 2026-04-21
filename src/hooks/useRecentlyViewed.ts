@@ -21,9 +21,17 @@ function readStorage(): string[] {
     const seen = new Set<string>();
     const out: string[] = [];
     for (const x of raw) {
-      if (typeof x !== 'string' || seen.has(x)) continue;
-      seen.add(x);
-      out.push(x);
+      if (typeof x !== 'string') continue;
+      // Normalize on read too — an older build (pre-91ea359) could have
+      // persisted untrimmed / mixed-case handles, and a devtools edit
+      // could have slipped a whitespace-only entry past the write path.
+      // Without trim+lower+empty-guard here, a stale '  ' in storage
+      // would render an empty product card in the RecentlyViewed strip
+      // and a stale 'Hoodie' would double-render alongside 'hoodie'.
+      const norm = x.trim().toLowerCase();
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(norm);
       if (out.length >= MAX) break;
     }
     return out;
