@@ -203,6 +203,95 @@ export default function Products() {
 
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
+  // Task 2.19 — ref to the main ProductCard grid. Arrow-key navigation
+  // walks the role="link" children of this node, so we don't need to
+  // wire per-card refs (the card list is already keyed and stable).
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Task 2.19 — arrow-key navigation across the product grid.
+  //   ←/→ : previous / next card in DOM order
+  //   ↑/↓ : jump one row up / down, preserving the column when possible
+  //   Enter : already handled by ProductCard's own onKeyDown, so we
+  //           leave it alone here (no synthetic click needed).
+  // The column count is read from the grid's computed
+  // grid-template-columns — that way we stay honest to whatever
+  // Tailwind breakpoint is active (2/3/4/5 cols) without hard-coding
+  // breakpoints in JS. Keys are ignored when focus is inside an
+  // input/textarea/select (or a contentEditable) so the search bar's
+  // native caret movement still works.
+  const handleGridKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const key = e.key;
+    if (
+      key !== 'ArrowRight' && key !== 'ArrowLeft' &&
+      key !== 'ArrowDown'  && key !== 'ArrowUp'
+    ) return;
+
+    const active = document.activeElement as HTMLElement | null;
+    if (active) {
+      const tag = active.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (active.isContentEditable) return;
+    }
+
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    // Only the immediate card children carry role="link" — nested
+    // buttons (wishlist, customize) are <button> so this selector
+    // can't accidentally pick them up.
+    const cards = Array.from(
+      grid.querySelectorAll<HTMLElement>(':scope > [role="link"]'),
+    );
+    if (cards.length === 0) return;
+
+    // Resolve which card currently holds (or contains) focus. When
+    // a nested control like the wishlist heart is focused, we still
+    // want arrow keys to move to the neighbouring card, so we walk
+    // up to the nearest role=link ancestor inside the grid.
+    let currentIndex = -1;
+    if (active) {
+      const ownerCard = active.closest('[role="link"]') as HTMLElement | null;
+      if (ownerCard && grid.contains(ownerCard)) {
+        currentIndex = cards.indexOf(ownerCard);
+      }
+    }
+    if (currentIndex === -1) return; // arrow key fired outside the grid
+
+    // Column count from the computed grid-template-columns — a space-
+    // separated list of track sizes ("200px 200px 200px"). Length of
+    // the split gives us the live column count regardless of the
+    // Tailwind breakpoint that produced it. Fallback of 1 keeps the
+    // math safe if the style isn't computed yet (SSR/first paint).
+    const tpl = window.getComputedStyle(grid).gridTemplateColumns;
+    const cols = Math.max(1, tpl ? tpl.split(' ').filter(Boolean).length : 1);
+
+    let nextIndex = currentIndex;
+    switch (key) {
+      case 'ArrowRight':
+        nextIndex = Math.min(cards.length - 1, currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+        nextIndex = Math.max(0, currentIndex - 1);
+        break;
+      case 'ArrowDown': {
+        // Jump one row. If the target row has fewer cards than the
+        // current column (last row partial), clamp to the last card
+        // so we don't fall off the grid.
+        const candidate = currentIndex + cols;
+        nextIndex = candidate < cards.length ? candidate : cards.length - 1;
+        break;
+      }
+      case 'ArrowUp': {
+        const candidate = currentIndex - cols;
+        nextIndex = candidate >= 0 ? candidate : 0;
+        break;
+      }
+    }
+
+    if (nextIndex === currentIndex) return;
+    e.preventDefault();
+    cards[nextIndex]?.focus();
+  };
 
   // Task 8.12 — catalog-specific meta description. Google SERP for
   // "/products" previously inherited the homepage default, so the
@@ -904,7 +993,11 @@ export default function Products() {
                     <RecentlyViewed limit={6} />
                   </div>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                <div
+                  ref={gridRef}
+                  onKeyDown={handleGridKeyDown}
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
+                >
                 {filteredProducts.map((product, i) => {
                   // Defensive key fallback: an id might be missing on a
                   // brand-new product. Fall back to handle, then to
