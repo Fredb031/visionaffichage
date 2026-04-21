@@ -52,6 +52,7 @@ function formatAbsolute(iso: string): string {
   });
 }
 
+/** Admin catalog of transactional automations with pause/resume toggles and a recent-runs drawer. */
 export default function AdminAutomations() {
   useDocumentTitle('Automatisations — Admin Vision Affichage');
 
