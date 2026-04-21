@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
@@ -22,10 +22,25 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const signOut = useAuthStore(s => s.signOut);
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const wasMenuOpenRef = useRef(false);
 
   // Close the user menu on Escape so keyboard users can dismiss it
   // without having to click outside.
   useEscapeKey(menuOpen, useCallback(() => setMenuOpen(false), []));
+
+  // Return focus to the avatar trigger when the menu closes (Escape,
+  // overlay click, menu-item selection). Without this, keyboard users
+  // are stranded on a vanished menu item and Tab resumes from the top
+  // of the document — breaking the WAI-ARIA menu pattern. Guard with
+  // wasMenuOpenRef so we only steal focus on the true->false edge,
+  // not on initial mount or unrelated re-renders.
+  useEffect(() => {
+    if (wasMenuOpenRef.current && !menuOpen) {
+      menuTriggerRef.current?.focus({ preventScroll: true });
+    }
+    wasMenuOpenRef.current = menuOpen;
+  }, [menuOpen]);
 
   // Global Cmd/Ctrl+Shift+C opens the cart drawer from anywhere Navbar
   // is mounted (every page). Skip when focus is in a text input or
@@ -83,6 +98,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         {user ? (
           <div className="relative">
             <button
+              ref={menuTriggerRef}
               onClick={() => setMenuOpen(o => !o)}
               className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               aria-haspopup="menu"
