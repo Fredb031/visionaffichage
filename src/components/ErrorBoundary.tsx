@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Trash2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Trash2, Copy, Check } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -9,6 +9,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  copied: boolean;
 }
 
 // Canonical Vision Affichage logo served from Shopify CDN. Duplicated from
@@ -20,10 +21,22 @@ const VA_LOGO_SRC =
   'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651';
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, copied: false };
+
+  // Handle for the "Copié"/"Copied" feedback timeout so we can cancel on
+  // unmount — otherwise a late setState after the boundary unmounts would
+  // trigger a React warning.
+  private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, copied: false };
+  }
+
+  componentWillUnmount() {
+    if (this.copyTimer) {
+      clearTimeout(this.copyTimer);
+      this.copyTimer = null;
+    }
   }
 
   private isFrench(): boolean {
@@ -41,6 +54,64 @@ export class ErrorBoundary extends Component<Props, State> {
     try { localStorage.clear(); } catch { /* private mode / quota — fall through */ }
     try { sessionStorage.clear(); } catch { /* same */ }
     window.location.href = '/';
+  };
+
+  // Build a compact diagnostic block for support chats. Stack is capped at
+  // 10 lines because full stacks blow past clipboard-friendly sizes and are
+  // mostly framework frames anyway.
+  private buildDiagnostic(): string {
+    const err = this.state.error;
+    const message = err?.message || '(no message)';
+    const stackLines = (err?.stack || '').split('\n').slice(0, 10).join('\n');
+    let url = '';
+    let userAgent = '';
+    try { url = window.location.href; } catch { /* ignore */ }
+    try { userAgent = navigator.userAgent; } catch { /* ignore */ }
+    const timestamp = new Date().toISOString();
+    return [
+      `Message: ${message}`,
+      stackLines ? `Stack:\n${stackLines}` : '',
+      `URL: ${url}`,
+      `UserAgent: ${userAgent}`,
+      `Timestamp: ${timestamp}`,
+    ].filter(Boolean).join('\n');
+  }
+
+  // Copy diagnostic to clipboard. Falls back to a hidden textarea +
+  // execCommand for browsers / contexts where navigator.clipboard is
+  // missing (older Safari, insecure origins). Either way we surface a
+  // 2s "Copié" confirmation.
+  private copyDetails = async () => {
+    const text = this.buildDiagnostic();
+    let ok = false;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch { /* fall through to legacy path */ }
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.left = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { /* give up silently — never throw from the error screen */ }
+    }
+    if (ok) {
+      this.setState({ copied: true });
+      if (this.copyTimer) clearTimeout(this.copyTimer);
+      this.copyTimer = setTimeout(() => {
+        this.copyTimer = null;
+        this.setState({ copied: false });
+      }, 2000);
+    }
   };
 
   render() {
@@ -130,6 +201,25 @@ export class ErrorBoundary extends Component<Props, State> {
               >
                 <Home className="w-4 h-4" aria-hidden="true" />
                 {fr ? "Retour à l'accueil" : 'Back home'}
+              </button>
+
+              <button
+                type="button"
+                onClick={this.copyDetails}
+                aria-live="polite"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[hsl(var(--navy))]/15 bg-background text-foreground text-sm font-semibold hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+              >
+                {this.state.copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                    {fr ? 'Copié' : 'Copied'}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" aria-hidden="true" />
+                    {fr ? 'Copier les détails' : 'Copy details'}
+                  </>
+                )}
               </button>
 
               <button
