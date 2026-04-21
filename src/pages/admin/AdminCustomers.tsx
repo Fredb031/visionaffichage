@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Download, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
@@ -395,9 +395,34 @@ export default function AdminCustomers() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
+                // Warmer empty-state row — replaces the cold "Aucun client
+                // trouvé" line with an icon, a diagnostic hint (search term
+                // / active filter), and a one-click reset so admins don't
+                // have to hunt for the bar they just typed into.
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-zinc-400 text-sm">
-                    Aucun client trouvé
+                  <td colSpan={7} className="px-4 py-14">
+                    <div className="mx-auto max-w-sm flex flex-col items-center text-center">
+                      <div className="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center mb-4" aria-hidden="true">
+                        <UsersRound className="w-6 h-6 text-zinc-400" />
+                      </div>
+                      <div className="text-sm font-extrabold text-zinc-800 mb-1">
+                        Aucun client ne correspond
+                      </div>
+                      <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+                        {query.trim() || filter !== 'all'
+                          ? 'Ajuste la recherche ou change le filtre pour voir plus de clients.'
+                          : "Les nouveaux clients apparaîtront ici après leur première commande Shopify."}
+                      </p>
+                      {(query.trim() || filter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => { setQuery(''); setFilter('all'); }}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0052CC] hover:bg-[#003f9e] px-4 py-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 transition-colors"
+                        >
+                          Réinitialiser les filtres
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
