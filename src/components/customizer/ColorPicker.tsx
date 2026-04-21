@@ -27,14 +27,20 @@ interface ColorPickerProps {
  * unilingual EN customer either sees untranslated French or a raw hex.
  * This map covers the curated catalog. Falls back to the original name
  * when we don't have a translation. Kept tiny on purpose: every entry
- * matches one of the colours we stock and photograph for. */
+ * matches one of the colours we stock and photograph for.
+ *
+ * IMPORTANT: lookup keys are normalized (lowercase + accents stripped)
+ * before reading this map, so the map keys must be in that same
+ * normalized form. Previously entries like `'gris foncé'` and `'crème'`
+ * carried diacritics and never matched — "Gris Foncé" silently fell
+ * through to the raw French name for EN shoppers. */
 const COLOR_NAME_EN: Record<string, string> = {
   noir: 'Black',
   blanc: 'White',
   gris: 'Grey',
   'gris chine': 'Heather grey',
   'gris pale': 'Light grey',
-  'gris foncé': 'Dark grey',
+  'gris fonce': 'Dark grey',
   'bleu marine': 'Navy',
   'bleu royal': 'Royal blue',
   'bleu pale': 'Light blue',
@@ -52,7 +58,6 @@ const COLOR_NAME_EN: Record<string, string> = {
   mauve: 'Purple',
   sable: 'Sand',
   beige: 'Beige',
-  crème: 'Cream',
   creme: 'Cream',
   marron: 'Brown',
   brun: 'Brown',
