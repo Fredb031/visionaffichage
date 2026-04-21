@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
@@ -40,6 +41,39 @@ const SIZE_CHARTS: Record<string, Record<string, { chest: string; length: string
   },
 };
 
+type Unit = 'cm' | 'in';
+const STORAGE_KEY = 'va:size-unit';
+
+function readStoredUnit(): Unit {
+  if (typeof window === 'undefined') return 'cm';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw === 'in' ? 'in' : 'cm';
+  } catch {
+    return 'cm';
+  }
+}
+
+// Convert a cm string (single number, range like "57-61", or "—") into the
+// target unit. Ranges are split on '-' and each endpoint converted; NaN
+// segments fall back to the raw string so we never render "NaN" to users.
+function convertValue(value: string, unit: Unit): string {
+  if (value === '—') return value;
+  if (unit === 'cm') return value;
+  if (value.includes('-')) {
+    const parts = value.split('-');
+    const converted = parts.map(part => {
+      const n = Number(part);
+      if (Number.isNaN(n)) return part;
+      return (n / 2.54).toFixed(1);
+    });
+    return converted.join('-');
+  }
+  const n = Number(value);
+  if (Number.isNaN(n)) return value;
+  return (n / 2.54).toFixed(1);
+}
+
 export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOpen: boolean; onClose: () => void }) {
   const { lang } = useLang();
 
@@ -53,9 +87,22 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   // renders empty and the user sees column headers with no data.
   const rows = product.sizes.filter(s => chart[s]);
 
+  const [unit, setUnit] = useState<Unit>(() => readStoredUnit());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, unit);
+    } catch {
+      /* ignore quota / disabled storage */
+    }
+  }, [unit]);
+
   useEscapeKey(isOpen, onClose);
   useBodyScrollLock(isOpen);
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
+  const unitLabel = unit === 'in' ? 'in' : 'cm';
 
   return (
     <AnimatePresence>
@@ -98,18 +145,41 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
                 </p>
               ) : (
                 <>
+                  <div
+                    role="group"
+                    aria-label={lang === 'en' ? 'Units' : 'Unités'}
+                    className="inline-flex border border-border rounded-lg mb-3 overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={unit === 'cm'}
+                      onClick={() => setUnit('cm')}
+                      className={`px-3 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${unit === 'cm' ? 'bg-[#0052CC] text-white' : 'bg-transparent text-muted-foreground'}`}
+                    >
+                      cm
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={unit === 'in'}
+                      onClick={() => setUnit('in')}
+                      className={`px-3 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${unit === 'in' ? 'bg-[#0052CC] text-white' : 'bg-transparent text-muted-foreground'}`}
+                    >
+                      in
+                    </button>
+                  </div>
+
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left border-b border-border">
                         <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Size' : 'Taille'}</th>
                         <th className="py-2 px-2 font-bold text-foreground text-xs">
-                          {isCap ? (lang === 'en' ? 'Circumference' : 'Circonférence') : (lang === 'en' ? 'Chest' : 'Poitrine')} (cm)
+                          {isCap ? (lang === 'en' ? 'Circumference' : 'Circonférence') : (lang === 'en' ? 'Chest' : 'Poitrine')} ({unitLabel})
                         </th>
                         {!isCap && (
-                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Length' : 'Longueur'} (cm)</th>
+                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Length' : 'Longueur'} ({unitLabel})</th>
                         )}
                         {chart[Object.keys(chart)[0]]?.sleeve && (
-                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Sleeve' : 'Manche'} (cm)</th>
+                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Sleeve' : 'Manche'} ({unitLabel})</th>
                         )}
                       </tr>
                     </thead>
@@ -119,9 +189,9 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
                         return (
                           <tr key={size} className="border-b border-border/50 hover:bg-secondary/50">
                             <td className="py-2.5 px-2 font-bold text-foreground">{size}</td>
-                            <td className="py-2.5 px-2 text-muted-foreground">{row.chest}</td>
-                            {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{row.length}</td>}
-                            {row.sleeve && <td className="py-2.5 px-2 text-muted-foreground">{row.sleeve}</td>}
+                            <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.chest, unit)}</td>
+                            {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.length, unit)}</td>}
+                            {row.sleeve && <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.sleeve, unit)}</td>}
                           </tr>
                         );
                       })}
@@ -130,8 +200,8 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
 
                   <p className="text-[11px] text-muted-foreground mt-3 text-center">
                     {lang === 'en'
-                      ? 'Measurements may vary ±2 cm. When in doubt, size up.'
-                      : 'Les mesures peuvent varier de ±2 cm. En cas de doute, prenez la taille au-dessus.'}
+                      ? `Measurements may vary ±${unit === 'in' ? '0.8 in' : '2 cm'}. When in doubt, size up.`
+                      : `Les mesures peuvent varier de ±${unit === 'in' ? '0.8 in' : '2 cm'}. En cas de doute, prenez la taille au-dessus.`}
                   </p>
                 </>
               )}
