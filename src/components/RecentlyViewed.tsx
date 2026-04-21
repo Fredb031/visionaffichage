@@ -5,13 +5,28 @@ import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
+// Storage key + same-tab sync event must match useRecentlyViewed.ts.
+// Duplicated here because the hook doesn't expose a clear() method —
+// rather than widen the hook's public surface for a single consumer,
+// we clear localStorage directly and broadcast the same custom event
+// the hook already listens for so every mounted instance re-reads and
+// drops the list in the same tick.
+const STORAGE_KEY = 'vision-recently-viewed';
+const SAME_TAB_EVENT = 'vision-recently-viewed-change';
+
 /**
- * Shows up to 4 of the user's most-recently-viewed products. Used on
+ * Shows up to 8 of the user's most-recently-viewed products. Used on
  * the cart empty state as a gentle prompt ('here's what you were
  * looking at, want to keep going?'). Renders nothing if the user
  * hasn't viewed any products yet.
+ *
+ * The default display cap (8) matches the hook's internal MAX, but we
+ * keep the cap at the component level rather than trusting the hook's
+ * slice — a future consumer might want the full history for analytics
+ * or a compact bubble for the navbar, and clamping here leaves the
+ * hook's behaviour untouched.
  */
-export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
+export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
   const { lang } = useLang();
   const { handles } = useRecentlyViewed();
 
@@ -22,6 +37,21 @@ export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
 
   if (items.length === 0) return null;
 
+  // Clear the persisted history after a confirm prompt. The hook
+  // exposes no clear()/remove() today, so we wipe localStorage and
+  // dispatch the hook's same-tab event — every mounted instance of
+  // useRecentlyViewed re-reads storage on that event and flips to an
+  // empty array, which collapses this section (items.length === 0
+  // returns null) on the same render pass.
+  const handleClear = () => {
+    const msg = lang === 'en'
+      ? 'Clear recently viewed products?'
+      : 'Effacer les produits récemment consultés ?';
+    if (!window.confirm(msg)) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
+    try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+  };
+
   return (
     // Use aria-labelledby pointing to the visible h3 instead of a
     // redundant aria-label. With both set, screen readers announce
@@ -30,11 +60,18 @@ export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
     // Matching WishlistGrid's labelledby pattern keeps the region
     // named while letting the heading serve as its sole label.
     <section className="mt-10" aria-labelledby="recently-viewed-heading">
-      <div className="flex items-center gap-2 mb-4 justify-center">
+      <div className="flex items-center gap-2 mb-4 justify-center relative">
         <History size={14} className="text-muted-foreground" aria-hidden="true" />
         <h3 id="recently-viewed-heading" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {lang === 'en' ? 'Recently viewed' : 'Vus récemment'}
         </h3>
+        <button
+          type="button"
+          onClick={handleClear}
+          className="absolute right-0 text-[10px] font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded px-1"
+        >
+          {lang === 'en' ? 'Clear history' : "Effacer l'historique"}
+        </button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {items.map(p => (
