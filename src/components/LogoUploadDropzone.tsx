@@ -178,6 +178,11 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         className="hidden"
         onChange={e => {
           const f = e.target.files?.[0];
+          // Reset the input value so re-selecting the same file (e.g. after
+          // a format/size error) re-fires onChange. Without this the input
+          // silently ignores picks of the same filename and users think
+          // the dropzone is frozen.
+          e.target.value = '';
           if (f) handleFile(f);
         }}
       />
