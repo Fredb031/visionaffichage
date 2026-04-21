@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X, Heart } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, CheckCircle, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
@@ -477,6 +477,16 @@ export default function ProductDetail() {
     && typeof sanmarVariantQty === 'number'
     && sanmarVariantQty > 0
     && sanmarVariantQty <= 5;
+  // Task 3.4 — positive "In stock" reassurance. Only shown when SanMar
+  // reports comfortable inventory (> 5) for the exact selected variant,
+  // so it never fights with the low-stock amber pill or the sold-out red
+  // pill. Stays silent while loading or before the user has picked both
+  // color + size — stale reassurance is worse than no reassurance.
+  const isVariantInStock = stockSelectionReady
+    && !isVariantSoldOut
+    && !isVariantLowStock
+    && typeof sanmarVariantQty === 'number'
+    && sanmarVariantQty > 5;
 
   const currency = product.priceRange?.minVariantPrice?.currencyCode ?? '';
 
@@ -1136,6 +1146,12 @@ export default function ProductDetail() {
                   {lang === 'en'
                     ? `Only ${sanmarVariantQty} left in ${selectedColor} ${selectedSize}`
                     : `Il ne reste que ${sanmarVariantQty} en ${selectedColor} ${selectedSize}`}
+                </span>
+              )}
+              {isVariantInStock && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                  <CheckCircle size={13} aria-hidden="true" />
+                  {lang === 'en' ? 'In stock · Ships fast' : 'En stock · Livraison rapide'}
                 </span>
               )}
             </div>
