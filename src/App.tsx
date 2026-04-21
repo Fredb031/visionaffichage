@@ -75,6 +75,13 @@ const Contact = lazy(() => import("./pages/Contact"));
 // the home hot path, so it shouldn't bloat the Index chunk.
 const About = lazy(() => import("./pages/About"));
 
+// Blog / content hub (Task 11.6) — /blog index + /blog/:slug stub. Lazy
+// because merch-tips content is reached from a footer link, not the
+// home hot path; keeping it out of the Index chunk matches how legal
+// stubs and Contact are split.
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -241,6 +248,8 @@ const AnimatedRoutes = () => {
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

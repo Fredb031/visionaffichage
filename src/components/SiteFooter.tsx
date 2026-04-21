@@ -217,6 +217,12 @@ export function SiteFooter() {
                   and a form fallback; the mailto is still one click
                   deeper in the contact card on that page. */}
               <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">Contact</Link></li>
+              {/* Task 11.6 — Blog / content hub entrypoint. Dropped into
+                  the Support column (alongside tracking, account, and
+                  contact) because merch-tips articles serve the same
+                  "helping a buyer succeed post-order" spirit as the
+                  other resources here. */}
+              <li><Link to="/blog" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Blog' : 'Blogue'}</Link></li>
             </ul>
           </div>
 
