@@ -218,7 +218,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           </svg>
           <span className="hidden sm:inline">{t('panier')}</span>
           {itemCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center">
+            // key={itemCount} remounts the span on every count change so the
+            // scale-pulse keyframe replays without needing animation state.
+            // prefers-reduced-motion collapses the duration to ~0ms via the
+            // global rule in index.css, so motion-sensitive users aren't hit.
+            <span
+              key={itemCount}
+              className="animate-cart-pulse absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center"
+            >
               {itemCount > 99 ? '99+' : itemCount}
             </span>
           )}
