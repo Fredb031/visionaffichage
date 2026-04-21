@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2, KeyRound, Check } from 'lucide-react';
+import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2, KeyRound, Check, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
@@ -49,6 +49,46 @@ const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 const VALID_ROLE_FILTERS: readonly (UserRole | 'all')[] = ['all', 'president', 'admin', 'salesman', 'vendor', 'client'];
+
+/** Generate and download a CSV for the currently filtered user list.
+ * Mirrors exportOrdersCsv in AdminOrders: UTF-8 BOM so Excel reads
+ * accents without a manual prompt, formula-injection-safe escape (cells
+ * starting with = + - @ are prefixed with a tab so Excel / Sheets treat
+ * them as text — OWASP CSV injection), RFC 4180 quote-wrapping when a
+ * delimiter / quote / newline is present. fr-CA dates match the table. */
+function exportUsersCsv(rows: ProfileRow[], twoFa: Record<string, boolean>) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  };
+  const header = ['Nom', 'Courriel', 'Rôle', 'Statut', 'Inscrit le', '2FA'];
+  const body = rows.map(u => [
+    (u.full_name ?? '').trim() || u.email.split('@')[0],
+    u.email,
+    ROLE_LABEL[u.role] ?? u.role,
+    u.active ? 'Actif' : 'Désactivé',
+    fmtDate(u.created_at),
+    twoFa[u.id] ? 'Oui' : 'Non',
+  ]);
+  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${rows.length} utilisateur${rows.length > 1 ? 's' : ''} exporté${rows.length > 1 ? 's' : ''}`);
+}
 
 export default function AdminUsers() {
   useDocumentTitle('Comptes & accès — Admin Vision Affichage');
@@ -316,14 +356,34 @@ export default function AdminUsers() {
             Les utilisateurs activent la 2FA depuis leur profil.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowInvite(true)}
-          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          <Plus size={15} aria-hidden="true" />
-          Inviter un membre
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => exportUsersCsv(filtered, twoFaMap)}
+            disabled={filtered.length === 0}
+            // Disabled when the filter yields nothing — mirrors
+            // AdminOrders: a header-only CSV is noise and the tooltip
+            // tells the admin the filter is the thing to change.
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={filtered.length === 0 ? 'Aucun utilisateur à exporter' : 'Exporter en CSV'}
+            aria-label={
+              filtered.length === 0
+                ? 'Aucun utilisateur à exporter'
+                : `Exporter ${filtered.length} utilisateur${filtered.length > 1 ? 's' : ''} en CSV`
+            }
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowInvite(true)}
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <Plus size={15} aria-hidden="true" />
+            Inviter un membre
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -375,7 +435,36 @@ export default function AdminUsers() {
             <Loader2 size={24} className="animate-spin text-[#0052CC]" aria-hidden="true" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Aucun utilisateur</div>
+          // Differentiate "no users at all" from "filters yielded nothing".
+          // The second case gives the admin a one-click reset so they
+          // aren't stuck wondering why the list looks empty after an
+          // over-specific search.
+          users.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
+                <User size={20} className="text-zinc-400" aria-hidden="true" />
+              </div>
+              <p className="text-sm font-bold text-zinc-700">Aucun utilisateur</p>
+              <p className="text-xs text-zinc-500 mt-1">Invite un premier membre pour démarrer.</p>
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
+                <Search size={20} className="text-zinc-400" aria-hidden="true" />
+              </div>
+              <p className="text-sm font-bold text-zinc-700">Aucun résultat pour ces filtres</p>
+              <p className="text-xs text-zinc-500 mt-1">
+                {users.length} utilisateur{users.length > 1 ? 's' : ''} au total.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setQuery(''); setFilter('all'); }}
+                className="mt-4 inline-flex items-center gap-2 text-xs font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              >
+                Réinitialiser
+              </button>
+            </div>
+          )
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-[11px] font-bold text-zinc-500 tracking-wider uppercase">
