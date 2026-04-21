@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { TrendingUp, DollarSign, Package, Users, ShoppingBag } from 'lucide-react';
+import { TrendingUp, DollarSign, Package, Users, ShoppingBag, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   SHOPIFY_ORDERS_SNAPSHOT,
   SHOPIFY_CUSTOMERS_SNAPSHOT,
@@ -9,6 +10,33 @@ import {
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+/** CSV-injection-safe escape: same policy as AdminOrders exportOrdersCsv.
+ * Wraps every field in double quotes (RFC 4180) and escapes internal
+ * quotes. Prefixes a tab when the cell starts with '=' '+' '-' '@' so
+ * Excel / Sheets treat the value as text instead of a formula — a
+ * product type named '=SUM(...)' or a customer surname starting with '@'
+ * would otherwise execute when the admin opens the CSV. */
+function csvEscape(v: unknown): string {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  let s = String(v ?? '');
+  if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(rows: string[][], filename: string, toastLabel: string): void {
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(toastLabel);
+}
 
 // Bucket orders by LOCAL day, not UTC. toISOString() drifts orders
 // placed in the evening (America/Toronto is -04/-05) into the next day
@@ -111,9 +139,32 @@ export default function AdminAnalytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <section className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="daily-revenue-heading">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
             <h2 id="daily-revenue-heading" className="font-bold">Revenus quotidiens</h2>
-            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">14 jours</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">14 jours</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (dailyRevenue.length === 0) {
+                    toast.info('Aucune donnée à exporter');
+                    return;
+                  }
+                  downloadCsv(
+                    [['Date', 'Revenus'], ...dailyRevenue.map(([day, revenue]) => [day, revenue.toFixed(2)])],
+                    `vision-revenus-quotidiens-${new Date().toISOString().slice(0, 10)}.csv`,
+                    `${dailyRevenue.length} jour${dailyRevenue.length > 1 ? 's' : ''} exporté${dailyRevenue.length > 1 ? 's' : ''}`,
+                  );
+                }}
+                disabled={dailyRevenue.length === 0}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Exporter les revenus quotidiens en CSV"
+                aria-label="Exporter les revenus quotidiens en CSV"
+              >
+                <Download size={12} aria-hidden="true" />
+                Exporter CSV
+              </button>
+            </div>
           </div>
           {dailyRevenue.length === 0 ? (
             // Snapshot empty (no orders yet) — render a labelled empty state
@@ -153,7 +204,39 @@ export default function AdminAnalytics() {
         </section>
 
         <section className="bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="top-customers-heading">
-          <h2 id="top-customers-heading" className="font-bold mb-4">Top clients</h2>
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            <h2 id="top-customers-heading" className="font-bold">Top clients</h2>
+            <button
+              type="button"
+              onClick={() => {
+                if (topCustomers.length === 0) {
+                  toast.info('Aucune donnée à exporter');
+                  return;
+                }
+                downloadCsv(
+                  [
+                    ['Rang', 'Prénom', 'Nom', 'Courriel', 'Total dépensé'],
+                    ...topCustomers.map((c, i) => [
+                      String(i + 1),
+                      c.firstName ?? '',
+                      c.lastName ?? '',
+                      c.email,
+                      c.totalSpent.toFixed(2),
+                    ]),
+                  ],
+                  `vision-top-clients-${new Date().toISOString().slice(0, 10)}.csv`,
+                  `${topCustomers.length} client${topCustomers.length > 1 ? 's' : ''} exporté${topCustomers.length > 1 ? 's' : ''}`,
+                );
+              }}
+              disabled={topCustomers.length === 0}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exporter le top clients en CSV"
+              aria-label="Exporter le top clients en CSV"
+            >
+              <Download size={12} aria-hidden="true" />
+              Exporter CSV
+            </button>
+          </div>
           <ol className="space-y-3 list-none">
             {topCustomers.map((c, i) => (
               <li key={c.id} className="flex items-center gap-3">
@@ -174,9 +257,40 @@ export default function AdminAnalytics() {
       </div>
 
       <section className="bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="catalog-breakdown-heading">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <h2 id="catalog-breakdown-heading" className="font-bold">Catalogue par type de produit</h2>
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{SHOPIFY_PRODUCTS_SNAPSHOT.length} produit{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''} actif{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{SHOPIFY_PRODUCTS_SNAPSHOT.length} produit{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''} actif{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''}</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (productTypeRevenue.length === 0) {
+                  toast.info('Aucune donnée à exporter');
+                  return;
+                }
+                downloadCsv(
+                  [
+                    ['Type de produit', 'Nombre de produits', 'Revenus min. cumulés', 'Prix moyen min.'],
+                    ...productTypeRevenue.map(t => [
+                      t.type,
+                      String(t.count),
+                      t.revenue.toFixed(2),
+                      (t.revenue / Math.max(t.count, 1)).toFixed(2),
+                    ]),
+                  ],
+                  `vision-catalogue-par-type-${new Date().toISOString().slice(0, 10)}.csv`,
+                  `${productTypeRevenue.length} type${productTypeRevenue.length > 1 ? 's' : ''} exporté${productTypeRevenue.length > 1 ? 's' : ''}`,
+                );
+              }}
+              disabled={productTypeRevenue.length === 0}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exporter le catalogue par type en CSV"
+              aria-label="Exporter le catalogue par type en CSV"
+            >
+              <Download size={12} aria-hidden="true" />
+              Exporter CSV
+            </button>
+          </div>
         </div>
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 list-none">
           {productTypeRevenue.map(t => (
