@@ -11,6 +11,7 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { fmtMoney as fmtCAD } from '@/lib/format';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -33,10 +34,75 @@ interface ShippingForm {
 const GST_RATE = 0.05;
 const QST_RATE = 0.09975;
 const TAX_RATE = GST_RATE + QST_RATE; // 0.14975 — QST + GST combined for Quebec
-const SHIPPING_RATES = {
-  standard: { fr: 'Livraison standard · 5 jours ouvrables', en: 'Standard · 5 business days', price: 0 },
-  express:  { fr: 'Livraison express · 2-3 jours ouvrables', en: 'Express · 2-3 business days', price: 25.00 },
+
+// Shipping options shown as radio tiles on the Shipping step. Each tile
+// renders the method name, price, a computed ETA date (skipping weekends,
+// except for pickup which has a fixed "ready tomorrow" promise), and a
+// one-liner description. Defaults to Standard on first visit; selection
+// persists to localStorage under `vision-shipping-method` so a refresh
+// mid-checkout keeps the buyer's choice.
+type ShippingMethod = 'standard' | 'express' | 'pickup';
+const SHIPPING_OPTIONS: Record<ShippingMethod, {
+  labelFr: string;
+  labelEn: string;
+  windowFr: string;
+  windowEn: string;
+  descFr: string;
+  descEn: string;
+  price: number;
+  /** Business-day offset from today used to compute ETA. null = pickup (no delivery ETA). */
+  etaBusinessDays: number | null;
+}> = {
+  standard: {
+    labelFr: 'Standard',
+    labelEn: 'Standard',
+    windowFr: '5-7 jours ouvrables',
+    windowEn: '5-7 business days',
+    descFr: 'Livraison régulière',
+    descEn: 'Standard delivery',
+    price: 12,
+    etaBusinessDays: 6,
+  },
+  express: {
+    labelFr: 'Express',
+    labelEn: 'Express',
+    windowFr: '2-3 jours ouvrables',
+    windowEn: '2-3 business days',
+    descFr: 'Livraison rapide',
+    descEn: 'Rush delivery',
+    price: 22,
+    etaBusinessDays: 3,
+  },
+  pickup: {
+    labelFr: 'Cueillette',
+    labelEn: 'Pickup',
+    windowFr: 'Prêt demain',
+    windowEn: 'Ready tomorrow',
+    descFr: 'Cueillette à Saint-Hyacinthe',
+    descEn: 'Pickup in Saint-Hyacinthe',
+    price: 0,
+    etaBusinessDays: null,
+  },
 };
+
+const SHIPPING_STORAGE_KEY = 'vision-shipping-method';
+
+/**
+ * Add `businessDays` weekdays to `from`, skipping Saturday + Sunday.
+ * Used to compute the real delivery ETA shown on each shipping tile
+ * so the buyer sees a concrete date ("Livré autour du mardi 28 avril")
+ * instead of a vague window.
+ */
+function addBusinessDays(from: Date, businessDays: number): Date {
+  const out = new Date(from);
+  let remaining = businessDays;
+  while (remaining > 0) {
+    out.setDate(out.getDate() + 1);
+    const dow = out.getDay();
+    if (dow !== 0 && dow !== 6) remaining--;
+  }
+  return out;
+}
 
 const empty: ShippingForm = {
   email: '', firstName: '', lastName: '', company: '',
@@ -140,12 +206,27 @@ export default function Checkout() {
     document.title = `${lang === 'en' ? labels[step].en : labels[step].fr} — Vision Affichage`;
     return () => { document.title = prev; };
   }, [lang, step]);
-  const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
+  // Rehydrate previous shipping-method choice from localStorage so a
+  // refresh mid-checkout doesn't silently reset the buyer back to
+  // Standard and re-surcharge them (or undo a pickup choice). Falls
+  // back to 'standard' on first visit or if the stored value is stale.
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>(() => {
+    if (typeof window === 'undefined') return 'standard';
+    try {
+      const saved = window.localStorage.getItem(SHIPPING_STORAGE_KEY);
+      if (saved === 'standard' || saved === 'express' || saved === 'pickup') return saved;
+    } catch { /* SSR / privacy-mode safari — ignore */ }
+    return 'standard';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(SHIPPING_STORAGE_KEY, shippingMethod); } catch { /* quota / privacy mode — ignore */ }
+  }, [shippingMethod]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   const subtotal = cart.getTotal();
-  const shippingCost = SHIPPING_RATES[shippingMethod].price;
+  const shippingCost = SHIPPING_OPTIONS[shippingMethod].price;
   const taxableBase = subtotal + shippingCost;
   const gst = taxableBase * GST_RATE;
   const qst = taxableBase * QST_RATE;
@@ -585,37 +666,88 @@ export default function Checkout() {
               <div className="space-y-5">
                 <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
                   <Truck size={18} className="text-[#0052CC]" aria-hidden="true" />
-                  {lang === 'en' ? 'Shipping method' : 'Méthode de livraison'}
+                  {lang === 'en' ? 'Shipping method' : 'Mode de livraison'}
                 </h2>
+                <p className="text-xs text-muted-foreground">
+                  {lang === 'en'
+                    ? 'Pick how you want your order delivered. ETA is calculated from today, weekends excluded.'
+                    : "Choisis comment recevoir ta commande. Les délais sont calculés à partir d'aujourd'hui, week-ends exclus."}
+                </p>
 
-                <div className="space-y-2">
-                  {(['standard', 'express'] as const).map(m => {
-                    const opt = SHIPPING_RATES[m];
+                <fieldset
+                  className="space-y-2.5 border-0 p-0 m-0"
+                  aria-label={lang === 'en' ? 'Shipping method' : 'Mode de livraison'}
+                >
+                  {(['standard', 'express', 'pickup'] as const).map(m => {
+                    const opt = SHIPPING_OPTIONS[m];
+                    const selected = shippingMethod === m;
+                    const now = new Date();
+                    // Pickup has no delivery ETA — it's a "ready tomorrow"
+                    // local-cueillette promise, so we skip the Intl date
+                    // format and show the static window copy instead.
+                    const etaDate = opt.etaBusinessDays != null
+                      ? addBusinessDays(now, opt.etaBusinessDays)
+                      : null;
+                    const etaLabel = etaDate
+                      ? etaDate.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+                          weekday: 'long', month: 'long', day: 'numeric',
+                        })
+                      : null;
+                    const priceLabel = opt.price === 0
+                      ? <span className="text-emerald-600">{lang === 'en' ? 'Free' : 'Gratuit'}</span>
+                      : fmtCAD(opt.price, lang);
                     return (
                       <label
                         key={m}
-                        className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          shippingMethod === m ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                        className={`relative flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                          selected
+                            // Gold selection ring on the chosen tile — same
+                            // accent the checkout CTAs use for focus so it
+                            // reads as brand-consistent emphasis.
+                            ? 'border-[#E8A838] bg-[#E8A838]/5 ring-2 ring-[#E8A838]/40 shadow-sm'
+                            : 'border-border hover:border-primary/40 hover:bg-secondary/30'
                         }`}
                       >
                         <input
                           type="radio"
                           name="shipping-method"
                           value={m}
-                          checked={shippingMethod === m}
+                          checked={selected}
                           onChange={() => setShippingMethod(m)}
-                          className="w-4 h-4 accent-primary"
+                          className="mt-1 w-4 h-4 accent-[#E8A838]"
                         />
-                        <div className="flex-1">
-                          <div className="font-bold text-sm">{lang === 'en' ? opt.en : opt.fr}</div>
-                        </div>
-                        <div className="font-extrabold text-sm">
-                          {opt.price === 0 ? <span className="text-emerald-600">{lang === 'en' ? 'Free' : 'Gratuit'}</span> : `${fmtMoney(opt.price)} $`}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <div className="font-extrabold text-sm">
+                              {lang === 'en' ? opt.labelEn : opt.labelFr}
+                              <span className="ml-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                {lang === 'en' ? opt.windowEn : opt.windowFr}
+                              </span>
+                            </div>
+                            <div className="font-extrabold text-sm whitespace-nowrap">
+                              {priceLabel}
+                            </div>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {lang === 'en' ? opt.descEn : opt.descFr}
+                          </div>
+                          {etaLabel && (
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                              <Clock size={12} aria-hidden="true" />
+                              {lang === 'en' ? `Arrives by ${etaLabel}` : `Livré autour du ${etaLabel}`}
+                            </div>
+                          )}
+                          {!etaLabel && (
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                              <MapPin size={12} aria-hidden="true" />
+                              {lang === 'en' ? 'Saint-Hyacinthe, QC' : 'Saint-Hyacinthe, QC'}
+                            </div>
+                          )}
                         </div>
                       </label>
                     );
                   })}
-                </div>
+                </fieldset>
 
                 <button
                   type="button"
@@ -690,23 +822,39 @@ export default function Checkout() {
 
                 {/* Urgency: ship-by promise. Calculated client-side from
                     today's date. Past-3pm orders bump one business day,
-                    express cuts the window to 2-3 business days. */}
+                    express cuts the window to 2-3 business days. Pickup
+                    swaps the whole line for a "ready tomorrow" cueillette
+                    message — a delivered-by date would be misleading for
+                    buyers coming in person. */}
                 {(() => {
                   const now = new Date();
                   const cutoff = new Date(now);
                   cutoff.setHours(15, 0, 0, 0);
                   const after3pm = now > cutoff;
+                  if (shippingMethod === 'pickup') {
+                    const ready = addBusinessDays(now, 1);
+                    return (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
+                        <span className="text-emerald-600 text-base leading-none">📍</span>
+                        <span className="text-emerald-900">
+                          {lang === 'en'
+                            ? <>
+                                <strong>Ready for pickup</strong> in Saint-Hyacinthe by{' '}
+                                <strong>{ready.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                              </>
+                            : <>
+                                <strong>Prêt pour la cueillette</strong> à Saint-Hyacinthe d'ici le{' '}
+                                <strong>{ready.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                              </>}
+                        </span>
+                      </div>
+                    );
+                  }
                   // Base promise matches the shipping method copy: standard
                   // = 5 business days, express = 3. Before this, express
                   // buyers saw the 5-day ETA even after paying for express.
                   const baseDays = shippingMethod === 'express' ? 3 : 5;
-                  const ship = new Date(now);
-                  let remaining = baseDays + (after3pm ? 1 : 0);
-                  while (remaining > 0) {
-                    ship.setDate(ship.getDate() + 1);
-                    const dow = ship.getDay();
-                    if (dow !== 0 && dow !== 6) remaining--;
-                  }
+                  const ship = addBusinessDays(now, baseDays + (after3pm ? 1 : 0));
                   return (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
                       <span className="text-emerald-600 text-base leading-none">⚡</span>
