@@ -135,6 +135,17 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     };
   }, []);
 
+  // Match the locale-aware money formatting used on the Cart page /
+  // FeaturedProducts / WishlistGrid / ProductDetailBulkCalc so French
+  // users see "27,54 $" (comma decimal) in the drawer instead of the
+  // locale-blind "27.54 $" that .toFixed() renders. Without this the
+  // drawer is the odd one out next to the full cart page.
+  const fmtMoney = (n: number) =>
+    (Number.isFinite(n) ? n : 0).toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   // Escape closes drawer — skipInTextInputs so a stray Esc while the
   // user is typing a discount code clears the field instead of killing
   // the whole drawer mid-edit.
@@ -257,7 +268,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         {item.sizeQuantities.filter(s => s.quantity > 0).map(s => `${s.size}×${s.quantity}`).join(' · ')}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs font-extrabold text-primary">{(Number.isFinite(item.totalPrice) ? item.totalPrice : 0).toFixed(2)} $</p>
+                        <p className="text-xs font-extrabold text-primary">{fmtMoney(item.totalPrice)} $</p>
                         <span className="text-[10px] text-muted-foreground">
                           ({item.totalQuantity} {lang === 'en' ? (item.totalQuantity !== 1 ? 'units' : 'unit') : (item.totalQuantity !== 1 ? 'unités' : 'unité')})
                         </span>
@@ -324,7 +335,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">{t('totalEstimeLabel')}</span>
-              <span className="text-lg font-extrabold text-foreground">{cart.getTotal().toFixed(2)} $</span>
+              <span className="text-lg font-extrabold text-foreground">{fmtMoney(cart.getTotal())} $</span>
             </div>
 
             <button
