@@ -33,6 +33,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductViewersNudge } from '@/components/ProductViewersNudge';
 
 // Task 3.19 — per-handle last-viewed variant cache. A returning visitor
 // who previously picked "Bleu marine / L" should land back on that exact
@@ -60,6 +61,137 @@ function readLastVariant(handle: string | undefined): Record<string, string> | n
   if (Date.now() - stored.savedAt > LAST_VARIANT_TTL_MS) return null;
   if (!stored.options || typeof stored.options !== 'object') return null;
   return stored.options;
+}
+
+// Small scroll-reveal hook for the PDP lower sections (Description,
+// Features, Similar products). Attaches the global `.fi` / `.fi.in`
+// fade+translate-y pair defined in src/index.css via an
+// IntersectionObserver that unobserves on first intersection (no
+// churn from subsequent scrolls). Respects prefers-reduced-motion
+// STRICTLY — motion-averse visitors skip the fi opacity class
+// entirely rather than relying on the CSS @media override that only
+// collapses transition durations; otherwise a very fast device could
+// briefly flash `opacity:0` before the near-instant transition runs.
+//
+// Returns { ref, className } so the caller splats both onto the
+// target element. className is '' under reduced-motion so the element
+// renders at its natural opacity with no observer attached.
+function useRevealOnScroll(): {
+  ref: (node: HTMLElement | null) => void;
+  className: string;
+} {
+  // Lazy init from matchMedia so the very first render already knows
+  // whether reduced-motion is on — prevents a one-frame flash of
+  // opacity:0 for motion-averse users before the first effect commit
+  // flips the flag. SSR-safe guard returns false there; the
+  // subsequent effect reconciles if the real media state differs.
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, []);
+
+  // We use a callback ref (not useRef) so the observer wires up the
+  // moment the DOM node attaches, even in StrictMode's double-invoke
+  // world. Keeping the observer instance in a ref lets us tear it
+  // down cleanly on unmount without leaking a handle on a detached
+  // node.
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const nodeRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, []);
+
+  const setRef = (node: HTMLElement | null) => {
+    if (nodeRef.current === node) return;
+    // Detach old observer before attaching to the new node.
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    nodeRef.current = node;
+    if (!node) return;
+    if (reducedMotion) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      // Legacy browser — just reveal immediately so no content is
+      // stranded behind an observer that'll never fire.
+      node.classList.add('in');
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).classList.add('in');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
+    );
+    io.observe(node);
+    observerRef.current = io;
+  };
+
+  return {
+    ref: setRef,
+    // Under reduced-motion we skip `fi` entirely so the element
+    // never starts at opacity:0 — no animation at all is the
+    // correct reading of "prefers reduced motion".
+    className: reducedMotion ? '' : 'fi',
+  };
+}
+
+// Thin wrapper that opts a block of content into the scroll-reveal
+// treatment. Used three times on the PDP (Description, Features,
+// Similar products) without repeating the hook wiring or the
+// className plumbing at each call site. `as` lets the caller keep
+// the original semantic element (e.g. section) so we don't introduce
+// an extra generic <div> that would break the existing
+// aria-labelledby hookup on "Produits similaires".
+function RevealBlock({
+  as: Tag = 'div',
+  className = '',
+  children,
+  ...rest
+}: {
+  as?: 'div' | 'section';
+  className?: string;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLElement>) {
+  const { ref, className: fadeClass } = useRevealOnScroll();
+  // Merge the caller's layout classes with the (possibly empty under
+  // reduced-motion) fade class. Trim trailing space so the DOM stays
+  // clean for snapshot tests.
+  const merged = `${fadeClass} ${className}`.trim();
+  // Tag-level switch because a generic `createElement` would drop the
+  // strong typing on props we spread below (role, aria-*, etc).
+  if (Tag === 'section') {
+    return (
+      <section ref={ref as (node: HTMLElement | null) => void} className={merged} {...rest}>
+        {children}
+      </section>
+    );
+  }
+  return (
+    <div ref={ref as (node: HTMLElement | null) => void} className={merged} {...rest}>
+      {children}
+    </div>
+  );
 }
 
 export default function ProductDetail() {
@@ -1358,6 +1490,18 @@ export default function ProductDetail() {
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
 
+            {/* Social-proof viewer nudge. Sits directly under the CTA
+                on purpose — it reads as "you're not alone looking at
+                this" right when the purchase commitment is happening.
+                Hidden when the variant is sold out so we never pair a
+                greyed button with a "3 people viewing" line (which
+                would feel like a taunt rather than a nudge). */}
+            <ProductViewersNudge
+              handle={handle}
+              inStock={!isVariantSoldOut}
+              className="-mt-1"
+            />
+
             {/* Task 3.12 — FSA postal-code → ETA calculator.
                 Small subtle field tucked right below the primary CTA.
                 The buyer types an FSA (e.g. "H2X" or "J2S") and we
@@ -1462,7 +1606,11 @@ export default function ProductDetail() {
               const desc = getDescription(localProduct.category, lang);
               return (
                 <>
-                  <div className="pt-3 border-t border-border">
+                  {/* Scroll-reveal: Description / tagline block. Fades
+                      + translates in as the user scrolls it into view.
+                      Skipped entirely under prefers-reduced-motion
+                      (see useRevealOnScroll). */}
+                  <RevealBlock className="pt-3 border-t border-border">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-bold text-[#0052CC] uppercase tracking-wider">
                         {categoryLabel(localProduct.category, lang)}
@@ -1484,9 +1632,10 @@ export default function ProductDetail() {
                       paragraphs={desc.paragraphs}
                       lang={lang}
                     />
-                  </div>
+                  </RevealBlock>
 
-                  <div className="pt-3 border-t border-border">
+                  {/* Scroll-reveal: Specs / Caractéristiques block. */}
+                  <RevealBlock className="pt-3 border-t border-border">
                     <h3 className="font-bold mb-2.5 text-sm text-foreground">
                       {lang === 'en' ? 'Features' : 'Caractéristiques'}
                     </h3>
@@ -1498,7 +1647,7 @@ export default function ProductDetail() {
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </RevealBlock>
 
                   <div className="pt-3 border-t border-border bg-secondary/40 -mx-4 md:mx-0 px-4 md:px-4 py-3 md:rounded-xl">
                     <div className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider mb-1">
@@ -1519,8 +1668,12 @@ export default function ProductDetail() {
             discovery strip; desktop collapses to a clean 4-col grid
             matching the catalog aesthetic. scroll-mt-20 keeps the
             heading clear of the sticky Navbar on in-page anchor nav. */}
+        {/* Scroll-reveal also applies to "Produits similaires". We
+            keep the semantic <section> tag via RevealBlock's `as`
+            prop so the aria-labelledby relationship stays intact. */}
         {similarProducts.length >= 2 && (
-          <section
+          <RevealBlock
+            as="section"
             aria-labelledby="similar-products-heading"
             className="scroll-mt-20 mt-16 pt-10 border-t border-border"
           >
@@ -1554,7 +1707,7 @@ export default function ProductDetail() {
                 }
               })}
             </div>
-          </section>
+          </RevealBlock>
         )}
       </div>
 
