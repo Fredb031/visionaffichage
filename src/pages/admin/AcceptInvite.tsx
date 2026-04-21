@@ -14,6 +14,28 @@ interface InviteRow {
   used_at: string | null;
 }
 
+/**
+ * Rough password strength score (0-3). Counts length ≥ 8, length ≥ 12,
+ * and character-class variety (letters + digits/symbols). Purely a UX
+ * hint — the real minimum is still enforced on submit.
+ */
+function scorePassword(pwd: string): 0 | 1 | 2 | 3 {
+  if (!pwd) return 0;
+  let s = 0;
+  if (pwd.length >= 8) s += 1;
+  if (pwd.length >= 12) s += 1;
+  const hasLetter = /[A-Za-z]/.test(pwd);
+  const hasDigit = /\d/.test(pwd);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pwd);
+  if (hasLetter && (hasDigit || hasSymbol)) s += 1;
+  return Math.min(s, 3) as 0 | 1 | 2 | 3;
+}
+
+/**
+ * AcceptInvite — landing page for the `/admin/accept-invite/:token` magic link.
+ * Validates the invite token, lets the invitee choose a password, stamps their
+ * profile role, and marks the invite used before redirecting to their space.
+ */
 export default function AcceptInvite() {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -181,10 +203,19 @@ export default function AcceptInvite() {
         ) : error && !invite ? (
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center" role="alert">
             <AlertCircle size={28} className="text-amber-500 mx-auto mb-3" aria-hidden="true" />
-            <h2 className="text-lg font-extrabold mb-2">{error}</h2>
+            <h2 className="text-lg font-extrabold mb-2">Lien invalide ou expiré</h2>
+            <p className="text-sm text-zinc-600 mb-5">{error}</p>
+            {/* Expired / invalid token: offer a direct path to request a
+                new reset link instead of dead-ending at the login page. */}
+            <Link
+              to="/admin/forgot-password"
+              className="inline-block w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+            >
+              Demander un nouveau lien
+            </Link>
             <Link
               to="/admin/login"
-              className="text-sm font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+              className="mt-3 inline-block text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
             >
               Retour à la connexion
             </Link>
@@ -250,8 +281,9 @@ export default function AcceptInvite() {
                   onBlur={() => setPwdFocus(prev => (prev === 'password' ? null : prev))}
                   required
                   minLength={8}
+                  disabled={submitting}
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-11 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
+                  className="w-full pl-10 pr-11 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC] disabled:bg-zinc-50 disabled:cursor-wait"
                 />
                 <button
                   type="button"
@@ -268,6 +300,29 @@ export default function AcceptInvite() {
                   <span aria-hidden="true">⇪</span> Caps Lock est activé
                 </p>
               )}
+              {password.length > 0 && (() => {
+                const score = scorePassword(password);
+                // 3-segment bar: rose (weak) → amber (ok) → emerald (strong).
+                const tones = ['bg-rose-400', 'bg-amber-400', 'bg-emerald-500'];
+                const label = score <= 1 ? 'Faible' : score === 2 ? 'Moyen' : 'Solide';
+                return (
+                  <div className="mt-2" aria-live="polite">
+                    <div className="flex gap-1" aria-hidden="true">
+                      {[0, 1, 2].map(i => (
+                        <span
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            i < score ? tones[Math.min(score - 1, 2)] : 'bg-zinc-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Force : {label}
+                    </p>
+                  </div>
+                );
+              })()}
             </label>
 
             <label className="block">
@@ -290,9 +345,10 @@ export default function AcceptInvite() {
                       onBlur={() => setPwdFocus(prev => (prev === 'confirm' ? null : prev))}
                       required
                       minLength={8}
+                      disabled={submitting}
                       autoComplete="new-password"
                       aria-invalid={mismatch || undefined}
-                      className={`w-full pl-10 pr-11 py-3 border rounded-xl text-sm outline-none ${
+                      className={`w-full pl-10 pr-11 py-3 border rounded-xl text-sm outline-none disabled:bg-zinc-50 disabled:cursor-wait ${
                         mismatch ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
                       }`}
                     />
@@ -313,13 +369,20 @@ export default function AcceptInvite() {
                   <span aria-hidden="true">⇪</span> Caps Lock est activé
                 </p>
               )}
+              {password.length > 0 && confirm.length > 0 && password !== confirm && (
+                <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1" role="status">
+                  <AlertCircle size={12} aria-hidden="true" /> Les mots de passe ne correspondent pas
+                </p>
+              )}
             </label>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              aria-busy={submitting || undefined}
+              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 disabled:cursor-wait hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 flex items-center justify-center gap-2"
             >
+              {submitting && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
               {submitting ? 'Activation…' : 'Activer mon compte'}
             </button>
           </form>
