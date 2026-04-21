@@ -118,7 +118,13 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                 alt={image.altText || title}
                 width={400}
                 height={400}
-                className={`w-full h-full object-cover transition-all duration-500 ${backImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                // Subtle 1.03 zoom on both layers; back (if any) fades
+                // in over the front. The `[@media(hover:hover)]:`
+                // prefix gates the back-reveal to devices with a real
+                // pointer — touch users tap to navigate and would
+                // otherwise see a flash of the dos photo before the
+                // route change fires.
+                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-[1.03] ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
                 loading={eager ? 'eager' : 'lazy'}
                 fetchPriority={eager ? 'high' : 'auto'}
                 decoding="async"
@@ -138,7 +144,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                     : `${local?.shortName ?? title} — vue arrière`}
                   width={400}
                   height={400}
-                  className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105"
+                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-[1.03] [@media(hover:hover)]:group-hover:opacity-100"
                   loading="lazy"
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
