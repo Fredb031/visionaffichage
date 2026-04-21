@@ -31,7 +31,7 @@ import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
-import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone, pickDefaultZoneForSide } from '@/data/products';
+import { PRODUCTS, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone, pickDefaultZoneForSide } from '@/data/products';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
@@ -41,6 +41,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { fmtMoney } from '@/lib/format';
+import { getSettings } from '@/lib/appSettings';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -292,7 +293,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const multiTotalQty = multiVariants.reduce((s, v) => s + v.qty, 0);
   const totalQty    = multiTotalQty > 0 ? multiTotalQty : store.getTotalQuantity();
   const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
-  const unitPrice   = product.basePrice + PRINT_PRICE;
+  // Per-side print fee: 'none' prints nothing (0×), 'both' charges twice
+  // (front + back), 'front'/'back' single-sided. Previously this added
+  // one flat PRINT_PRICE regardless of side count — so recto-verso
+  // mis-quoted as devant. The printPrice itself is admin-editable via
+  // appSettings so the owner can bump the shop rate without a redeploy.
+  const printPrice = getSettings().printPrice;
+  const printSideCount =
+    store.placementSides === 'none' ? 0 :
+    store.placementSides === 'both' ? 2 : 1;
+  const unitPrice   = product.basePrice + (printPrice * printSideCount);
   const discount    = hasDiscount ? 1 - BULK_DISCOUNT_RATE : 1;
   const totalPrice  = parseFloat((totalQty * unitPrice * discount).toFixed(2));
 
@@ -912,16 +922,22 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       aria-label={lang === 'en' ? 'Print sides' : 'Côtés à imprimer'}
                     >
                       {([
-                        { id: 'front', label: lang === 'en' ? 'Front'        : 'Devant' },
-                        { id: 'back',  label: lang === 'en' ? 'Back'         : 'Dos' },
-                        { id: 'both',  label: lang === 'en' ? 'Both'         : 'Recto-verso' },
-                        { id: 'none',  label: lang === 'en' ? 'Blank'        : 'Vierge' },
+                        { id: 'front', label: lang === 'en' ? 'Front'        : 'Devant',       sides: 1 },
+                        { id: 'back',  label: lang === 'en' ? 'Back'         : 'Dos',          sides: 1 },
+                        { id: 'both',  label: lang === 'en' ? 'Both'         : 'Recto-verso',  sides: 2 },
+                        { id: 'none',  label: lang === 'en' ? 'Blank'        : 'Vierge',       sides: 0 },
                       ] as const).map(opt => {
                         const active = store.placementSides === opt.id;
                         // Logo dot colour + position on the silhouette
                         // tells the whole story. Kept tiny (SVG inline,
                         // no raster) so the tiles stay crisp at any DPI
                         // and the file doesn't balloon with PNG imports.
+                        // Price pill below the label so buyers see the
+                        // per-tile delta before committing — user feedback
+                        // was "recto-verso ne te dit pas le prix".
+                        const pillText = opt.sides === 0
+                          ? (lang === 'en' ? 'Free' : 'Gratuit')
+                          : `+${fmtMoney(printPrice * opt.sides, lang)}`;
                         return (
                           <button
                             key={opt.id}
@@ -942,6 +958,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             <PlacementTile kind={opt.id} active={active} />
                             <span className={`text-[10px] font-black leading-tight ${active ? 'text-[#1B3A6B]' : 'text-muted-foreground'}`}>
                               {opt.label}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-full ${
+                                active
+                                  ? 'bg-[#E8A838]/15 text-[#E8A838]'
+                                  : 'bg-secondary text-muted-foreground'
+                              }`}
+                            >
+                              {pillText}
                             </span>
                           </button>
                         );
@@ -1316,8 +1341,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         store.placementSides === 'none'
                           ? (lang === 'en' ? 'Not included' : 'Non inclus')
                           : store.placementSides === 'both'
-                            ? `${fmtMoney(PRINT_PRICE, lang)} · ${lang === 'en' ? 'front + back included' : 'recto-verso inclus'}`
-                            : fmtMoney(PRINT_PRICE, lang),
+                            ? `${fmtMoney(printPrice * 2, lang)} · ${lang === 'en' ? 'front + back included' : 'recto-verso inclus'}`
+                            : fmtMoney(printPrice, lang),
                       ],
                     ].map(([l, v]) => (
                       <div key={l} className="flex justify-between text-sm">

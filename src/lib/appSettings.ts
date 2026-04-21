@@ -25,6 +25,10 @@ export interface AppSettings {
   /** Salesman commission rate as a fraction (0.10 == 10%). Used by
    *  src/lib/commissions.ts to compute per-order payouts. */
   commissionRate: number;
+  /** Per-side print fee in CAD. The customizer multiplies this by the
+   *  placement-side count (none=0, front|back=1, both=2). Owner-editable
+   *  so a shop-rate bump doesn't require a redeploy. */
+  printPrice: number;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -38,6 +42,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     VISION20: 0.20,
   },
   commissionRate: 0.10,
+  printPrice: 5.00,
 };
 
 const STORAGE_KEY = 'vision-app-settings';
@@ -56,6 +61,15 @@ function clampThreshold(v: unknown, fallback: number): number {
   const n = typeof v === 'number' && Number.isFinite(v) ? Math.floor(v) : fallback;
   if (n < 1) return 1;
   if (n > 10_000) return 10_000;
+  return n;
+}
+
+function clampPrice(v: unknown, fallback: number): number {
+  // Money value: non-negative, capped at a sane ceiling so a stray
+  // admin keystroke can't accidentally quote a $1M print fee.
+  const n = typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+  if (n < 0) return 0;
+  if (n > 1000) return 1000;
   return n;
 }
 
@@ -89,6 +103,7 @@ export function getSettings(): AppSettings {
     bulkRate: clampFraction(parsed.bulkRate, DEFAULT_APP_SETTINGS.bulkRate, 0.95),
     discountCodes: Object.keys(codes).length > 0 ? codes : { ...DEFAULT_APP_SETTINGS.discountCodes },
     commissionRate: clampFraction(parsed.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
+    printPrice: clampPrice(parsed.printPrice, DEFAULT_APP_SETTINGS.printPrice),
   };
 }
 
@@ -112,6 +127,7 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
       ? merged.discountCodes
       : { ...DEFAULT_APP_SETTINGS.discountCodes },
     commissionRate: clampFraction(merged.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
+    printPrice: clampPrice(merged.printPrice, DEFAULT_APP_SETTINGS.printPrice),
   };
   // Private mode or storage quota — state still works in-memory for
   // the current session. Fire the event either way (below) so open
