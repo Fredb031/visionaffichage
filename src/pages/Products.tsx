@@ -296,10 +296,43 @@ export default function Products() {
     }
   }, [products, activeCategory, debouncedQuery, sortMode]);
 
+  // Task 6.10 — screen-reader announcement for the filtered product
+  // count. Keyed off `debouncedQuery` (not `searchQuery`) via
+  // filteredProducts so AT users hear the SETTLED result once per
+  // 300ms debounce, not a torrent of "1 product… 0 products… 3
+  // products…" as they type each letter. `aria-live=polite` yields to
+  // the user's typing; `aria-atomic` forces the whole message to
+  // re-announce even when only the numeric prefix changed.
+  const liveRegionMessage = useMemo(() => {
+    if (isLoading) {
+      return lang === 'en' ? 'Loading products\u2026' : 'Chargement des produits\u2026';
+    }
+    const count = filteredProducts.length;
+    const trimmed = debouncedQuery.trim();
+    if (count === 0 && trimmed) {
+      return lang === 'en'
+        ? `No results for \u00ab ${trimmed} \u00bb`
+        : `Aucun r\u00e9sultat pour \u00ab ${trimmed} \u00bb`;
+    }
+    if (count === 0) return '';
+    return lang === 'en'
+      ? `${count} product${count !== 1 ? 's' : ''} shown`
+      : `${count} produit${count !== 1 ? 's' : ''} affich\u00e9s`;
+  }, [isLoading, filteredProducts, debouncedQuery, lang]);
+
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Task 6.10 — visually-hidden live region announcing the filtered
+          product count to screen readers. Kept OUTSIDE the main content
+          branches (loading / error / grid) so the same node persists
+          across renders — React swapping a role=status node in and out
+          can cause AT to miss the announcement on some engines. */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {liveRegionMessage}
+      </div>
 
       {/* Banner — premium hero */}
       <div className="pt-[58px]">
