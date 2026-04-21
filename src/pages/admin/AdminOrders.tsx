@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2, Archive, Truck, X } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2, Archive, Truck, X, FileDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
+import { getOrderLogos, LOGO_STATE_COLOR, LOGO_STATE_LABEL, type OrderLogoAttachment } from '@/data/orderLogos';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -11,6 +12,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
 import { readLS, writeLS } from '@/lib/storage';
+import { buildLogoFilename, triggerBlobDownload } from '@/lib/logoVectorize';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
@@ -107,6 +109,143 @@ function formatRelativeTime(iso: string): string {
 }
 
 const PAGE_SIZE = 25;
+
+/** Per-logo card inside the order drawer.
+ *
+ * Three display states, driven by LogoConversionState:
+ *   - ready       → solid green "Télécharger SVG" button, instant blob download
+ *   - queued      → amber spinner badge, button offers raster fallback
+ *   - raster-only → zinc "Brouillon raster" badge, button triggers a
+ *                   confirm-toast before downloading the original (we
+ *                   refuse to serve a `.svg`-renamed raster — production
+ *                   would treat it as a real vector and the plotter /
+ *                   DTF workflow breaks on the first tool-path step).
+ *
+ * Download path uses fetch + blob so the file lands in /Downloads with
+ * our friendly `vision-logo-<order>.<ext>` filename regardless of the
+ * original upload name. */
+function LogoAttachmentCard({
+  logo,
+  orderName,
+}: {
+  logo: OrderLogoAttachment;
+  orderName: string;
+}) {
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadUrl = async (url: string, filename: string) => {
+    setDownloading(true);
+    try {
+      // fetch → blob so Safari/Firefox respect the `download` attr
+      // across origins. A bare <a download> on a cross-origin URL is
+      // silently ignored and navigates instead, booting the admin
+      // out of the drawer. Going via blob sidesteps that.
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      triggerBlobDownload(blob, filename);
+    } catch (e) {
+      console.warn('[AdminOrders] Logo download failed:', e);
+      toast.error('Téléchargement impossible. Réessaie dans un instant.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleSvgDownload = () => {
+    if (logo.state === 'ready' && logo.svgUrl) {
+      void downloadUrl(logo.svgUrl, buildLogoFilename(orderName, 'svg'));
+      return;
+    }
+
+    // Non-ready path — we refuse to rename a raster to `.svg` (the
+    // production workflow reads the MIME and crashes on mismatched
+    // content). Confirm the fallback to the original raster instead.
+    //
+    // Sonner doesn't have a native confirm primitive — use an action
+    // toast so the admin stays in-flow without a blocking modal.
+    const isQueued = logo.state === 'queued';
+    toast(
+      isQueued
+        ? 'Conversion SVG en cours — télécharger le raster original ?'
+        : 'Conversion SVG en attente — télécharger le raster original ?',
+      {
+        action: {
+          label: 'Télécharger',
+          onClick: () => {
+            void downloadUrl(
+              logo.sourceUrl,
+              buildLogoFilename(orderName, logo.sourceExt),
+            );
+          },
+        },
+        duration: 8000,
+      },
+    );
+  };
+
+  const badgeLabel = LOGO_STATE_LABEL[logo.state];
+  const badgeColor = LOGO_STATE_COLOR[logo.state];
+  const canDownloadSvg = logo.state === 'ready';
+
+  return (
+    <div className="flex gap-3 items-start border border-zinc-200 rounded-xl p-3 bg-white">
+      <div className="w-16 h-16 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <img
+          src={logo.previewUrl}
+          alt={logo.label}
+          className="w-full h-full object-contain"
+          onError={e => {
+            // Broken CDN link shouldn't leave a "missing image" icon
+            // in the drawer — fall back to the .ext text so the admin
+            // still sees the shape of the asset.
+            const el = e.currentTarget;
+            el.style.display = 'none';
+          }}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="text-xs font-bold truncate">{logo.label}</div>
+          <span
+            className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${badgeColor}`}
+            aria-label={`État conversion : ${badgeLabel}`}
+          >
+            {logo.state === 'queued' && (
+              <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+            )}
+            {badgeLabel}
+          </span>
+        </div>
+        <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+          {logo.sourceExt}
+        </div>
+        <button
+          type="button"
+          onClick={handleSvgDownload}
+          disabled={downloading}
+          aria-label={
+            canDownloadSvg
+              ? `Télécharger le SVG de ${logo.label}`
+              : `Conversion SVG pas prête — offrir le raster original pour ${logo.label}`
+          }
+          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed ${
+            canDownloadSvg
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500'
+              : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 focus-visible:ring-zinc-400'
+          }`}
+        >
+          {downloading ? (
+            <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <FileDown size={12} aria-hidden="true" />
+          )}
+          Télécharger SVG
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminOrders() {
   // URL-backed initial state so reload preserves the admin's view.
@@ -588,6 +727,41 @@ export default function AdminOrders() {
                   <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Passée le</div>
                   <div>{new Date(selected.createdAt).toLocaleString('fr-CA')}</div>
                 </div>
+                {(() => {
+                  // Compute inside an IIFE so the render function stays
+                  // close to the data it consumes — makes the empty
+                  // state easy to spot when the Supabase hook replaces
+                  // getOrderLogos in a follow-up commit. Phase B4 + B6
+                  // of QUOTE-ORDER-WORKFLOW: show the client's upload
+                  // + SVG status + download button.
+                  const logos = getOrderLogos(selected.id);
+                  if (logos.length === 0) {
+                    return (
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Logos client</div>
+                        <div className="text-xs text-zinc-400 italic">
+                          Aucun logo reçu pour cette commande.
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div>
+                      <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-2">
+                        Logos client ({logos.length})
+                      </div>
+                      <div className="space-y-2">
+                        {logos.map(logo => (
+                          <LogoAttachmentCard
+                            key={logo.id}
+                            logo={logo}
+                            orderName={selected.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <a
                   href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/orders/${selected.id}`}
                   target="_blank"
