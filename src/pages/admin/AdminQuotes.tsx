@@ -1,28 +1,87 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Eye, Plus } from 'lucide-react';
+import { Search, Eye, Plus, ArrowRightCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
 
-type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
+// 'converted' is set locally by the convert-to-order action (Task 9.14)
+// so the button doesn't fire twice against the same source quote. It
+// lives alongside the canonical quote statuses because AdminQuotes is
+// the only surface that reads it today — downstream readers that only
+// know the legacy set fall back to 'draft' via coerceStatus().
+type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired' | 'converted';
 
 type DiscountKind = 'percent' | 'flat';
 
-const MOCK = [
-  { id: 'q1', number: 'Q-2026-0042', vendor: 'Sophie Tremblay',      client: 'Sous Pression', items: 3, total: 1840, discount: 10, discountKind: 'percent' as DiscountKind, status: 'viewed'  as Status, age: 'il y a 2h' },
-  { id: 'q2', number: 'Q-2026-0041', vendor: 'Marc-André Pelletier', client: 'Perfocazes',    items: 2, total: 620,  discount: 0,  discountKind: 'percent' as DiscountKind, status: 'paid'    as Status, age: 'il y a 5h' },
-  { id: 'q3', number: 'Q-2026-0040', vendor: 'Sophie Tremblay',      client: 'Lacasse',       items: 5, total: 3450, discount: 15, discountKind: 'percent' as DiscountKind, status: 'sent'    as Status, age: 'il y a 1j' },
-  { id: 'q4', number: 'Q-2026-0039', vendor: 'Julie Gagnon',         client: 'CFP Québec',    items: 4, total: 2100, discount: 8,  discountKind: 'percent' as DiscountKind, status: 'viewed'  as Status, age: 'il y a 2j' },
-  { id: 'q5', number: 'Q-2026-0038', vendor: 'Marc-André Pelletier', client: 'Extreme Fab',   items: 6, total: 4250, discount: 12, discountKind: 'percent' as DiscountKind, status: 'paid'    as Status, age: 'il y a 3j' },
+// Shape of one stored quote's persisted line item, per QuoteBuilder.
+// Kept loose (unknown[]) at read time but narrowed here for the
+// convert-to-order payload so the manual-order ledger carries the
+// same LineItem[] the vendor originally built.
+type QuoteLineItem = {
+  id?: string;
+  productSku?: string;
+  productName?: string;
+  shopifyHandle?: string;
+  image?: string;
+  color?: string;
+  size?: string;
+  quantity?: number;
+  unitPrice?: number;
+  placementNote?: string;
+  colors?: string[];
+  sizeQuantities?: Record<string, Record<string, number>>;
+  placement?: string;
+};
+
+type ManualOrder = {
+  id: string;
+  orderNumber: string;
+  customer: { name: string; email: string };
+  lineItems: QuoteLineItem[];
+  total: number;
+  createdAt: string;
+  origin: 'from-quote';
+  quoteId: string;
+};
+
+type QuoteRow = {
+  id: string;
+  number: string;
+  vendor: string;
+  client: string;
+  clientEmail?: string;
+  items: number;
+  total: number;
+  discount: number;
+  discountKind: DiscountKind;
+  status: Status;
+  age: string;
+  // Rich payload carried forward from localStorage so the convert-to-
+  // order dialog can show the real line items + rebuild the manual
+  // order record without re-reading storage. Undefined for MOCK rows.
+  lineItems?: QuoteLineItem[];
+};
+
+const MOCK: QuoteRow[] = [
+  { id: 'q1', number: 'Q-2026-0042', vendor: 'Sophie Tremblay',      client: 'Sous Pression', items: 3, total: 1840, discount: 10, discountKind: 'percent', status: 'viewed',  age: 'il y a 2h' },
+  { id: 'q2', number: 'Q-2026-0041', vendor: 'Marc-André Pelletier', client: 'Perfocazes',    items: 2, total: 620,  discount: 0,  discountKind: 'percent', status: 'paid',    age: 'il y a 5h' },
+  { id: 'q3', number: 'Q-2026-0040', vendor: 'Sophie Tremblay',      client: 'Lacasse',       items: 5, total: 3450, discount: 15, discountKind: 'percent', status: 'sent',    age: 'il y a 1j' },
+  { id: 'q4', number: 'Q-2026-0039', vendor: 'Julie Gagnon',         client: 'CFP Québec',    items: 4, total: 2100, discount: 8,  discountKind: 'percent', status: 'viewed',  age: 'il y a 2j' },
+  { id: 'q5', number: 'Q-2026-0038', vendor: 'Marc-André Pelletier', client: 'Extreme Fab',   items: 6, total: 4250, discount: 12, discountKind: 'percent', status: 'paid',    age: 'il y a 3j' },
 ];
 
 const STATUS_LABEL: Record<Status, string> = {
   draft: 'Brouillon', sent: 'Envoyé', viewed: 'Vu',
   accepted: 'Accepté', paid: 'Payé', expired: 'Expiré',
+  converted: 'Convertie',
 };
 
 const STATUS_COLOR: Record<Status, string> = {
@@ -32,13 +91,68 @@ const STATUS_COLOR: Record<Status, string> = {
   accepted: 'bg-emerald-50 text-emerald-700',
   paid: 'bg-emerald-100 text-emerald-800',
   expired: 'bg-rose-50 text-rose-700',
+  converted: 'bg-[#1B3A6B]/10 text-[#1B3A6B]',
 };
 
-const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired'];
+const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired', 'converted'];
 function coerceStatus(raw: unknown): Status {
   return typeof raw === 'string' && (VALID_STATUSES as readonly string[]).includes(raw)
     ? (raw as Status)
     : 'draft';
+}
+
+// Monotonic 4-digit suffix, scoped per calendar day. Resets when the
+// date rolls over so the admin doesn't have to stare at MAN-20260101-9817
+// after a year — next-day orders restart at 0001. Uses the same
+// counter-in-localStorage pattern as vision-quotes-seq in QuoteBuilder.
+function nextManualOrderNumber(now: Date): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const datePart = `${y}${m}${d}`;
+  let seq = 0;
+  try {
+    const raw = localStorage.getItem('vision-manual-orders-seq');
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && parsed.date === datePart && Number.isFinite(parsed.n)) {
+      seq = Math.max(0, Math.floor(parsed.n));
+    }
+    seq += 1;
+    localStorage.setItem('vision-manual-orders-seq', JSON.stringify({ date: datePart, n: seq }));
+  } catch {
+    // If the counter is unreadable/unwritable, fall back to a random
+    // 4-digit suffix so we still produce a plausible unique number
+    // instead of colliding on MAN-YYYYMMDD-0001 every time.
+    seq = Math.floor(1000 + Math.random() * 9000);
+  }
+  return `MAN-${datePart}-${String(seq).padStart(4, '0')}`;
+}
+
+// Recompute a quote's line-item total from the persisted matrix so the
+// manual order carries an authoritative number even if the quote's
+// stored `total` was stale (e.g. rounded pre-tax vs. post-tax). Falls
+// back to the legacy `unitPrice * quantity` path if the new matrix
+// shape isn't present on an older quote row.
+function computeLineItemsTotal(items: QuoteLineItem[]): number {
+  let sum = 0;
+  for (const it of items) {
+    const unit = Number.isFinite(it.unitPrice) ? (it.unitPrice as number) : 0;
+    if (it.sizeQuantities && typeof it.sizeQuantities === 'object') {
+      let qty = 0;
+      for (const row of Object.values(it.sizeQuantities)) {
+        if (!row) continue;
+        for (const v of Object.values(row)) {
+          const n = Number(v);
+          if (Number.isFinite(n) && n > 0) qty += n;
+        }
+      }
+      sum += unit * qty;
+    } else {
+      const qty = Number.isFinite(it.quantity) ? (it.quantity as number) : 0;
+      sum += unit * qty;
+    }
+  }
+  return sum;
 }
 
 export default function AdminQuotes() {
@@ -55,8 +169,12 @@ export default function AdminQuotes() {
 
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<Status | 'all'>(initialFilter);
-  const [savedQuotes, setSavedQuotes] = useState<typeof MOCK>([]);
+  const [savedQuotes, setSavedQuotes] = useState<QuoteRow[]>([]);
   const [page, setPage] = useState(0);
+  // Task 9.14 — convert-to-order confirmation dialog. Holds the quote
+  // being converted so we can render a summary + line items before the
+  // admin confirms. null = dialog closed.
+  const [convertTarget, setConvertTarget] = useState<QuoteRow | null>(null);
 
   useEffect(() => { setPage(0); }, [query, filter]);
   useDocumentTitle('Soumissions — Admin Vision Affichage');
@@ -91,7 +209,7 @@ export default function AdminQuotes() {
       // Same defensive pattern as QuoteList: one malformed row used to
       // wipe every saved quote (split on undefined email). Per-row
       // try/catch keeps the rest of the list visible.
-      const mapped: typeof MOCK = [];
+      const mapped: QuoteRow[] = [];
       const list = Array.isArray(raw) ? (raw as StoredQuote[]) : [];
       for (const q of list) {
         try {
@@ -114,6 +232,7 @@ export default function AdminQuotes() {
             number: typeof q.number === 'string' ? q.number : '—',
             vendor: 'Admin',
             client: q.clientName || clientFromEmail || '—',
+            clientEmail: email,
             items: Array.isArray(q.items) ? q.items.length : 0,
             // Guard against NaN/Infinity sneaking through typeof checks —
             // a corrupted localStorage row (e.g. `total: NaN` after a
@@ -124,6 +243,7 @@ export default function AdminQuotes() {
             discountKind: kind,
             status: coerceStatus(q.status),
             age,
+            lineItems: Array.isArray(q.items) ? (q.items as QuoteLineItem[]) : [],
           });
         } catch (e) {
           console.warn('[AdminQuotes] Skipping malformed quote row:', e);
@@ -136,6 +256,79 @@ export default function AdminQuotes() {
   }, []);
 
   const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
+
+  // Task 9.14 — flip the source quote's status to 'converted' in both
+  // the in-memory list (so the table re-renders without the button)
+  // and in localStorage (so a reload doesn't resurrect it).
+  const markQuoteConverted = useCallback((quoteId: string) => {
+    setSavedQuotes(prev =>
+      prev.map(row => (row.id === quoteId ? { ...row, status: 'converted' as Status } : row)),
+    );
+    try {
+      const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+      if (Array.isArray(raw)) {
+        const next = raw.map(q => {
+          if (q && typeof q === 'object' && String((q as { id?: unknown }).id) === quoteId) {
+            return { ...q, status: 'converted' };
+          }
+          return q;
+        });
+        localStorage.setItem('vision-quotes', JSON.stringify(next));
+      }
+    } catch (e) {
+      console.warn('[AdminQuotes] Could not persist converted status:', e);
+    }
+  }, []);
+
+  // Task 9.14 — persist a manual-order record to the vision-manual-orders
+  // ledger. Mirrors the defensive read pattern used for vision-quotes so
+  // a corrupted key doesn't blow up the convert action.
+  const persistManualOrder = useCallback((order: ManualOrder) => {
+    const list: unknown[] = (() => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('vision-manual-orders') ?? '[]');
+        return Array.isArray(raw) ? raw : [];
+      } catch { return []; }
+    })();
+    list.unshift(order);
+    try {
+      // Cap at 500 entries so the ledger can't grow unbounded and push
+      // us past the ~5MB localStorage quota on long-lived admin sessions.
+      localStorage.setItem('vision-manual-orders', JSON.stringify(list.slice(0, 500)));
+    } catch (e) {
+      console.warn('[AdminQuotes] Manual order could not be saved locally:', e);
+    }
+  }, []);
+
+  const confirmConvertToOrder = useCallback(() => {
+    const quote = convertTarget;
+    if (!quote) return;
+    const now = new Date();
+    const lineItems: QuoteLineItem[] = Array.isArray(quote.lineItems) ? quote.lineItems : [];
+    // Prefer the quote's authoritative total when available — it already
+    // includes the live Shopify variant price + print fee — and fall
+    // back to the recomputed matrix total for legacy rows without a
+    // persisted `total` (older shape, or the MOCK fixtures).
+    const totalFromMatrix = computeLineItemsTotal(lineItems);
+    const total = Number.isFinite(quote.total) && quote.total > 0 ? quote.total : totalFromMatrix;
+    const orderNumber = nextManualOrderNumber(now);
+    const order: ManualOrder = {
+      id: `mo-${now.getTime()}`,
+      orderNumber,
+      customer: { name: quote.client, email: quote.clientEmail ?? '' },
+      lineItems,
+      total,
+      createdAt: now.toISOString(),
+      origin: 'from-quote',
+      quoteId: quote.id,
+    };
+    persistManualOrder(order);
+    markQuoteConverted(quote.id);
+    setConvertTarget(null);
+    toast.success(`Commande créée · ${orderNumber}`, {
+      description: `À partir de la soumission ${quote.number}.`,
+    });
+  }, [convertTarget, persistManualOrder, markQuoteConverted]);
 
   const filtered = useMemo(() => {
     // Strip invisibles so a paste-from-Slack search still matches quote
@@ -245,13 +438,27 @@ export default function AdminQuotes() {
                   </td>
                   <td className="px-4 py-3 text-zinc-500 text-xs">{q.age}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/quote/${q.id}`}
-                      aria-label={`Voir la soumission ${q.number} pour ${q.client}`}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-                    >
-                      <Eye size={14} aria-hidden="true" />
-                    </Link>
+                    <div className="inline-flex items-center gap-1 justify-end">
+                      {q.status === 'accepted' && (
+                        <button
+                          type="button"
+                          onClick={() => setConvertTarget(q)}
+                          aria-label={`Convertir la soumission ${q.number} en commande`}
+                          title="Convertir en commande"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 bg-[#0052CC] text-white rounded-md hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                        >
+                          <ArrowRightCircle size={13} aria-hidden="true" />
+                          <span>Convertir</span>
+                        </button>
+                      )}
+                      <Link
+                        to={`/quote/${q.id}`}
+                        aria-label={`Voir la soumission ${q.number} pour ${q.client}`}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                      >
+                        <Eye size={14} aria-hidden="true" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -265,6 +472,146 @@ export default function AdminQuotes() {
           onPageChange={setPage}
           itemLabel="soumissions"
         />
+      </div>
+
+      <ConvertToOrderDialog
+        target={convertTarget}
+        onClose={() => setConvertTarget(null)}
+        onConfirm={confirmConvertToOrder}
+      />
+    </div>
+  );
+}
+
+// Convert-to-order confirmation (Task 9.14). Shown only when a quote is
+// armed by the admin clicking "Convertir" on an accepted row. Dimmed
+// backdrop + trapped focus + Esc-to-close, matching the rest of the
+// admin dialogs.
+function ConvertToOrderDialog({
+  target,
+  onClose,
+  onConfirm,
+}: {
+  target: QuoteRow | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const open = target !== null;
+  useEscapeKey(open, onClose);
+  useBodyScrollLock(open);
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+
+  if (!open || !target) return null;
+
+  const lineItems: QuoteLineItem[] = Array.isArray(target.lineItems) ? target.lineItems : [];
+  const totalFromMatrix = computeLineItemsTotal(lineItems);
+  const total = Number.isFinite(target.total) && target.total > 0 ? target.total : totalFromMatrix;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="convert-order-title"
+        className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden"
+      >
+        <div className="flex items-start justify-between p-5 border-b border-zinc-100">
+          <div>
+            <h2 id="convert-order-title" className="font-extrabold text-lg text-[#1B3A6B]">
+              Créer une commande à partir de cette soumission ?
+            </h2>
+            <p className="text-xs text-zinc-500 mt-1">
+              Soumission <span className="font-mono font-bold">{target.number}</span> · {target.client}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer la boîte de dialogue"
+            className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="p-5 max-h-[60vh] overflow-y-auto">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+            Articles ({lineItems.length})
+          </h3>
+          {lineItems.length === 0 ? (
+            <div className="text-xs text-zinc-400 italic py-3">
+              Aucun article détaillé disponible pour cette soumission.
+            </div>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {lineItems.map((it, idx) => {
+                const name = it.productName || it.productSku || 'Article';
+                const colors = Array.isArray(it.colors) && it.colors.length > 0
+                  ? it.colors.join(', ')
+                  : (it.color || '—');
+                const qty = (() => {
+                  if (it.sizeQuantities && typeof it.sizeQuantities === 'object') {
+                    let q = 0;
+                    for (const row of Object.values(it.sizeQuantities)) {
+                      if (!row) continue;
+                      for (const v of Object.values(row)) {
+                        const n = Number(v);
+                        if (Number.isFinite(n) && n > 0) q += n;
+                      }
+                    }
+                    return q;
+                  }
+                  return Number.isFinite(it.quantity) ? (it.quantity as number) : 0;
+                })();
+                return (
+                  <li
+                    key={String(it.id ?? idx)}
+                    className="flex items-center gap-3 border border-zinc-100 rounded-lg px-3 py-2 bg-zinc-50"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">{name}</div>
+                      <div className="text-[11px] text-zinc-500 truncate">
+                        {colors}
+                      </div>
+                    </div>
+                    <div className="text-xs font-bold text-[#1B3A6B] whitespace-nowrap">
+                      × {qty}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="flex items-baseline justify-between mt-5 pt-3 border-t border-zinc-200">
+            <span className="text-sm text-zinc-500 font-semibold">Total de la commande</span>
+            <span className="text-xl font-extrabold text-[#0052CC]">
+              {total.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-4 bg-zinc-50 border-t border-zinc-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <ArrowRightCircle size={14} aria-hidden="true" />
+            Créer la commande
+          </button>
+        </div>
       </div>
     </div>
   );
