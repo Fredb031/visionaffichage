@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Mail, TrendingUp, Trash2, X, Search } from 'lucide-react';
+import { Plus, Mail, TrendingUp, Trash2, X, Search, Download } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
 import { plural } from '@/lib/i18n';
@@ -10,10 +10,13 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { readLS, writeLS } from '@/lib/storage';
+import { useAuthStore } from '@/stores/authStore';
+import { hasPermission } from '@/lib/permissions';
 import {
   getVendorCommissions,
   filterSummaryByMonth,
   currentYearMonth,
+  exportAllVendorsCommissionsCsv,
 } from '@/lib/commissions';
 
 interface VendorRecord {
@@ -188,6 +191,37 @@ export default function AdminVendors() {
     persist(customVendors.filter(x => x.id !== id));
   };
 
+  // Admin-level "Export all vendors" — one CSV per month with a Vendor
+  // column so finance lands the whole team in a single file. Gated on
+  // orders:read so only admins who can see commission numbers can
+  // export them. Disabled when no vendor has any commission rows for
+  // the current month.
+  const user = useAuthStore(s => s.user);
+  const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
+  const exportMonth = currentYearMonth();
+  const exportHasRows = useMemo(() => {
+    for (const v of [...SEED_VENDORS, ...customVendors]) {
+      const m = filterSummaryByMonth(getVendorCommissions(v.id), exportMonth);
+      if (m.lines.length > 0) return true;
+    }
+    return false;
+  }, [customVendors, exportMonth]);
+
+  const onExportAllCsv = useCallback(() => {
+    const vendors = [...SEED_VENDORS, ...customVendors].map(v => ({ id: v.id, name: v.name }));
+    const csv = exportAllVendorsCommissionsCsv(vendors, exportMonth);
+    // UTF-8 BOM keeps Excel-on-Windows happy with Québécois accents.
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `commissions-all-vendors-${exportMonth}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [customVendors, exportMonth]);
+
   const allUnsorted = [...customVendors, ...SEED_VENDORS];
   const all = useMemo(() => {
     // Strip ZWSP before matching so a paste-from-Slack search term
@@ -247,6 +281,19 @@ export default function AdminVendors() {
               <option value="conv">Taux de conversion</option>
             </select>
           </label>
+          {canExport && (
+            <button
+              type="button"
+              onClick={onExportAllCsv}
+              disabled={!exportHasRows}
+              aria-label={`Exporter les commissions de tous les vendeurs (${exportMonth}) en CSV`}
+              className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-white border border-[#0052CC] text-[#0052CC] rounded-lg hover:bg-[#0052CC]/5 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+              title={`Exporter un CSV combiné pour ${exportMonth}`}
+            >
+              <Download size={15} aria-hidden="true" />
+              Exporter tous les vendeurs
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowInvite(true)}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,6 +12,7 @@ import {
   currentYearMonth,
   markCommissionPaid,
   resolveVendorIdForUser,
+  exportCommissionsCsv,
   type VendorCommissionSummary,
 } from '@/lib/commissions';
 
@@ -112,6 +113,28 @@ export default function VendorDashboard() {
     setRefreshToken(t => t + 1);
   }, []);
 
+  // Accountants asked for a one-click month-end export — this replaces
+  // hand-copying the table. The Blob URL is revoked in the same tick
+  // (after the click() fires) to avoid leaking the object URL for the
+  // life of the tab. Button is gated on orders:read so a viewer role
+  // couldn't download numbers they can't see in the table.
+  const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
+  const exportDisabled = summary.lines.length === 0;
+  const onExportCsv = useCallback(() => {
+    const csv = exportCommissionsCsv(vendorId, month);
+    // Prefix with a UTF-8 BOM so Excel-on-Windows auto-detects UTF-8
+    // and doesn't mangle accented Québec customer names (ç, é, à…).
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `commissions-${month}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [vendorId, month]);
+
   const L = (fr: string, en: string) => (lang === 'fr' ? fr : en);
 
   return (
@@ -125,20 +148,37 @@ export default function VendorDashboard() {
             {L('Tes commissions ce mois-ci', 'Your commissions this month')} · {formatMonth(month, lang)}
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs text-zinc-500">
-          <Calendar size={14} className="text-zinc-400" aria-hidden="true" />
-          <span>{L('Mois', 'Month')}:</span>
-          <select
-            value={month}
-            onChange={e => setMonth(e.target.value)}
-            aria-label={L('Choisir le mois', 'Pick month')}
-            className="border border-zinc-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 text-xs font-semibold text-foreground cursor-pointer"
-          >
-            {months.map(m => (
-              <option key={m} value={m}>{formatMonth(m, lang)}</option>
-            ))}
-          </select>
-        </label>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-xs text-zinc-500">
+            <Calendar size={14} className="text-zinc-400" aria-hidden="true" />
+            <span>{L('Mois', 'Month')}:</span>
+            <select
+              value={month}
+              onChange={e => setMonth(e.target.value)}
+              aria-label={L('Choisir le mois', 'Pick month')}
+              className="border border-zinc-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 text-xs font-semibold text-foreground cursor-pointer"
+            >
+              {months.map(m => (
+                <option key={m} value={m}>{formatMonth(m, lang)}</option>
+              ))}
+            </select>
+          </label>
+          {canExport && (
+            <button
+              type="button"
+              onClick={onExportCsv}
+              disabled={exportDisabled}
+              aria-label={L(
+                `Télécharger les commissions de ${formatMonth(month, lang)} en CSV`,
+                `Download commissions for ${formatMonth(month, lang)} as CSV`,
+              )}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+            >
+              <Download size={13} aria-hidden="true" />
+              {L('Télécharger CSV', 'Download CSV')}
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

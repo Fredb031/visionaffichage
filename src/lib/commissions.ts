@@ -261,6 +261,88 @@ export function listVendorMonths(summary: VendorCommissionSummary): string[] {
   return Array.from(set).sort((a, b) => b.localeCompare(a));
 }
 
+/** Escape a single CSV field. Wraps in double quotes and doubles any
+ *  embedded double quotes; also wraps when the value contains a comma,
+ *  quote, or newline. Empty/nullish → empty string. This mirrors RFC 4180
+ *  so Excel + Numbers + Google Sheets all open the file cleanly. */
+function csvField(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const s = String(value);
+  if (s === '') return '';
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function csvRow(cells: unknown[]): string {
+  return cells.map(csvField).join(',');
+}
+
+function toYmd(iso: string | null): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  } catch { return ''; }
+}
+
+/** Build a CSV string for a vendor's commissions in a given month.
+ *  Headers: Order #, Customer, Order Date, Order Total, Commission Rate,
+ *  Commission Amount, Status, Paid Date. Designed for accountants who
+ *  open the file in Excel/Numbers without any post-processing. */
+export function exportCommissionsCsv(vendorId: string, month: string): string {
+  const summary = filterSummaryByMonth(getVendorCommissions(vendorId), month);
+  const ratePct = `${(summary.rate * 100).toFixed(2)}%`;
+  const headers = [
+    'Order #', 'Customer', 'Order Date', 'Order Total',
+    'Commission Rate', 'Commission Amount', 'Status', 'Paid Date',
+  ];
+  const rows = summary.lines.map(({ order, commission, paid, paidAt }) => csvRow([
+    order.name,
+    order.customerName || order.email || '',
+    toYmd(order.createdAt),
+    order.total.toFixed(2),
+    ratePct,
+    commission.toFixed(2),
+    paid ? 'Paid' : 'Pending',
+    toYmd(paidAt),
+  ]));
+  return [csvRow(headers), ...rows].join('\r\n') + '\r\n';
+}
+
+/** Build a CSV string with every seed vendor's commissions for the
+ *  given month, prefixed with a Vendor column. Used by the admin
+ *  "Export all vendors" button. Accepts the vendor list so the caller
+ *  controls which rows (seed + custom-invited) land in the file. */
+export function exportAllVendorsCommissionsCsv(
+  vendors: Array<{ id: string; name: string }>,
+  month: string,
+): string {
+  const headers = [
+    'Vendor', 'Order #', 'Customer', 'Order Date', 'Order Total',
+    'Commission Rate', 'Commission Amount', 'Status', 'Paid Date',
+  ];
+  const rows: string[] = [];
+  for (const v of vendors) {
+    const summary = filterSummaryByMonth(getVendorCommissions(v.id), month);
+    const ratePct = `${(summary.rate * 100).toFixed(2)}%`;
+    for (const { order, commission, paid, paidAt } of summary.lines) {
+      rows.push(csvRow([
+        v.name,
+        order.name,
+        order.customerName || order.email || '',
+        toYmd(order.createdAt),
+        order.total.toFixed(2),
+        ratePct,
+        commission.toFixed(2),
+        paid ? 'Paid' : 'Pending',
+        toYmd(paidAt),
+      ]));
+    }
+  }
+  return [csvRow(headers), ...rows].join('\r\n') + '\r\n';
+}
+
 /** Map an auth user's identity to a vendorId from the seed vendor
  *  list. Exported so the vendor dashboard can resolve "who am I"
  *  without duplicating the mapping. Matches by email first, then
