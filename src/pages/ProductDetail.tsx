@@ -280,6 +280,28 @@ export default function ProductDetail() {
 
   const currency = product.priceRange.minVariantPrice.currencyCode;
 
+  // Check whether a given option value is available given the other
+  // currently selected options. e.g. if Color=Black is picked, is
+  // Size=XS available? We look for any variant that matches the
+  // (other options fixed, this option = candidate value) combination
+  // and has availableForSale === true. When no variant matches (the
+  // combo doesn't exist at all), treat it as unavailable too — there's
+  // no point letting users pick a combination Shopify doesn't carry.
+  // Strikethrough + opacity + tooltip is better UX than hiding the
+  // option outright: users can *see* the combinations that are
+  // temporarily out of stock and pick a different size/color to fix it.
+  const isOptionValueAvailable = (optionName: string, candidateValue: string): boolean => {
+    const probe = { ...currentOptions, [optionName]: candidateValue };
+    // Any variant that fully matches probe AND is available?
+    return product.variants.edges.some(
+      (v: { node: { availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }> } }) =>
+        v.node.availableForSale &&
+        v.node.selectedOptions.every(
+          (so: { name: string; value: string }) => probe[so.name] === so.value,
+        ),
+    );
+  };
+
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
@@ -546,25 +568,59 @@ export default function ProductDetail() {
                             // else by the local name — stays consistent.
                             const shopifyValueForMatch = option.values.find(v => norm(v) === norm(value)) ?? value;
                             const isSelected = norm(currentOptions[option.name] ?? '') === norm(shopifyValueForMatch);
+                            // Only run availability check against Shopify values;
+                            // a local-catalog-only colour (not in option.values)
+                            // is treated as available so we don't strike colours
+                            // that Shopify just hasn't listed yet.
+                            const isInShopify = option.values.some(v => norm(v) === norm(value));
+                            const isAvailable = !isInShopify || isOptionValueAvailable(option.name, shopifyValueForMatch);
+                            const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
                             return (
                               <button
                                 key={value}
                                 type="button"
                                 role="radio"
                                 aria-checked={isSelected}
-                                onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }))}
+                                aria-disabled={!isAvailable || undefined}
+                                onClick={() => {
+                                  if (!isAvailable) {
+                                    // Graceful — surface the state instead of silently
+                                    // selecting a variant that can't be bought.
+                                    toast.error(
+                                      lang === 'en'
+                                        ? `${value} — Sold out`
+                                        : `${value} — Épuisé`,
+                                    );
+                                    return;
+                                  }
+                                  setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }));
+                                }}
                                 className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                   isSelected
                                     ? 'ring-2 ring-primary ring-offset-2 scale-110'
                                     : 'ring-1 ring-border hover:ring-primary/50'
-                                }`}
+                                } ${!isAvailable ? 'opacity-50' : ''}`}
                                 style={{ background: hex }}
-                                aria-label={value}
-                                title={value}
+                                aria-label={isAvailable ? value : `${value} — ${soldOutTitle}`}
+                                title={isAvailable ? value : `${value} — ${soldOutTitle}`}
                               >
                                 {isSelected && (
                                   <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <Check size={14} className="text-white drop-shadow" strokeWidth={3} />
+                                  </span>
+                                )}
+                                {!isAvailable && (
+                                  /* Diagonal strikethrough line for the circular
+                                     swatch — <hr> / text-decoration:line-through
+                                     doesn't visually read on an empty round
+                                     button, so draw an SVG slash instead. */
+                                  <span
+                                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                                    aria-hidden="true"
+                                  >
+                                    <svg width="100%" height="100%" viewBox="0 0 44 44" className="text-foreground/70">
+                                      <line x1="6" y1="38" x2="38" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
                                   </span>
                                 )}
                               </button>
@@ -577,18 +633,36 @@ export default function ProductDetail() {
                       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
                         {option.values.map((value: string) => {
                           const isSel = currentOptions[option.name] === value;
+                          const isAvailable = isOptionValueAvailable(option.name, value);
+                          const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
                           return (
                             <button
                               key={value}
                               type="button"
                               role="radio"
                               aria-checked={isSel}
-                              onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                              aria-disabled={!isAvailable || undefined}
+                              onClick={() => {
+                                if (!isAvailable) {
+                                  // Don't silently change the selection to a
+                                  // variant Shopify can't fulfil. Toast surfaces
+                                  // the state so the user knows why nothing moved.
+                                  toast.error(
+                                    lang === 'en'
+                                      ? `${value} — Sold out`
+                                      : `${value} — Épuisé`,
+                                  );
+                                  return;
+                                }
+                                setSelectedOptions(prev => ({ ...prev, [option.name]: value }));
+                              }}
+                              title={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
+                              aria-label={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
                               className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                 isSel
                                   ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
                                   : 'bg-background text-foreground border-border hover:border-primary'
-                              }`}
+                              } ${!isAvailable ? 'line-through opacity-50 hover:border-border cursor-not-allowed' : ''}`}
                             >
                               {value}
                             </button>
