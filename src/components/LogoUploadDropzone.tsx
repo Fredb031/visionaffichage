@@ -151,7 +151,7 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
           error
             ? 'border-rose-400 bg-rose-50/40'
             : dragOver
-              ? 'border-[#0052CC] bg-[#0052CC]/5 scale-[1.01]'
+              ? 'border-[#0052CC] bg-[#0052CC]/5 scale-[1.02]'
               : 'border-border hover:border-[#0052CC]/50 hover:bg-secondary/30'
         }`}
       >
@@ -166,7 +166,7 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
             {lang === 'en' ? 'Drag & drop or click to browse' : 'Glisse-dépose ou clique pour choisir'}
           </div>
           <div className="text-[10px] text-muted-foreground/70 mt-1.5 uppercase tracking-wider">
-            {acceptedFormats.join(' · ')} · max {maxSizeMB}{'\u00A0'}Mo
+            {acceptedFormats.join(' · ')} · {lang === 'en' ? `max ${maxSizeMB} MB` : `max ${maxSizeMB}\u00A0Mo`}
           </div>
         </div>
       </button>
@@ -187,11 +187,23 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         }}
       />
 
-      {error && (
-        <p id="logo-upload-error" className="text-xs text-rose-600 font-semibold mt-2 text-center" role="alert">
-          {error}
-        </p>
-      )}
+      <div aria-live="polite" role="alert" className="mt-2">
+        {error && (
+          <div className="flex items-center justify-center gap-2">
+            <p id="logo-upload-error" className="text-xs text-rose-600 font-semibold text-center">
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="w-5 h-5 rounded-full bg-white hover:bg-rose-100 text-rose-500 hover:text-rose-700 flex items-center justify-center border border-rose-200 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 flex-shrink-0"
+              aria-label={lang === 'en' ? 'Dismiss error' : "Fermer l'erreur"}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
     </>
   );
 }
