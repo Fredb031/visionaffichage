@@ -1,3 +1,4 @@
+import { useEffect, useState, Suspense, lazy, useMemo, useRef, type KeyboardEventHandler } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, colorNameToHex } from '@/lib/shopify';
@@ -5,13 +6,16 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 // Keep fabric.js + customizer siblings out of the ProductDetail chunk;
-// they're only needed when the user actually opens the customizer.
+// they're only needed when the user actually opens the customizer. The
+// lazy() call MUST sit after React's import — Vite's HMR transform
+// doesn't hoist named imports the way plain ESM does, so calling
+// lazy() before its import line produced "Cannot access 'lazy' before
+// initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
-import { useEffect, useState, Suspense, lazy, useMemo, useRef, type KeyboardEventHandler } from 'react';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
