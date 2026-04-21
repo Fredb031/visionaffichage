@@ -50,6 +50,13 @@ export default function AdminImageGen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedImage[]>([]);
+  // Polite screen-reader announcement for each freshly generated image.
+  // Without this, a SR user clicks "Générer", hears nothing for 8-12s
+  // while the provider works, and gets no confirmation that the new
+  // thumbnail landed at the top of the grid. The button label flips
+  // back to "Générer" but focus stays on it, so the state change goes
+  // unannounced.
+  const [announce, setAnnounce] = useState('');
   // Guard setState against a navigate-away mid-generation (DALL-E HD
   // calls commonly take 8-12s; an admin who clicks away in that window
   // would otherwise trigger React's unmounted-setState dev warning
@@ -93,6 +100,7 @@ export default function AdminImageGen() {
       const img = await generateImage({ prompt: prompt.trim(), aspect });
       if (!isMountedRef.current) return;
       setHistory(h => [img, ...h].slice(0, 12));
+      setAnnounce(`Image générée : ${img.prompt.slice(0, 80)}${img.prompt.length > 80 ? '…' : ''}`);
     } catch (err) {
       if (!isMountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -300,6 +308,16 @@ export default function AdminImageGen() {
           </div>
         )}
       </section>
+
+      {/* Visually hidden live region — lets screen-reader users hear
+          "Image générée" when a new thumbnail prepends to the history
+          grid. Kept outside the conditional section so the node exists
+          in the DOM before the first generation finishes (SRs don't
+          reliably announce live regions that appear at the same time
+          as their content). */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announce}
+      </div>
 
       {history.length > 0 && (
         <section className="bg-white border border-zinc-200 rounded-2xl p-5">
