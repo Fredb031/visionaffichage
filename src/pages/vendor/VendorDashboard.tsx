@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/admin/StatCard';
 import { Sparkline } from '@/components/admin/Sparkline';
@@ -240,6 +240,104 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+// --- Client CRM notes (Task 10.8) --------------------------------------
+//
+// Vendors need a quick place to jot "Marc likes gold foil / wants same
+// colour as last order" before a sales call. We derive the client list
+// from orders credited to this vendor (so each salesman only sees the
+// customers they actually worked with) and persist private notes in
+// localStorage scoped by vendorId + customer email.
+//
+// Shape: { [vendorId]: { [customerEmail]: [{ body, at, author }] } }
+//
+// TODO(backend): swap loadClientNotes/persistClientNotes for POST/GET
+// against /api/vendor/client-notes once Supabase owns the table. The
+// note list UI (add-input + append-only list with per-note delete) is
+// independent of the storage adapter and should survive the swap.
+
+const CLIENT_NOTES_STORAGE_KEY = 'vision-vendor-client-notes';
+
+interface ClientNote {
+  body: string;
+  at: string;
+  author: string;
+}
+
+type ClientNotesMap = Record<string, Record<string, ClientNote[]>>;
+
+function loadClientNotes(): ClientNotesMap {
+  try {
+    const raw = localStorage.getItem(CLIENT_NOTES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as ClientNotesMap;
+  } catch {
+    return {};
+  }
+}
+
+function persistClientNotes(map: ClientNotesMap): void {
+  try {
+    localStorage.setItem(CLIENT_NOTES_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Quota exceeded — unlikely for plain-text notes but swallow to
+    // avoid a crash; the UI's empty state will still render.
+  }
+}
+
+interface ClientCrmRow {
+  email: string;
+  customerName: string;
+  orderCount: number;
+  ltv: number;
+  lastOrderAt: string | null;
+}
+
+/** Fold the vendor's full line list into one row per unique customer
+ *  email. customerName falls back to the most recent order's recorded
+ *  name (so a company-named order wins over a blank one). */
+function buildClientRows(summary: VendorCommissionSummary): ClientCrmRow[] {
+  const byEmail = new Map<string, ClientCrmRow>();
+  for (const line of summary.lines) {
+    const email = (line.order.email ?? '').toLowerCase().trim();
+    if (!email) continue;
+    const existing = byEmail.get(email);
+    if (existing) {
+      existing.orderCount += 1;
+      existing.ltv = Math.round((existing.ltv + line.order.total) * 100) / 100;
+      const existingTs = existing.lastOrderAt ? Date.parse(existing.lastOrderAt) : 0;
+      const candidateTs = Date.parse(line.order.createdAt);
+      if (candidateTs > existingTs) {
+        existing.lastOrderAt = line.order.createdAt;
+        if (line.order.customerName) existing.customerName = line.order.customerName;
+      }
+    } else {
+      byEmail.set(email, {
+        email,
+        customerName: line.order.customerName || email,
+        orderCount: 1,
+        ltv: Math.round(line.order.total * 100) / 100,
+        lastOrderAt: line.order.createdAt,
+      });
+    }
+  }
+  return Array.from(byEmail.values()).sort((a, b) => {
+    const ta = a.lastOrderAt ? Date.parse(a.lastOrderAt) : 0;
+    const tb = b.lastOrderAt ? Date.parse(b.lastOrderAt) : 0;
+    return tb - ta;
+  });
+}
+
+function formatDateTime(iso: string, lang: 'fr' | 'en'): string {
+  try {
+    return new Date(iso).toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return iso; }
+}
+
 export default function VendorDashboard() {
   useDocumentTitle('Tableau de bord — Vendeur Vision Affichage');
   const { lang } = useLang();
@@ -424,6 +522,59 @@ export default function VendorDashboard() {
     a.click();
     document.body.removeChild(a);
   }, []);
+
+  // Task 10.8 — client CRM rows + private notes state.
+  // Rows derive from the full (un-month-filtered) summary so a vendor
+  // can still see last year's clients during a slow month. Notes are
+  // stored in localStorage scoped by vendorId + lowercased email.
+  const clientRows = useMemo(() => buildClientRows(fullSummary), [fullSummary]);
+
+  const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
+  const [clientNotes, setClientNotes] = useState<Record<string, ClientNote[]>>(() => {
+    const map = loadClientNotes();
+    return map[vendorId] ?? {};
+  });
+  const [noteDraft, setNoteDraft] = useState('');
+
+  // Reload per-vendor notes map when vendorId flips (admin preview).
+  useEffect(() => {
+    const map = loadClientNotes();
+    setClientNotes(map[vendorId] ?? {});
+    setSelectedClientEmail(null);
+    setNoteDraft('');
+  }, [vendorId]);
+
+  const toggleClientRow = useCallback((email: string) => {
+    setSelectedClientEmail(prev => (prev === email ? null : email));
+    setNoteDraft('');
+  }, []);
+
+  const persistVendorNotes = useCallback((next: Record<string, ClientNote[]>) => {
+    const map = loadClientNotes();
+    map[vendorId] = next;
+    persistClientNotes(map);
+    setClientNotes(next);
+  }, [vendorId]);
+
+  const onAddNote = useCallback((email: string) => {
+    const body = noteDraft.trim();
+    if (!body) return;
+    const entry: ClientNote = {
+      body,
+      at: new Date().toISOString(),
+      author: user?.email || user?.name || 'vendor',
+    };
+    const prev = clientNotes[email] ?? [];
+    const next = { ...clientNotes, [email]: [...prev, entry] };
+    persistVendorNotes(next);
+    setNoteDraft('');
+  }, [noteDraft, user, clientNotes, persistVendorNotes]);
+
+  const onDeleteNote = useCallback((email: string, at: string) => {
+    const prev = clientNotes[email] ?? [];
+    const next = { ...clientNotes, [email]: prev.filter(n => n.at !== at) };
+    persistVendorNotes(next);
+  }, [clientNotes, persistVendorNotes]);
 
   // Task 10.4 — share the public profile URL. We copy to clipboard
   // instead of opening a new tab because the primary use-case is
@@ -697,6 +848,173 @@ export default function VendorDashboard() {
           )}
         </p>
       )}
+
+      {/* Mes clients / My clients — Task 10.8.
+          Lightweight per-vendor CRM: one row per unique customer
+          email this vendor has sold to, with an inline notes panel
+          that opens on row click. Notes are strictly private and
+          scoped by vendorId + customer email. */}
+      <section
+        aria-labelledby="vendor-clients-heading"
+        className="bg-white border border-zinc-200 rounded-2xl overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+          <div>
+            <h2 id="vendor-clients-heading" className="font-bold flex items-center gap-2">
+              <Users size={16} className="text-[#1B3A6B]" aria-hidden="true" />
+              {L('Mes clients', 'My clients')}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {L(
+                'Clients crédités à toi, avec notes privées par client.',
+                'Customers credited to you, with private per-client notes.',
+              )}
+            </p>
+          </div>
+          <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            {L(`${clientRows.length} client(s)`, `${clientRows.length} client(s)`)}
+          </div>
+        </div>
+
+        {clientRows.length === 0 ? (
+          <div className="p-10 text-center text-sm text-zinc-500">
+            {L(
+              'Aucun client crédité pour l\u2019instant. Les clients apparaîtront ici dès ta première vente.',
+              'No credited clients yet. Clients will appear here after your first sale.',
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100 bg-zinc-50/60">
+                  <th className="px-5 py-2.5 w-8" aria-hidden="true" />
+                  <th className="px-3 py-2.5">{L('Client', 'Client')}</th>
+                  <th className="px-3 py-2.5">{L('Courriel', 'Email')}</th>
+                  <th className="px-3 py-2.5 text-right">{L('Commandes', 'Orders')}</th>
+                  <th className="px-3 py-2.5 text-right">{L('Valeur vie', 'LTV')}</th>
+                  <th className="px-3 py-2.5">{L('Dernière commande', 'Last order')}</th>
+                  <th className="px-5 py-2.5 text-right">{L('Notes', 'Notes')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientRows.map(row => {
+                  const expanded = selectedClientEmail === row.email;
+                  const notes = clientNotes[row.email] ?? [];
+                  return (
+                    <Fragment key={row.email}>
+                      <tr
+                        onClick={() => toggleClientRow(row.email)}
+                        className={`border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/70 transition-colors cursor-pointer ${expanded ? 'bg-zinc-50/70' : ''}`}
+                        aria-expanded={expanded}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleClientRow(row.email);
+                          }
+                        }}
+                      >
+                        <td className="px-5 py-3 text-zinc-400">
+                          {expanded
+                            ? <ChevronDown size={14} aria-hidden="true" />
+                            : <ChevronRight size={14} aria-hidden="true" />}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="font-semibold text-sm">{row.customerName}</div>
+                        </td>
+                        <td className="px-3 py-3 text-xs text-zinc-500 truncate max-w-[240px]">{row.email}</td>
+                        <td className="px-3 py-3 text-right font-semibold tabular-nums">{row.orderCount}</td>
+                        <td className="px-3 py-3 text-right font-bold text-[#B37D10] tabular-nums">{formatMoney(row.ltv, lang)}</td>
+                        <td className="px-3 py-3 text-xs text-zinc-600">{formatDate(row.lastOrderAt, lang)}</td>
+                        <td className="px-5 py-3 text-right">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-[#1B3A6B]/10 text-[#1B3A6B] px-2 py-1 rounded-md">
+                            <StickyNote size={11} aria-hidden="true" />
+                            {notes.length}
+                          </span>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr className="border-b border-zinc-100 last:border-b-0 bg-zinc-50/40">
+                          <td colSpan={7} className="px-5 py-4">
+                            <div className="space-y-3">
+                              <div className="flex items-start gap-2">
+                                <textarea
+                                  value={noteDraft}
+                                  onChange={e => setNoteDraft(e.target.value)}
+                                  onKeyDown={e => {
+                                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                                      e.preventDefault();
+                                      onAddNote(row.email);
+                                    }
+                                  }}
+                                  placeholder={L(
+                                    `Note privée à propos de ${row.customerName}… (ex: « aime feuille d\u2019or, veut même couleur que sa dernière commande »)`,
+                                    `Private note about ${row.customerName}… (e.g. "likes gold foil, wants same colour as last order")`,
+                                  )}
+                                  rows={2}
+                                  aria-label={L('Ajouter une note', 'Add a note')}
+                                  className="flex-1 min-w-0 resize-y text-sm px-3 py-2 border border-zinc-200 rounded-lg bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => onAddNote(row.email)}
+                                  disabled={noteDraft.trim().length === 0}
+                                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                                  aria-label={L('Ajouter la note', 'Add the note')}
+                                >
+                                  <Send size={12} aria-hidden="true" />
+                                  {L('Ajouter', 'Add')}
+                                </button>
+                              </div>
+
+                              {notes.length === 0 ? (
+                                <p className="text-xs text-zinc-500 italic">
+                                  {L(
+                                    'Aucune note encore. Les notes sont privées (ce navigateur seulement).',
+                                    'No notes yet. Notes are private (this browser only).',
+                                  )}
+                                </p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {notes.map(note => (
+                                    <li
+                                      key={note.at}
+                                      className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm whitespace-pre-wrap break-words text-zinc-800">{note.body}</p>
+                                        <p className="mt-1 text-[11px] text-zinc-500">
+                                          {formatDateTime(note.at, lang)}
+                                          {note.author ? ` · ${note.author}` : ''}
+                                        </p>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => onDeleteNote(row.email, note.at)}
+                                        className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-white border border-red-200 text-red-700 rounded-md hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                                        aria-label={L('Supprimer la note', 'Delete note')}
+                                      >
+                                        <Trash2 size={10} aria-hidden="true" />
+                                        {L('Suppr.', 'Del.')}
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section
         aria-labelledby="vendor-tax-forms-heading"
