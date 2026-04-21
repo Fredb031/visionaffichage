@@ -10,31 +10,16 @@ import {
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { downloadCsv as downloadCsvBlob, csvFilename } from '@/lib/csv';
+import { useAuthStore } from '@/stores/authStore';
+import { hasPermission } from '@/lib/permissions';
 
-/** CSV-injection-safe escape: same policy as AdminOrders exportOrdersCsv.
- * Wraps every field in double quotes (RFC 4180) and escapes internal
- * quotes. Prefixes a tab when the cell starts with '=' '+' '-' '@' so
- * Excel / Sheets treat the value as text instead of a formula — a
- * product type named '=SUM(...)' or a customer surname starting with '@'
- * would otherwise execute when the admin opens the CSV. */
-function csvEscape(v: unknown): string {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  let s = String(v ?? '');
-  if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-  return `"${s.replace(/"/g, '""')}"`;
-}
-
-function downloadCsv(rows: string[][], filename: string, toastLabel: string): void {
-  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+// Thin wrapper around the shared CSV helper that also pops a success
+// toast. The lib/csv.ts builder is UI-agnostic (it'll be reused by
+// headless exporters in commissions.ts + future admin reports), so
+// the toast stays here where the page already owns sonner.
+function exportCsv(rows: ReadonlyArray<ReadonlyArray<unknown>>, slug: string, toastLabel: string): void {
+  downloadCsvBlob(rows, csvFilename(slug));
   toast.success(toastLabel);
 }
 
@@ -60,6 +45,13 @@ function parseDayKeyLocal(key: string): Date {
 
 export default function AdminAnalytics() {
   useDocumentTitle('Analytique — Admin Vision Affichage');
+  // Gate the export buttons on the same permission used by the other
+  // admin CSV exports (AdminVendors, VendorDashboard). A salesman who
+  // lost orders:read via an override shouldn't walk away with a CSV of
+  // the 14-day revenue chart. Button stays mounted so screen readers
+  // can still announce the page structure, but the click is a no-op.
+  const user = useAuthStore(s => s.user);
+  const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
   const dailyRevenue = useMemo(() => {
     const map = new Map<string, number>();
     for (const o of SHOPIFY_ORDERS_SNAPSHOT) {
@@ -146,23 +138,27 @@ export default function AdminAnalytics() {
               <button
                 type="button"
                 onClick={() => {
+                  if (!canExport) {
+                    toast.error('Permission orders:read requise pour exporter');
+                    return;
+                  }
                   if (dailyRevenue.length === 0) {
                     toast.info('Aucune donnée à exporter');
                     return;
                   }
-                  downloadCsv(
+                  exportCsv(
                     [['Date', 'Revenus'], ...dailyRevenue.map(([day, revenue]) => [day, revenue.toFixed(2)])],
-                    `vision-revenus-quotidiens-${new Date().toISOString().slice(0, 10)}.csv`,
+                    'revenus-quotidiens',
                     `${dailyRevenue.length} jour${dailyRevenue.length > 1 ? 's' : ''} exporté${dailyRevenue.length > 1 ? 's' : ''}`,
                   );
                 }}
-                disabled={dailyRevenue.length === 0}
+                disabled={!canExport || dailyRevenue.length === 0}
                 className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Exporter les revenus quotidiens en CSV"
-                aria-label="Exporter les revenus quotidiens en CSV"
+                title={canExport ? 'Exporter les revenus quotidiens en CSV' : 'Permission requise'}
+                aria-label="Télécharger CSV des revenus quotidiens"
               >
                 <Download size={12} aria-hidden="true" />
-                Exporter CSV
+                Télécharger CSV
               </button>
             </div>
           </div>
@@ -209,11 +205,15 @@ export default function AdminAnalytics() {
             <button
               type="button"
               onClick={() => {
+                if (!canExport) {
+                  toast.error('Permission orders:read requise pour exporter');
+                  return;
+                }
                 if (topCustomers.length === 0) {
                   toast.info('Aucune donnée à exporter');
                   return;
                 }
-                downloadCsv(
+                exportCsv(
                   [
                     ['Rang', 'Prénom', 'Nom', 'Courriel', 'Total dépensé'],
                     ...topCustomers.map((c, i) => [
@@ -224,17 +224,17 @@ export default function AdminAnalytics() {
                       c.totalSpent.toFixed(2),
                     ]),
                   ],
-                  `vision-top-clients-${new Date().toISOString().slice(0, 10)}.csv`,
+                  'top-clients',
                   `${topCustomers.length} client${topCustomers.length > 1 ? 's' : ''} exporté${topCustomers.length > 1 ? 's' : ''}`,
                 );
               }}
-              disabled={topCustomers.length === 0}
+              disabled={!canExport || topCustomers.length === 0}
               className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Exporter le top clients en CSV"
-              aria-label="Exporter le top clients en CSV"
+              title={canExport ? 'Exporter le top clients en CSV' : 'Permission requise'}
+              aria-label="Télécharger CSV du top clients"
             >
               <Download size={12} aria-hidden="true" />
-              Exporter CSV
+              Télécharger CSV
             </button>
           </div>
           <ol className="space-y-3 list-none">
@@ -264,11 +264,15 @@ export default function AdminAnalytics() {
             <button
               type="button"
               onClick={() => {
+                if (!canExport) {
+                  toast.error('Permission orders:read requise pour exporter');
+                  return;
+                }
                 if (productTypeRevenue.length === 0) {
                   toast.info('Aucune donnée à exporter');
                   return;
                 }
-                downloadCsv(
+                exportCsv(
                   [
                     ['Type de produit', 'Nombre de produits', 'Revenus min. cumulés', 'Prix moyen min.'],
                     ...productTypeRevenue.map(t => [
@@ -278,17 +282,17 @@ export default function AdminAnalytics() {
                       (t.revenue / Math.max(t.count, 1)).toFixed(2),
                     ]),
                   ],
-                  `vision-catalogue-par-type-${new Date().toISOString().slice(0, 10)}.csv`,
+                  'catalogue-par-type',
                   `${productTypeRevenue.length} type${productTypeRevenue.length > 1 ? 's' : ''} exporté${productTypeRevenue.length > 1 ? 's' : ''}`,
                 );
               }}
-              disabled={productTypeRevenue.length === 0}
+              disabled={!canExport || productTypeRevenue.length === 0}
               className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Exporter le catalogue par type en CSV"
-              aria-label="Exporter le catalogue par type en CSV"
+              title={canExport ? 'Exporter le catalogue par type en CSV' : 'Permission requise'}
+              aria-label="Télécharger CSV du catalogue par type"
             >
               <Download size={12} aria-hidden="true" />
-              Exporter CSV
+              Télécharger CSV
             </button>
           </div>
         </div>
