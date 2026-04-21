@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
@@ -89,6 +89,18 @@ export default function ProductDetail() {
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = handle ? isWishlisted(handle) : false;
+  // Task 3.16 — wishlist heart parity with ProductCard. Key-based
+  // remount pattern: bumping `wishlistBurstKey` swaps the particle
+  // overlay with a fresh DOM node, restarting the CSS keyframe from
+  // frame 0. Only bumped on ADD so removing feels like the heart
+  // quietly clearing rather than a second celebration.
+  const [wishlistBurstKey, setWishlistBurstKey] = useState(0);
+  const handleWishlistClick = () => {
+    if (!handle) return;
+    const wasAdding = !saved;
+    toggleWishlist(handle);
+    if (wasAdding) setWishlistBurstKey(k => k + 1);
+  };
 
   // React Router keeps ProductDetail mounted across /product/:handle
   // nav — meaning selectedOptions from the previous product leaks
@@ -635,7 +647,8 @@ export default function ProductDetail() {
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-shrink-0">
                 <button
-                  onClick={() => handle && toggleWishlist(handle)}
+                  type="button"
+                  onClick={handleWishlistClick}
                   aria-label={saved
                     ? (lang === 'en' ? 'Remove from wishlist' : 'Retirer des favoris')
                     : (lang === 'en' ? 'Save to wishlist' : 'Ajouter aux favoris')}
@@ -648,8 +661,91 @@ export default function ProductDetail() {
                       ? 'border-[#E8A838] bg-[#E8A838]/10 text-[#B37D10]'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-primary'
                   }`}
+                  style={{ overflow: 'visible' }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  {/* Task 3.16 — heart-burst parity with ProductCard.
+                      Particle overlay sits inside an overflow-visible
+                      span so the 6 particles fan outside the button
+                      without being clipped. Only rendered on ADD (saved
+                      && burstKey > 0); remove is a silent color flip.
+                      prefers-reduced-motion drops the animation and
+                      hides the particles — see the @media rule below. */}
+                  <span
+                    key={wishlistBurstKey}
+                    className="pdp-heart-burst relative inline-flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <Heart
+                      size={16}
+                      fill={saved ? '#E8362B' : 'none'}
+                      color={saved ? '#E8362B' : 'currentColor'}
+                      strokeWidth={2}
+                      className="pdp-heart-icon"
+                      aria-hidden="true"
+                    />
+                    {wishlistBurstKey > 0 && saved && (
+                      <span className="pdp-heart-particles" aria-hidden="true">
+                        {[0, 1, 2, 3, 4, 5].map(i => (
+                          <span key={i} className={`pdp-heart-particle pdp-heart-particle-${i}`} />
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                  <style>{`
+                    @keyframes pdp-heart-pulse {
+                      0%   { transform: scale(1); }
+                      40%  { transform: scale(1.35); }
+                      100% { transform: scale(1); }
+                    }
+                    @keyframes pdp-heart-flash {
+                      0%   { filter: brightness(1.4) saturate(1.4); }
+                      60%  { filter: brightness(1.1) saturate(1.1); }
+                      100% { filter: none; }
+                    }
+                    @keyframes pdp-heart-particle-out {
+                      0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.4); opacity: 1; }
+                      60%  { opacity: 1; }
+                      100% { transform: translate(-50%, -50%) translate(var(--pdp-dx), var(--pdp-dy)) scale(0.9); opacity: 0; }
+                    }
+                    .pdp-heart-burst .pdp-heart-icon {
+                      animation: pdp-heart-pulse 400ms ease-out, pdp-heart-flash 400ms ease-out;
+                      transform-origin: center;
+                      will-change: transform;
+                    }
+                    .pdp-heart-particles {
+                      position: absolute;
+                      left: 50%;
+                      top: 50%;
+                      width: 0;
+                      height: 0;
+                      pointer-events: none;
+                    }
+                    .pdp-heart-particle {
+                      position: absolute;
+                      left: 0;
+                      top: 0;
+                      width: 5px;
+                      height: 5px;
+                      margin-left: -2.5px;
+                      margin-top: -2.5px;
+                      border-radius: 9999px;
+                      background: #E8362B;
+                      box-shadow: 0 0 3px rgba(232, 54, 43, 0.6);
+                      transform: translate(-50%, -50%);
+                      animation: pdp-heart-particle-out 520ms ease-out forwards;
+                      will-change: transform, opacity;
+                    }
+                    .pdp-heart-particle-0 { --pdp-dx: 14px;  --pdp-dy: -14px; }
+                    .pdp-heart-particle-1 { --pdp-dx: 18px;  --pdp-dy: 2px;   }
+                    .pdp-heart-particle-2 { --pdp-dx: 10px;  --pdp-dy: 16px;  }
+                    .pdp-heart-particle-3 { --pdp-dx: -10px; --pdp-dy: 16px;  }
+                    .pdp-heart-particle-4 { --pdp-dx: -18px; --pdp-dy: 2px;   }
+                    .pdp-heart-particle-5 { --pdp-dx: -14px; --pdp-dy: -14px; }
+                    @media (prefers-reduced-motion: reduce) {
+                      .pdp-heart-burst .pdp-heart-icon { animation: none; }
+                      .pdp-heart-particles { display: none; }
+                    }
+                  `}</style>
                 </button>
                 <button
                   onClick={async () => {
