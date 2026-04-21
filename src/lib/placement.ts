@@ -8,12 +8,20 @@
  */
 import type { PrintZone } from '@/data/products';
 
+/** Detected garment bounding box, expressed as canvas percentages. */
 export type Bbox = {
   x: number; y: number; w: number; h: number;
   cx: number; cy: number;
 };
 
-type Params = {
+/** Print zone on a garment (re-exported alias of the catalogue `PrintZone`). */
+export type PlacementZone = PrintZone;
+
+/** Resolved logo placement in canvas-percent coordinates (matches LogoPlacement). */
+export type Placement = { x: number; y: number; width: number };
+
+/** Input shape for every placement helper: optional bbox, zone, and width override. */
+export type PlacementTransform = {
   /** Detected garment bbox (percentages of canvas). When absent, we fall
    * back to the printZone's declared coordinates. */
   bbox?: Bbox | null;
@@ -23,6 +31,11 @@ type Params = {
    * default relative to the bbox width. */
   widthPct?: number;
 };
+
+// Internal alias preserves the original `Params` name used across the module
+// without adding a second public surface. `PlacementTransform` is the public
+// export; call sites inside this file continue to read as before.
+type Params = PlacementTransform;
 
 /** Logo width as a percent of the CANVAS. Slightly larger default than
  * before — user feedback: the auto-placed logo was too small to read.
@@ -132,4 +145,16 @@ export function autoPlaceOnUpload(
     return centerOnGarment(p);
   }
   return centerOnChest(p);
+}
+
+/** Type guard for deserialized placement data (localStorage, URL params, API). */
+export function isValidPlacement(p: unknown): p is Placement {
+  if (!p || typeof p !== 'object') return false;
+  const { x, y, width } = p as Record<string, unknown>;
+  return (
+    typeof x === 'number' && Number.isFinite(x) &&
+    typeof y === 'number' && Number.isFinite(y) &&
+    typeof width === 'number' && Number.isFinite(width) &&
+    width > 0
+  );
 }
