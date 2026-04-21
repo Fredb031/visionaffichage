@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Key, Zap, Download, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Key, Zap, Download, Loader2, AlertCircle, CheckCircle2, Copy, Check } from 'lucide-react';
 import {
   generateImage,
   getStoredProvider,
@@ -11,6 +11,51 @@ import {
   type GeneratedImage,
 } from '@/lib/imageGen';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+const HISTORY_STORAGE_KEY = 'va:image-gen-history';
+const HISTORY_MAX = 10;
+
+// Persist only the fields we actually re-render in "Récents". Keeping the
+// payload minimal avoids quota pressure (DALL-E URLs are short but base64
+// bodies would blow the 5MB budget fast) and limits what an attacker with
+// XSS on another page can lift out of localStorage.
+interface StoredHistoryEntry {
+  prompt: string;
+  imageUrl: string;
+  createdAt: string;
+  provider?: ImageProvider;
+}
+
+function readStoredHistory(): StoredHistoryEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (e): e is StoredHistoryEntry =>
+          e &&
+          typeof e === 'object' &&
+          typeof (e as StoredHistoryEntry).prompt === 'string' &&
+          typeof (e as StoredHistoryEntry).imageUrl === 'string' &&
+          typeof (e as StoredHistoryEntry).createdAt === 'string',
+      )
+      .slice(0, HISTORY_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredHistory(entries: StoredHistoryEntry[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries.slice(0, HISTORY_MAX)));
+  } catch {
+    // Ignore quota / private-mode errors — persistence is best-effort.
+  }
+}
 
 const PRESET_PROMPTS = [
   {
@@ -50,6 +95,11 @@ export default function AdminImageGen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedImage[]>([]);
+  // 2s "Copié" flag on the prompt copy button. Separate from savedMsg so
+  // the provider-config toast and the prompt-copy feedback don't clobber
+  // each other when an admin saves-then-copies in quick succession.
+  const [promptCopied, setPromptCopied] = useState(false);
+  const promptCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Polite screen-reader announcement for each freshly generated image.
   // Without this, a SR user clicks "Générer", hears nothing for 8-12s
   // while the provider works, and gets no confirmation that the new
@@ -70,8 +120,24 @@ export default function AdminImageGen() {
       const k = getStoredApiKey(p) ?? '';
       setApiKey(k);
     }
+    // Hydrate past generations from localStorage. Map the stored
+    // {prompt, imageUrl, createdAt} shape onto the in-memory
+    // GeneratedImage shape so the existing grid renders them without a
+    // second code path.
+    const stored = readStoredHistory();
+    if (stored.length > 0) {
+      setHistory(
+        stored.map(e => ({
+          url: e.imageUrl,
+          prompt: e.prompt,
+          provider: e.provider ?? 'none',
+          generatedAt: e.createdAt,
+        })),
+      );
+    }
     return () => {
       if (savedMsgTimerRef.current) clearTimeout(savedMsgTimerRef.current);
+      if (promptCopiedTimerRef.current) clearTimeout(promptCopiedTimerRef.current);
       isMountedRef.current = false;
     };
   }, []);
@@ -111,7 +177,18 @@ export default function AdminImageGen() {
     try {
       const img = await generateImage({ prompt: prompt.trim(), aspect });
       if (!isMountedRef.current) return;
-      setHistory(h => [img, ...h].slice(0, 12));
+      setHistory(h => {
+        const next = [img, ...h].slice(0, HISTORY_MAX);
+        writeStoredHistory(
+          next.map(e => ({
+            prompt: e.prompt,
+            imageUrl: e.url,
+            createdAt: e.generatedAt,
+            provider: e.provider,
+          })),
+        );
+        return next;
+      });
       setAnnounce(`Image générée : ${img.prompt.slice(0, 80)}${img.prompt.length > 80 ? '…' : ''}`);
     } catch (err) {
       if (!isMountedRef.current) return;
@@ -119,6 +196,92 @@ export default function AdminImageGen() {
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!prompt.trim()) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(prompt);
+      } else if (typeof document !== 'undefined') {
+        // Fallback for older Safari/iOS where clipboard API is gated
+        // behind HTTPS or user-gesture quirks. execCommand is deprecated
+        // but still works in every browser we care about.
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'absolute';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setPromptCopied(true);
+      if (promptCopiedTimerRef.current) clearTimeout(promptCopiedTimerRef.current);
+      promptCopiedTimerRef.current = setTimeout(() => {
+        setPromptCopied(false);
+        promptCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      // Silent failure — copying is a convenience, not critical. The
+      // prompt is still visible and selectable in the textarea.
+    }
+  };
+
+  const handleDownloadImage = async (img: GeneratedImage) => {
+    try {
+      const resp = await fetch(img.url);
+      if (!resp.ok) throw new Error('fetch-failed');
+      const blob = await resp.blob();
+      // Content-type dictates the extension — OpenAI returns image/png,
+      // Replicate/Flux returns image/jpeg. Fall back to png when the
+      // mime is missing or unrecognized rather than inventing an
+      // extension that would confuse the OS file-type mapping.
+      const ext = blob.type === 'image/jpeg' ? 'jpg' : 'png';
+      const d = new Date(img.generatedAt);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp =
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+        `-${pad(d.getHours())}${pad(d.getMinutes())}`;
+      const filename = `vision-image-${stamp}.${ext}`;
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoke on the next tick so Safari has time to kick off the
+      // download before the URL disappears under it.
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      // If the blob fetch fails (CORS on provider CDN, network), fall
+      // back to opening the raw URL in a new tab so the user can
+      // right-click save. Better than a silent no-op.
+      if (typeof window !== 'undefined') window.open(img.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleRecallPrompt = (entryPrompt: string) => {
+    setPrompt(entryPrompt);
+    // Focus the prompt textarea so keyboard users immediately see their
+    // recalled prompt is editable, not a read-only repeat of history.
+    if (typeof document !== 'undefined') {
+      const ta = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt de génération"]');
+      ta?.focus();
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (typeof window === 'undefined') return;
+    if (!window.confirm('Effacer tout l\'historique des images générées ?')) return;
+    try {
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch {
+      // Already-cleared or storage denied — state reset below still runs.
+    }
+    setHistory([]);
   };
 
   const configured = provider !== 'none' && Boolean(apiKey);
@@ -249,21 +412,43 @@ export default function AdminImageGen() {
           Générer une image
         </h2>
 
-        <textarea
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
-          rows={4}
-          maxLength={getPromptLimit(provider)}
-          placeholder="Décris l'image que tu veux générer. Soit précis : style, cadrage, éclairage, ambiance…"
-          aria-label="Prompt de génération"
-          aria-describedby="imagegen-prompt-count"
-          aria-invalid={prompt.length > getPromptLimit(provider) || undefined}
-          className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none ${
-            prompt.length > getPromptLimit(provider) * 0.9
-              ? 'border-amber-300 focus:border-amber-500'
-              : 'border-zinc-200 focus:border-[#0052CC]'
-          }`}
-        />
+        <div className="relative">
+          <textarea
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            rows={4}
+            maxLength={getPromptLimit(provider)}
+            placeholder="Décris l'image que tu veux générer. Soit précis : style, cadrage, éclairage, ambiance…"
+            aria-label="Prompt de génération"
+            aria-describedby="imagegen-prompt-count"
+            aria-invalid={prompt.length > getPromptLimit(provider) || undefined}
+            className={`w-full border rounded-lg px-3 py-2.5 pr-24 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none ${
+              prompt.length > getPromptLimit(provider) * 0.9
+                ? 'border-amber-300 focus:border-amber-500'
+                : 'border-zinc-200 focus:border-[#0052CC]'
+            }`}
+          />
+          <button
+            type="button"
+            onClick={handleCopyPrompt}
+            disabled={!prompt.trim()}
+            aria-label={promptCopied ? 'Prompt copié' : 'Copier le prompt'}
+            aria-live="polite"
+            className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md border border-zinc-200 bg-white/90 hover:bg-white hover:border-[#0052CC] text-zinc-600 hover:text-[#0052CC] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+          >
+            {promptCopied ? (
+              <>
+                <Check size={12} aria-hidden="true" />
+                Copié
+              </>
+            ) : (
+              <>
+                <Copy size={12} aria-hidden="true" />
+                Copier
+              </>
+            )}
+          </button>
+        </div>
         <div
           id="imagegen-prompt-count"
           className={`text-[10px] mt-1 text-right font-mono ${
@@ -333,39 +518,48 @@ export default function AdminImageGen() {
 
       {history.length > 0 && (
         <section className="bg-white border border-zinc-200 rounded-2xl p-5">
-          <h2 className="font-bold text-sm mb-3">Images générées ({history.length})</h2>
+          <h2 className="font-bold text-sm mb-3">Récents ({history.length})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {history.map(img => (
               // Key on a stable identifier instead of array index. New
-              // images prepend to history (line 92), so index-keyed nodes
-              // got their src/alt swapped under them — the browser
-              // re-fetched each surviving image and any per-card focus
-              // state was lost. URL+generatedAt is unique enough for the
-              // 12-item history cap.
+              // images prepend to history, so index-keyed nodes got their
+              // src/alt swapped under them — the browser re-fetched each
+              // surviving image and any per-card focus state was lost.
+              // URL+generatedAt is unique enough for the 10-item cap.
               <div key={`${img.url}-${img.generatedAt}`} className="border border-zinc-200 rounded-xl overflow-hidden">
                 <div className="aspect-square bg-zinc-100 relative group">
-                  <img
-                    src={img.url}
-                    // Cap the alt at ~120 chars — prompts can run to 4000
-                    // and SR users were getting a 30-second prompt readout
-                    // for what should be a glanceable thumbnail. Full
-                    // prompt still lives below the image (line 299).
-                    alt={img.prompt.length > 120 ? `${img.prompt.slice(0, 117)}…` : img.prompt}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
-                  <a
-                    href={img.url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute top-2 right-2 w-8 h-8 bg-white/95 rounded-lg shadow-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                  {/* Click-to-recall — tapping the thumbnail reloads the
+                      prompt into the input so an admin can tweak a few
+                      words and re-run rather than retyping from scratch.
+                      The Download button below stops propagation so it
+                      doesn't double-fire recall + download. */}
+                  <button
+                    type="button"
+                    onClick={() => handleRecallPrompt(img.prompt)}
+                    aria-label={`Réutiliser le prompt : ${img.prompt.length > 80 ? img.prompt.slice(0, 77) + '…' : img.prompt}`}
+                    className="absolute inset-0 w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 focus-visible:ring-inset"
+                  >
+                    <img
+                      src={img.url}
+                      // Cap the alt at ~120 chars — prompts can run to 4000
+                      // and SR users were getting a 30-second prompt readout
+                      // for what should be a glanceable thumbnail. Full
+                      // prompt still lives below the image.
+                      alt={img.prompt.length > 120 ? `${img.prompt.slice(0, 117)}…` : img.prompt}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); handleDownloadImage(img); }}
+                    className="absolute top-2 right-2 w-8 h-8 bg-white/95 rounded-lg shadow-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 hover:bg-white"
                     aria-label="Télécharger l'image"
                   >
                     <Download size={14} aria-hidden="true" />
-                  </a>
+                  </button>
                 </div>
                 <div className="p-3">
                   <p className="text-xs text-zinc-700 line-clamp-3">{img.prompt}</p>
@@ -375,6 +569,15 @@ export default function AdminImageGen() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              className="text-xs text-rose-600 hover:underline font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded px-1 py-0.5"
+            >
+              Effacer l'historique
+            </button>
           </div>
         </section>
       )}
