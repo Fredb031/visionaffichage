@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown, Pencil, ExternalLink } from 'lucide-react';
+import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown, Pencil, ExternalLink, Users } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
 import { plural } from '@/lib/i18n';
@@ -880,9 +880,32 @@ export default function AdminVendors() {
         // Empty-state so a narrowed search (e.g. typo in the vendor's
         // name) doesn't just show an empty grid with no explanation —
         // admins were left staring at blank whitespace, unsure whether
-        // the page crashed or simply had no matches.
-        <div className="bg-white border border-zinc-200 rounded-2xl p-10 text-center text-sm text-zinc-500">
-          Aucun vendeur trouvé.
+        // the page crashed or simply had no matches. Now renders an
+        // icon, a diagnostic hint, and a Réinitialiser button when a
+        // filter is active so the admin can recover in one click.
+        <div className="bg-white border border-zinc-200 rounded-2xl p-10 text-center">
+          <div className="mx-auto max-w-sm flex flex-col items-center">
+            <div className="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center mb-4" aria-hidden="true">
+              <Users className="w-6 h-6 text-zinc-400" />
+            </div>
+            <div className="text-sm font-extrabold text-zinc-800 mb-1">
+              Aucun vendeur ne correspond
+            </div>
+            <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+              {query.trim() || status !== 'all'
+                ? 'Ajuste la recherche ou le filtre de statut pour retrouver ton équipe.'
+                : 'Invite ton premier vendeur pour commencer à suivre les commissions.'}
+            </p>
+            {(query.trim() || status !== 'all') && (
+              <button
+                type="button"
+                onClick={() => { setQuery(''); setStatus('all'); }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0052CC] hover:bg-[#003f9e] px-4 py-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 transition-colors"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
         </div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
