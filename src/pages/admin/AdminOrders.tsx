@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2, Archive, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
@@ -121,6 +121,8 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilter);
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
   const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
+  const [archivedIds, setArchivedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(0);
 
   // Reset to first page whenever the filter or search changes so we
@@ -190,6 +192,41 @@ export default function AdminOrders() {
     }
   };
 
+  // Bulk: mark every currently-selected order as shipped. We persist to
+  // the same localStorage key so a reload keeps the fulfillment badges.
+  const bulkMarkShipped = () => {
+    if (selectedIds.size === 0) return;
+    const next = new Set(shippedIds);
+    selectedIds.forEach(id => next.add(id));
+    setShippedIds(next);
+    try {
+      localStorage.setItem('vision-shipped-orders', JSON.stringify([...next]));
+    } catch (err) {
+      console.warn('[AdminOrders] Could not persist shipped orders:', err);
+    }
+    toast.success(`${selectedIds.size} commande${selectedIds.size > 1 ? 's' : ''} marquée${selectedIds.size > 1 ? 's' : ''} expédiée${selectedIds.size > 1 ? 's' : ''}`);
+    setSelectedIds(new Set());
+  };
+
+  // Bulk archive — removes rows from the active view. Not a destructive
+  // operation; the snapshot is immutable, so we keep the id set in state
+  // (persisted) and filter the table on read.
+  const bulkArchive = () => {
+    if (selectedIds.size === 0) return;
+    const next = new Set(archivedIds);
+    selectedIds.forEach(id => next.add(id));
+    setArchivedIds(next);
+    toast.success(`${selectedIds.size} commande${selectedIds.size > 1 ? 's' : ''} archivée${selectedIds.size > 1 ? 's' : ''}`);
+    setSelectedIds(new Set());
+  };
+
+  const toggleRowSelected = (id: number, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
+
   const augmented = useMemo(
     () => SHOPIFY_ORDERS_SNAPSHOT.map(o =>
       shippedIds.has(o.id) && o.fulfillmentStatus === null
@@ -205,6 +242,7 @@ export default function AdminOrders() {
     // the order's own email — a Shopify export could carry one through.
     const q = normalizeInvisible(query).trim().toLowerCase();
     return augmented.filter(o => {
+      if (archivedIds.has(o.id)) return false;
       if (statusFilter === 'paid' && o.financialStatus !== 'paid') return false;
       if (statusFilter === 'pending' && o.financialStatus !== 'pending') return false;
       if (statusFilter === 'fulfilled' && o.fulfillmentStatus !== 'fulfilled') return false;
@@ -218,7 +256,7 @@ export default function AdminOrders() {
         String(o.id).includes(q)
       );
     });
-  }, [augmented, query, statusFilter]);
+  }, [augmented, query, statusFilter, archivedIds]);
 
   // Paginated slice. Rendering 100+ order rows at once caused noticeable
   // first-paint jank on the admin route.
@@ -226,6 +264,28 @@ export default function AdminOrders() {
     () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [filtered, page],
   );
+
+  // Select-all applies to the current filtered view (all pages) so the
+  // admin can act on "every paid order matching this search" in one go
+  // without tab-clicking through pagination. Tri-state: fully unchecked,
+  // fully checked, or indeterminate when only some rows are selected.
+  const allVisibleIds = useMemo(() => filtered.map(o => o.id), [filtered]);
+  const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
+  const someSelected = !allSelected && allVisibleIds.some(id => selectedIds.has(id));
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allVisibleIds));
+    }
+  };
 
   const lastSync = new Date(SHOPIFY_SNAPSHOT_META.syncedAt);
 
@@ -273,6 +333,60 @@ export default function AdminOrders() {
         </div>
       </header>
 
+      {selectedIds.size > 0 && (
+        <div
+          role="region"
+          aria-label="Actions groupées"
+          className="sticky top-0 z-20 flex items-center justify-between gap-3 flex-wrap bg-[#0052CC] text-white px-4 py-3 rounded-xl shadow-lg"
+        >
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/20 text-xs font-bold">
+              {selectedIds.size}
+            </span>
+            <span className="text-sm font-bold">
+              {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={bulkMarkShipped}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white text-[#0052CC] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+            >
+              <Truck size={13} aria-hidden="true" />
+              Marquer expédiées
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const selectedOrders = filtered.filter(o => selectedIds.has(o.id));
+                exportOrdersCsv(selectedOrders);
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+            >
+              <Download size={13} aria-hidden="true" />
+              Exporter CSV
+            </button>
+            <button
+              type="button"
+              onClick={bulkArchive}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+            >
+              <Archive size={13} aria-hidden="true" />
+              Archiver
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              aria-label="Effacer la sélection"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+            >
+              <X size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
@@ -309,6 +423,17 @@ export default function AdminOrders() {
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-[11px] font-bold text-zinc-500 tracking-wider uppercase">
               <tr>
+                <th scope="col" className="px-4 py-3 w-10">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    disabled={allVisibleIds.length === 0}
+                    aria-label={allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+                    className="w-4 h-4 rounded border-zinc-300 text-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/25 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </th>
                 <th className="text-left px-4 py-3">#</th>
                 <th className="text-left px-4 py-3">Client</th>
                 <th className="text-right px-4 py-3">Articles</th>
@@ -321,7 +446,7 @@ export default function AdminOrders() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-zinc-400 text-sm">
+                  <td colSpan={8} className="text-center py-12 text-zinc-400 text-sm">
                     Aucune commande trouvée
                   </td>
                 </tr>
@@ -352,8 +477,19 @@ export default function AdminOrders() {
                     role="button"
                     tabIndex={0}
                     aria-label={`Voir les détails de la commande ${o.name}`}
-                    className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors focus:outline-none focus-visible:bg-zinc-50 focus-visible:shadow-[inset_0_0_0_2px_#0052CC]"
+                    aria-selected={selectedIds.has(o.id)}
+                    className={`border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors focus:outline-none focus-visible:bg-zinc-50 focus-visible:shadow-[inset_0_0_0_2px_#0052CC] ${selectedIds.has(o.id) ? 'bg-blue-50/50' : ''}`}
                   >
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(o.id)}
+                        onChange={e => toggleRowSelected(o.id, e)}
+                        onClick={e => e.stopPropagation()}
+                        aria-label={`Sélectionner ${o.name}`}
+                        className="w-4 h-4 rounded border-zinc-300 text-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/25 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-bold">{o.name}</td>
                     <td className="px-4 py-3">
                       <div className="font-semibold">{o.customerName.trim() || '—'}</div>
