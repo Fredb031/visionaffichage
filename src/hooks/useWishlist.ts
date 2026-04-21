@@ -87,6 +87,40 @@ export function useWishlist() {
     return handles.includes(norm);
   }, [handles]);
 
+  // Explicit remove — callers previously had to call toggle() with a
+  // membership check in userland to achieve "remove if present". This
+  // avoids accidentally re-adding a handle in a race where the state
+  // read used to check membership was stale relative to storage.
+  // No-op if the handle isn't present so consumers can call it
+  // unconditionally (e.g. a "clear from wishlist" link on a product
+  // that may already have been removed in another tab).
+  const remove = useCallback((handle: string) => {
+    const norm = handle.trim().toLowerCase();
+    if (!norm) return;
+    setHandles(prev => {
+      if (!prev.includes(norm)) return prev;
+      const next = prev.filter(h => h !== norm);
+      try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
+
+  // Nuke the whole list — used by the "Clear wishlist" affordance in
+  // the account page. Removes the storage key entirely (rather than
+  // writing '[]') so a subsequent readStorage falls through the
+  // nullish coalescing in the same path a first-visit user would.
+  // Broadcasts the same same-tab event so sibling ProductCard hearts
+  // flip off without needing a reload.
+  const clear = useCallback(() => {
+    setHandles(prev => {
+      if (prev.length === 0) return prev;
+      try { localStorage.removeItem(KEY); } catch { /* private mode */ }
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+      return [];
+    });
+  }, []);
+
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       // e.key === null fires when another tab calls localStorage.clear()
@@ -103,5 +137,10 @@ export function useWishlist() {
     };
   }, []);
 
-  return { handles, toggle, has };
+  return { handles, toggle, has, remove, clear };
 }
+
+// Exported return type so consumers (e.g. a wrapper hook or a
+// context provider) can strongly type the wishlist API without
+// reaching for ReturnType<typeof useWishlist> at every call site.
+export type Wishlist = ReturnType<typeof useWishlist>;
