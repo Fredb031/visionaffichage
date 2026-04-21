@@ -120,6 +120,13 @@ export default function ProductDetail() {
   // frame 0. Only bumped on ADD so removing feels like the heart
   // quietly clearing rather than a second celebration.
   const [wishlistBurstKey, setWishlistBurstKey] = useState(0);
+  // Task 18.4 — double-click guard on the Web Share CTA. A rapid tap
+  // queues two navigator.share() invocations: the first pops the
+  // native share sheet, the second arrives while the first's Promise
+  // is still pending and throws "InvalidStateError" on iOS Safari
+  // (fires twice on Android). Lock the button for the duration of
+  // the share/clipboard async so the second click is swallowed.
+  const [sharing, setSharing] = useState(false);
   const handleWishlistClick = () => {
     if (!handle) return;
     const wasAdding = !saved;
@@ -779,6 +786,8 @@ export default function ProductDetail() {
                     // to Messages / Slack / email; otherwise fall back to
                     // clipboard. `text` gives apps without a URL field
                     // (WhatsApp preview) a useful caption.
+                    if (sharing) return;
+                    setSharing(true);
                     const productTitle = localProduct
                       ? categoryLabel(localProduct.category, lang)
                       : product.title;
@@ -787,28 +796,34 @@ export default function ProductDetail() {
                       text: `Vision Affichage \u2014 ${productTitle}`,
                       url: window.location.href,
                     };
-                    if (typeof navigator.share === 'function') {
-                      // User-cancel throws AbortError here. Stay silent on
-                      // dismissal — no "copied" toast and no error toast,
-                      // the share sheet itself was the feedback.
-                      try {
-                        await navigator.share(shareData);
-                      } catch {
-                        /* share dismissed — swallow */
-                      }
-                      return;
-                    }
-                    // Clipboard fallback. Only toast on *success* so a
-                    // silently failing clipboard (iframe / HTTP / denied)
-                    // doesn't lie to the user with "Lien copié".
                     try {
-                      await navigator.clipboard.writeText(window.location.href);
-                      toast.success(lang === 'en' ? 'Link copied' : 'Lien copié');
-                    } catch {
-                      /* clipboard unavailable — stay silent */
+                      if (typeof navigator.share === 'function') {
+                        // User-cancel throws AbortError here. Stay silent on
+                        // dismissal — no "copied" toast and no error toast,
+                        // the share sheet itself was the feedback.
+                        try {
+                          await navigator.share(shareData);
+                        } catch {
+                          /* share dismissed — swallow */
+                        }
+                        return;
+                      }
+                      // Clipboard fallback. Only toast on *success* so a
+                      // silently failing clipboard (iframe / HTTP / denied)
+                      // doesn't lie to the user with "Lien copié".
+                      try {
+                        await navigator.clipboard.writeText(window.location.href);
+                        toast.success(lang === 'en' ? 'Link copied' : 'Lien copié');
+                      } catch {
+                        /* clipboard unavailable — stay silent */
+                      }
+                    } finally {
+                      setSharing(false);
                     }
                   }}
-                  className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                  disabled={sharing}
+                  aria-busy={sharing || undefined}
+                  className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={lang === 'en' ? 'Share this product' : 'Partager ce produit'}
                   title={lang === 'en' ? 'Share' : 'Partager'}
                 >

@@ -677,8 +677,25 @@ function ConvertToOrderDialog({
   useEscapeKey(open, onClose);
   useBodyScrollLock(open);
   const trapRef = useFocusTrap<HTMLDivElement>(open);
+  // Task 18.4 — double-click guard. onConfirm writes localStorage
+  // (manual-orders + converted-quotes), appends to the audit log, and
+  // closes the dialog. A rapid tap on a laggy admin machine could
+  // deliver two clicks before React re-rendered, producing two manual
+  // orders from the same quote. Lock the button the moment the first
+  // click fires; the state resets implicitly when the dialog unmounts
+  // after onConfirm's setConvertTarget(null).
+  const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    if (!open) setSubmitting(false);
+  }, [open]);
 
   if (!open || !target) return null;
+
+  const handleConfirm = () => {
+    if (submitting) return;
+    setSubmitting(true);
+    onConfirm();
+  };
 
   const lineItems: QuoteLineItem[] = Array.isArray(target.lineItems) ? target.lineItems : [];
   const totalFromMatrix = computeLineItemsTotal(lineItems);
@@ -782,8 +799,10 @@ function ConvertToOrderDialog({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            onClick={handleConfirm}
+            disabled={submitting}
+            aria-busy={submitting || undefined}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <ArrowRightCircle size={14} aria-hidden="true" />
             Créer la commande

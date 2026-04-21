@@ -87,6 +87,13 @@ export default function Account() {
   const [hydrated, setHydrated] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  // Task 18.4 — double-click guards on the two Law 25 buttons. The
+  // export path builds a Blob + triggers an <a download>; a twitchy
+  // tap fires two downloads and two success toasts. The delete path
+  // does enqueue + signOut + navigate; a double-click re-enqueues
+  // the same request and calls signOut a second time mid-async.
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const verificationWord = lang === 'en' ? 'DELETE' : 'SUPPRIMER';
   const canConfirmDelete = deleteConfirm.trim().toUpperCase() === verificationWord;
 
@@ -178,7 +185,8 @@ export default function Account() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!canConfirmDelete || !user) return;
+    if (!canConfirmDelete || !user || deleting) return;
+    setDeleting(true);
     enqueueDeletionRequest({
       userId: user.id,
       email: user.email,
@@ -193,6 +201,7 @@ export default function Account() {
         ? 'Deletion request logged. We will contact you within 24h.'
         : 'Demande de suppression enregistrée. On vous contactera sous 24h.'
     );
+    // No need to setDeleting(false) — we've navigated away.
   };
 
   // Law 25 right-of-access — pack everything we store on this device
@@ -200,7 +209,8 @@ export default function Account() {
   // deletion requests to the caller's email so one customer can't
   // harvest another's pending request on a shared browser.
   const handleExportData = () => {
-    if (!user) return;
+    if (!user || exporting) return;
+    setExporting(true);
     try {
       const exportedAt = new Date().toISOString();
       const payload = {
@@ -247,6 +257,11 @@ export default function Account() {
           ? 'Could not generate your data export. Please try again.'
           : "Impossible de générer l'export. Réessayez."
       );
+    } finally {
+      // Brief lockout so a second click doesn't re-trigger the browser
+      // download prompt on fast machines where the JSON serialization
+      // lands inside a single frame.
+      setTimeout(() => setExporting(false), 600);
     }
   };
 
@@ -458,7 +473,9 @@ export default function Account() {
               <button
                 type="button"
                 onClick={handleExportData}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                disabled={exporting}
+                aria-busy={exporting || undefined}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <Download size={14} aria-hidden="true" />
                 {lang === 'en' ? 'Download my data (JSON)' : 'Télécharger mes données (JSON)'}
@@ -550,7 +567,8 @@ export default function Account() {
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                disabled={!canConfirmDelete}
+                disabled={!canConfirmDelete || deleting}
+                aria-busy={deleting || undefined}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-1"
               >
                 {lang === 'en' ? 'Confirm deletion' : 'Confirmer la suppression'}
