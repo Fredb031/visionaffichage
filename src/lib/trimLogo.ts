@@ -1,6 +1,7 @@
 /**
  * trimLogo.ts — crop the transparent padding off an uploaded logo so
- * its image bounding box equals its VISIBLE bounding box.
+ * its image bounding box equals its VISIBLE bounding box. See
+ * {@link trimTransparentPadding}.
  *
  * Why this exists
  * ---------------
@@ -16,10 +17,35 @@
  * every downstream centring calculation just works.
  */
 
+/** Reason a {@link TrimLogoError} was raised. Stable string codes so
+ * callers can branch without matching on human-readable messages. */
+export type TrimLogoErrorCode =
+  | 'empty-image'
+  | 'fully-transparent'
+  | 'canvas-unavailable'
+  | 'image-load-failed';
+
+/** Named error for failures inside the trim pipeline. Currently the
+ * public {@link trimTransparentPadding} entrypoint absorbs these and
+ * returns the original blob unchanged (its documented behaviour), so
+ * this class is here for callers that want to wrap the internals
+ * directly or for future opt-in strict-mode use. */
+export class TrimLogoError extends Error {
+  readonly code: TrimLogoErrorCode;
+  constructor(code: TrimLogoErrorCode, message?: string) {
+    super(message ?? code);
+    this.name = 'TrimLogoError';
+    this.code = code;
+  }
+}
+
+/** Visible bounding box in native pixel coordinates. */
+export type VisibleBbox = { x: number; y: number; w: number; h: number };
+
 /** Scan non-transparent pixels to find the visible bounding box.
  * Returns null when the image is entirely transparent (shouldn't
  * happen in practice but we bail rather than crop to 0×0). */
-function findVisibleBbox(img: HTMLImageElement): { x: number; y: number; w: number; h: number } | null {
+function findVisibleBbox(img: HTMLImageElement): VisibleBbox | null {
   // Cap the analysis canvas so a huge user upload (8k × 8k is ~250 MB
   // of RGBA in one getImageData call) can't OOM lower-end phones /
   // older Safari. Downsample to fit within MAX_DIM on the longest
