@@ -270,14 +270,14 @@ export default function QuoteList() {
                         >
                           <Eye size={14} aria-hidden="true" />
                         </Link>
-                        <button
-                          type="button"
-                          title="Dupliquer"
-                          aria-label={`Dupliquer la soumission ${q.number}`}
+                        <Link
+                          to={`/vendor/quotes/new?clone=${encodeURIComponent(q.id)}`}
+                          title="Cloner"
+                          aria-label={`Cloner la soumission ${q.number}`}
                           className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                         >
                           <Copy size={14} aria-hidden="true" />
-                        </button>
+                        </Link>
                         <button
                           type="button"
                           title="Renvoyer"

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PRODUCTS, PRINT_PRICE, findColorImage, type Product } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -84,6 +84,7 @@ function lineTotalForItem(it: LineItem): number {
 
 export default function QuoteBuilder() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isAdminPath = location.pathname.startsWith('/admin');
   const backHref = isAdminPath ? '/admin/quotes' : '/vendor';
   useDocumentTitle('Nouvelle soumission — Vision Affichage');
@@ -94,6 +95,72 @@ export default function QuoteBuilder() {
   const [discountKind, setDiscountKind] = useState<'percent' | 'flat'>('percent');
   const [discountValue, setDiscountValue] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Clone-existing-quote hydration (Task 10.2). When navigated to with
+  // `?clone=<quoteId>`, look the source quote up in the same
+  // `vision-quotes` localStorage list that QuoteList renders from and
+  // pre-fill the form with its line items + customer info. Deliberately
+  // skipping: the quote id (regenerated on save), the status (always
+  // starts as draft), and createdAt (stamped fresh on save). The vendor
+  // can wipe the customer fields if this is a different client — we
+  // keep them pre-filled because the common case is a repeat order
+  // from the same customer with a tweaked spec.
+  useEffect(() => {
+    const cloneId = searchParams.get('clone');
+    if (!cloneId) return;
+    try {
+      const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+      if (!Array.isArray(raw)) return;
+      const source = raw.find((q: { id?: string }) => q && typeof q === 'object' && String(q.id) === cloneId);
+      if (!source) {
+        toast.error('Soumission introuvable', {
+          description: 'La soumission à cloner n\u2019a pas été trouvée.',
+        });
+        return;
+      }
+      // Re-mint a local id per line item so the React keys don't
+      // collide with the source quote if the vendor opens both in two
+      // tabs — and so state patches target the fresh rows rather than
+      // accidentally mutating what's still in localStorage.
+      const clonedItems: LineItem[] = Array.isArray(source.items)
+        ? source.items.map((it: Partial<LineItem>, idx: number) => ({
+            id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+            productSku: typeof it.productSku === 'string' ? it.productSku : '',
+            productName: typeof it.productName === 'string' ? it.productName : '',
+            shopifyHandle: typeof it.shopifyHandle === 'string' ? it.shopifyHandle : '',
+            image: typeof it.image === 'string' ? it.image : '',
+            color: typeof it.color === 'string' ? it.color : '',
+            size: typeof it.size === 'string' ? it.size : 'M',
+            quantity: Number.isFinite(it.quantity) ? (it.quantity as number) : 0,
+            unitPrice: Number.isFinite(it.unitPrice) ? (it.unitPrice as number) : 0,
+            placementNote: typeof it.placementNote === 'string' ? it.placementNote : '',
+            colors: Array.isArray(it.colors) ? it.colors.filter((c): c is string => typeof c === 'string') : [],
+            sizeQuantities: it.sizeQuantities && typeof it.sizeQuantities === 'object'
+              ? (it.sizeQuantities as LineItem['sizeQuantities'])
+              : {},
+            placement: it.placement === 'back' || it.placement === 'both' ? it.placement : 'front',
+          }))
+        : [];
+      setItems(clonedItems);
+      setClientName(typeof source.clientName === 'string' ? source.clientName : '');
+      setClientEmail(typeof source.clientEmail === 'string' ? source.clientEmail : '');
+      setDiscountKind(source.discountKind === 'flat' ? 'flat' : 'percent');
+      setDiscountValue(
+        Number.isFinite(source.discountValue) && source.discountValue > 0
+          ? String(source.discountValue)
+          : '',
+      );
+      setNotes(typeof source.notes === 'string' ? source.notes : '');
+      toast.success('Soumission clonée — revoir et enregistrer', {
+        description: `Copie de ${typeof source.number === 'string' ? source.number : 'la soumission source'}.`,
+      });
+    } catch (e) {
+      console.warn('[QuoteBuilder] Clone hydration failed:', e);
+    }
+    // Run only on mount; re-running if the user tweaks the search param
+    // would clobber whatever they've edited since hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return PRODUCTS.slice(0, 8);
