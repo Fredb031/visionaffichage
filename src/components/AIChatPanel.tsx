@@ -274,9 +274,24 @@ export function AIChatPanel() {
               <button
                 type="button"
                 onClick={() => {
+                  // Confirm prompt so a mis-click on the trash icon
+                  // doesn't silently nuke a long conversation the user
+                  // was still consulting. Bilingual to match the rest
+                  // of the panel.
+                  const prompt = lang === 'en'
+                    ? 'Clear conversation?'
+                    : 'Effacer la conversation ?';
+                  if (typeof window !== 'undefined' && !window.confirm(prompt)) return;
                   setMessages([]);
                   setView('menu');
                   setActiveTopic(null);
+                  // Belt-and-suspenders: the [messages] effect clears
+                  // sessionStorage when the list empties, but clearing
+                  // explicitly here keeps the wipe atomic with the
+                  // user's click even if the effect is delayed.
+                  try {
+                    sessionStorage.removeItem(TRANSCRIPT_KEY);
+                  } catch { /* private mode — no-op */ }
                   // The trash button unmounts as soon as messages is
                   // cleared — hand focus to the input so it doesn't
                   // fall to <body>. rAF defers past the re-render.
