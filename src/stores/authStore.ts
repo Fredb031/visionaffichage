@@ -72,6 +72,84 @@ function friendlyError(msg: string): string {
 
 const SITE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://visionaffichage.com';
 
+// --- Client-side signIn rate limiting (Task 14.5) ---
+// Supabase handles real server-side rate limiting; this is belt-and-
+// suspenders UX that prevents casual brute-force + accidental double-
+// submits from spamming the auth endpoint. 5 failures in 5 minutes
+// triggers a 30s lockout per email. Success clears the counter.
+const RATE_LIMIT_KEY = 'vision-auth-attempts';
+const RATE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const RATE_MAX_ATTEMPTS = 5;
+const RATE_LOCKOUT_MS = 30 * 1000; // 30 seconds
+
+interface AttemptEntry {
+  count: number;
+  firstAt: number;
+  lockedUntil?: number;
+}
+type AttemptMap = Record<string, AttemptEntry>;
+
+function readAttempts(): AttemptMap {
+  try {
+    const raw = localStorage.getItem(RATE_LIMIT_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed as AttemptMap : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAttempts(map: AttemptMap): void {
+  try {
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(map));
+  } catch { /* private mode / quota */ }
+}
+
+/** How many seconds remain on the lockout for this email, or 0 if unlocked. */
+export function getSignInLockoutRemaining(email: string): number {
+  const key = normalizeEmail(email);
+  if (!key) return 0;
+  const map = readAttempts();
+  const entry = map[key];
+  if (!entry?.lockedUntil) return 0;
+  const remaining = entry.lockedUntil - Date.now();
+  return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+}
+
+function clearAttempts(key: string): void {
+  const map = readAttempts();
+  if (map[key]) {
+    delete map[key];
+    writeAttempts(map);
+  }
+}
+
+function recordFailure(key: string): void {
+  const now = Date.now();
+  const map = readAttempts();
+  const existing = map[key];
+  // Reset the window if it expired, otherwise keep accumulating.
+  if (!existing || (now - existing.firstAt) > RATE_WINDOW_MS) {
+    map[key] = { count: 1, firstAt: now };
+  } else {
+    existing.count += 1;
+    if (existing.count >= RATE_MAX_ATTEMPTS) {
+      existing.lockedUntil = now + RATE_LOCKOUT_MS;
+    }
+    map[key] = existing;
+  }
+  writeAttempts(map);
+}
+
+function lockoutMessage(seconds: number): string {
+  let isEn = false;
+  try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+  return isEn
+    ? `Too many attempts. Try again in ${seconds} seconds.`
+    : `Trop de tentatives. Réessaie dans ${seconds} secondes.`;
+}
+
 async function fetchProfile(userId: string) {
   // Retry with exponential backoff on actual errors (network blip, 5xx,
   // RLS reconfiguration in-flight). A missing row is NOT an error —
@@ -206,11 +284,31 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signIn: async (email, password) => {
     set({ error: null });
+    const normalized = normalizeEmail(email);
+    // Client-side rate limit (Task 14.5). Check BEFORE hitting Supabase
+    // so a locked-out user doesn't burn server quota during the 30s
+    // cooldown window.
+    const lockRemaining = getSignInLockoutRemaining(normalized);
+    if (lockRemaining > 0) {
+      set({ error: lockoutMessage(lockRemaining) });
+      return { ok: false };
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: normalizeEmail(email),
+      email: normalized,
       password,
     });
     if (error || !data.user) {
+      // Record the failure for throttling BEFORE surfacing the message
+      // so the next attempt sees the incremented counter.
+      recordFailure(normalized);
+      // Re-check lockout: if this failure just tripped the threshold,
+      // show the lockout copy immediately instead of the generic
+      // "invalid credentials" one.
+      const remaining = getSignInLockoutRemaining(normalized);
+      if (remaining > 0) {
+        set({ error: lockoutMessage(remaining) });
+        return { ok: false };
+      }
       // Default error uses its own lang detection (localStorage 'vision-lang')
       // since friendlyError's fallback-through returns the input unchanged
       // and hardcoding French here would flash French to English users.
@@ -220,6 +318,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: friendlyError(error?.message ?? fallback) });
       return { ok: false };
     }
+    // Success: wipe the counter for this email so a previously-troubled
+    // user starts fresh.
+    clearAttempts(normalized);
     // Ensure the profile row exists + owner role is correct. Runs
     // BEFORE fetchProfile so the subsequent read sees the corrected
     // state instead of stale data.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, getSignInLockoutRemaining } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 
@@ -43,6 +43,20 @@ export default function AdminLogin() {
   }, [user, loading, navigate]);
 
   const [submitting, setSubmitting] = useState(false);
+
+  // Live countdown for the client-side rate-limit lockout (Task 14.5).
+  // Recomputed every second while > 0 so the user sees it tick down,
+  // then cleared so the banner disappears and the form re-enables.
+  const [lockSeconds, setLockSeconds] = useState(0);
+  useEffect(() => {
+    const tick = () => {
+      const remaining = email.trim() ? getSignInLockoutRemaining(email) : 0;
+      setLockSeconds(remaining);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [email]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +125,22 @@ export default function AdminLogin() {
           <h1 className="text-2xl font-extrabold text-white mb-1">Espace administration</h1>
           <p className="text-sm text-white/60">Connecte-toi pour gérer ton entreprise</p>
         </div>
+
+        {lockSeconds > 0 && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl text-xs shadow-lg"
+          >
+            <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <div className="font-bold">Trop de tentatives</div>
+              <div className="opacity-90">
+                Réessaie dans <span className="font-bold tabular-nums">{lockSeconds}</span> seconde{lockSeconds > 1 ? 's' : ''}.
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
           {error && (
@@ -225,11 +255,11 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || lockSeconds > 0}
             className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
           >
-            {submitting ? 'Connexion…' : 'Se connecter'}
-            {!submitting && <ArrowRight size={16} aria-hidden="true" />}
+            {submitting ? 'Connexion…' : lockSeconds > 0 ? `Attends ${lockSeconds}s…` : 'Se connecter'}
+            {!submitting && lockSeconds === 0 && <ArrowRight size={16} aria-hidden="true" />}
           </button>
 
           <div className="bg-zinc-50 rounded-lg p-3 text-[11px] text-zinc-600 leading-relaxed">
