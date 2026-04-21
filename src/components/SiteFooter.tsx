@@ -306,6 +306,17 @@ export function SiteFooter() {
             © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
           </div>
         </div>
+
+        {/* Payment methods — text-only row to avoid shipping unlicensed
+            brand marks. Signals checkout trust (the #1 cart-abandonment
+            friction surveyed by Baymard) without a logo wall, and mirrors
+            the accepted tenders already listed at /checkout. */}
+        <div className="pt-3 text-[11px] text-white/50 tracking-wide text-center md:text-right">
+          <span>
+            {lang === 'en' ? 'Secure payments:' : 'Paiements sécurisés :'}
+          </span>
+          <span className="ml-1">Visa · Mastercard · AMEX · Interac · PayPal</span>
+        </div>
       </div>
     </footer>
   );
