@@ -28,11 +28,31 @@
 
 const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
 
+/** A single raw CSV cell before escaping — anything String-coercible, a
+ *  Date (rendered as ISO-8601), or nullish (rendered as an empty cell). */
+export type CsvCell = string | number | boolean | Date | null | undefined;
+
+/** A row of raw CSV cells. Handy for typing admin exporters that build
+ *  rows before handing them to {@link buildCsv} or {@link downloadCsv}. */
+export type CsvRow = ReadonlyArray<CsvCell>;
+
 /** Escape a single CSV field per RFC 4180 with CSV-injection guard.
  *  null/undefined → empty string so downstream spreadsheets render an
- *  empty cell instead of the literal text "null"/"undefined". */
+ *  empty cell instead of the literal text "null"/"undefined". Date
+ *  values are rendered as ISO-8601 (`toISOString()`) so exports sort
+ *  lexically and round-trip cleanly; everything else falls through to
+ *  `String()` (covers number, boolean, objects with custom toString). */
 export function csvEscape(value: unknown): string {
-  let s = value === null || value === undefined ? '' : String(value);
+  let s: string;
+  if (value === null || value === undefined) {
+    s = '';
+  } else if (value instanceof Date) {
+    // Invalid dates stringify to "Invalid Date" and isoString throws —
+    // fall back to empty so one bad row can't blow up the whole export.
+    s = Number.isNaN(value.getTime()) ? '' : value.toISOString();
+  } else {
+    s = String(value);
+  }
   if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
   return `"${s.replace(/"/g, '""')}"`;
 }
