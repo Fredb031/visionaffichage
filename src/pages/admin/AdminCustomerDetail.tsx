@@ -13,6 +13,8 @@ import {
   LogIn,
   Eye,
   Package,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -113,9 +115,36 @@ function saveTagsStore(store: TagsStore): void {
 
 /* ────────── Page ────────── */
 
+/**
+ * Admin customer detail page — shows profile, orders, notes, activity, and tags for a single Shopify customer.
+ */
 export default function AdminCustomerDetail() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
+  const [copied, setCopied] = useState<'email' | 'phone' | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopy = (value: string, which: 'email' | 'phone') => {
+    // navigator.clipboard can reject (insecure context, permissions) —
+    // swallow and surface a toast instead of crashing the admin view.
+    if (!value) return;
+    void navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        setCopied(which);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(null), 2000);
+      })
+      .catch(() => {
+        toast.error('Copie impossible');
+      });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const customer = useMemo<ShopifyCustomerSnapshot | undefined>(
     () => SHOPIFY_CUSTOMERS_SNAPSHOT.find(c => String(c.id) === customerId),
@@ -344,6 +373,13 @@ export default function AdminCustomerDetail() {
   /* ─── Render ─── */
   return (
     <div className="space-y-6">
+      <Link
+        to="/admin/customers"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+      >
+        <ArrowLeft size={13} aria-hidden="true" />
+        Retour aux clients
+      </Link>
       <Breadcrumb name={fullName(customer)} />
 
       {/* Header */}
@@ -359,21 +395,55 @@ export default function AdminCustomerDetail() {
             <div className="min-w-0">
               <h1 className="text-2xl font-extrabold tracking-tight truncate">{fullName(customer)}</h1>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-zinc-600">
-                <a
-                  href={`mailto:${customer.email}`}
-                  className="inline-flex items-center gap-1.5 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
-                >
-                  <Mail size={14} aria-hidden="true" />
-                  {customer.email}
-                </a>
-                {customer.phone && (
+                <span className="inline-flex items-center gap-1">
                   <a
-                    href={`tel:${customer.phone}`}
+                    href={`mailto:${customer.email}`}
                     className="inline-flex items-center gap-1.5 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                   >
-                    <Phone size={14} aria-hidden="true" />
-                    {customer.phone}
+                    <Mail size={14} aria-hidden="true" />
+                    {customer.email}
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(customer.email, 'email')}
+                    aria-label={copied === 'email' ? 'Courriel copié' : 'Copier le courriel'}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded text-zinc-400 hover:text-[#0052CC] hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] transition-colors"
+                  >
+                    {copied === 'email' ? (
+                      <>
+                        <Check size={11} aria-hidden="true" />
+                        Copié
+                      </>
+                    ) : (
+                      <Copy size={11} aria-hidden="true" />
+                    )}
+                  </button>
+                </span>
+                {customer.phone && (
+                  <span className="inline-flex items-center gap-1">
+                    <a
+                      href={`tel:${customer.phone}`}
+                      className="inline-flex items-center gap-1.5 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                    >
+                      <Phone size={14} aria-hidden="true" />
+                      {customer.phone}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(customer.phone!, 'phone')}
+                      aria-label={copied === 'phone' ? 'Téléphone copié' : 'Copier le téléphone'}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded text-zinc-400 hover:text-[#0052CC] hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] transition-colors"
+                    >
+                      {copied === 'phone' ? (
+                        <>
+                          <Check size={11} aria-hidden="true" />
+                          Copié
+                        </>
+                      ) : (
+                        <Copy size={11} aria-hidden="true" />
+                      )}
+                    </button>
+                  </span>
                 )}
                 {customer.city && (
                   <span className="inline-flex items-center gap-1.5 text-zinc-500">
