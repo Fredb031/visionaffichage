@@ -20,6 +20,8 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | u
 
 const EDGE_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/sanmar-product` : null;
 
+/** One row of live SanMar inventory for a single part (color + size SKU),
+ * aggregated across all warehouse locations. */
 export interface SanmarInventoryPart {
   partId: string | null;
   partColor: string | null;
@@ -28,6 +30,7 @@ export interface SanmarInventoryPart {
   locations: Array<{ id: string | null; name: string | null; qty: number }>;
 }
 
+/** Product metadata returned by SanMar PromoStandards for a single style. */
 export interface SanmarProduct {
   productName: string | null;
   description: string | null;
@@ -38,11 +41,13 @@ export interface SanmarProduct {
   parts: Array<{ partId: string | null; color: string | null; size: string | null }>;
 }
 
+/** Media bundle (image URLs + descriptor) for a SanMar style. */
 export interface SanmarMedia {
   urls: string[];
   description: string;
 }
 
+/** One row of tier pricing for a SanMar part at a given minimum quantity. */
 export interface SanmarPricingRow {
   partId: string | null;
   minQty: number;
@@ -56,13 +61,69 @@ type Action = 'product' | 'inventory' | 'media' | 'pricing';
 // p99 ~1.5s inventory round-trip.
 const SANMAR_TIMEOUT_MS = 8_000;
 
-async function call<T>(action: Action, productId: string, partId?: string, lang: 'en' | 'fr' = 'en'): Promise<T | null> {
+/** Named error class for SanMar edge-function HTTP failures. Carries
+ * `status`, optional `code`, and raw `body` so callers can branch on
+ * error shape instead of sniffing message strings. Extends Error so
+ * existing `catch (e)` / `instanceof Error` paths continue to work.
+ *
+ * Note: the internal `call` helper currently swallows errors and returns
+ * `null` by design (graceful degradation before the edge function is
+ * deployed). This class is exported for consumers that want to throw /
+ * branch on structured errors in their own wrappers. */
+export class SanmarError extends Error {
+  public readonly status: number;
+  public readonly code?: string;
+  public readonly body?: unknown;
+  constructor(
+    message: string,
+    opts: { status: number; code?: string; body?: unknown } = { status: 0 },
+  ) {
+    super(message);
+    this.name = 'SanmarError';
+    this.status = opts.status;
+    this.code = opts.code;
+    this.body = opts.body;
+    // Preserve stack on V8
+    if (typeof (Error as unknown as { captureStackTrace?: unknown }).captureStackTrace === 'function') {
+      (Error as unknown as { captureStackTrace: (t: object, c: unknown) => void })
+        .captureStackTrace(this, SanmarError);
+    }
+  }
+}
+
+/** Options forwarded to the internal SanMar edge call. `signal` is
+ * composed with the internal timeout controller — aborting it cancels
+ * the fetch; the timeout still fires independently after
+ * SANMAR_TIMEOUT_MS. */
+export interface SanmarRequestOptions {
+  signal?: AbortSignal;
+}
+
+async function call<T>(
+  action: Action,
+  productId: string,
+  partId?: string,
+  lang: 'en' | 'fr' = 'en',
+  options: SanmarRequestOptions = {},
+): Promise<T | null> {
   if (!EDGE_URL || !SUPABASE_KEY) {
     console.warn('[sanmar] Supabase not configured — skipping', action);
     return null;
   }
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), SANMAR_TIMEOUT_MS);
+  // Forward an external AbortSignal (e.g. from React effect cleanup) so
+  // callers can cancel on unmount without racing the timeout.
+  const external = options.signal;
+  const onExternalAbort = () => controller.abort();
+  if (external) {
+    if (external.aborted) controller.abort();
+    else external.addEventListener('abort', onExternalAbort, { once: true });
+  }
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    if (external) external.removeEventListener('abort', onExternalAbort);
+  };
   try {
     const res = await fetch(EDGE_URL, {
       method: 'POST',
@@ -91,25 +152,45 @@ async function call<T>(action: Action, productId: string, partId?: string, lang:
     return json.data as T;
   } catch (err) {
     if ((err as Error)?.name === 'AbortError') {
-      console.warn('[sanmar]', action, `timed out after ${SANMAR_TIMEOUT_MS}ms`);
+      // Distinguish caller-initiated cancel from our timeout — callers
+      // shouldn't log a timeout when they aborted on their own.
+      if (external?.aborted) {
+        // Quiet — this was a deliberate cancel.
+      } else {
+        console.warn('[sanmar]', action, `timed out after ${SANMAR_TIMEOUT_MS}ms`);
+      }
     } else {
       console.warn('[sanmar]', action, 'error:', err);
     }
     return null;
   } finally {
-    clearTimeout(timeoutId);
+    cleanup();
   }
 }
 
+/** Typed SanMar client. Each method returns the decoded payload on
+ * success, or `null` when the edge function is not deployed / the
+ * request fails / the caller aborts. `options.signal` forwards to
+ * fetch for unmount cancellation. */
 export const sanmar = {
-  getProduct:   (productId: string, lang?: 'en' | 'fr') => call<SanmarProduct>('product', productId, undefined, lang),
-  getInventory: (productId: string) => call<SanmarInventoryPart[]>('inventory', productId),
-  getMedia:     (productId: string, lang?: 'en' | 'fr') => call<SanmarMedia>('media', productId, undefined, lang),
-  getPricing:   (productId: string) => call<SanmarPricingRow[]>('pricing', productId),
+  /** Fetch product metadata (name, brand, colors, sizes, parts) for a style. */
+  getProduct:   (productId: string, lang?: 'en' | 'fr', options?: SanmarRequestOptions) =>
+    call<SanmarProduct>('product', productId, undefined, lang, options),
+  /** Fetch live inventory (per-part, per-warehouse quantities) for a style. */
+  getInventory: (productId: string, options?: SanmarRequestOptions) =>
+    call<SanmarInventoryPart[]>('inventory', productId, undefined, 'en', options),
+  /** Fetch media (image URLs + description) for a style. */
+  getMedia:     (productId: string, lang?: 'en' | 'fr', options?: SanmarRequestOptions) =>
+    call<SanmarMedia>('media', productId, undefined, lang, options),
+  /** Fetch tier pricing rows for a style. */
+  getPricing:   (productId: string, options?: SanmarRequestOptions) =>
+    call<SanmarPricingRow[]>('pricing', productId, undefined, 'en', options),
 };
 
 // ── Aggregate helpers ──────────────────────────────────────────────────────
 
+/** Aggregated stock totals across all parts of a SanMar style, broken
+ * down by color, by size, and by the color+size pair. */
 export interface StockSummary {
   totalAvailable: number;
   byColor: Map<string, number>;
@@ -117,6 +198,21 @@ export interface StockSummary {
   byColorSize: Map<string, number>; // key = `${color}|${size}`
 }
 
+/** Stable empty StockSummary reference. Safe to share across renders
+ * because `summarizeStock` always constructs its own Maps when `parts`
+ * is a real array; this constant is never mutated internally. Useful
+ * for tests, SSR defaults, and consumers that want a single stable
+ * reference for the "no data" case instead of allocating fresh empty
+ * Maps on every render. */
+export const EMPTY_SANMAR_SUMMARY: StockSummary = {
+  totalAvailable: 0,
+  byColor: new Map<string, number>(),
+  bySize: new Map<string, number>(),
+  byColorSize: new Map<string, number>(),
+};
+
+/** Reduce a list of SanMar inventory parts into a StockSummary.
+ * Null / non-array input yields an empty summary (fresh Maps). */
 export function summarizeStock(parts: SanmarInventoryPart[] | null): StockSummary {
   const byColor = new Map<string, number>();
   const bySize = new Map<string, number>();
