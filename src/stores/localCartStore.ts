@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItemCustomization } from '@/types/customization';
 import { normalizeInvisible } from '@/lib/utils';
+import { getSettings, DEFAULT_APP_SETTINGS } from '@/lib/appSettings';
 
 // crypto.randomUUID is not available on every browser we ship to
 // (older mobile Safari, some in-app WebViews). Fall back to a
@@ -41,11 +42,17 @@ interface CartStore {
   clear: () => void;
 }
 
-const VALID_DISCOUNT_CODES: Record<string, number> = {
-  'VISION10': 0.10,
-  'VISION15': 0.15,
-  'VISION20': 0.20,
-};
+// Discount codes are admin-editable via /admin/settings. Read through
+// getSettings() at call-time so a freshly-saved VISION25 takes effect
+// on the next apply without a page reload. Falls back to the hardcoded
+// defaults if the settings module or localStorage is unavailable.
+function getValidDiscountCodes(): Record<string, number> {
+  try {
+    const { discountCodes } = getSettings();
+    if (discountCodes && Object.keys(discountCodes).length > 0) return discountCodes;
+  } catch { /* fall through to defaults */ }
+  return { ...DEFAULT_APP_SETTINGS.discountCodes };
+}
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -158,7 +165,7 @@ export const useCartStore = create<CartStore>()(
         // pastes — without it the strict lookup below would miss a
         // code that looks 100% correct to the user.
         const normalized = normalizeInvisible(code).trim().toUpperCase();
-        const rate = VALID_DISCOUNT_CODES[normalized];
+        const rate = getValidDiscountCodes()[normalized];
         if (rate) {
           set({ discountCode: normalized, discountApplied: true });
           return true;
@@ -174,7 +181,7 @@ export const useCartStore = create<CartStore>()(
         // that might have items missing totalPrice (NaN propagates through reduce).
         const subtotal = items.reduce((sum, item) => sum + (Number.isFinite(item.totalPrice) ? item.totalPrice : 0), 0);
         if (discountApplied && discountCode) {
-          const rate = VALID_DISCOUNT_CODES[discountCode] ?? 0;
+          const rate = getValidDiscountCodes()[discountCode] ?? 0;
           return parseFloat((subtotal * (1 - rate)).toFixed(2));
         }
         return parseFloat(subtotal.toFixed(2));
