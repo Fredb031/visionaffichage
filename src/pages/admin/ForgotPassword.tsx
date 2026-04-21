@@ -5,10 +5,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
+/** Admin password-reset request page — emails a Supabase recovery link. */
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Inline invalid-email hint only after the user has blurred the
+  // field — mirrors LoginModal so a typo warning doesn't flash on
+  // every keystroke while they're still typing "a@b".
+  const [emailTouched, setEmailTouched] = useState(false);
   const sendPasswordReset = useAuthStore(s => s.sendPasswordReset);
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
@@ -86,28 +91,44 @@ export default function ForgotPassword() {
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 {(() => {
                   const invalid = email.trim().length > 0 && !isValidEmail(email);
+                  // Only surface the red hint once the user has left
+                  // the field — matches LoginModal's pattern.
+                  const showHint = invalid && emailTouched;
                   return (
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => {
-                        setEmail(e.target.value);
-                        // Match AdminLogin: drop the stale error as soon
-                        // as the user starts correcting, so a typo
-                        // warning doesn't linger on-screen while they
-                        // fix the address.
-                        if (error) clearError();
-                      }}
-                      placeholder="toi@visionaffichage.com"
-                      autoComplete="email"
-                      required
-                      aria-invalid={invalid || undefined}
-                      className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
-                        invalid
-                          ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
-                          : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'
-                      }`}
-                    />
+                    <>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={e => {
+                          setEmail(e.target.value);
+                          // Match AdminLogin: drop the stale error as soon
+                          // as the user starts correcting, so a typo
+                          // warning doesn't linger on-screen while they
+                          // fix the address.
+                          if (error) clearError();
+                        }}
+                        onBlur={() => setEmailTouched(true)}
+                        placeholder="toi@visionaffichage.com"
+                        autoComplete="email"
+                        required
+                        aria-invalid={showHint || undefined}
+                        aria-describedby={showHint ? 'forgot-password-email-hint' : undefined}
+                        className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
+                          showHint
+                            ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
+                            : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'
+                        }`}
+                      />
+                      {showHint && (
+                        <p
+                          id="forgot-password-email-hint"
+                          role="alert"
+                          className="mt-1.5 text-[11px] text-rose-600 font-semibold"
+                        >
+                          Adresse courriel invalide
+                        </p>
+                      )}
+                    </>
                   );
                 })()}
               </div>
