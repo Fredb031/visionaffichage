@@ -17,7 +17,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Brush, PackageCheck, CreditCard, Smartphone, ShoppingBag, Lock } from 'lucide-react';
+import { Shirt, Brush, PackageCheck, CreditCard, Smartphone, ShoppingBag, Lock, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 
@@ -100,6 +100,24 @@ export default function Index() {
   // Default to true so the hero just renders on mount.
   const [heroStaggered, setHeroStaggered] = useState(true);
   const [playingVideo, setPlayingVideo] = useState<number | null>(null);
+
+  // FAQ accordion — one-at-a-time open behaviour. Native <details> gives
+  // us keyboard/SR semantics + no-JS progressive enhancement for free;
+  // this handler just enforces mutual exclusion so opening one card
+  // auto-closes the rest in the same group.
+  const faqGroupRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = faqGroupRef.current;
+    if (!root) return;
+    const items = Array.from(root.querySelectorAll<HTMLDetailsElement>('details[data-faq-item]'));
+    const onToggle = (e: Event) => {
+      const target = e.target as HTMLDetailsElement;
+      if (!target.open) return;
+      items.forEach(d => { if (d !== target && d.open) d.open = false; });
+    };
+    items.forEach(d => d.addEventListener('toggle', onToggle));
+    return () => items.forEach(d => d.removeEventListener('toggle', onToggle));
+  }, []);
 
   // Track timers kicked off by the loader so route change (user clicks
   // through to /products before the game popup appears) doesn't fire
@@ -567,6 +585,72 @@ export default function Index() {
                     onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                   />
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* FAQ — native <details><summary> accordion. One-at-a-time open
+          behaviour is enforced by the toggle listener in the component
+          body; everything else (keyboard nav, aria-expanded, SR
+          disclosure semantics) comes free with the native element.
+          Chevron rotation is CSS-only via [open] attribute selector —
+          no state, no re-render, no JS animation frame. Inline <style>
+          handles the two rules that can't be expressed as Tailwind
+          utilities (::-webkit-details-marker, details[open] selector). */}
+      <FadeIn>
+        <section className="py-20 px-6 md:px-10 border-t border-border">
+          <div className="max-w-[780px] mx-auto">
+            <div className="text-center mb-10">
+              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
+                {lang === 'en' ? 'FAQ' : 'Questions fréquentes'}
+              </div>
+              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
+                {lang === 'en' ? 'Everything you need to know' : 'Tout ce que tu dois savoir'}
+              </h2>
+            </div>
+            <style>{`
+              .faq-group summary::-webkit-details-marker { display: none; }
+              .faq-group summary::marker { content: ''; }
+              .faq-group details[open] .faq-chevron { transform: rotate(180deg); }
+            `}</style>
+            <div ref={faqGroupRef} className="faq-group flex flex-col gap-2">
+              {(lang === 'en' ? [
+                { q: 'Is there a minimum order quantity?', a: 'No minimum. Order one t-shirt or 500 — the price per unit stays fair either way. Most of our clients start small to test, then scale up for their full team.' },
+                { q: 'How fast can I receive my order?', a: 'Average real delivery is 4.7 business days across all of Quebec. Orders placed before 3 pm hit production the same day; after that they roll to the next business day. You get a ship date confirmed at checkout.' },
+                { q: 'Can I see a proof before production starts?', a: 'Yes. Every custom order gets a digital proof by email within 24 hours. Nothing goes to print until you approve it, so there are no surprises on delivery day.' },
+                { q: 'What if the quality doesn\u2019t meet my expectations?', a: 'One-year quality guarantee on every product. Stitching, print, embroidery — if anything fails under normal use, we replace it. No forms, no fight.' },
+                { q: 'Do you ship outside Quebec?', a: 'Yes, across Canada. Quebec orders typically arrive in 4 to 6 business days; other provinces add 1 to 3 days depending on the carrier.' },
+                { q: 'Can I reorder the exact same design later?', a: 'Yes. Your artwork files and specs stay on file, so reorders are one click — same colors, same placement, same sizing. Perfect for onboarding new team members.' },
+              ] : [
+                { q: 'Y a-t-il une quantité minimum par commande?', a: 'Aucun minimum. Tu peux commander un seul t-shirt ou 500 — le prix unitaire reste juste dans les deux cas. La plupart de nos clients commencent petit pour tester, puis augmentent pour toute leur équipe.' },
+                { q: 'En combien de temps vais-je recevoir ma commande?', a: 'Le délai moyen réel est de 4,7 jours ouvrables partout au Québec. Les commandes passées avant 15 h partent en production la journée même; après, elles roulent au prochain jour ouvrable. Tu reçois une date d\u2019expédition confirmée au paiement.' },
+                { q: 'Puis-je voir une épreuve avant que la production commence?', a: 'Oui. Chaque commande personnalisée reçoit une épreuve numérique par courriel en moins de 24 h. Rien ne part en impression tant que tu ne l\u2019as pas approuvée — aucune surprise à la livraison.' },
+                { q: 'Que faire si la qualité ne répond pas à mes attentes?', a: 'Qualité garantie un an sur chaque produit. Couture, impression, broderie — si quelque chose lâche à l\u2019usage normal, on remplace. Sans formulaire, sans se battre.' },
+                { q: 'Livrez-vous hors Québec?', a: 'Oui, partout au Canada. Les commandes québécoises arrivent typiquement en 4 à 6 jours ouvrables; les autres provinces ajoutent 1 à 3 jours selon le transporteur.' },
+                { q: 'Puis-je recommander le même design plus tard?', a: 'Oui. Tes fichiers et spécifications restent en dossier, alors recommander prend un clic — mêmes couleurs, même emplacement, mêmes tailles. Parfait pour intégrer les nouveaux membres de l\u2019équipe.' },
+              ]).map((item, i) => (
+                <details
+                  key={i}
+                  data-faq-item
+                  className="group rounded-lg bg-background border border-border transition-colors hover:bg-muted/20"
+                >
+                  <summary
+                    className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-[#1B3A6B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+                  >
+                    <span>{item.q}</span>
+                    <ChevronDown
+                      size={18}
+                      strokeWidth={2}
+                      aria-hidden="true"
+                      className="faq-chevron flex-shrink-0 text-[#1B3A6B] transition-transform duration-200"
+                    />
+                  </summary>
+                  <div className="px-5 pb-4 pt-0 text-[14px] text-muted-foreground leading-[1.7]">
+                    {item.a}
+                  </div>
+                </details>
               ))}
             </div>
           </div>
