@@ -18,6 +18,29 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const openLogin = onOpenLogin ?? (() => setInternalLoginOpen(true));
   const itemCount = useCartStore((s) => s.getItemCount());
   const { lang, t } = useLang();
+
+  // Cart-badge pulse on increase. We replay a 400ms scale+gold-flash
+  // keyframe whenever a new item lands in the cart — silent numeric
+  // bumps used to fly under the eye and leave shoppers unsure whether
+  // their click registered. Rules:
+  //   • Only increases pulse (decrement/clear is silent).
+  //   • First mount is silent even if the persisted cart is non-empty —
+  //     arriving on a page with 3 items already in cart shouldn't flash.
+  //   • Showing the badge for the first time (0 -> n) counts as an
+  //     increase so the very first add-to-cart of a session is loud.
+  //   • prefers-reduced-motion collapses the keyframe to ~0ms via the
+  //     global rule in index.css, so motion-sensitive users are spared.
+  // `pulseId` is a monotonic counter used as `key` on the badge span so
+  // each increase remounts the node and restarts the CSS animation from
+  // frame 0 — no manual setTimeout cleanup required.
+  const prevCountRef = useRef(itemCount);
+  const [pulseId, setPulseId] = useState(0);
+  useEffect(() => {
+    if (itemCount > prevCountRef.current) {
+      setPulseId((n) => n + 1);
+    }
+    prevCountRef.current = itemCount;
+  }, [itemCount]);
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
   const navigate = useNavigate();
@@ -239,16 +262,34 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           </svg>
           <span className="hidden sm:inline">{t('panier')}</span>
           {itemCount > 0 && (
-            // key={itemCount} remounts the span on every count change so the
-            // scale-pulse keyframe replays without needing animation state.
-            // prefers-reduced-motion collapses the duration to ~0ms via the
-            // global rule in index.css, so motion-sensitive users aren't hit.
-            <span
-              key={itemCount}
-              className="animate-cart-pulse absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center"
-            >
-              {itemCount > 99 ? '99+' : itemCount}
-            </span>
+            // key={pulseId} remounts the span each time the count INCREASES
+            // (not on every change) so the scale+gold-flash keyframe replays
+            // from frame 0. pulseId stays at 0 on first mount, which keeps
+            // the initial render of a persisted cart quiet. prefers-reduced-
+            // motion collapses the keyframe to ~0ms via the global rule in
+            // index.css, so motion-sensitive users get a near-instant
+            // color blip instead of a bouncing badge. The keyframes are
+            // defined inline below so the whole pulse lives in this file.
+            <>
+              <style>{`
+                @keyframes cartAddPulse {
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
+                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px hsla(35, 91%, 55%, 0.55); background-color: hsl(35, 91%, 55%); }
+                  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
+                }
+              `}</style>
+              <span
+                key={pulseId}
+                style={{
+                  animation: pulseId > 0
+                    ? 'cartAddPulse 400ms cubic-bezier(.34,1.56,.64,1)'
+                    : undefined,
+                }}
+                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center"
+              >
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            </>
           )}
         </button>
 
