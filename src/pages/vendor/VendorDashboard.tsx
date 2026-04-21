@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthStore } from '@/stores/authStore';
@@ -53,6 +53,75 @@ function formatDate(iso: string | null, lang: 'fr' | 'en'): string {
       year: 'numeric', month: 'short', day: 'numeric',
     });
   } catch { return '—'; }
+}
+
+// --- Tax forms (T4A) upload — Task 10.7 ---------------------------------
+//
+// Vendors hand their year-end T4A to accounting once per year. Until
+// the backend owns a real S3/Supabase bucket we stage files entirely
+// client-side: base64-encoded in localStorage under
+// `vision-vendor-tax-forms`, keyed by vendorId. The copy on the card
+// explicitly tells the vendor the files live only on this device so
+// they don't assume accounting can already see them.
+//
+// TODO(backend): replace the persistTaxForms() call below with a POST
+// to /api/vendor/tax-forms (multipart) once the upload endpoint and
+// S3/Supabase bucket exist. The form UI + list UI should survive that
+// swap untouched — only persistTaxForms + loadTaxForms change.
+
+const TAX_FORMS_STORAGE_KEY = 'vision-vendor-tax-forms';
+const TAX_FORM_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
+interface TaxFormEntry {
+  id: string;
+  filename: string;
+  type: string;
+  size: number;
+  year: number;
+  uploadedAt: string;
+  base64: string;
+}
+
+type TaxFormsMap = Record<string, TaxFormEntry[]>;
+
+function loadTaxForms(): TaxFormsMap {
+  try {
+    const raw = localStorage.getItem(TAX_FORMS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as TaxFormsMap;
+  } catch {
+    return {};
+  }
+}
+
+function persistTaxForms(map: TaxFormsMap): void {
+  try {
+    localStorage.setItem(TAX_FORMS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Likely quota exceeded — base64 PDFs are bulky. Swallow silently
+    // for now; the UI surfaces failure via the error banner at call site.
+  }
+}
+
+function formatBytes(n: number, lang: 'fr' | 'en'): string {
+  if (n < 1024) return `${n} ${lang === 'fr' ? 'o' : 'B'}`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} ${lang === 'fr' ? 'Ko' : 'KB'}`;
+  return `${(n / 1024 / 1024).toFixed(2)} ${lang === 'fr' ? 'Mo' : 'MB'}`;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') resolve(result);
+      else reject(new Error('Invalid file read result'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('File read error'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function VendorDashboard() {
@@ -134,6 +203,99 @@ export default function VendorDashboard() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [vendorId, month]);
+
+  // Tax-form upload state. Kept entirely in localStorage for now —
+  // see the block-comment near TAX_FORMS_STORAGE_KEY for the swap plan.
+  const currentYear = new Date().getFullYear();
+  const [taxYear, setTaxYear] = useState<number>(currentYear);
+  const [taxForms, setTaxForms] = useState<TaxFormEntry[]>(() => {
+    const map = loadTaxForms();
+    return map[vendorId] ?? [];
+  });
+  const [taxError, setTaxError] = useState<string | null>(null);
+  const [taxUploading, setTaxUploading] = useState(false);
+  const taxInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Reload per-vendor list when vendorId flips (admin preview, etc.).
+  useEffect(() => {
+    const map = loadTaxForms();
+    setTaxForms(map[vendorId] ?? []);
+  }, [vendorId]);
+
+  const onTaxFilePick = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so picking the same filename twice still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+
+    setTaxError(null);
+
+    if (file.size > TAX_FORM_MAX_BYTES) {
+      setTaxError(
+        lang === 'fr'
+          ? 'Le fichier dépasse la limite de 10 Mo.'
+          : 'File exceeds the 10 MB limit.',
+      );
+      return;
+    }
+
+    const isPdf = file.type === 'application/pdf';
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      setTaxError(
+        lang === 'fr'
+          ? 'Format non supporté. Téléversez un PDF ou une image.'
+          : 'Unsupported format. Upload a PDF or an image.',
+      );
+      return;
+    }
+
+    setTaxUploading(true);
+    try {
+      const base64 = await readFileAsBase64(file);
+      const entry: TaxFormEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        filename: file.name,
+        type: file.type,
+        size: file.size,
+        year: taxYear,
+        uploadedAt: new Date().toISOString(),
+        base64,
+      };
+      // TODO(backend): swap this block for a multipart POST to
+      // /api/vendor/tax-forms once the upload endpoint lands.
+      const map = loadTaxForms();
+      const next = [entry, ...(map[vendorId] ?? [])];
+      map[vendorId] = next;
+      persistTaxForms(map);
+      setTaxForms(next);
+    } catch {
+      setTaxError(
+        lang === 'fr'
+          ? 'Impossible de lire le fichier. Réessaie.'
+          : 'Could not read file. Try again.',
+      );
+    } finally {
+      setTaxUploading(false);
+    }
+  }, [lang, taxYear, vendorId]);
+
+  const onTaxDelete = useCallback((id: string) => {
+    const map = loadTaxForms();
+    const next = (map[vendorId] ?? []).filter(f => f.id !== id);
+    map[vendorId] = next;
+    persistTaxForms(map);
+    setTaxForms(next);
+  }, [vendorId]);
+
+  const onTaxDownload = useCallback((entry: TaxFormEntry) => {
+    const a = document.createElement('a');
+    a.href = entry.base64;
+    a.download = entry.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, []);
 
   const L = (fr: string, en: string) => (lang === 'fr' ? fr : en);
 
@@ -301,6 +463,118 @@ export default function VendorDashboard() {
           )}
         </p>
       )}
+
+      <section
+        aria-labelledby="vendor-tax-forms-heading"
+        className="bg-white border border-zinc-200 rounded-2xl overflow-hidden"
+      >
+        <div className="flex items-start justify-between gap-3 flex-wrap px-5 py-4 border-b border-zinc-100">
+          <div>
+            <h2 id="vendor-tax-forms-heading" className="font-bold">
+              {L('Formulaires fiscaux', 'Tax forms')}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5 max-w-xl">
+              {L(
+                'Téléversez votre formulaire T4A (max 10 Mo, PDF ou image). Ces documents restent sur cet appareil jusqu\u2019au traitement par l\u2019équipe comptable.',
+                'Upload your T4A form (max 10 MB, PDF or image). These documents remain on this device until the accounting team processes them.',
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-2 text-xs text-zinc-500">
+              <span>{L('Année', 'Year')}:</span>
+              <select
+                value={taxYear}
+                onChange={e => setTaxYear(Number(e.target.value))}
+                aria-label={L('Choisir l\u2019année fiscale', 'Pick tax year')}
+                className="border border-zinc-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 text-xs font-semibold text-foreground cursor-pointer"
+              >
+                <option value={currentYear}>{currentYear}</option>
+                <option value={currentYear - 1}>{currentYear - 1}</option>
+              </select>
+            </label>
+            <input
+              ref={taxInputRef}
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={onTaxFilePick}
+              className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+            <button
+              type="button"
+              onClick={() => taxInputRef.current?.click()}
+              disabled={taxUploading}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label={L('Téléverser un formulaire fiscal', 'Upload a tax form')}
+            >
+              <FileUp size={13} aria-hidden="true" />
+              {taxUploading
+                ? L('Téléversement…', 'Uploading…')
+                : L('Téléverser', 'Upload')}
+            </button>
+          </div>
+        </div>
+
+        {taxError && (
+          <div
+            role="alert"
+            className="mx-5 mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+          >
+            {taxError}
+          </div>
+        )}
+
+        {taxForms.length === 0 ? (
+          <div className="p-10 text-center text-sm text-zinc-500">
+            {L(
+              'Aucun formulaire téléversé. Cliquez « Téléverser » pour ajouter votre T4A.',
+              'No forms uploaded yet. Click "Upload" to add your T4A.',
+            )}
+          </div>
+        ) : (
+          <ul className="divide-y divide-zinc-100">
+            {taxForms.map(entry => (
+              <li key={entry.id} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-50/50 transition-colors">
+                <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] flex items-center justify-center">
+                  <FileText size={16} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm truncate">{entry.filename}</div>
+                  <div className="text-xs text-zinc-500">
+                    {L('Année', 'Year')} {entry.year}
+                    {' · '}
+                    {formatBytes(entry.size, lang)}
+                    {' · '}
+                    {L('Téléversé le', 'Uploaded')} {formatDate(entry.uploadedAt, lang)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onTaxDownload(entry)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+                    aria-label={L(`Télécharger ${entry.filename}`, `Download ${entry.filename}`)}
+                  >
+                    <Download size={11} aria-hidden="true" />
+                    {L('Télécharger', 'Download')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onTaxDelete(entry.id)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 bg-white border border-red-200 text-red-700 rounded-md hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                    aria-label={L(`Supprimer ${entry.filename}`, `Delete ${entry.filename}`)}
+                  >
+                    <Trash2 size={11} aria-hidden="true" />
+                    {L('Supprimer', 'Delete')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
