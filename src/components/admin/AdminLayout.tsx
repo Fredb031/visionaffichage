@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -21,8 +21,24 @@ const NAV_ITEMS = [
   { to: '/admin/settings', label: 'Paramètres', icon: Settings },
 ];
 
+// Persist the desktop sidebar collapsed/expanded state across reloads.
+// Wrapped in try/catch because localStorage can throw in private-mode
+// Safari or when the storage quota is exhausted — we fall back to the
+// default expanded state rather than crashing the whole admin shell.
+const COLLAPSE_KEY = 'admin:sidebarCollapsed';
+
+function readInitialCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(readInitialCollapsed);
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
@@ -38,6 +54,16 @@ export function AdminLayout() {
   // behind keeps moving while the menu sits frozen on top.
   useBodyScrollLock(mobileOpen);
 
+  // Persist collapsed state. Guarded so SSR / locked-down browsers
+  // don't blow up when localStorage is unavailable.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COLLAPSE_KEY, desktopCollapsed ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [desktopCollapsed]);
+
   const handleLogout = async () => {
     // Await the async signOut so the dynamic-import chain finishes
     // clearing cart + customizer stores BEFORE we navigate home.
@@ -46,25 +72,31 @@ export function AdminLayout() {
     navigate('/');
   };
 
+  // On mobile the sidebar is always shown full-width (w-64) when open,
+  // so the collapse toggle only applies at md+ breakpoints. The mobile
+  // overlay ignores desktopCollapsed.
+  const sidebarWidthClass = desktopCollapsed ? 'w-64 md:w-16' : 'w-64';
+  const mainPaddingClass = desktopCollapsed ? 'md:pl-16' : 'md:pl-64';
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <aside
         id="admin-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-[#0F2341] text-white flex flex-col transition-transform md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Admin navigation"
       >
-        <div className="px-6 py-6 border-b border-white/10">
+        <div className={`border-b border-white/10 ${desktopCollapsed ? 'px-6 md:px-3' : 'px-6'} py-6`}>
           <Link
             to="/admin"
             aria-label="Vision Affichage — Admin dashboard"
             className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
           >
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] flex items-center justify-center text-xs" aria-hidden="true">VA</span>
-            Admin
+            <span className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] flex items-center justify-center text-xs" aria-hidden="true">VA</span>
+            <span className={desktopCollapsed ? 'md:hidden' : ''}>Admin</span>
           </Link>
-          <div className="text-[11px] text-white/50 mt-1">Vision Affichage</div>
+          <div className={`text-[11px] text-white/50 mt-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Vision Affichage</div>
         </div>
 
         <nav className="flex-1 px-3 py-5 overflow-y-auto">
@@ -76,19 +108,22 @@ export function AdminLayout() {
                 to={item.to}
                 end={item.end}
                 onClick={() => setMobileOpen(false)}
+                title={desktopCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${
+                    desktopCollapsed ? 'md:justify-center' : ''
+                  } ${
                     isActive
                       ? 'bg-white/10 text-white'
                       : 'text-white/70 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
-                <span className="flex-1">{item.label}</span>
+                <Icon size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+                <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>{item.label}</span>
                 {'badge' in item && item.badge === 'pendingFulfillment' && SHOPIFY_STATS.awaitingFulfillment > 0 && (
                   <span
-                    className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                    className={`text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${desktopCollapsed ? 'md:hidden' : ''}`}
                     aria-label={`${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`}
                     aria-live="polite"
                     aria-atomic="true"
@@ -104,22 +139,43 @@ export function AdminLayout() {
         <div className="px-3 py-4 border-t border-white/10 space-y-1">
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
+            title={desktopCollapsed ? 'Retour au site' : undefined}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center md:text-[10px]' : ''}`}
           >
-            Retour au site
+            <span className={desktopCollapsed ? 'md:hidden' : ''}>Retour au site</span>
+            <span className={desktopCollapsed ? 'hidden md:inline' : 'hidden'} aria-hidden="true">←</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
+            title={desktopCollapsed ? 'Déconnexion' : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
           >
-            <LogOut size={18} strokeWidth={1.8} aria-hidden="true" />
-            Déconnexion
+            <LogOut size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+            <span className={desktopCollapsed ? 'md:hidden' : ''}>Déconnexion</span>
+          </button>
+          {/* Desktop-only collapse/expand toggle. Hidden on mobile because
+              the mobile sidebar is always full-width when visible. */}
+          <button
+            type="button"
+            onClick={() => setDesktopCollapsed(c => !c)}
+            aria-label={desktopCollapsed ? 'Déployer le menu latéral' : 'Réduire le menu latéral'}
+            aria-expanded={!desktopCollapsed}
+            aria-controls="admin-sidebar"
+            title={desktopCollapsed ? 'Déployer' : 'Réduire'}
+            className={`hidden md:flex w-full items-center gap-2 px-3 py-2 mt-1 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'justify-center' : 'justify-start'}`}
+          >
+            {desktopCollapsed ? (
+              <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+            ) : (
+              <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+            )}
+            <span className={desktopCollapsed ? 'hidden' : ''}>Réduire</span>
           </button>
         </div>
       </aside>
 
-      <div className="md:pl-64">
+      <div className={`transition-[padding] duration-200 ${mainPaddingClass}`}>
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200 px-4 md:px-8 py-3 flex items-center justify-between">
           <button
             type="button"
