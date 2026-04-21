@@ -93,6 +93,10 @@ export default function Index() {
     lang === 'en'
       ? 'Vision Affichage — Custom merch for Québec businesses. Free quote, 5-day turnaround, 100% local.'
       : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. Soumission gratuite, 5 jours ouvrables, 100 % local.',
+    // Task 8.5 — homepage opts into the default /og-default.png with the
+    // 'website' og:type so link-preview cards on Facebook/Slack/X render
+    // a branded image instead of the fallback favicon crop.
+    {},
   );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);

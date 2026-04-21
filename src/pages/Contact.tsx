@@ -38,6 +38,10 @@ export default function Contact() {
     lang === 'en'
       ? 'Contact Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Response within 24h.'
       : 'Contactez Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Réponse sous 24h.',
+    // Task 8.5 — OG overrides so a /contact link shared in Slack/SMS
+    // shows the branded preview card rather than inheriting stale PDP
+    // or Index tags on SPA back-nav.
+    {},
   );
 
   const [name, setName] = useState('');

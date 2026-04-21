@@ -41,3 +41,23 @@ Until these files land, the corresponding `<link>` refs in `index.html` will
 Until these files land, the manifest references will 404 and the install
 prompt on Chrome will show a generic icon. Everything else (theme color,
 standalone display, start URL) already works.
+
+## Open Graph default image (Task 8.5)
+
+`useDocumentTitle` writes per-page `og:image` + `twitter:image` meta tags
+on every top-level route. Pages that don't carry a page-specific image
+(Index, Products, Contact, About) fall back to `/og-default.png` at the
+site root. ProductDetail passes its own product photo (front view) so
+sharing a PDP link renders the actual garment instead of the generic
+branded card.
+
+| File             | Size     | Location     | Purpose                                                                    |
+| ---------------- | -------- | ------------ | -------------------------------------------------------------------------- |
+| `og-default.png` | 1200x630 | `/public/`   | Fallback Open Graph / Twitter-card preview image. Branded hero shot on navy background — appears when a non-PDP URL is shared to Facebook, Slack, LinkedIn, X, SMS link preview, etc. |
+
+Facebook's scraper caches the image URL for ~30 days, so until this
+file lands (or after it's replaced) existing shared links will keep
+showing the previous crawl. Use the Facebook Sharing Debugger to force
+a re-fetch. The meta tags themselves are already wired — visitors
+inspecting `<head>` will see `og:image` pointing at this path as soon
+as the route mounts.

@@ -119,7 +119,20 @@ export default function ProductDetail() {
           : `${product.title} — ${label}. Personnalise avec ton logo, imprimé au Québec, livré en 5 jours ouvrables.`;
       })()
     : undefined;
-  useDocumentTitle(pdpTitle, pdpDescription);
+  // Task 8.5 — OG + Twitter card image points at the actual product
+  // photo so a PDP link pasted into Slack/Facebook/LinkedIn renders a
+  // card showing the garment itself. Falls back through the same chain
+  // the JSON-LD schema uses (local catalog preferred over Shopify CDN)
+  // and finally to the generic /og-default.png when neither is known.
+  // og:type=product is the canonical schema for a sellable item — it
+  // tells Facebook/LinkedIn to render the extra price/availability row.
+  const pdpOgImage = product
+    ? (localProduct?.imageDevant ?? product.images?.edges?.[0]?.node?.url)
+    : undefined;
+  useDocumentTitle(pdpTitle, pdpDescription, {
+    ogImage: pdpOgImage,
+    ogType: 'product',
+  });
 
   // Inject Product JSON-LD so Google shows rich product results
   // (price, image, brand) on SERPs. Data lives inside a script tag in

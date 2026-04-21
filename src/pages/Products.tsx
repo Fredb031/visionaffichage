@@ -151,6 +151,11 @@ export default function Products() {
     lang === 'en'
       ? 'Full catalog of customizable merch — t-shirts, hoodies, polos, caps. Secure checkout, printed in Québec.'
       : 'Catalogue complet de merchs personnalisables — t-shirts, hoodies, polos, casquettes. Paiement sécurisé, imprimé au Québec.',
+    // Task 8.5 — /products shares the same default og-image as / since
+    // the catalog page is a generic entry point rather than a specific
+    // product. og:type stays 'website' (product type is reserved for
+    // the PDP so Facebook / LinkedIn can surface price widgets).
+    {},
   );
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —

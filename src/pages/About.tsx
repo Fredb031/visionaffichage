@@ -28,6 +28,8 @@ export default function About() {
     lang === 'en'
       ? 'The Vision Affichage story — printer and merchandiser established in Saint-Hyacinthe, Québec.'
       : 'L\u2019histoire de Vision Affichage — imprimeur et marchandiseur établi à Saint-Hyacinthe, Québec.',
+    // Task 8.5 — OG overrides; /about uses the default branded image.
+    {},
   );
 
   // Value cards — icons picked to echo Contact.tsx's iconography style
