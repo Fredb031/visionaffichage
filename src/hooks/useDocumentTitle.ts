@@ -20,6 +20,34 @@ type ManagedTag = { attr: 'property' | 'name'; key: string };
 
 const DEFAULT_OG_IMAGE = '/og-default.png';
 
+// Browser tabs typically show ~60 characters before an ellipsis; search
+// engines truncate SERP titles around 60–65. We clamp slightly above
+// that so formatting breathing-room (" — Vision Affichage") isn't cut
+// off mid-word while still keeping tabs readable. The ellipsis character
+// is a single codepoint so the visible length stays at TITLE_MAX_LEN.
+const TITLE_MAX_LEN = 70;
+
+// Defensive HTML tag stripper. Template strings occasionally interpolate
+// raw product copy that may contain stray <br/> or <strong> fragments;
+// document.title renders these literally ("&lt;strong&gt;...") and OG
+// crawlers treat them as raw text too. Matching a naive tag pattern is
+// enough here — we never intend to render rich markup in a title.
+const stripHtml = (s: string): string => s.replace(/<[^>]*>/g, '');
+
+// Normalize a caller-provided title: strip tags, collapse whitespace,
+// and trim. Returns an empty string for nullish / whitespace-only input
+// so downstream code can cheaply detect "don't touch document.title".
+const sanitizeTitle = (raw: string | undefined | null): string => {
+  if (raw == null) return '';
+  const stripped = stripHtml(raw).replace(/\s+/g, ' ').trim();
+  return stripped;
+};
+
+// Clamp to TITLE_MAX_LEN with a trailing ellipsis. Callers that already
+// fit are returned unchanged (identity-preserving for the common case).
+const clampTitle = (s: string): string =>
+  s.length <= TITLE_MAX_LEN ? s : `${s.slice(0, TITLE_MAX_LEN - 1).trimEnd()}…`;
+
 /**
  * Set document.title for the life of the mounted component, restoring
  * the previous title on unmount. Used across pages so SPA navigation
@@ -53,6 +81,25 @@ const DEFAULT_OG_IMAGE = '/og-default.png';
  * on mount and restored on unmount; missing tags are created on mount
  * and removed on unmount. That way a page opting into og:type=product
  * doesn't leak 'product' onto the next page the user navigates to.
+ *
+ * Titles are sanitized defensively: HTML fragments are stripped (so a
+ * stray `<strong>` in an interpolated template doesn't leak into the
+ * tab), internal whitespace is collapsed, and the result is truncated
+ * to 70 characters with an ellipsis to match typical browser/SERP
+ * display limits. An empty / whitespace-only / nullish title is
+ * treated as "no change" — document.title (and the OG/Twitter title
+ * tags) are left as-is rather than clearing the tab label.
+ *
+ * @param title        Page title. Empty / whitespace is a no-op for the
+ *                     title itself; description and OG/Twitter plumbing
+ *                     still run so per-page SEO snippets keep working.
+ * @param description  Optional per-page meta description. When provided,
+ *                     the `<meta name="description">` tag and the
+ *                     og:description / twitter:description tags are
+ *                     updated on mount and restored on unmount.
+ * @param ogOverrides  Optional Open Graph / Twitter card overrides —
+ *                     `ogImage` defaults to `/og-default.png` and
+ *                     `ogType` defaults to `'website'` when omitted.
  */
 export function useDocumentTitle(
   title: string,
@@ -69,8 +116,17 @@ export function useDocumentTitle(
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
+    // Sanitize + clamp once; reuse the safe value everywhere the title
+    // flows (document.title, og:title, twitter:title) so the three
+    // surfaces can't drift. An empty result means "leave document.title
+    // alone" — useful on routes that compute the title async and would
+    // otherwise flash a blank tab label while data loads.
+    const safeTitle = clampTitle(sanitizeTitle(title));
+
     const prevTitle = document.title;
-    document.title = title;
+    if (safeTitle.length > 0) {
+      document.title = safeTitle;
+    }
 
     // Canonical URL bookkeeping (Task 8.9) — search engines treat
     // ?sort=price / ?q=foo / ?view=grid as distinct URLs unless we point
@@ -143,14 +199,19 @@ export function useDocumentTitle(
     // and its previous content. `null` content in the restore map means
     // "remove on unmount"; a string means "restore to this value".
     const managed: ManagedTag[] = [
-      { attr: 'property', key: 'og:title' },
       { attr: 'property', key: 'og:url' },
       { attr: 'property', key: 'og:type' },
       { attr: 'property', key: 'og:image' },
       { attr: 'name', key: 'twitter:card' },
-      { attr: 'name', key: 'twitter:title' },
       { attr: 'name', key: 'twitter:image' },
     ];
+    // og:title / twitter:title are only pushed when we have a non-empty
+    // sanitized title — mirrors the document.title no-op above so a
+    // blank input doesn't blank out the social preview either.
+    if (safeTitle.length > 0) {
+      managed.unshift({ attr: 'property', key: 'og:title' });
+      managed.push({ attr: 'name', key: 'twitter:title' });
+    }
     if (description !== undefined) {
       managed.push({ attr: 'property', key: 'og:description' });
       managed.push({ attr: 'name', key: 'twitter:description' });
@@ -182,7 +243,7 @@ export function useDocumentTitle(
       switch (tag.key) {
         case 'og:title':
         case 'twitter:title':
-          value = title;
+          value = safeTitle;
           break;
         case 'og:description':
         case 'twitter:description':
