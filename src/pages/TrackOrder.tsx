@@ -79,6 +79,19 @@ export default function TrackOrder() {
   const currentStage: Stage | null = order ? deriveStage(order) : null;
   const currentIdx = currentStage ? STAGES.findIndex(s => s.id === currentStage) : -1;
 
+  // Stale-order guard: an order sitting in 'pending' (payment received but not
+  // yet in production) for > 14 days is almost certainly a data hiccup on our
+  // side — a partially-captured payment, a stuck webhook, or an order the team
+  // forgot to flip to 'paid'. Without a hint here, customers stare at a
+  // "Paiement reçu" step that never advances and assume we ghosted them. The
+  // banner nudges them to reach out instead of silently waiting another week.
+  const isStalePending = (() => {
+    if (!order || currentStage !== 'pending') return false;
+    const createdMs = new Date(order.createdAt).getTime();
+    if (!Number.isFinite(createdMs)) return false;
+    return Date.now() - createdMs > 14 * 86400000;
+  })();
+
   // ETA: pending = +5 days, production = +3 days, shipped = +1 day.
   // Clamp the target to at least tomorrow so an order that's been
   // stuck in 'pending' for longer than the stage's nominal SLA
@@ -207,6 +220,22 @@ export default function TrackOrder() {
                   </div>
                 </div>
               </div>
+
+              {isStalePending && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3" role="status">
+                  <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <div className="text-xs text-amber-900">
+                    <div className="font-bold mb-0.5">
+                      {lang === 'en' ? 'This order is taking longer than usual' : 'Cette commande prend plus de temps que prévu'}
+                    </div>
+                    <div className="text-amber-800">
+                      {lang === 'en'
+                        ? 'It has been pending for more than 14 days. Please call us at 367-380-4808 so we can look into it.'
+                        : 'Elle est en attente depuis plus de 14 jours. Appelle-nous au 367-380-4808 pour qu\u2019on la regarde.'}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Stage tracker */}
               <div className="space-y-3">
