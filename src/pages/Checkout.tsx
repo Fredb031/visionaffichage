@@ -127,6 +127,34 @@ function formatElapsed(ms: number, lang: 'en' | 'fr'): string {
 }
 
 /**
+ * Progressively format a phone string as fr-CA `(ddd) ddd-dddd`.
+ * Strips every non-digit, caps at 10, and reformats partial input so
+ * the user sees "(514", "(514) 5", "(514) 555-1", etc. as they type.
+ * Idempotent: running it on an already-formatted value reproduces the
+ * same output. `isValidPhone` downstream normalizes via /[^\d]/ so the
+ * formatted string remains valid for the submit/validate pipeline.
+ */
+function formatCanadianPhone(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/**
+ * Progressively format a Canadian postal code as `A1A 1A1`. Uppercases,
+ * strips spaces and non-alphanumerics, caps at 6 characters, then
+ * inserts a single space after the 3rd char once we have more than 3.
+ * Idempotent — re-running on a formatted value preserves it exactly.
+ */
+function formatCanadianPostal(input: string): string {
+  const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  if (cleaned.length <= 3) return cleaned;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+}
+
+/**
  * Add `businessDays` weekdays to `from`, skipping Saturday + Sunday.
  * Used to compute the real delivery ETA shown on each shipping tile
  * so the buyer sees a concrete date ("Livré autour du mardi 28 avril")
@@ -848,10 +876,17 @@ export default function Checkout() {
                     <Input value={form.city}      onChange={v => setForm(f => ({ ...f, city: v }))}      placeholder={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" autoCapitalize="words" required />
                     <Input
                       value={form.postalCode}
-                      onChange={v => setForm(f => ({ ...f, postalCode: v.toUpperCase() }))}
+                      // Auto-format Canadian postal on every keystroke:
+                      // uppercase, strip spaces/non-alphanumerics, cap at
+                      // 6 chars, then insert the space after the 3rd.
+                      // Idempotent so repeated keystrokes / paste events
+                      // re-normalize rather than accumulate.
+                      onChange={v => setForm(f => ({ ...f, postalCode: formatCanadianPostal(v) }))}
                       placeholder={lang === 'en' ? 'Postal code' : 'Code postal'}
                       autoComplete="postal-code"
                       autoCapitalize="characters"
+                      inputMode="text"
+                      maxLength={7}
                       required
                       // Show the red invalid state only AFTER the user has
                       // typed something — empty input shouldn't look like
@@ -860,11 +895,18 @@ export default function Checkout() {
                     />
                     <Input
                       value={form.phone}
-                      onChange={v => setForm(f => ({ ...f, phone: v }))}
+                      // Progressive fr-CA formatting: strip non-digits,
+                      // cap at 10, render as "(ddd) ddd-dddd" partial-as-
+                      // typed. The downstream validator already
+                      // normalizes via /[^\d]/ so storing the formatted
+                      // string doesn't break the 10-digit check.
+                      onChange={v => setForm(f => ({ ...f, phone: formatCanadianPhone(v) }))}
                       placeholder={lang === 'en' ? 'Phone (optional)' : 'Téléphone (optionnel)'}
                       autoComplete="tel"
+                      inputMode="tel"
                       className="col-span-2"
                       type="tel"
+                      maxLength={14}
                       // Only flag invalid once the user has typed — empty
                       // input is allowed (phone is optional).
                       ariaInvalid={phoneTrimmed.length > 0 && !isValidPhone}
@@ -1175,7 +1217,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode, ariaInvalid,
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode, ariaInvalid, maxLength,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -1193,6 +1235,9 @@ function Input({
   inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | 'decimal';
   /** Screen reader + visual invalid state. */
   ariaInvalid?: boolean;
+  /** Hard cap on character count — useful for fixed-width formatted
+   * fields like postal codes ("A1A 1A1" = 7) or phone ("(514) 555-1234" = 14). */
+  maxLength?: number;
 }) {
   // Phone inputs default to the tel keyboard for faster mobile entry.
   const effectiveInputMode = inputMode ?? (type === 'tel' ? 'tel' : undefined);
@@ -1211,6 +1256,7 @@ function Input({
       autoComplete={autoComplete}
       autoCapitalize={autoCapitalize}
       inputMode={effectiveInputMode}
+      maxLength={maxLength}
       required={required}
       className={`border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${ariaInvalid ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25' : 'border-border focus:border-primary focus-visible:ring-primary/25'} ${className}`}
     />
