@@ -1164,6 +1164,43 @@ export default function Checkout() {
 
           {/* Sticky cart summary */}
           <aside className="bg-white border border-border rounded-2xl p-5 h-fit lg:sticky lg:top-6">
+            {/* Task 5.19: delivery-by promise banner. Anchored to the
+                selected shipping method so the buyer sees a concrete
+                "arrives by {date}" at the very top of the sidebar —
+                reassuring while they read the order summary. Pickup
+                swaps in a "ready for pickup tomorrow" message because
+                a delivery date would be misleading for in-person
+                pickup. */}
+            {(() => {
+              const now = new Date();
+              if (shippingMethod === 'pickup') {
+                const ready = addBusinessDays(now, 1);
+                const dateStr = ready.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+                return (
+                  <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-900">
+                    <MapPin size={14} className="text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                    <span className="font-medium">
+                      {lang === 'en'
+                        ? <>Ready for pickup <span className="font-semibold">tomorrow</span> ({dateStr})</>
+                        : <>Prêt à la cueillette <span className="font-semibold">demain</span> ({dateStr})</>}
+                    </span>
+                  </div>
+                );
+              }
+              const baseDays = shippingMethod === 'express' ? 3 : 6;
+              const arrives = addBusinessDays(now, baseDays);
+              const dateStr = arrives.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+              return (
+                <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-900">
+                  <Truck size={14} className="text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                  <span className="font-medium">
+                    {lang === 'en'
+                      ? <>Arrives by <span className="font-semibold">{dateStr}</span></>
+                      : <>Reçu vers le <span className="font-semibold">{dateStr}</span></>}
+                  </span>
+                </div>
+              );
+            })()}
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-extrabold">{lang === 'en' ? 'Your cart' : 'Ton panier'}</h2>
               <span className="text-xs text-muted-foreground">{itemCount} {lang === 'en' ? 'items' : 'articles'}</span>
