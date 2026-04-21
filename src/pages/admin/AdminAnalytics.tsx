@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, DollarSign, Package, Users, ShoppingBag, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -14,6 +14,60 @@ import { downloadCsv as downloadCsvBlob, csvFilename } from '@/lib/csv';
 import { useAuthStore } from '@/stores/authStore';
 import { hasPermission } from '@/lib/permissions';
 
+// ---------------------------------------------------------------------------
+// Date-range segmented picker
+//
+// The page is driven by a static Shopify snapshot that still carries real
+// per-order `createdAt` timestamps, so we can slice the dataset
+// client-side without a round-trip. Four presets cover every question an
+// admin asks without a free-form date picker (which would need a calendar
+// widget + URL sync — out of scope for a self-contained tweak).
+//
+// "annuel" = calendar YTD. January 1st local → now. `90j` / `30j` / `7j`
+// are rolling windows ending "now". Selection is persisted under
+// localStorage['va:analytics-range'] so the last choice survives a hard
+// refresh; the key is namespaced (`va:`) so it plays nicely with the
+// other analytics/settings keys on the admin surface.
+// ---------------------------------------------------------------------------
+type RangeKey = '7j' | '30j' | '90j' | 'annuel';
+
+const RANGE_OPTIONS: ReadonlyArray<{ key: RangeKey; label: string; days: number | 'ytd' }> = [
+  { key: '7j',     label: '7j',      days: 7   },
+  { key: '30j',    label: '30j',     days: 30  },
+  { key: '90j',    label: '90j',     days: 90  },
+  { key: 'annuel', label: 'Annuel',  days: 'ytd' },
+];
+
+const RANGE_STORAGE_KEY = 'va:analytics-range';
+
+// Resolve the [start, end) window for a given range anchored at `now`
+// (local time). End is "right now" and is exclusive of future orders
+// (snapshot shouldn't contain any, but it's a cheap guard).
+function rangeWindow(key: RangeKey, now: Date = new Date()): { start: Date; end: Date } {
+  const end = now;
+  if (key === 'annuel') {
+    return { start: new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0), end };
+  }
+  const days = key === '7j' ? 7 : key === '30j' ? 30 : 90;
+  const start = new Date(now);
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+  return { start, end };
+}
+
+// Read the persisted range; guarded against SSR + invalid legacy values
+// so a manually-edited localStorage doesn't crash the whole page.
+function readPersistedRange(): RangeKey {
+  if (typeof window === 'undefined') return '30j';
+  try {
+    const raw = window.localStorage.getItem(RANGE_STORAGE_KEY);
+    if (raw && RANGE_OPTIONS.some(o => o.key === raw)) return raw as RangeKey;
+  } catch {
+    // private-browsing + quota errors — fall back silently to default
+  }
+  return '30j';
+}
+
 // Thin wrapper around the shared CSV helper that also pops a success
 // toast. The lib/csv.ts builder is UI-agnostic (it'll be reused by
 // headless exporters in commissions.ts + future admin reports), so
@@ -21,6 +75,31 @@ import { hasPermission } from '@/lib/permissions';
 function exportCsv(rows: ReadonlyArray<ReadonlyArray<unknown>>, slug: string, toastLabel: string): void {
   downloadCsvBlob(rows, csvFilename(slug));
   toast.success(toastLabel);
+}
+
+// Verbatim copy of the AdminOrders CSV-injection guard — the page-level
+// "Exporter CSV" action uses its own builder (not lib/csv) because the
+// spec wants the filename `analytics-YYYY-MM-DD.csv` without the shared
+// `vision-` prefix and wants the per-section exporters left untouched.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const csvEscape = (v: unknown) => {
+  let s = String(v ?? '');
+  if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+  // Wrap when the value contains a delimiter/quote/newline OR when we
+  // prefixed a tab above (defensive — a bare leading tab in a field
+  // confuses Numbers.app's CSV auto-detect). Double inner quotes.
+  return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+// Format a Date as fr-CA (YYYY-MM-DD). The CSV spec calls for fr-CA
+// dates; Intl with fr-CA returns dashed ISO which is what finance
+// expects, but `toLocaleDateString` in Safari-old can format weirdly —
+// build the string by hand to be safe.
+function frCaDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // Bucket orders by LOCAL day, not UTC. toISOString() drifts orders
@@ -52,18 +131,85 @@ export default function AdminAnalytics() {
   // can still announce the page structure, but the click is a no-op.
   const user = useAuthStore(s => s.user);
   const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
+
+  // Range state — lazy-init from localStorage so the first paint already
+  // reflects the user's last pick (no flicker from default → restored).
+  const [range, setRange] = useState<RangeKey>(() => readPersistedRange());
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(RANGE_STORAGE_KEY, range); } catch { /* quota */ }
+  }, [range]);
+
+  // Compare-to-previous toggle — opt-in so casual viewers aren't
+  // bombarded with deltas. Not persisted: it's a transient analysis
+  // mode, and pre-checking it would slow the page for everyone.
+  const [compare, setCompare] = useState(false);
+
+  const { start: rangeStart, end: rangeEnd } = useMemo(() => rangeWindow(range), [range]);
+  // Previous-period window has the same length, ending where the
+  // current window starts. For "annuel" we mirror the number of days
+  // elapsed YTD against the same run last calendar year (start of prev
+  // year → prev year anniversary of today).
+  const { prevStart, prevEnd } = useMemo(() => {
+    if (range === 'annuel') {
+      const prevStart = new Date(rangeStart.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+      const prevEnd = new Date(rangeEnd);
+      prevEnd.setFullYear(prevEnd.getFullYear() - 1);
+      return { prevStart, prevEnd };
+    }
+    const lengthMs = rangeEnd.getTime() - rangeStart.getTime();
+    return { prevEnd: rangeStart, prevStart: new Date(rangeStart.getTime() - lengthMs) };
+  }, [range, rangeStart, rangeEnd]);
+
+  // Orders whose createdAt falls inside the active window. Kept as a
+  // derived memo (rather than inlined) so the stat cards, bar chart,
+  // and conversion rate all agree on the filtered set.
+  const ordersInRange = useMemo(() => {
+    return SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
+      const t = new Date(o.createdAt).getTime();
+      return t >= rangeStart.getTime() && t <= rangeEnd.getTime();
+    });
+  }, [rangeStart, rangeEnd]);
+
+  const ordersInPrev = useMemo(() => {
+    return SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
+      const t = new Date(o.createdAt).getTime();
+      return t >= prevStart.getTime() && t < prevEnd.getTime();
+    });
+  }, [prevStart, prevEnd]);
+
+  const revenueInRange = useMemo(
+    () => ordersInRange.reduce((sum, o) => sum + o.total, 0),
+    [ordersInRange],
+  );
+  const revenueInPrev = useMemo(
+    () => ordersInPrev.reduce((sum, o) => sum + o.total, 0),
+    [ordersInPrev],
+  );
+
   const dailyRevenue = useMemo(() => {
     const map = new Map<string, number>();
-    for (const o of SHOPIFY_ORDERS_SNAPSHOT) {
+    for (const o of ordersInRange) {
       const k = dayKey(o.createdAt);
       map.set(k, (map.get(k) ?? 0) + o.total);
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .slice(-14);
-  }, []);
+    // Cap very long ranges at 90 bars so the chart stays legible at
+    // `annuel` — we show the most recent days in-range.
+    const sorted = Array.from(map.entries()).sort(([a], [b]) => (a < b ? -1 : 1));
+    return sorted.slice(-90);
+  }, [ordersInRange]);
 
   const maxRevenue = Math.max(...dailyRevenue.map(([, v]) => v), 1);
+
+  // Active range metadata (label + days-used) pulled once per render so
+  // the header/export use the same string the picker displays.
+  const activeRange = RANGE_OPTIONS.find(r => r.key === range) ?? RANGE_OPTIONS[1];
+  // Pct delta helper. Guard against prev=0 (can't divide) by returning
+  // null — call sites render an em-dash instead of Infinity.
+  const pctDelta = (cur: number, prev: number): number | null => {
+    if (prev === 0) return null;
+    return ((cur - prev) / prev) * 100;
+  };
 
   const productTypeRevenue = useMemo(() => {
     const map = new Map<string, { count: number; revenue: number }>();
@@ -86,31 +232,144 @@ export default function AdminAnalytics() {
       .slice(0, 5);
   }, []);
 
+  // Count abandoned carts whose createdAt falls inside the active window
+  // so the conversion rate matches the filtered order count (otherwise
+  // the rate would drift up spuriously for short ranges).
+  const abandonedInRange = useMemo(() => {
+    return SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => {
+      const t = new Date(c.createdAt).getTime();
+      return t >= rangeStart.getTime() && t <= rangeEnd.getTime();
+    });
+  }, [rangeStart, rangeEnd]);
+
+  const abandonedInPrev = useMemo(() => {
+    return SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => {
+      const t = new Date(c.createdAt).getTime();
+      return t >= prevStart.getTime() && t < prevEnd.getTime();
+    });
+  }, [prevStart, prevEnd]);
+
   const conversionRate = useMemo(() => {
-    const ordered = SHOPIFY_ORDERS_SNAPSHOT.length;
-    const abandoned = SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.length;
+    const ordered = ordersInRange.length;
+    const abandoned = abandonedInRange.length;
     if (ordered + abandoned === 0) return 0;
     return Math.round((ordered / (ordered + abandoned)) * 100);
-  }, []);
+  }, [ordersInRange, abandonedInRange]);
+
+  const conversionRatePrev = useMemo(() => {
+    const ordered = ordersInPrev.length;
+    const abandoned = abandonedInPrev.length;
+    if (ordered + abandoned === 0) return 0;
+    return Math.round((ordered / (ordered + abandoned)) * 100);
+  }, [ordersInPrev, abandonedInPrev]);
+
+  // Page-level "Exporter CSV" — bundles the filtered daily-revenue
+  // series (same shape as the per-chart export) so finance can grab
+  // the current view in one click. Filename matches the spec
+  // (`analytics-YYYY-MM-DD.csv`, no `vision-` prefix); uses the local
+  // csvEscape/FORMULA_TRIGGERS copied from AdminOrders so a pasted
+  // order note starting with `=` or `@` can't execute on open.
+  const handleHeaderExport = () => {
+    if (!canExport) {
+      toast.error('Permission orders:read requise pour exporter');
+      return;
+    }
+    if (dailyRevenue.length === 0) {
+      toast.info('Aucune donnée à exporter pour cette période');
+      return;
+    }
+    const header = ['Date', 'Commandes', 'Revenus'];
+    const byDayCount = new Map<string, number>();
+    for (const o of ordersInRange) {
+      const k = dayKey(o.createdAt);
+      byDayCount.set(k, (byDayCount.get(k) ?? 0) + 1);
+    }
+    const rows = dailyRevenue.map(([day, revenue]) => [
+      // fr-CA date (YYYY-MM-DD) — matches AdminOrders locale contract.
+      frCaDate(parseDayKeyLocal(day)),
+      String(byDayCount.get(day) ?? 0),
+      revenue.toFixed(2),
+    ]);
+    const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+    // UTF-8 BOM so Excel-on-Windows renders Québécois accents.
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-${frCaDate(new Date())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`${rows.length} jour${rows.length > 1 ? 's' : ''} exporté${rows.length > 1 ? 's' : ''}`);
+  };
+
+  const revenueDelta = pctDelta(revenueInRange, revenueInPrev);
+  const conversionDelta = pctDelta(conversionRate, conversionRatePrev);
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">Analytique</h1>
-        <p className="text-sm text-zinc-500 mt-1">Vue d'ensemble basée sur tes vraies données Shopify</p>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Analytique</h1>
+          <p className="text-sm text-zinc-500 mt-1">Vue d'ensemble basée sur tes vraies données Shopify</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleHeaderExport}
+          disabled={!canExport || dailyRevenue.length === 0}
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={canExport ? `Exporter l'analytique (${activeRange.label}) en CSV` : 'Permission requise'}
+          aria-label="Exporter l'analytique en CSV"
+        >
+          <Download size={14} aria-hidden="true" />
+          Exporter CSV
+        </button>
       </header>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="inline-flex border border-zinc-200 rounded-lg overflow-hidden bg-white" role="radiogroup" aria-label="Période d'analyse">
+          {RANGE_OPTIONS.map(opt => {
+            const active = range === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setRange(opt.key)}
+                className={`px-3 py-1.5 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset ${active ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <label className="inline-flex items-center gap-2 text-xs font-bold text-zinc-600 select-none cursor-pointer">
+          <input
+            type="checkbox"
+            checked={compare}
+            onChange={e => setCompare(e.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300 text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          />
+          Comparer à la période précédente
+        </label>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Revenus 7 jours"
-          value={`${SHOPIFY_STATS.revenueLast7Days.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $`}
+          label={`Revenus ${activeRange.label}`}
+          value={`${revenueInRange.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $`}
+          delta={compare && revenueDelta !== null ? revenueDelta : undefined}
+          deltaLabel={compare ? 'vs période précédente' : undefined}
           icon={DollarSign}
           accent="green"
         />
         <StatCard
           label="Taux conversion"
           value={`${conversionRate}%`}
-          deltaLabel="commandes vs paniers"
+          delta={compare && conversionDelta !== null ? conversionDelta : undefined}
+          deltaLabel={compare ? 'vs période précédente' : 'commandes vs paniers'}
           icon={TrendingUp}
           accent="blue"
         />
@@ -134,7 +393,7 @@ export default function AdminAnalytics() {
           <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
             <h2 id="daily-revenue-heading" className="font-bold">Revenus quotidiens</h2>
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">14 jours</span>
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{activeRange.label}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -168,7 +427,7 @@ export default function AdminAnalytics() {
             // empty (invalid per WAI-ARIA, must contain ≥1 listitem) and
             // the chart looks broken instead of just unfilled.
             <div className="flex items-center justify-center h-48 text-sm text-zinc-400" role="status">
-              Aucune commande sur les 14 derniers jours
+              Aucune commande sur cette période
             </div>
           ) : (
             <div className="flex items-end gap-1.5 h-48" role="list">
