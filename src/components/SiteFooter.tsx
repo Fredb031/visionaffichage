@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Gift } from 'lucide-react';
+import { Mail, Phone, MapPin, Gift, Instagram, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
@@ -232,6 +232,39 @@ export function SiteFooter() {
               </li>
             </ul>
           </div>
+        </div>
+
+        {/* Social row — Task 1.17. One-click bridge from the site to the
+            brand's social presence. We show the handle text next to each
+            icon rather than fabricating follower counts; a backend resolver
+            can later swap the handle for a formatted count (e.g. "2.3k")
+            once the Instagram/Facebook Graph tokens are in place.
+            TODO(1.17): replace handle text with live follower count via
+            a backend fetch (IG Graph API + FB Pages API) when creds land. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-5 border-b border-white/10">
+          <span className="text-[11px] font-bold uppercase tracking-[2px] text-white/50">
+            {lang === 'en' ? 'Follow us' : 'Suivez-nous'}
+          </span>
+          <a
+            href="https://instagram.com/visionaffichage"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram @visionaffichage"
+            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+          >
+            <Instagram size={18} aria-hidden="true" />
+            <span>@visionaffichage</span>
+          </a>
+          <a
+            href="https://facebook.com/visionaffichage"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Facebook @visionaffichage"
+            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+          >
+            <Facebook size={18} aria-hidden="true" />
+            <span>@visionaffichage</span>
+          </a>
         </div>
 
         {/* Bottom row */}
