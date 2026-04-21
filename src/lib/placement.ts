@@ -29,7 +29,7 @@ type Params = {
  * Caps keep a slim-fit from ballooning and a wide garment from getting
  * a tiny mark. */
 const defaultWidth = (bbox?: Bbox | null) =>
-  bbox ? Math.min(bbox.w * 0.45, 38) : 34;
+  bbox ? Math.min(bbox.w * 0.45, bbox.h * 1.2, 38) : 34;
 
 /** Clamp a user-supplied widthPct to a sane range. Callers occasionally
  * pass a stale slider value (negative after a reset) or a value in the

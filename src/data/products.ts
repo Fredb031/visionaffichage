@@ -29,6 +29,19 @@ const CENTRAL_ZONE_IDS = new Set(['poitrine-centre', 'panneau-avant', 'face-avan
 export const pickDefaultZone = (zones: PrintZone[]): PrintZone | undefined =>
   zones.find(z => CENTRAL_ZONE_IDS.has(z.id)) ?? zones[0];
 
+/**
+ * Side-aware variant of `pickDefaultZone`. Filters the zone list to the
+ * requested side first (treating `side: undefined` as applicable to
+ * both), then runs the same central-zone preference. Used by the
+ * "Devant + dos" auto-placement branch so the un-mounted view gets a
+ * sane starting zone instead of the other view's bbox-derived coords.
+ */
+export const pickDefaultZoneForSide = (
+  zones: PrintZone[],
+  side: 'front' | 'back',
+): PrintZone | undefined =>
+  pickDefaultZone(zones.filter(z => !z.side || z.side === side));
+
 export type ProductColor = {
   id: string;
   name: string;      // Nom affiché en français (comme sur le site)

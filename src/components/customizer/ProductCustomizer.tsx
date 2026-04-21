@@ -31,7 +31,7 @@ import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
-import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone } from '@/data/products';
+import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone, pickDefaultZoneForSide } from '@/data/products';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
@@ -971,8 +971,35 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           store.setLogoPlacementBack(placement);
                           store.setLogoPlacement(null);
                         } else if (store.placementSides === 'both') {
-                          store.setLogoPlacement(placement);
-                          store.setLogoPlacementBack({ ...placement });
+                          // Don't clone the active-view's bbox-derived
+                          // placement onto BOTH sides — on products
+                          // whose front/back silhouettes differ (hoodie
+                          // with a big back graphic, zip vs pullover),
+                          // the back placement would land wrong. Use
+                          // the auto placement for the currently
+                          // displayed view; seed the OTHER view from
+                          // its own default zone (no bbox available
+                          // for the un-mounted image yet — the user's
+                          // first manual adjustment on that view will
+                          // snap to the detected silhouette). */
+                          const activeSide = store.activeView;
+                          const otherSide: 'front' | 'back' =
+                            activeSide === 'front' ? 'back' : 'front';
+                          const otherZone = pickDefaultZoneForSide(product.printZones, otherSide) ?? zone;
+                          const otherAuto = centerOnChest({ zone: otherZone });
+                          const otherPlacement: LogoPlacement = {
+                            zoneId: otherZone?.id ?? 'centre',
+                            mode: 'preset',
+                            previewUrl, processedUrl, originalFile: file,
+                            ...otherAuto,
+                          };
+                          if (activeSide === 'back') {
+                            store.setLogoPlacementBack(placement);
+                            store.setLogoPlacement(otherPlacement);
+                          } else {
+                            store.setLogoPlacement(placement);
+                            store.setLogoPlacementBack(otherPlacement);
+                          }
                         } else {
                           store.setLogoPlacement(placement);
                           store.setLogoPlacementBack(null);
