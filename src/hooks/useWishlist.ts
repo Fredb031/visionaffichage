@@ -24,9 +24,18 @@ function readStorage(): string[] {
     const seen = new Set<string>();
     const out: string[] = [];
     for (const x of raw) {
-      if (typeof x !== 'string' || seen.has(x)) continue;
-      seen.add(x);
-      out.push(x);
+      if (typeof x !== 'string') continue;
+      // Normalize on read too — an older build could have persisted
+      // untrimmed / mixed-case handles, and a devtools edit could
+      // have slipped a whitespace-only entry past the write path.
+      // Without trim+lower+empty-guard here, a stale '  ' in storage
+      // would render an empty heart card in the wishlist grid, and
+      // a stale 'Hoodie' would double-render alongside 'hoodie'.
+      // Mirrors the normalization useRecentlyViewed applies.
+      const norm = x.trim().toLowerCase();
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(norm);
       if (out.length >= MAX) break;
     }
     return out;
@@ -67,7 +76,16 @@ export function useWishlist() {
     });
   }, []);
 
-  const has = useCallback((handle: string) => handles.includes(handle.trim().toLowerCase()), [handles]);
+  const has = useCallback((handle: string) => {
+    // Match toggle's whitespace guard so has('') / has('   ') returns
+    // false instead of silently checking membership of '' in handles.
+    // A whitespace-only probe from a hand-built URL or a stale card
+    // ref shouldn't claim the wishlist contains the empty string even
+    // if storage were somehow corrupted with one.
+    const norm = handle.trim().toLowerCase();
+    if (!norm) return false;
+    return handles.includes(norm);
+  }, [handles]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
