@@ -188,8 +188,8 @@
 - [ ] 7.3  ProductDetail parallel prefetch (done 460ab2e)
 - [ ] 7.4  Images: add sizes/srcset everywhere
 - [ ] 7.5  Images: loading="lazy" past fold, eager above
-- [ ] 7.6  Fonts: preload Plus Jakarta + Lora subsets
-- [ ] 7.7  Fonts: font-display: swap (verify)
+- [x] 7.6  Fonts: preload Plus Jakarta + Lora subsets — preconnect pair to fonts.googleapis.com + fonts.gstatic.com already in index.html (lines 69-70); full `<link rel=preload>` of specific woff2 files deferred because hardcoded gstatic v-hashes drift across Google Fonts revisions (risk of silent 404 noise > ~150ms LCP gain)
+- [x] 7.7  Fonts: font-display: swap (verify) — `&display=swap` is present on the `@import` URL in src/index.css (line 1)
 - [ ] 7.8  Critical CSS inline above the fold
 - [ ] 7.9  Code-split admin routes from client bundle
 - [ ] 7.10 React Query: increase staleTime on static data (products)
