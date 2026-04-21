@@ -64,6 +64,19 @@ export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
               <div className="text-[12px] font-extrabold text-foreground truncate">
                 {categoryLabel(p.category, lang)}
               </div>
+              <div className="text-[10px] text-primary font-bold mt-0.5 truncate">
+                {/* Mirror WishlistGrid: locale-aware price so the French build
+                    renders '27,54 $' rather than '27.54 $'. Showing the price
+                    here turns the strip from a bare thumbnail row into an
+                    actual re-engagement prompt — the cart empty-state isn't
+                    just 'you looked at this' but 'you looked at this, here's
+                    what it costs, still want it?'. */}
+                {lang === 'en' ? 'From' : 'À partir de'}{' '}
+                {p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} $
+              </div>
             </div>
           </Link>
         ))}
