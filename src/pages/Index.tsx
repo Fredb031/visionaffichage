@@ -355,7 +355,7 @@ export default function Index() {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       {/* Hero */}
-      <section className="min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
+      <section className="scroll-mt-20 min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.08) 0%, transparent 70%)' }} />
         <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
           {/* Kicker */}
@@ -543,7 +543,7 @@ export default function Index() {
 
       {/* Steps */}
       <FadeIn>
-        <section className="gradient-navy-dark py-12 px-6 md:px-10">
+        <section className="scroll-mt-20 gradient-navy-dark py-12 px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
@@ -569,7 +569,7 @@ export default function Index() {
 
       {/* Stats Bar */}
       <FadeIn>
-        <section className="border-b border-border">
+        <section className="scroll-mt-20 border-b border-border">
           <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
             {[
               // Thin NBSP between '33' and '000+' so the number never
@@ -590,7 +590,7 @@ export default function Index() {
 
       {/* Sam's Story */}
       <FadeIn>
-        <section className="py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
+        <section className="scroll-mt-20 py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
           <div className="grid md:grid-cols-2 gap-[72px] items-center">
             <div>
               <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">
@@ -648,7 +648,7 @@ export default function Index() {
 
       {/* Video Testimonials */}
       <FadeIn>
-        <section className="bg-secondary border-t border-border py-[68px] px-6 md:px-10">
+        <section className="scroll-mt-20 bg-secondary border-t border-border py-[68px] px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
             <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
               {lang === 'en' ? 'Testimonials' : 'Témoignages'}
@@ -709,7 +709,7 @@ export default function Index() {
 
       {/* Reviews */}
       <FadeIn>
-        <section className="py-[68px] px-6 md:px-10 border-t border-border">
+        <section className="scroll-mt-20 py-[68px] px-6 md:px-10 border-t border-border">
           <div className="max-w-[1060px] mx-auto">
             <div className="flex items-center gap-[22px] mb-[26px] flex-wrap">
               <div className="text-center">
@@ -765,7 +765,7 @@ export default function Index() {
           recognize at least one and the rest borrow credibility.
           Names are brand names (not translated); label switches lang. */}
       <FadeIn>
-        <section className="pt-9 pb-2 px-6 md:px-10 bg-background">
+        <section className="scroll-mt-20 pt-9 pb-2 px-6 md:px-10 bg-background">
           <div className="max-w-[720px] mx-auto text-center">
             <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
               {lang === 'en' ? 'Already trusted by' : 'Déjà commandé par'}
@@ -779,7 +779,7 @@ export default function Index() {
 
       {/* Logo Marquee — after reviews */}
       <FadeIn>
-        <section className="border-t border-b border-border py-7 overflow-hidden bg-background">
+        <section className="scroll-mt-20 border-t border-b border-border py-7 overflow-hidden bg-background">
           <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">
             {lang === 'en' ? 'Companies that trust us' : 'Des entreprises qui nous font confiance'}
           </div>
@@ -821,7 +821,7 @@ export default function Index() {
           lights up automatically once the pages exist. Result metric
           uses the brand gold (#E8A838) to echo the hero + CTA band. */}
       <FadeIn>
-        <section aria-label={lang === 'en' ? 'Case studies' : 'Études de cas'} className="py-16 md:py-20 px-6 md:px-10 bg-background border-b border-border">
+        <section aria-label={lang === 'en' ? 'Case studies' : 'Études de cas'} className="scroll-mt-20 py-16 md:py-20 px-6 md:px-10 bg-background border-b border-border">
           <div className="max-w-[1160px] mx-auto">
             <div className="text-center mb-10 md:mb-12">
               <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
@@ -975,7 +975,7 @@ export default function Index() {
           doesn't need a second wrapper to tone down. Stacks on mobile,
           side-by-side from md: up. */}
       <FadeIn>
-        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
+        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="scroll-mt-20 relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
           {/* Top hairline gold accent — 2px band reads as a brand-strip
               without pulling focus from the CTA. */}
           <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-[#E8A838]" />
@@ -1024,7 +1024,7 @@ export default function Index() {
           handles the two rules that can't be expressed as Tailwind
           utilities (::-webkit-details-marker, details[open] selector). */}
       <FadeIn>
-        <section className="py-20 px-6 md:px-10 border-t border-border">
+        <section className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-border">
           <div className="max-w-[780px] mx-auto">
             <div className="text-center mb-10">
               <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
@@ -1073,7 +1073,7 @@ export default function Index() {
 
       {/* Footer CTA */}
       <FadeIn>
-        <section className="py-20 px-6 md:px-10 text-center">
+        <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center">
           <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
             <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
             {lang === 'en' ? 'Delivered in 5 business days' : 'Livré en 5 jours ouvrables'}
@@ -1101,7 +1101,7 @@ export default function Index() {
           rail a distinguishable look. Muted greys keep the row calm
           so it reads as reassurance, not a sales element. Task 1.24. */}
       <FadeIn>
-        <section className="border-t border-border py-8 px-6 md:px-10 bg-background">
+        <section className="scroll-mt-20 border-t border-border py-8 px-6 md:px-10 bg-background">
           <div className="max-w-[1060px] mx-auto">
             <div className="flex items-center justify-center gap-2 mb-3 text-muted-foreground">
               <Lock size={12} strokeWidth={2} aria-hidden="true" />

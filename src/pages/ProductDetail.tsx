@@ -1182,7 +1182,7 @@ export default function ProductDetail() {
         {similarProducts.length >= 2 && (
           <section
             aria-labelledby="similar-products-heading"
-            className="mt-16 pt-10 border-t border-border"
+            className="scroll-mt-20 mt-16 pt-10 border-t border-border"
           >
             <h2
               id="similar-products-heading"
