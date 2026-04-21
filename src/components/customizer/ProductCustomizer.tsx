@@ -42,6 +42,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { fmtMoney } from '@/lib/format';
+import { AnimatedPrice } from '@/components/AnimatedPrice';
 import { getSettings } from '@/lib/appSettings';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
@@ -1550,7 +1551,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     })()}
                     <div className="border-t border-border pt-2.5 flex items-baseline justify-between">
                       <span className="font-black">{t('totalEstime')}</span>
-                      <span className="font-black text-primary text-xl tracking-tight">{fmtMoney(totalPrice, lang)}</span>
+                      <AnimatedPrice
+                        value={totalPrice}
+                        className="font-black text-primary text-xl tracking-tight"
+                      />
                     </div>
                   </div>
 
