@@ -75,6 +75,14 @@ export function AIChat() {
   const [thinking, setThinking] = useState(false);
   const [topics, setTopics] = useState<KBTopic[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Focus target when the clear-conversation button is clicked. The
+  // button unmounts immediately after (gated on `messages.length > 0`),
+  // so without an explicit restore the browser drops focus back to
+  // <body> — keyboard users lose their place in the dialog and screen
+  // readers announce nothing, making the action feel like the chat
+  // closed. We refocus the always-present message input instead so the
+  // user can keep typing.
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // If we hydrated to messages, show the chat view immediately so the
   // user sees their continued conversation instead of the topic menu.
@@ -269,6 +277,10 @@ export function AIChat() {
                   setMessages([]);
                   setView('menu');
                   setActiveTopic(null);
+                  // The trash button unmounts as soon as messages is
+                  // cleared — hand focus to the input so it doesn't
+                  // fall to <body>. rAF defers past the re-render.
+                  requestAnimationFrame(() => inputRef.current?.focus());
                 }}
                 aria-label={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
                 title={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
@@ -419,6 +431,7 @@ export function AIChat() {
           {/* Input — available on every view */}
           <form onSubmit={onSubmit} className="p-3 border-t border-border bg-white flex items-center gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
