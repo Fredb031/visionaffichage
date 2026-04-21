@@ -131,6 +131,49 @@ export default function Index() {
     };
   }, []);
 
+  // Organization JSON-LD schema — Task 8.3. Feeds Google the
+  // canonical name/address/phone/social graph so the homepage can
+  // attach to a knowledge panel or render a rich SERP card. Mirrors
+  // the injection pattern ProductDetail uses for Product schema:
+  // create <script type="application/ld+json">, append to <head>,
+  // remove on unmount. A dataset marker prevents duplicates if Index
+  // remounts (e.g. route back to home after navigating away) before
+  // the previous cleanup has run, which otherwise leaves two copies
+  // of the same Organization graph in <head> and confuses Google's
+  // structured-data parser.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.head.querySelector('script[data-vision-org-ld]')) return;
+    const orgSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Vision Affichage',
+      alternateName: 'Vision Affichage Inc.',
+      url: 'https://visionaffichage.com',
+      logo: 'https://visionaffichage.com/logo.svg',
+      telephone: '+1-367-380-4808',
+      email: 'info@visionaffichage.com',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Saint-Hyacinthe',
+        addressRegion: 'QC',
+        addressCountry: 'CA',
+      },
+      sameAs: [
+        'https://instagram.com/visionaffichage',
+        'https://facebook.com/visionaffichage',
+      ],
+    };
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.dataset.visionOrgLd = 'true';
+    el.text = JSON.stringify(orgSchema);
+    document.head.appendChild(el);
+    return () => {
+      if (el.parentNode) document.head.removeChild(el);
+    };
+  }, []);
+
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
     loaderTimersRef.current.push(setTimeout(() => setHeroStaggered(true), 100));
