@@ -2,21 +2,84 @@ import { useMemo, useState } from 'react';
 import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PRODUCTS } from '@/data/products';
+import { PRODUCTS, PRINT_PRICE, findColorImage, type Product } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useProductColors } from '@/hooks/useProductColors';
+import type { ShopifyVariantColor } from '@/lib/shopify';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
+
+// The size column order that matches what the client can actually order on
+// Shopify — keep this constant in sync with the matrix header below so the
+// per-color rows line up perfectly with it. 2XL is persisted as "XXL" to
+// match the legacy LineItem.size values the email preview reads from.
+const SIZE_COLUMNS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as const;
+type SizeCol = typeof SIZE_COLUMNS[number];
+
+type Placement = 'front' | 'back' | 'both';
+
+// Each placement is one printed zone. "both" = 2 zones, which doubles the
+// PRINT_PRICE-per-zone fee below. Matches the per-zone fee the client sees
+// on /quote/:id so there is no drift between what the vendor quotes and
+// what the client is invoiced.
+const PLACEMENT_ZONES: Record<Placement, number> = {
+  front: 1,
+  back: 1,
+  both: 2,
+};
+
+const PLACEMENT_LABEL: Record<Placement, string> = {
+  front: 'Devant',
+  back: 'Dos',
+  both: 'Devant + Dos',
+};
 
 interface LineItem {
   id: string;
   productSku: string;
   productName: string;
+  shopifyHandle: string;
   image: string;
+  /** Legacy single-color field — kept so downstream readers (email preview,
+   *  QuoteAccept, AdminQuotes summary) still show a human label. Populated
+   *  from `colors[0]` at persist time. */
   color: string;
+  /** Legacy single-size field — kept for the same reason as `color`. */
   size: string;
+  /** Legacy total qty across the matrix (colors × sizes). */
   quantity: number;
+  /** Unit price — either the live Shopify variant price of the first
+   *  picked color, or the product-level fallback from products.ts. */
   unitPrice: number;
   placementNote: string;
+  /** Phase A2 — multi-select color palette (names, e.g. "Noir", "Marine"). */
+  colors: string[];
+  /** Phase A3 — per-color × per-size quantity matrix.
+   *  Shape: `{ [colorName]: { [size]: qty } }`. Empty cells are 0. */
+  sizeQuantities: Record<string, Partial<Record<SizeCol, number>>>;
+  /** Phase A4 — logo placement selector. */
+  placement: Placement;
+}
+
+function totalQtyForItem(it: LineItem): number {
+  let total = 0;
+  for (const color of it.colors) {
+    const row = it.sizeQuantities[color];
+    if (!row) continue;
+    for (const sz of SIZE_COLUMNS) {
+      total += Math.max(0, row[sz] ?? 0);
+    }
+  }
+  return total;
+}
+
+function lineTotalForItem(it: LineItem): number {
+  const qty = totalQtyForItem(it);
+  if (qty === 0) return 0;
+  const zones = PLACEMENT_ZONES[it.placement];
+  // Pricing: base variant price × qty + print fee × zones × qty. Matches
+  // the /quote/:id invoice formula (see PRINT_PRICE per zone in products.ts).
+  return (it.unitPrice + PRINT_PRICE * zones) * qty;
 }
 
 export default function QuoteBuilder() {
@@ -47,12 +110,16 @@ export default function QuoteBuilder() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         productSku: product.sku,
         productName: product.name,
+        shopifyHandle: product.shopifyHandle,
         image: product.imageDevant,
         color: '',
         size: 'M',
-        quantity: 10,
+        quantity: 0,
         unitPrice: product.basePrice,
         placementNote: '',
+        colors: [],
+        sizeQuantities: {},
+        placement: 'front',
       },
     ]);
   };
@@ -63,7 +130,7 @@ export default function QuoteBuilder() {
 
   const removeItem = (id: string) => setItems(prev => prev.filter(it => it.id !== id));
 
-  const subtotal = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
+  const subtotal = items.reduce((s, it) => s + lineTotalForItem(it), 0);
   const discountAmount = (() => {
     const v = Math.max(0, parseFloat(discountValue) || 0);
     // Cap the discount at 100% (or the full subtotal for flat rates)
@@ -84,7 +151,7 @@ export default function QuoteBuilder() {
   // client" a quote addressed to "@" or "foo@" — those silently bounce
   // and the vendor thinks the client received it. Also require every
   // line to have a positive quantity so a stray 0 doesn't go out.
-  const everyItemValid = items.length > 0 && items.every(it => it.quantity > 0);
+  const everyItemValid = items.length > 0 && items.every(it => totalQtyForItem(it) > 0);
   const canSend = isValidEmail(clientEmail) && everyItemValid;
 
   const persistQuote = (status: 'draft' | 'sent') => {
@@ -119,13 +186,37 @@ export default function QuoteBuilder() {
     // would later break QuoteList's email display + any strict match.
     const cleanName = normalizeInvisible(clientName).trim();
     const cleanEmail = normalizeInvisible(clientEmail).trim().toLowerCase();
+    // Sync the legacy fields (color/size/quantity) from the matrix so
+    // downstream readers (QuoteAccept mock, email preview, AdminQuotes
+    // summary) still have a human-readable label when they don't know
+    // about the new shape yet.
+    const itemsWithLegacy = items.map(it => {
+      const firstColor = it.colors[0] ?? '';
+      const qty = totalQtyForItem(it);
+      // Pick the first size with any qty as the "headline" size for
+      // legacy consumers; default to M if nothing is filled yet so we
+      // never persist an empty string for size (the old shape required
+      // it to be present).
+      let headlineSize: SizeCol = 'M';
+      if (firstColor) {
+        const row = it.sizeQuantities[firstColor] ?? {};
+        const hit = SIZE_COLUMNS.find(s => (row[s] ?? 0) > 0);
+        if (hit) headlineSize = hit;
+      }
+      return {
+        ...it,
+        color: firstColor,
+        size: headlineSize,
+        quantity: qty,
+      };
+    });
     const quote = {
       id: `q-${Date.now()}`,
       number,
       status,
       clientName: cleanName,
       clientEmail: cleanEmail,
-      items,
+      items: itemsWithLegacy,
       subtotal,
       discountKind,
       discountValue: parseFloat(discountValue) || 0,
@@ -172,9 +263,12 @@ export default function QuoteBuilder() {
     const MAX_LINES_IN_EMAIL = 12;
     const truncated = items.length > MAX_LINES_IN_EMAIL;
     const shown = truncated ? items.slice(0, MAX_LINES_IN_EMAIL) : items;
-    const lines = shown.map(it =>
-      `• ${it.productName} (${it.color || '—'}, ${it.size}) × ${it.quantity} = ${(it.unitPrice * it.quantity).toFixed(2)} $${it.placementNote ? ` — Placement: ${it.placementNote}` : ''}`,
-    ).join('\n');
+    const lines = shown.map(it => {
+      const qty = totalQtyForItem(it);
+      const colorSummary = it.colors.length > 0 ? it.colors.join(', ') : '—';
+      const lineTotal = lineTotalForItem(it).toFixed(2);
+      return `• ${it.productName} (${colorSummary}) × ${qty} — ${PLACEMENT_LABEL[it.placement]} = ${lineTotal} $${it.placementNote ? ` — Note: ${it.placementNote}` : ''}`;
+    }).join('\n');
     const subject = encodeURIComponent(`Ta soumission ${q.number} de Vision Affichage`);
     // Build the salutation with care for the empty-name case — the
     // 'Send to client' button doesn't require a name (it only gates on
@@ -296,61 +390,19 @@ export default function QuoteBuilder() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {items.map(it => (
-                <div key={it.id} className="bg-white border border-zinc-200 rounded-xl p-4 flex gap-4">
-                  <img src={it.image} alt="" className="w-20 h-20 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
-                  <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <div className="col-span-2">
-                      <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Produit</div>
-                      <div className="font-bold text-sm">{it.productName}</div>
-                      <div className="text-[11px] font-mono text-zinc-400">{it.productSku}</div>
-                    </div>
-                    <LabeledInput label="Couleur" value={it.color} onChange={v => updateItem(it.id, { color: v })} placeholder="Ex. Noir" />
-                    <LabeledSelect
-                      label="Taille"
-                      value={it.size}
-                      onChange={v => updateItem(it.id, { size: v })}
-                      options={['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']}
-                    />
-                    <LabeledInput
-                      label="Qté"
-                      type="number"
-                      value={String(it.quantity)}
-                      onChange={v => updateItem(it.id, { quantity: Math.max(0, parseInt(v) || 0) })}
-                    />
-                    <div className="col-span-2">
-                      <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Placement du logo</div>
-                      <input
-                        value={it.placementNote}
-                        onChange={e => updateItem(it.id, { placementNote: e.target.value })}
-                        maxLength={120}
-                        placeholder="Ex. Coeur gauche, dos en bas"
-                        aria-label="Placement du logo"
-                        className="w-full border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC]"
-                      />
-                    </div>
-                    <div className="col-span-2 md:col-span-3 flex items-center justify-end gap-3">
-                      <div className="text-right">
-                        <div className="text-[11px] text-zinc-500">Prix unitaire</div>
-                        <div className="font-bold">{it.unitPrice.toFixed(2)} $</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[11px] text-zinc-500">Sous-total</div>
-                        <div className="font-extrabold text-[#0052CC]">{(it.unitPrice * it.quantity).toFixed(2)} $</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(it.id)}
-                        className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
-                        aria-label={`Retirer ${it.productName}`}
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {items.map(it => {
+                const product = PRODUCTS.find(p => p.sku === it.productSku);
+                return (
+                  <QuoteLineItemRow
+                    key={it.id}
+                    item={it}
+                    product={product}
+                    onPatch={patch => updateItem(it.id, patch)}
+                    onRemove={() => removeItem(it.id)}
+                  />
+                );
+              })}
             </div>
           )}
         </main>
@@ -471,66 +523,285 @@ export default function QuoteBuilder() {
   );
 }
 
-function LabeledInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
+// ── Per-product builder row ─────────────────────────────────────────────────
+// One row = one product in the quote. Pulls real Shopify colors for the
+// handle, filters to colors that actually have a COLOR_IMAGES entry (so no
+// orphan swatches), lets the vendor pick multiple colors + fill a per-color
+// size/qty matrix + pick a logo placement. Live total below.
+function QuoteLineItemRow({
+  item,
+  product,
+  onPatch,
+  onRemove,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
+  item: LineItem;
+  product: Product | undefined;
+  onPatch: (patch: Partial<LineItem>) => void;
+  onRemove: () => void;
 }) {
-  // Mobile UX: a bare type="number" input is unreliable across iOS / Android
-  // — some browsers still show the full alphanumeric keyboard. Force the
-  // numeric keypad via inputMode, and clamp negatives at the element level
-  // so a copy-pasted "-5" or the arrow-down-from-zero path can't produce a
-  // negative quantity line on a quote. min="0" step="1" also gives the
-  // built-in spinner sane bounds.
-  const isNumeric = type === 'number';
-  return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-[11px] text-zinc-500 uppercase tracking-wider">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        inputMode={isNumeric ? 'numeric' : undefined}
-        min={isNumeric ? 0 : undefined}
-        step={isNumeric ? 1 : undefined}
-        className="border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC]"
-      />
-    </label>
-  );
-}
+  const { data: shopifyColors, isLoading } = useProductColors(item.shopifyHandle);
 
-function LabeledSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-}) {
+  // Only offer colors that (a) come back from Shopify AND (b) have a
+  // COLOR_IMAGES entry in products.ts. The latter guarantees the swatch
+  // preview image will resolve — avoids showing orphan swatches that'd
+  // render a broken preview in the /quote/:id invoice later.
+  const availableColors = useMemo<ShopifyVariantColor[]>(() => {
+    if (!shopifyColors || !product) return [];
+    return shopifyColors.filter(c => {
+      if (!c.availableForSale) return false;
+      const hit = findColorImage(product.sku, c.colorName);
+      return !!hit;
+    });
+  }, [shopifyColors, product]);
+
+  // Variant price: prefer the live Shopify variant price for the first
+  // selected color (matches what the client will pay on Shopify). Fall
+  // back to the product-level basePrice from products.ts if no color is
+  // picked yet or the Shopify fetch hasn't returned.
+  const liveUnitPrice = useMemo(() => {
+    if (!shopifyColors || item.colors.length === 0) return item.unitPrice;
+    const first = shopifyColors.find(c => c.colorName === item.colors[0]);
+    if (!first) return item.unitPrice;
+    const parsed = parseFloat(first.price);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : item.unitPrice;
+  }, [shopifyColors, item.colors, item.unitPrice]);
+
+  // Sync the live price back into the stored item whenever it drifts —
+  // this keeps the quote total, the persisted snapshot, and the email
+  // preview all reading the same authoritative Shopify number without
+  // requiring the vendor to re-save anything.
+  if (liveUnitPrice !== item.unitPrice) {
+    // Defer the state update via microtask so we don't setState during
+    // render and trigger React's "cannot update during render" warning.
+    queueMicrotask(() => onPatch({ unitPrice: liveUnitPrice }));
+  }
+
+  const totalQty = totalQtyForItem(item);
+  const zones = PLACEMENT_ZONES[item.placement];
+  const baseFee = item.unitPrice * totalQty;
+  const printFee = PRINT_PRICE * zones * totalQty;
+  const lineTotal = baseFee + printFee;
+
+  const toggleColor = (name: string) => {
+    const isOn = item.colors.includes(name);
+    const nextColors = isOn ? item.colors.filter(c => c !== name) : [...item.colors, name];
+    // When removing a color, also drop its matrix row so we don't keep
+    // stale qty numbers for a color the vendor decided not to ship.
+    const nextMatrix = { ...item.sizeQuantities };
+    if (isOn) {
+      delete nextMatrix[name];
+    } else if (!nextMatrix[name]) {
+      nextMatrix[name] = {};
+    }
+    onPatch({ colors: nextColors, sizeQuantities: nextMatrix });
+  };
+
+  const setCellQty = (color: string, size: SizeCol, raw: string) => {
+    // Clamp: negatives become 0, non-numeric strings become 0. Anything
+    // above 10000 is almost certainly a typo — cap it so a slipped zero
+    // doesn't produce a 5-figure bill in the summary without the vendor
+    // noticing.
+    const n = Math.max(0, Math.min(10000, parseInt(raw, 10) || 0));
+    const row = { ...(item.sizeQuantities[color] ?? {}) };
+    if (n === 0) delete row[size];
+    else row[size] = n;
+    onPatch({ sizeQuantities: { ...item.sizeQuantities, [color]: row } });
+  };
+
   return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-[11px] text-zinc-500 uppercase tracking-wider">{label}</span>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC] bg-white"
-      >
-        {options.map(o => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
-    </label>
+    <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+      {/* Header: product identity + remove */}
+      <div className="flex gap-4 p-4 border-b border-zinc-100">
+        <img src={item.image} alt="" className="w-16 h-16 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Produit</div>
+          <div className="font-bold text-sm truncate">{item.productName}</div>
+          <div className="text-[11px] font-mono text-zinc-400">{item.productSku}</div>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 flex-shrink-0"
+          aria-label={`Retirer ${item.productName}`}
+        >
+          <Trash2 size={15} aria-hidden="true" />
+        </button>
+      </div>
+
+      {/* A2 — Color palette swatches */}
+      <div className="p-4 border-b border-zinc-100">
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+            Couleurs disponibles
+          </h3>
+          <span className="text-[11px] text-zinc-400">
+            {item.colors.length > 0 ? `${item.colors.length} sélectionnée${item.colors.length > 1 ? 's' : ''}` : 'Aucune'}
+          </span>
+        </div>
+        {isLoading ? (
+          <div className="text-xs text-zinc-400 italic py-2">Chargement des couleurs Shopify…</div>
+        ) : availableColors.length === 0 ? (
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Aucune couleur disponible pour ce produit sur Shopify.
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {availableColors.map(c => {
+              const selected = item.colors.includes(c.colorName);
+              return (
+                <button
+                  key={c.variantId}
+                  type="button"
+                  onClick={() => toggleColor(c.colorName)}
+                  aria-pressed={selected}
+                  aria-label={`${selected ? 'Retirer' : 'Ajouter'} la couleur ${c.colorName}`}
+                  title={c.colorName}
+                  className={`group relative flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border text-[12px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                    selected
+                      ? 'border-[#1B3A6B] bg-[#1B3A6B]/5 text-[#1B3A6B] shadow-sm'
+                      : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full border ${selected ? 'border-[#E8A838] ring-2 ring-[#E8A838]/40' : 'border-zinc-300'}`}
+                    style={{ backgroundColor: c.hex }}
+                    aria-hidden="true"
+                  />
+                  <span>{c.colorName}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* A3 — Size × qty matrix, one row per selected color */}
+      {item.colors.length > 0 && (
+        <div className="p-4 border-b border-zinc-100 overflow-x-auto">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+            Tailles et quantités par couleur
+          </h3>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="text-[11px] uppercase tracking-wider text-zinc-500">
+                <th className="text-left font-semibold py-1.5 pr-3 w-[140px]">Couleur</th>
+                {SIZE_COLUMNS.map(s => (
+                  <th key={s} className="text-center font-semibold py-1.5 px-1 w-[56px]">
+                    {s}
+                  </th>
+                ))}
+                <th className="text-right font-semibold py-1.5 pl-3 w-[60px]">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {item.colors.map(colorName => {
+                const row = item.sizeQuantities[colorName] ?? {};
+                const colorHex =
+                  availableColors.find(a => a.colorName === colorName)?.hex ?? '#888';
+                const rowTotal = SIZE_COLUMNS.reduce((s, sz) => s + (row[sz] ?? 0), 0);
+                return (
+                  <tr key={colorName} className="border-t border-zinc-100">
+                    <td className="py-1.5 pr-3">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="w-4 h-4 rounded-full border border-zinc-300 flex-shrink-0"
+                          style={{ backgroundColor: colorHex }}
+                          aria-hidden="true"
+                        />
+                        <span className="font-semibold truncate">{colorName}</span>
+                      </span>
+                    </td>
+                    {SIZE_COLUMNS.map(sz => (
+                      <td key={sz} className="py-1 px-1">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          step={1}
+                          value={row[sz] ?? ''}
+                          onChange={e => setCellQty(colorName, sz, e.target.value)}
+                          placeholder="0"
+                          aria-label={`Quantité ${colorName} taille ${sz}`}
+                          className="w-full border border-zinc-200 rounded px-1.5 py-1 text-sm text-center outline-none focus:border-[#0052CC] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </td>
+                    ))}
+                    <td className="py-1.5 pl-3 text-right font-bold text-[#1B3A6B]">
+                      {rowTotal}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* A4 — Placement selector */}
+      <div className="p-4 border-b border-zinc-100">
+        <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+          Placement du logo
+        </h3>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Placement du logo">
+          {(['front', 'back', 'both'] as const).map(p => {
+            const active = item.placement === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onPatch({ placement: p })}
+                className={`flex flex-col items-center justify-center py-2 rounded-lg border text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                  active
+                    ? 'border-[#1B3A6B] bg-[#1B3A6B] text-white shadow-sm'
+                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 bg-white'
+                }`}
+              >
+                <span>{PLACEMENT_LABEL[p]}</span>
+                <span className={`text-[10px] font-normal mt-0.5 ${active ? 'text-[#E8A838]' : 'text-zinc-400'}`}>
+                  {PLACEMENT_ZONES[p]} zone{PLACEMENT_ZONES[p] > 1 ? 's' : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <label className="flex flex-col gap-1 mt-3">
+          <span className="text-[11px] text-zinc-500 uppercase tracking-wider">Note de placement (optionnel)</span>
+          <input
+            value={item.placementNote}
+            onChange={e => onPatch({ placementNote: e.target.value })}
+            maxLength={120}
+            placeholder="Ex. Coeur gauche, dos en bas"
+            aria-label="Note de placement"
+            className="w-full border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC]"
+          />
+        </label>
+      </div>
+
+      {/* Live pricing breakdown */}
+      <div className="p-4 bg-[#1B3A6B]/[0.03] flex flex-wrap items-baseline justify-between gap-3">
+        <div className="text-xs text-zinc-500 space-y-0.5">
+          <div>
+            <span className="font-semibold text-zinc-700">Prix unitaire :</span>{' '}
+            {item.unitPrice.toFixed(2)} $
+            <span className="text-zinc-400"> · Shopify</span>
+          </div>
+          <div>
+            <span className="font-semibold text-zinc-700">Frais d&apos;impression :</span>{' '}
+            {PRINT_PRICE.toFixed(2)} $ × {zones} zone{zones > 1 ? 's' : ''} × {totalQty} unité{totalQty > 1 ? 's' : ''} = {printFee.toFixed(2)} $
+          </div>
+          <div>
+            <span className="font-semibold text-zinc-700">Quantité totale :</span> {totalQty}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Sous-total ligne</div>
+          <div className="font-extrabold text-xl text-[#1B3A6B]">
+            {lineTotal.toFixed(2)} <span className="text-sm font-bold text-[#E8A838]">$</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
