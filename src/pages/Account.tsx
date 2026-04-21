@@ -8,6 +8,9 @@ import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { WishlistGrid } from '@/components/WishlistGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
@@ -54,6 +57,15 @@ export default function Account() {
   useEffect(() => {
     if (!loading) setHydrated(true);
   }, [loading]);
+
+  // Modal a11y wiring — ESC to dismiss, body scroll lock so the page
+  // underneath doesn't bleed scroll, and a focus trap so keyboard users
+  // can't Tab into the dimmed background. Matches the same pattern used
+  // by the cart drawer and photo-zoom overlay elsewhere on the site.
+  const closeDeleteDialog = () => { setDeleteOpen(false); setDeleteConfirm(''); };
+  useEscapeKey(deleteOpen, closeDeleteDialog);
+  useBodyScrollLock(deleteOpen);
+  const deleteDialogRef = useFocusTrap<HTMLDivElement>(deleteOpen);
 
   useDocumentTitle(lang === 'en' ? 'My account — Vision Affichage' : 'Mon compte — Vision Affichage');
 
@@ -369,9 +381,10 @@ export default function Account() {
           aria-modal="true"
           aria-labelledby="delete-dialog-heading"
           className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
-          onClick={() => { setDeleteOpen(false); setDeleteConfirm(''); }}
+          onClick={closeDeleteDialog}
         >
           <div
+            ref={deleteDialogRef}
             className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border"
             onClick={e => e.stopPropagation()}
           >
@@ -405,7 +418,7 @@ export default function Account() {
             <div className="flex gap-3 mt-5 justify-end">
               <button
                 type="button"
-                onClick={() => { setDeleteOpen(false); setDeleteConfirm(''); }}
+                onClick={closeDeleteDialog}
                 className="px-4 py-2 rounded-lg text-sm font-bold border border-border bg-background hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               >
                 {lang === 'en' ? 'Cancel' : 'Annuler'}
