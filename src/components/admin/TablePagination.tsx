@@ -45,10 +45,18 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
   const last  = Math.min((safePage + 1) * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+    <nav
+      role="navigation"
+      aria-label="Pagination"
+      className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500"
+    >
       <span>
         {first}–{last} sur {total}
         {itemLabel ? ` ${itemLabel}` : ''}
+        {' · '}
+        <span className="text-zinc-400">
+          Page {safePage + 1} de {totalPages}
+        </span>
       </span>
       <div className="flex items-center gap-1">
         <button
@@ -60,7 +68,12 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
         >
           <ChevronLeft size={14} aria-hidden="true" />
         </button>
-        <span className="px-2 font-semibold text-zinc-700" aria-live="polite" aria-atomic="true">
+        <span
+          className="px-2 font-semibold text-zinc-700"
+          aria-current="page"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {safePage + 1} / {totalPages}
         </span>
         <button
@@ -73,7 +86,7 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
           <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </nav>
   );
 }
 
