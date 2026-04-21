@@ -112,8 +112,20 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // Read LIVE store state via getState after the local removal so a
   // second rapid click doesn't see a stale snapshot and skip Shopify
   // removals the first click already committed to dropping.
+  //
+  // Guard the destructive click with a confirm — trash-icon removal
+  // used to be a one-tap hard delete with no undo, and the Shopify
+  // mirror below means a misclick genuinely wipes the line from the
+  // checkout cart too. A single window.confirm is the minimal safe net
+  // without adding a snackbar infra this drawer doesn't already have.
   const handleRemoveItem = async (cartId: string) => {
     const item = useCartStore.getState().items.find(i => i.cartId === cartId);
+    if (!item) return;
+    const confirmMsg =
+      lang === 'en'
+        ? `Remove "${item.productName}" from your cart?`
+        : `Retirer « ${item.productName} » du panier ?`;
+    if (!window.confirm(confirmMsg)) return;
     cart.removeItem(cartId);
     const vids = item?.shopifyVariantIds ?? [];
     if (vids.length === 0) return;
@@ -413,8 +425,15 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             {/* Total line — when a discount is live, the pre-discount
                 subtotal shows with strike-through + opacity-50 and the
                 discounted total sits next to it, larger + bolder, so
-                the buyer sees both numbers and feels the win. */}
-            <div className="flex justify-between items-center gap-2">
+                the buyer sees both numbers and feels the win.
+                aria-live=polite so screen-reader users hear the new
+                total after quantity edits / discount toggles instead
+                of being left with the stale figure. */}
+            <div
+              className="flex justify-between items-center gap-2"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               <span className="text-sm text-muted-foreground">{t('totalEstimeLabel')}</span>
               {cart.discountApplied ? (() => {
                 const grossSubtotal = cart.items.reduce(
