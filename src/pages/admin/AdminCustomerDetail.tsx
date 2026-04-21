@@ -22,6 +22,7 @@ import {
   type ShopifyCustomerSnapshot,
   type ShopifyOrderSnapshot,
 } from '@/data/shopifySnapshot';
+import { readLS, writeLS } from '@/lib/storage';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 /* ────────── Types ────────── */
@@ -80,22 +81,17 @@ function parseTags(raw: string): string[] {
 /* ────────── Notes persistence ────────── */
 
 function loadNotes(): NotesStore {
-  try {
-    const raw = localStorage.getItem(NOTES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? (parsed as NotesStore) : {};
-  } catch {
-    return {};
-  }
+  // readLS swallows the JSON.parse failure so a corrupted notes blob
+  // (left by an older build or a devtools edit during triage) can't
+  // crash the customer detail page on open.
+  const parsed = readLS<unknown>(NOTES_KEY, {});
+  return parsed && typeof parsed === 'object' ? (parsed as NotesStore) : {};
 }
 
 function saveNotes(store: NotesStore): void {
-  try {
-    localStorage.setItem(NOTES_KEY, JSON.stringify(store));
-  } catch {
-    /* quota / private mode — fall through silently */
-  }
+  // writeLS falls through silently on quota / private mode — notes
+  // just won't persist, but the in-memory state is still accurate.
+  writeLS(NOTES_KEY, store);
 }
 
 /* ────────── Page ────────── */

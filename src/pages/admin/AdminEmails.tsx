@@ -6,6 +6,7 @@ import {
   orderShippedEmail,
   orderDeliveredEmail,
 } from '@/lib/emailTemplates';
+import { readLS, writeLS } from '@/lib/storage';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type TemplateId = 'quote-sent' | 'payment' | 'shipped' | 'delivered';
@@ -26,37 +27,30 @@ function overrideKey(id: TemplateId, lang: Lang): string {
 }
 
 // Defensive parse — devtools edits, partial writes, or a schema change
-// could leave this in a shape we can't trust. On any parse error we
-// silently fall back to an empty map (i.e. defaults apply).
+// could leave this in a shape we can't trust. readLS handles the
+// JSON.parse + corrupted-entry failure modes; the field-shape validation
+// below is still our responsibility since readLS is schema-agnostic.
 function readOverrides(): OverrideMap {
-  try {
-    const raw = localStorage.getItem(OVERRIDES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return {};
-    const out: OverrideMap = {};
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (v && typeof v === 'object') {
-        const entry = v as Record<string, unknown>;
-        if (typeof entry.subject === 'string' && typeof entry.html === 'string') {
-          out[k] = { subject: entry.subject, html: entry.html };
-        }
+  const parsed = readLS<unknown>(OVERRIDES_KEY, {});
+  if (!parsed || typeof parsed !== 'object') return {};
+  const out: OverrideMap = {};
+  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+    if (v && typeof v === 'object') {
+      const entry = v as Record<string, unknown>;
+      if (typeof entry.subject === 'string' && typeof entry.html === 'string') {
+        out[k] = { subject: entry.subject, html: entry.html };
       }
     }
-    return out;
-  } catch {
-    return {};
   }
+  return out;
 }
 
 function writeOverrides(map: OverrideMap): void {
-  try {
-    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map));
-  } catch (err) {
-    // Quota exceeded or disabled storage — surface to the console so
-    // the admin knows the save didn't persist rather than silently
-    // pretending everything is fine.
-    console.warn('[AdminEmails] failed to persist overrides:', err);
+  // writeLS returns false on quota/private-mode failure; surface to
+  // the console so the admin knows the save didn't persist rather than
+  // silently pretending everything is fine.
+  if (!writeLS(OVERRIDES_KEY, map)) {
+    console.warn('[AdminEmails] failed to persist overrides (quota exceeded or storage disabled)');
   }
 }
 

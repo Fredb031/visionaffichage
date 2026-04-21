@@ -8,6 +8,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
+import { readLS, writeLS } from '@/lib/storage';
 
 interface VendorRecord {
   id: string;
@@ -62,24 +63,22 @@ export default function AdminVendors() {
   }, [sort, query, searchParams, setSearchParams]);
 
   useEffect(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('vision-vendors') ?? '[]');
-      if (!Array.isArray(raw)) { setCustomVendors([]); return; }
-      // Filter out rows missing the fields the UI relies on (id is used
-      // as React key, name drives initials.split(' '), email fills the
-      // mailto). A malformed row could come from a devtools edit or an
-      // older build — dropping it is cleaner than crashing the whole
-      // admin page on a property access.
-      const clean = (raw as Partial<VendorRecord>[]).filter(v =>
-        v && typeof v === 'object' &&
-        typeof v.id === 'string' &&
-        typeof v.name === 'string' &&
-        typeof v.email === 'string'
-      ) as VendorRecord[];
-      setCustomVendors(clean);
-    } catch {
-      setCustomVendors([]);
-    }
+    // readLS handles the JSON.parse failure path so a corrupted blob
+    // can't crash the admin page on mount.
+    const raw = readLS<unknown>('vision-vendors', []);
+    if (!Array.isArray(raw)) { setCustomVendors([]); return; }
+    // Filter out rows missing the fields the UI relies on (id is used
+    // as React key, name drives initials.split(' '), email fills the
+    // mailto). A malformed row could come from a devtools edit or an
+    // older build — dropping it is cleaner than crashing the whole
+    // admin page on a property access.
+    const clean = (raw as Partial<VendorRecord>[]).filter(v =>
+      v && typeof v === 'object' &&
+      typeof v.id === 'string' &&
+      typeof v.name === 'string' &&
+      typeof v.email === 'string'
+    ) as VendorRecord[];
+    setCustomVendors(clean);
   }, []);
 
   useEffect(() => {
@@ -91,8 +90,11 @@ export default function AdminVendors() {
 
   const persist = (next: VendorRecord[]) => {
     setCustomVendors(next);
-    try { localStorage.setItem('vision-vendors', JSON.stringify(next)); }
-    catch (e) { console.warn('[AdminVendors] Could not persist vendors:', e); }
+    // writeLS swallows quota / private-mode failures; surface to the
+    // console so the admin knows their invite list didn't persist.
+    if (!writeLS('vision-vendors', next)) {
+      console.warn('[AdminVendors] Could not persist vendors (quota or storage disabled)');
+    }
   };
 
   const handleInvite = (e: React.FormEvent) => {

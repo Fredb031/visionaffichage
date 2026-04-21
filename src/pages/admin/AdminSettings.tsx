@@ -7,6 +7,7 @@ import {
   saveSettings as saveAppSettings,
   useAppSettings,
 } from '@/lib/appSettings';
+import { readLS, writeLS } from '@/lib/storage';
 
 // localStorage key for the settings toggles. Persisting client-side only
 // since these are stub features pending real backend wiring — the keys
@@ -38,27 +39,24 @@ const DEFAULT_SETTINGS: SettingsState = {
 };
 
 function readSettings(): SettingsState {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return DEFAULT_SETTINGS;
-    // Coerce each field — a devtools edit could land strings or null
-    // and break the strict aria-checked type on the toggles, or a
-    // non-string on the controlled company inputs.
-    const str = (v: unknown, fallback: string) => typeof v === 'string' ? v : fallback;
-    return {
-      twoFactor: Boolean(parsed.twoFactor ?? DEFAULT_SETTINGS.twoFactor),
-      newOrderEmail: Boolean(parsed.newOrderEmail ?? DEFAULT_SETTINGS.newOrderEmail),
-      zapierWebhook: Boolean(parsed.zapierWebhook ?? DEFAULT_SETTINGS.zapierWebhook),
-      companyName: str(parsed.companyName, DEFAULT_SETTINGS.companyName),
-      companyNeq: str(parsed.companyNeq, DEFAULT_SETTINGS.companyNeq),
-      companyEmail: str(parsed.companyEmail, DEFAULT_SETTINGS.companyEmail),
-      companyPhone: str(parsed.companyPhone, DEFAULT_SETTINGS.companyPhone),
-    };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
+  // readLS swallows the JSON.parse failure path. The shape validation
+  // + per-field coercion below stays here because readLS is deliberately
+  // schema-agnostic.
+  const parsed = readLS<Record<string, unknown> | null>(SETTINGS_KEY, null);
+  if (!parsed || typeof parsed !== 'object') return DEFAULT_SETTINGS;
+  // Coerce each field — a devtools edit could land strings or null
+  // and break the strict aria-checked type on the toggles, or a
+  // non-string on the controlled company inputs.
+  const str = (v: unknown, fallback: string) => typeof v === 'string' ? v : fallback;
+  return {
+    twoFactor: Boolean(parsed.twoFactor ?? DEFAULT_SETTINGS.twoFactor),
+    newOrderEmail: Boolean(parsed.newOrderEmail ?? DEFAULT_SETTINGS.newOrderEmail),
+    zapierWebhook: Boolean(parsed.zapierWebhook ?? DEFAULT_SETTINGS.zapierWebhook),
+    companyName: str(parsed.companyName, DEFAULT_SETTINGS.companyName),
+    companyNeq: str(parsed.companyNeq, DEFAULT_SETTINGS.companyNeq),
+    companyEmail: str(parsed.companyEmail, DEFAULT_SETTINGS.companyEmail),
+    companyPhone: str(parsed.companyPhone, DEFAULT_SETTINGS.companyPhone),
+  };
 }
 
 export default function AdminSettings() {
@@ -73,8 +71,9 @@ export default function AdminSettings() {
   }, []);
 
   const persist = (next: SettingsState) => {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); }
-    catch { /* private mode — state still works in-memory */ }
+    // writeLS swallows the quota / private-mode failure — state still
+    // works in-memory for the rest of the session.
+    writeLS(SETTINGS_KEY, next);
   };
 
   const toggle = (key: 'twoFactor' | 'newOrderEmail' | 'zapierWebhook') => {

@@ -18,6 +18,8 @@
 // To extend: append a new entry to AUTOMATIONS below. New ids get the
 // default 'active' status unless overridden in localStorage.
 
+import { readLS, writeLS } from './storage';
+
 export type AutomationStatus = 'active' | 'paused';
 
 export interface AutomationRun {
@@ -224,29 +226,20 @@ export const AUTOMATION_FLAGS_KEY = 'vision-automation-flags';
 export type AutomationFlagMap = Record<string, AutomationStatus>;
 
 export function readAutomationFlags(): AutomationFlagMap {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = window.localStorage.getItem(AUTOMATION_FLAGS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    const out: AutomationFlagMap = {};
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (v === 'active' || v === 'paused') out[k] = v;
-    }
-    return out;
-  } catch {
-    return {};
+  const parsed = readLS<unknown>(AUTOMATION_FLAGS_KEY, {});
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const out: AutomationFlagMap = {};
+  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+    if (v === 'active' || v === 'paused') out[k] = v;
   }
+  return out;
 }
 
 export function writeAutomationFlags(flags: AutomationFlagMap): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(AUTOMATION_FLAGS_KEY, JSON.stringify(flags));
-  } catch {
-    /* quota/private-mode — ignore, overrides just won't persist */
-  }
+  // writeLS handles the quota/private-mode guard + the SSR-safe early
+  // return. Overrides just won't persist on failure — callers don't
+  // branch on the return value.
+  writeLS(AUTOMATION_FLAGS_KEY, flags);
 }
 
 /** Merge stored overrides on top of the seed defaults. */

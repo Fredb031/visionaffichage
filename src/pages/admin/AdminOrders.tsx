@@ -10,6 +10,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
+import { readLS, writeLS } from '@/lib/storage';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
@@ -164,20 +165,18 @@ export default function AdminOrders() {
   const trapRef = useFocusTrap<HTMLDivElement>(!!selected);
 
   useEffect(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('vision-shipped-orders') ?? '[]');
-      // Coerce to numbers and drop non-numeric entries. Old builds
-      // (and manual admin edits in Supabase Studio) could have
-      // persisted string IDs — Set's identity-based `has()` would
-      // then fail to match the numeric o.id column and the Shipped
-      // badge wouldn't render on orders the admin had marked.
-      const numeric = Array.isArray(raw)
-        ? (raw as unknown[]).map(x => (typeof x === 'number' ? x : Number(x))).filter(n => Number.isFinite(n))
-        : [];
-      setShippedIds(new Set(numeric));
-    } catch (e) {
-      console.warn('[AdminOrders] Failed to parse shipped orders from localStorage:', e);
-    }
+    // readLS swallows the parse failure so a corrupted shipped-orders
+    // blob can't crash the admin list on mount.
+    const raw = readLS<unknown>('vision-shipped-orders', []);
+    // Coerce to numbers and drop non-numeric entries. Old builds
+    // (and manual admin edits in Supabase Studio) could have
+    // persisted string IDs — Set's identity-based `has()` would
+    // then fail to match the numeric o.id column and the Shipped
+    // badge wouldn't render on orders the admin had marked.
+    const numeric = Array.isArray(raw)
+      ? (raw as unknown[]).map(x => (typeof x === 'number' ? x : Number(x))).filter(n => Number.isFinite(n))
+      : [];
+    setShippedIds(new Set(numeric));
   }, []);
 
   const markShipped = (id: number, e: React.MouseEvent) => {
@@ -185,10 +184,8 @@ export default function AdminOrders() {
     const next = new Set(shippedIds);
     next.add(id);
     setShippedIds(next);
-    try {
-      localStorage.setItem('vision-shipped-orders', JSON.stringify([...next]));
-    } catch (err) {
-      console.warn('[AdminOrders] Could not persist shipped orders:', err);
+    if (!writeLS('vision-shipped-orders', [...next])) {
+      console.warn('[AdminOrders] Could not persist shipped orders (quota or storage disabled)');
     }
   };
 
@@ -199,10 +196,8 @@ export default function AdminOrders() {
     const next = new Set(shippedIds);
     selectedIds.forEach(id => next.add(id));
     setShippedIds(next);
-    try {
-      localStorage.setItem('vision-shipped-orders', JSON.stringify([...next]));
-    } catch (err) {
-      console.warn('[AdminOrders] Could not persist shipped orders:', err);
+    if (!writeLS('vision-shipped-orders', [...next])) {
+      console.warn('[AdminOrders] Could not persist shipped orders (quota or storage disabled)');
     }
     toast.success(`${selectedIds.size} commande${selectedIds.size > 1 ? 's' : ''} marquée${selectedIds.size > 1 ? 's' : ''} expédiée${selectedIds.size > 1 ? 's' : ''}`);
     setSelectedIds(new Set());

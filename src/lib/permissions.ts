@@ -13,6 +13,8 @@
 // supabase/migrations/0002_add_salesman_role.sql must be applied
 // server-side before profile rows can persist role='salesman'.
 
+import { readLS, writeLS } from './storage';
+
 export type Permission =
   | 'orders:read' | 'orders:write'
   | 'customers:read' | 'customers:write'
@@ -148,32 +150,26 @@ export type OverrideMap = Record<string, Permission[]>;
 export function loadOverrides(): OverrideMap {
   // Defensive: localStorage can throw in private mode, return
   // malformed JSON from a legacy build, or return a non-object from
-  // a rogue extension. Treat any failure as 'no overrides' so the
-  // app falls back to pure role defaults instead of crashing the
-  // permission guard and locking the admin out of their own page.
-  try {
-    const raw = localStorage.getItem(OVERRIDES_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    const cleaned: OverrideMap = {};
-    for (const [userId, perms] of Object.entries(parsed as Record<string, unknown>)) {
-      if (!Array.isArray(perms)) continue;
-      cleaned[userId] = perms.filter((p): p is Permission => typeof p === 'string') as Permission[];
-    }
-    return cleaned;
-  } catch {
-    return {};
+  // a rogue extension. readLS handles parse + corrupted-entry failures;
+  // any failure here falls through to 'no overrides' so the app falls
+  // back to pure role defaults instead of crashing the permission guard
+  // and locking the admin out of their own page.
+  const parsed = readLS<unknown>(OVERRIDES_STORAGE_KEY, {});
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const cleaned: OverrideMap = {};
+  for (const [userId, perms] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!Array.isArray(perms)) continue;
+    cleaned[userId] = perms.filter((p): p is Permission => typeof p === 'string') as Permission[];
   }
+  return cleaned;
 }
 
 export function saveOverrides(map: OverrideMap): void {
-  try {
-    localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    // Private mode / quota exceeded — drop silently. A toast here would
-    // be nice but this module shouldn't import toast (keep it pure).
-  }
+  // Private mode / quota exceeded — writeLS swallows and returns false.
+  // Callers don't care about the boolean (best-effort persistence), so
+  // we just fire-and-forget. A toast here would be nice but this
+  // module shouldn't import toast (keep it pure).
+  writeLS(OVERRIDES_STORAGE_KEY, map);
 }
 
 export function getUserOverrides(userId: string | undefined | null): Permission[] {

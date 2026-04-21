@@ -9,6 +9,7 @@
 // would be heavier than the read/write we need.
 
 import { useEffect, useState } from 'react';
+import { readLS, writeLS } from './storage';
 
 export interface AppSettings {
   /** GST/TPS rate as a fraction (0.05 == 5%) */
@@ -68,24 +69,22 @@ function sanitizeCodes(input: unknown): Record<string, number> {
 }
 
 export function getSettings(): AppSettings {
-  try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    if (!raw) return { ...DEFAULT_APP_SETTINGS, discountCodes: { ...DEFAULT_APP_SETTINGS.discountCodes } };
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') throw new Error('malformed');
-    const codes = parsed.discountCodes != null
-      ? sanitizeCodes(parsed.discountCodes)
-      : { ...DEFAULT_APP_SETTINGS.discountCodes };
-    return {
-      taxGst: clampFraction(parsed.taxGst, DEFAULT_APP_SETTINGS.taxGst, 0.3),
-      taxQst: clampFraction(parsed.taxQst, DEFAULT_APP_SETTINGS.taxQst, 0.3),
-      bulkThreshold: clampThreshold(parsed.bulkThreshold, DEFAULT_APP_SETTINGS.bulkThreshold),
-      bulkRate: clampFraction(parsed.bulkRate, DEFAULT_APP_SETTINGS.bulkRate, 0.95),
-      discountCodes: Object.keys(codes).length > 0 ? codes : { ...DEFAULT_APP_SETTINGS.discountCodes },
-    };
-  } catch {
+  // readLS handles the parse + private-mode guard. Everything below is
+  // schema validation that readLS doesn't — and shouldn't — know about.
+  const parsed = readLS<Record<string, unknown> | null>(STORAGE_KEY, null);
+  if (!parsed || typeof parsed !== 'object') {
     return { ...DEFAULT_APP_SETTINGS, discountCodes: { ...DEFAULT_APP_SETTINGS.discountCodes } };
   }
+  const codes = parsed.discountCodes != null
+    ? sanitizeCodes(parsed.discountCodes)
+    : { ...DEFAULT_APP_SETTINGS.discountCodes };
+  return {
+    taxGst: clampFraction(parsed.taxGst, DEFAULT_APP_SETTINGS.taxGst, 0.3),
+    taxQst: clampFraction(parsed.taxQst, DEFAULT_APP_SETTINGS.taxQst, 0.3),
+    bulkThreshold: clampThreshold(parsed.bulkThreshold, DEFAULT_APP_SETTINGS.bulkThreshold),
+    bulkRate: clampFraction(parsed.bulkRate, DEFAULT_APP_SETTINGS.bulkRate, 0.95),
+    discountCodes: Object.keys(codes).length > 0 ? codes : { ...DEFAULT_APP_SETTINGS.discountCodes },
+  };
 }
 
 export function saveSettings(patch: Partial<AppSettings>): AppSettings {
@@ -108,15 +107,10 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
       ? merged.discountCodes
       : { ...DEFAULT_APP_SETTINGS.discountCodes },
   };
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
-    }
-  } catch {
-    // Private mode or storage quota — state still works in-memory for
-    // the current session. Fire the event either way so open admin tabs
-    // reflect the attempted change.
-  }
+  // Private mode or storage quota — state still works in-memory for
+  // the current session. Fire the event either way (below) so open
+  // admin tabs reflect the attempted change.
+  writeLS(STORAGE_KEY, clean);
   try {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: clean }));
