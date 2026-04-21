@@ -1,6 +1,34 @@
 # Color-Image Sync Audit
 
-_Audit run: 2026-04-21T03:38:57.505Z_
+## Post-sweep status (2026-04-20)
+
+After the final `findColorImage` sweep (SKU_ALIAS expansions + alt-slug
+additions for `concrete` and `military_green`), coverage climbed from
+**92.1% → 99.0%** of palette entries. Recovered 14 of the 16 remaining misses:
+
+- **ATCF2600** `forest-green` → ATCF2500 `darkgreen_022017` (via `ATCF2600 → ATCF2500` alias)
+- **ATC1015** `gold` → ATC1000 `gold_012017` (via `ATC1015 → ATC1000` alias)
+- **S445LS** `forest-green` → L445 `greenoasis_082015` (via `S445LS → [S445, L445]` alias)
+- **ATC6606** `grey`, `forest-green` → ATC6277 `grey_042018` / `spruce_042015` (via `ATC6606 → ATC6277` alias)
+- **ATC6277** `black-white`, `navy-white` → ATC6606 `black_white_cil` / `navy_white_cil` (via `ATC6277 → ATC6606` alias)
+- **6245CM** `red`, `true-royal` → ATC6606 `red_white_cil` / `royal_white_cil` (via chained alias `6245CM → [ATC6245CM, ATC6606]`)
+- **WERK250** `red`, `true-royal`, `forest-green` → ATC1000 `red_012017` / `royal_012017` / `darkgreen_v5_012017` (via `WERK250 → ATC1000` alias)
+- **C100** `steel-grey` → `concrete_cil` (via new `concrete` alt-slug)
+- **C100** `forest-green` → `military_green_cil` (via new `military_green` fallback in forest-green alt-slugs)
+
+### Still genuinely unresolvable (supplier has no photography)
+
+- **S445** `cardinal` — no cardinal/maroon/sangria/burgundy images for S445 body.
+- **L445** `cardinal` — no cardinal/maroon/sangria/burgundy images for L445 body.
+
+We deliberately do NOT alias cardinal to `truered` because cardinal and red
+coexist in POLO_S445_COLORS and would collide on the same swatch. Request
+cardinal/maroon photography from the supplier for these two SKUs to close
+the last 1% gap.
+
+---
+
+_Original audit run: 2026-04-21T03:38:57.505Z_
 
 - Products audited: **20**
 - Total files in public/products: **786**

@@ -1021,16 +1021,19 @@ const COLOR_ALT_SLUGS: Record<string, readonly string[]> = {
   // ATCF2400/ATCF2600), greenoasis_* (S445/L445), freshgreen (ATC6277),
   // spruce (ATC6277). We list all of them so any SKU with *a* dark-green
   // image wins. Compound (underscore) and concat variants are both tried.
-  forest_green: ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green'],
-  forestgreen:  ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green'],
+  // `military_green` is kept last as a deep fallback for bodies (C100 beanie,
+  // caps) that only ship with a military/olive green and no true forest.
+  forest_green: ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green', 'military_green', 'militarygreen'],
+  forestgreen:  ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green', 'military_green', 'militarygreen'],
   darkgreen:    ['darkgreen', 'forestgreen', 'forest', 'dark_green', 'dark_gree'],
   // Grey family — order matters: closest visual match first. "Steel Grey"
   // (Gris acier, #6E7278) has no direct image in any SKU, so we fall back to
   // iron/coal/darkgrey variants, and finally to darkheathergrey which is
-  // visually the closest remaining option on most SKUs.
-  steel_grey:   ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey'],
-  steelgrey:    ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey'],
-  grey:         ['irongrey', 'coalgrey', 'darkgrey', 'grey', 'graphite_heather', 'mediumgrey', 'darkheathergrey'],
+  // visually the closest remaining option on most SKUs. `concrete` covers
+  // the C100 beanie's concrete_cil swatch (a warm mid-grey).
+  steel_grey:   ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey', 'concrete'],
+  steelgrey:    ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey', 'concrete'],
+  grey:         ['irongrey', 'coalgrey', 'darkgrey', 'grey', 'graphite_heather', 'mediumgrey', 'darkheathergrey', 'concrete'],
   // Royal / navy family
   true_red:     ['truered', 'red'],
   truered:      ['truered', 'red'],
@@ -1109,12 +1112,35 @@ const FR_EN_COLORS: Record<string, string> = {
  * in `public/products/`, or they don't have their own image set and should
  * inherit from a sibling SKU (youth → adult). These are tried in addition to
  * the automatic trailing-letter fallback (e.g. ATC1000Y → ATC1000).
+ *
+ * The value may be a single SKU (string) or an ordered list (array) of SKUs
+ * to try as successive fallbacks. Array form is used when one parent covers
+ * most of the palette and a second one fills the last remaining gaps — e.g.
+ * 6245CM: [ATC6245CM for its own 5 colours, ATC6606 for the red/royal the
+ * supplier hasn't photographed on the 6245CM body yet].
  */
-const SKU_ALIASES: Record<string, string> = {
-  // Catalog uses "6245CM" but image files live under "ATC6245CM-*"
-  '6245CM': 'ATC6245CM',
+const SKU_ALIASES: Record<string, string | readonly string[]> = {
+  // Catalog uses "6245CM" but image files live under "ATC6245CM-*".
+  // ATC6606 is a close-silhouette trucker cap that covers the few palette
+  // colours (red, true-royal) the supplier hasn't photographed on 6245CM.
+  '6245CM': ['ATC6245CM', 'ATC6606'],
   // Youth tee shares garment silhouette with adult ATC1000
   'ATC1000Y': 'ATC1000',
+  // Pocket tee variant reuses the ATC1000 photoset for colours (gold, etc.)
+  // the supplier hasn't re-shot on the ATC1015 body.
+  'ATC1015': 'ATC1000',
+  // Safety/work tee — supplier ships with hi-vis-only imagery. Reuse ATC1000
+  // for the core palette (red, royal, forest-green) so swatches don't vanish.
+  'WERK250': 'ATC1000',
+  // Fleece sweatshirt sibling — forest-green only exists on the ATCF2500 body.
+  'ATCF2600': 'ATCF2500',
+  // Long-sleeve polo inherits from the ladies polo (L445) which has the
+  // greenoasis dark-green the short-sleeve S445 and S445LS both lack.
+  'S445LS': ['S445', 'L445'],
+  // Trucker cap pair: ATC6277 and ATC6606 each photograph a disjoint subset
+  // of the two-tone palette. Alias both directions so every swatch renders.
+  'ATC6277': 'ATC6606',
+  'ATC6606': 'ATC6277',
 };
 
 /**
@@ -1124,7 +1150,12 @@ const SKU_ALIASES: Record<string, string> = {
 function resolveColorImageSkus(sku: string): string[] {
   const candidates = [sku];
   const aliased = SKU_ALIASES[sku];
-  if (aliased && !candidates.includes(aliased)) candidates.push(aliased);
+  if (aliased) {
+    const aliases = Array.isArray(aliased) ? aliased : [aliased];
+    for (const a of aliases) {
+      if (a && !candidates.includes(a)) candidates.push(a);
+    }
+  }
   // Trailing single-letter size/age variant (Y=youth, L=ladies) → try base SKU
   const trimmed = sku.replace(/[A-Z]$/, '');
   if (trimmed !== sku && trimmed.length >= 3 && !candidates.includes(trimmed)) {
