@@ -4,6 +4,11 @@ import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { Home, Store, ShoppingCart } from 'lucide-react';
 
+/**
+ * BottomNav — mobile-only fixed bottom tab bar (Home / Shop / Cart) with
+ * a live cart-count badge, route-aware active state, and an sr-only
+ * live region that announces cart changes regardless of focus.
+ */
 export function BottomNav() {
   const location = useLocation();
   const { lang, t } = useLang();
