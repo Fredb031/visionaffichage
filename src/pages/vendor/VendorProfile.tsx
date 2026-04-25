@@ -100,7 +100,7 @@ export default function VendorProfile() {
           className="flex-1 max-w-[800px] w-full mx-auto px-6 md:px-10 py-12 md:py-16"
         >
           <section className="bg-white rounded-2xl border border-zinc-200 p-8 md:p-10 shadow-sm text-center">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-3">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-3">
               {lang === 'en' ? 'Vendor not found' : 'Vendeur introuvable'}
             </h1>
             <p className="text-sm md:text-base text-zinc-600 mb-6">
@@ -110,7 +110,7 @@ export default function VendorProfile() {
             </p>
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-brand-white font-extrabold text-sm hover:bg-brand-blue-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Contact us' : 'Nous joindre'}
               <ArrowRight size={16} aria-hidden="true" />
@@ -164,22 +164,22 @@ export default function VendorProfile() {
         className="flex-1 max-w-[800px] w-full mx-auto px-6 md:px-10 py-12 md:py-16"
       >
         {/* Hero — avatar + name + specialty eyebrow. Mirrors the
-            About-page hero rhythm (eyebrow gold, H1 navy, short lede
+            About-page hero rhythm (eyebrow blue, H1 black, short lede
             below) so returning buyers recognize the brand surface. */}
         <section className="mb-10 md:mb-12">
           <div className="flex items-start gap-5 flex-wrap">
             <div
               aria-hidden="true"
-              className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-[#E8A838] flex items-center justify-center text-2xl md:text-3xl font-extrabold tracking-tight shadow-sm"
+              className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-brand-black text-brand-blue flex items-center justify-center text-2xl md:text-3xl font-extrabold tracking-tight shadow-sm"
             >
               {initials || <UserCircle2 size={36} aria-hidden="true" />}
             </div>
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-brand-blue mb-2">
                 <Briefcase size={12} aria-hidden="true" className="-mt-px" />
                 <span>{specialty}</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.8px] mb-2">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-brand-black tracking-[-0.8px] mb-2">
                 {profile.name}
               </h1>
               <p className="text-sm md:text-base text-zinc-600">
@@ -203,7 +203,7 @@ export default function VendorProfile() {
         >
           <h2
             id="vendor-bio"
-            className="text-xl md:text-2xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-4"
+            className="text-xl md:text-2xl font-extrabold text-brand-black tracking-[-0.5px] mb-4"
           >
             {lang === 'en' ? 'About' : 'À propos'}
           </h2>
@@ -228,7 +228,7 @@ export default function VendorProfile() {
         <section aria-labelledby="vendor-stats" className="mb-10">
           <h2
             id="vendor-stats"
-            className="text-xl md:text-2xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-5"
+            className="text-xl md:text-2xl font-extrabold text-brand-black tracking-[-0.5px] mb-5"
           >
             {lang === 'en' ? 'By the numbers' : 'En chiffres'}
           </h2>
@@ -238,15 +238,15 @@ export default function VendorProfile() {
               return (
                 <div
                   key={s.labelEn}
-                  className="bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-white rounded-2xl p-6 shadow-sm text-center"
+                  className="bg-brand-black text-brand-white rounded-2xl p-6 shadow-sm text-center"
                 >
-                  <div className="flex justify-center mb-2 text-[#E8A838]">
+                  <div className="flex justify-center mb-2 text-brand-blue">
                     <Icon size={20} aria-hidden="true" />
                   </div>
-                  <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-[#E8A838]">
+                  <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-brand-blue">
                     {s.value}
                   </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-white/70 mt-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-brand-white/70 mt-2">
                     {lang === 'en' ? s.labelEn : s.labelFr}
                   </div>
                 </div>
@@ -260,9 +260,9 @@ export default function VendorProfile() {
             the form. */}
         <section
           aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'}
-          className="bg-[#FFF8E7] border border-[#E8A838]/30 rounded-2xl p-8 md:p-10 text-center"
+          className="bg-brand-grey-light border border-brand-grey-border rounded-2xl p-8 md:p-10 text-center"
         >
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-2">
             {lang === 'en' ? 'Work directly with ' : 'Travailler directement avec '}{profile.name.split(' ')[0]}
           </h2>
           <p className="text-sm md:text-base text-zinc-700 mb-6 max-w-[540px] mx-auto">
@@ -272,7 +272,7 @@ export default function VendorProfile() {
           </p>
           <Link
             to={`/contact?vendor=${encodeURIComponent(profile.id)}`}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-brand-white font-extrabold text-sm hover:bg-brand-blue-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
           >
             {lang === 'en' ? 'Request a quote' : 'Demander une soumission'}
             <ArrowRight size={16} aria-hidden="true" />
