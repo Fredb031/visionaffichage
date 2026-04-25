@@ -10,6 +10,9 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ExitIntent } from "@/components/ExitIntent";
+import { ScrollTestimonial } from "@/components/ScrollTestimonial";
+import { FirstVisitBanner } from "@/components/FirstVisitBanner";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
@@ -268,9 +271,16 @@ const App = () => (
           <BrowserRouter>
             <SkipLink />
             <ScrollToTop />
+            <FirstVisitBanner />
             <Suspense fallback={<LazyFallback />}>
               <AnimatedRoutes />
             </Suspense>
+            {/* Section 07 behavioral triggers — mounted at the router
+                root so they survive route changes. Each component
+                self-gates on pathname (skipping /checkout) and on
+                per-session localStorage flags. */}
+            <ExitIntent />
+            <ScrollTestimonial />
           </BrowserRouter>
         </ErrorBoundary>
     </LangProvider>
