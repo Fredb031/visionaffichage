@@ -99,7 +99,7 @@ const STATUS_COLOR: Record<Status, string> = {
   accepted: 'bg-emerald-50 text-emerald-700',
   paid: 'bg-emerald-100 text-emerald-800',
   expired: 'bg-rose-50 text-rose-700',
-  converted: 'bg-[#1B3A6B]/10 text-[#1B3A6B]',
+  converted: 'bg-brand-black/10 text-brand-black',
 };
 
 /** Format an ISO date for the CSV column / badge. fr-CA matches the
@@ -703,7 +703,7 @@ function ConvertToOrderDialog({
       >
         <div className="flex items-start justify-between p-5 border-b border-zinc-100">
           <div>
-            <h2 id="convert-order-title" className="font-extrabold text-lg text-[#1B3A6B]">
+            <h2 id="convert-order-title" className="font-extrabold text-lg text-brand-black">
               Créer une commande à partir de cette soumission ?
             </h2>
             <p className="text-xs text-zinc-500 mt-1">
@@ -760,7 +760,7 @@ function ConvertToOrderDialog({
                         {colors}
                       </div>
                     </div>
-                    <div className="text-xs font-bold text-[#1B3A6B] whitespace-nowrap">
+                    <div className="text-xs font-bold text-brand-black whitespace-nowrap">
                       × {qty}
                     </div>
                   </li>
