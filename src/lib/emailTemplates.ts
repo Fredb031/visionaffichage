@@ -4,10 +4,15 @@
 // context object. Wire to your email sender (Resend, Postmark, Shopify Email,
 // or a Supabase edge function) when you're ready to send live.
 
+// Brand tokens mirror the values defined in tailwind.config.ts (`theme.colors.brand`)
+// and `--brand-*` CSS vars in src/index.css. We can't reference CSS variables
+// from emails — most email clients (Gmail, Outlook, Apple Mail) strip or fail to
+// resolve `var(--brand-black)` inside inline styles — so the tokens are inlined
+// here as literal hex. If you change the brand palette, update these to match.
 const BRAND = {
-  navy: '#1B3A6B',
+  black: '#0A0A0A',
   blue: '#0052CC',
-  gold: '#E8A838',
+  white: '#FFFFFF',
   logoUrl: 'https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651',
   site: 'https://visionaffichage.com',
   phone: '367-380-4808',
@@ -71,7 +76,7 @@ function wrap(inner: string): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-        <tr><td style="background:linear-gradient(135deg,${BRAND.navy} 0%,#0F2341 100%);padding:28px 32px;">
+        <tr><td style="background:${BRAND.black};padding:28px 32px;">
           <img src="${BRAND.logoUrl}" alt="Vision Affichage" height="24" style="display:block;" />
         </td></tr>
         <tr><td style="padding:32px;">${inner}</td></tr>
@@ -118,7 +123,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
         </p>
         <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Quote ${esc(ctx.quoteNumber)}</div>
-          <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+          <div style="font-size:26px;font-weight:800;color:${BRAND.black};">${esc(totalFmt)}</div>
           <div style="font-size:12px;color:#777;margin-top:4px;">Valid until ${esc(ctx.expiresAt)}</div>
         </div>
         <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Review & accept quote')}</p>
@@ -138,7 +143,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
       </p>
       <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Soumission ${esc(ctx.quoteNumber)}</div>
-        <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+        <div style="font-size:26px;font-weight:800;color:${BRAND.black};">${esc(totalFmt)}</div>
         <div style="font-size:12px;color:#777;margin-top:4px;">Valide jusqu'au ${esc(ctx.expiresAt)}</div>
       </div>
       <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Réviser et accepter')}</p>
@@ -325,7 +330,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
         </p>
         <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Order #${esc(ctx.orderNumber)}</div>
-          <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+          <div style="font-size:26px;font-weight:800;color:${BRAND.black};">${esc(totalFmt)}</div>
           <div style="font-size:12px;color:#777;margin-top:4px;">Estimated delivery: ${esc(ctx.etaDate)}</div>
         </div>
         <p style="font-size:13px;color:#666;">Questions? Email <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> or call ${BRAND.phone}.</p>
@@ -344,7 +349,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
       </p>
       <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Commande #${esc(ctx.orderNumber)}</div>
-        <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+        <div style="font-size:26px;font-weight:800;color:${BRAND.black};">${esc(totalFmt)}</div>
         <div style="font-size:12px;color:#777;margin-top:4px;">Livraison estimée : ${esc(ctx.etaDate)}</div>
       </div>
       <p style="font-size:13px;color:#666;">Des questions ? Écris à <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> ou appelle au ${BRAND.phone}.</p>
