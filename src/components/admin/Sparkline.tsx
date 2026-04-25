@@ -17,7 +17,7 @@ export function Sparkline({
   data,
   width = 80,
   height = 24,
-  stroke = '#E8A838',
+  stroke = 'var(--brand-blue)',
   strokeWidth = 1.5,
   ariaLabel,
 }: SparklineProps) {

@@ -367,7 +367,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <button
               type="submit"
               disabled={submitting || (mode === 'signup' && password.length > 0 && password !== password2)}
-              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {submitting
                 ? lang === 'en' ? 'Please wait…' : 'Un instant…'

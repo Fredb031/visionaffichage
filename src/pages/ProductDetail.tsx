@@ -1319,7 +1319,7 @@ export default function ProductDetail() {
                             // local-catalog/colorNameToHex chain a few lines up
                             // so we can splice it straight into the title.
                             // Screen-reader output reads "Bleu marine, code
-                            // couleur #1B3A6B" because aria-label sits on the
+                            // couleur brand-black" because aria-label sits on the
                             // button and the SR announces it before `title`.
                             const hexTooltip = hex ? `${value} (${hex.toUpperCase()})` : value;
                             const hexAriaLabel = hex

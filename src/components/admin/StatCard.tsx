@@ -19,7 +19,7 @@ interface StatCardProps {
 function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue', loading = false, compact = false }: StatCardProps) {
   const accentMap = {
     blue: 'from-[#0052CC]/10 to-[#0052CC]/5 text-[#0052CC]',
-    gold: 'from-[#E8A838]/15 to-[#E8A838]/5 text-[#B37D10]',
+    gold: 'from-brand-blue/15 to-brand-blue/5 text-[#B37D10]',
     green: 'from-emerald-500/10 to-emerald-500/5 text-emerald-700',
     red: 'from-rose-500/10 to-rose-500/5 text-rose-700',
   }[accent];
