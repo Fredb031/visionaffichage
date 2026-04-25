@@ -91,16 +91,16 @@ export default function About() {
         id="main-content"
         className="flex-1 max-w-[960px] w-full mx-auto px-6 md:px-10 py-12 md:py-16"
       >
-        {/* Hero — eyebrow + H1 + short lede. The eyebrow echoes the
-            cream/gold brand accents used on the homepage feature
-            strips so a returning buyer recognizes the visual
-            language instantly. */}
+        {/* Hero — eyebrow + H1 + short lede. The eyebrow uses the
+            single brand-blue accent from the new B2B brand language
+            so a returning buyer recognizes the visual identity
+            instantly. */}
         <section className="mb-14 md:mb-16">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-3">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-brand-blue mb-3">
             <MapPin size={12} aria-hidden="true" className="-mt-px" />
             <span>Saint-Hyacinthe, Québec</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-[#0F2341] tracking-[-0.8px] mb-4">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-brand-black tracking-[-0.8px] mb-4">
             {lang === 'en' ? 'Our story' : 'Notre histoire'}
           </h1>
           <p className="text-base md:text-lg text-zinc-700 max-w-[680px] leading-relaxed">
@@ -122,7 +122,7 @@ export default function About() {
         >
           <h2
             id="about-founded"
-            className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-4"
+            className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-4"
           >
             {lang === 'en' ? 'Founded in Québec' : 'Fondé au Québec'}
           </h2>
@@ -152,7 +152,7 @@ export default function About() {
         <section aria-labelledby="about-values" className="mb-10">
           <h2
             id="about-values"
-            className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-5"
+            className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-5"
           >
             {lang === 'en' ? 'Our values' : 'Nos valeurs'}
           </h2>
@@ -166,11 +166,11 @@ export default function About() {
                 >
                   <span
                     aria-hidden="true"
-                    className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#E8A838]/15 text-[#E8A838] mb-4"
+                    className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-brand-blue/15 text-brand-blue mb-4"
                   >
                     <Icon size={20} />
                   </span>
-                  <h3 className="text-lg font-extrabold text-[#0F2341] tracking-[-0.3px] mb-2">
+                  <h3 className="text-lg font-extrabold text-brand-black tracking-[-0.3px] mb-2">
                     {lang === 'en' ? v.titleEn : v.titleFr}
                   </h3>
                   <p className="text-sm text-zinc-600 leading-relaxed">
@@ -188,7 +188,7 @@ export default function About() {
         <section aria-labelledby="about-stats" className="mb-12">
           <h2
             id="about-stats"
-            className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-5"
+            className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-5"
           >
             {lang === 'en' ? 'By the numbers' : 'En chiffres'}
           </h2>
@@ -196,12 +196,12 @@ export default function About() {
             {stats.map(s => (
               <div
                 key={s.labelEn}
-                className="bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-white rounded-2xl p-6 md:p-7 shadow-sm text-center"
+                className="bg-brand-black text-brand-white rounded-2xl p-6 md:p-7 shadow-sm text-center"
               >
-                <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-[#E8A838]">
+                <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-brand-blue">
                   {s.value}
                 </div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-white/70 mt-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-brand-white/70 mt-2">
                   {lang === 'en' ? s.labelEn : s.labelFr}
                 </div>
               </div>
@@ -215,9 +215,9 @@ export default function About() {
             the buyer prefers, it's one click from here. */}
         <section
           aria-label={lang === 'en' ? 'Work with us' : 'Travailler avec nous'}
-          className="bg-[#FFF8E7] border border-[#E8A838]/30 rounded-2xl p-8 md:p-10 text-center"
+          className="bg-brand-grey-light border border-brand-blue/30 rounded-2xl p-8 md:p-10 text-center"
         >
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-brand-black tracking-[-0.5px] mb-2">
             {lang === 'en' ? 'Work with us' : 'Travailler avec nous'}
           </h2>
           <p className="text-sm md:text-base text-zinc-700 mb-6 max-w-[540px] mx-auto">
@@ -227,7 +227,7 @@ export default function About() {
           </p>
           <Link
             to="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-brand-white font-extrabold text-sm hover:bg-brand-blue-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
           >
             {lang === 'en' ? 'Contact us' : 'Nous joindre'}
             <ArrowRight size={16} aria-hidden="true" />
