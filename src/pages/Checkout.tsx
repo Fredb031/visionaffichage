@@ -190,6 +190,12 @@ const empty: ShippingForm = {
   address: '', city: '', postalCode: '', province: 'QC', phone: '', notes: '',
 };
 
+/**
+ * Multi-step checkout page (info → shipping → payment → done) with EN/FR
+ * copy, draft auto-save, Canadian postal/phone formatting, and a Shopify
+ * hand-off for payment. Renders the local confirmation screen when the
+ * thank-you redirect returns with `?step=done&order=…`.
+ */
 export default function Checkout() {
   const { lang } = useLang();
   const navigate = useNavigate();
