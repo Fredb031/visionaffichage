@@ -46,20 +46,37 @@ function getPluralRules(lang: PluralLang): Intl.PluralRules {
  * Callers can short-circuit a specific cardinal by passing `zero`. The
  * helper checks `zero` first when the count is exactly 0 so copy like
  * "Aucun article" wins over the generic plural form.
+ *
+ * Defensive guards:
+ *  - Non-finite counts (NaN, ±Infinity) would otherwise leak through to
+ *    Intl.PluralRules — engines disagree on which CLDR bucket NaN lands
+ *    in, and the literal "NaN article" rendering reaches the UI. We
+ *    coerce to 0 so the `other`/`zero` fallback fires and the rendered
+ *    number is never the string "NaN".
+ *  - `String.prototype.replace` with a string pattern only swaps the
+ *    first match, so a template like "{count} of {count}" (rare but
+ *    legal) would render the count once and leave a literal `{count}`
+ *    behind. We use a global regex so every placeholder in the template
+ *    is substituted.
  */
+const COUNT_PLACEHOLDER = /\{count\}/g;
+
 export function plural(
   count: number,
   forms: PluralForms,
   lang: PluralLang = 'fr',
 ): string {
+  const safeCount = Number.isFinite(count) ? count : 0;
+  const countStr = String(safeCount);
+
   // Explicit zero override wins regardless of what Intl decides — fr/en
   // both bucket 0 under `one`/`other` respectively, so a caller that wants
   // a distinct empty-state string has no other way to hook it.
-  if (count === 0 && forms.zero != null) {
-    return forms.zero.replace('{count}', String(count));
+  if (safeCount === 0 && forms.zero != null) {
+    return forms.zero.replace(COUNT_PLACEHOLDER, countStr);
   }
 
-  const category = getPluralRules(lang).select(count);
+  const category = getPluralRules(lang).select(safeCount);
   // Prefer the named category if the caller supplied it; otherwise fall
   // back through `other` (always defined). This keeps FR `many` (large
   // numbers in some locales) routable without forcing every call site to
@@ -72,5 +89,5 @@ export function plural(
     (category === 'many' && forms.many) ||
     forms.other;
 
-  return template.replace('{count}', String(count));
+  return template.replace(COUNT_PLACEHOLDER, countStr);
 }
