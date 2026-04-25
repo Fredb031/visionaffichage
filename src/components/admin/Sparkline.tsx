@@ -21,8 +21,18 @@ export function Sparkline({
   strokeWidth = 1.5,
   ariaLabel,
 }: SparklineProps) {
-  const isEmpty = !data || data.length === 0;
-  const isAllZero = !isEmpty && data.every(v => v === 0);
+  // Drop non-finite values (NaN / ±Infinity) up front. Stat sources
+  // sometimes divide-by-zero when a comparison period has no data,
+  // and a single NaN slipping into Math.min/max poisons the entire
+  // computed range — every point becomes "NaN,NaN" and the polyline
+  // silently disappears, leaving the cell looking broken instead of
+  // showing the muted dashed placeholder we render for empty input.
+  // Filtering here normalises the bad-data case to the same "no data"
+  // path so the column always reads as either a real trend or an
+  // explicit absence, never a phantom-empty SVG.
+  const safeData = Array.isArray(data) ? data.filter(v => Number.isFinite(v)) : [];
+  const isEmpty = safeData.length === 0;
+  const isAllZero = !isEmpty && safeData.every(v => v === 0);
 
   if (isEmpty || isAllZero) {
     // Muted dashed placeholder — communicates "no data" without
@@ -52,7 +62,7 @@ export function Sparkline({
   }
 
   // Single-point series: draw a centered dot so the column isn't empty.
-  if (data.length === 1) {
+  if (safeData.length === 1) {
     return (
       <svg
         width={width}
@@ -66,16 +76,16 @@ export function Sparkline({
     );
   }
 
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  const min = Math.min(...safeData);
+  const max = Math.max(...safeData);
   // Guard against a flat non-zero series — without this, (max-min)=0
   // divides to NaN and the polyline disappears. Render it centered.
   const range = max - min || 1;
-  const stepX = (width - 2) / (data.length - 1);
+  const stepX = (width - 2) / (safeData.length - 1);
   const padY = 2;
   const innerH = height - padY * 2;
 
-  const points = data.map((v, i) => {
+  const points = safeData.map((v, i) => {
     const x = 1 + i * stepX;
     // Invert Y (SVG grows downward) so higher values sit higher.
     const y = padY + innerH - ((v - min) / range) * innerH;
@@ -86,7 +96,7 @@ export function Sparkline({
   // Area path: close the polyline down to the baseline so we can
   // fill a translucent band beneath the stroke.
   const firstX = 1;
-  const lastX = 1 + (data.length - 1) * stepX;
+  const lastX = 1 + (safeData.length - 1) * stepX;
   const baselineY = height - 0.5;
   const areaPath = `M ${firstX},${baselineY} L ${points.join(' L ')} L ${lastX.toFixed(2)},${baselineY} Z`;
 
@@ -96,7 +106,7 @@ export function Sparkline({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={ariaLabel ?? `Tendance ${data.length} points, min ${min}, max ${max}`}
+      aria-label={ariaLabel ?? `Tendance ${safeData.length} points, min ${min}, max ${max}`}
       className="overflow-visible"
     >
       <path d={areaPath} fill={stroke} fillOpacity={0.12} stroke="none" />
