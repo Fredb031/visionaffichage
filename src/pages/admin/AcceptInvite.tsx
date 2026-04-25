@@ -183,7 +183,7 @@ export default function AcceptInvite() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-black via-brand-black to-brand-black px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img
@@ -209,7 +209,7 @@ export default function AcceptInvite() {
                 new reset link instead of dead-ending at the login page. */}
             <Link
               to="/admin/forgot-password"
-              className="inline-block w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="inline-block w-full py-3 bg-gradient-to-br from-brand-blue to-brand-black text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               Demander un nouveau lien
             </Link>
@@ -238,7 +238,7 @@ export default function AcceptInvite() {
                 if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
                 navigate(invite?.role === 'admin' ? '/admin' : '/vendor', { replace: true });
               }}
-              className="w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="w-full py-3 bg-gradient-to-br from-brand-blue to-brand-black text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {invite?.role === 'admin' ? 'Aller au tableau de bord admin' : 'Aller à mon espace vendeur'}
             </button>
@@ -380,7 +380,7 @@ export default function AcceptInvite() {
               type="submit"
               disabled={submitting}
               aria-busy={submitting || undefined}
-              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 disabled:cursor-wait hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-br from-brand-blue to-brand-black text-white rounded-xl text-sm font-extrabold disabled:opacity-60 disabled:cursor-wait hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2 flex items-center justify-center gap-2"
             >
               {submitting && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
               {submitting ? 'Activation…' : 'Activer mon compte'}
