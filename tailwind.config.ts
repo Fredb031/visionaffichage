@@ -12,8 +12,8 @@ export default {
     },
     extend: {
       // Section 1.3 — Inter for body, DM Sans for display, JetBrains Mono
-      // for code. The legacy `lora` family was retired alongside the
-      // navy/gold token sweep — no `font-lora` consumers remain.
+      // for code. The legacy `lora` family has been retired; no
+      // `font-lora` consumers remain.
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['DM Sans', 'Inter', 'sans-serif'],
@@ -47,9 +47,8 @@ export default {
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         green: "hsl(var(--green))",
-        // Freud × Bernays redesign — Section 1.1 brand palette. The
-        // legacy navy/gold/charcoal/cream Tailwind tokens have been
-        // retired now that every component has migrated onto brand.*.
+        // Freud × Bernays redesign — Section 1.1 brand palette. Every
+        // component has migrated onto brand.* tokens.
         brand: {
           black: '#0A0A0A',
           white: '#FFFFFF',
