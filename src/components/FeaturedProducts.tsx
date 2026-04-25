@@ -15,8 +15,8 @@ export function FeaturedProducts() {
       <div className="max-w-[1200px] mx-auto">
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2">
-              <Star size={12} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase text-brand-blue mb-2">
+              <Star size={12} className="fill-brand-blue text-brand-blue" aria-hidden="true" />
               {lang === 'en' ? 'Most ordered' : 'Les plus commandés'}
             </div>
             <h2 className="text-[clamp(28px,4vw,42px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
@@ -25,7 +25,7 @@ export function FeaturedProducts() {
           </div>
           <Link
             to="/products"
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:gap-3 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-blue hover:gap-3 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 rounded"
           >
             {lang === 'en' ? `See all ${PRODUCTS.length} products` : `Voir les ${PRODUCTS.length} produits`}
             <ArrowRight size={14} aria-hidden="true" />
@@ -49,7 +49,7 @@ export function FeaturedProducts() {
               to={`/product/${p.shopifyHandle}`}
               className="group block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary border border-border transition-all hover:border-[#0052CC]/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.1)] hover:-translate-y-1">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary border border-border transition-all hover:border-brand-blue/30 hover:shadow-[0_16px_40px_rgba(10,10,10,0.1)] hover:-translate-y-1">
                 <img
                   src={p.imageDevant}
                   alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
@@ -62,8 +62,8 @@ export function FeaturedProducts() {
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
-                <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#1B3A6B] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
-                  <Star size={9} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
+                <div className="absolute top-2.5 left-2.5 bg-brand-white/95 backdrop-blur-sm text-brand-black text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                  <Star size={9} className="fill-brand-blue text-brand-blue" aria-hidden="true" />
                   {lang === 'en' ? 'Top' : 'Top'}
                 </div>
               </div>
@@ -74,7 +74,7 @@ export function FeaturedProducts() {
                 <div className="text-sm font-extrabold text-foreground mt-0.5">
                   {categoryLabel(p.category, lang)}
                 </div>
-                <div className="text-xs text-[#0052CC] font-bold mt-1">
+                <div className="text-xs text-brand-blue font-bold mt-1">
                   {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
                 </div>
               </div>
