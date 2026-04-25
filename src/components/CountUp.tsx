@@ -55,6 +55,13 @@ export function CountUp({
       return;
     }
 
+    // Track the active rAF so unmount mid-animation cancels it. Without
+    // this, the previous implementation returned a cleanup from the
+    // inner `run()` closure but never propagated it to the outer
+    // useEffect — so navigating away during the count-up would let the
+    // last frame land on an unmounted node and warn in dev.
+    let raf = 0;
+
     const run = () => {
       if (hasRunRef.current) return;
       hasRunRef.current = true;
@@ -62,7 +69,6 @@ export function CountUp({
       const from = 0;
       // ease-out-cubic: 1 - (1 - t)^3
       const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-      let raf = 0;
       const tick = (now: number) => {
         const elapsed = now - start;
         const t = Math.min(1, elapsed / durationMs);
@@ -71,18 +77,20 @@ export function CountUp({
         if (t < 1) {
           raf = requestAnimationFrame(tick);
         } else {
+          raf = 0;
           setValue(to);
         }
       };
       raf = requestAnimationFrame(tick);
-      return () => cancelAnimationFrame(raf);
     };
 
     // IntersectionObserver: trigger once on first intersection.
     if (typeof IntersectionObserver === 'undefined') {
       // Fallback: just run on mount.
       run();
-      return;
+      return () => {
+        if (raf) cancelAnimationFrame(raf);
+      };
     }
 
     const io = new IntersectionObserver(
@@ -98,7 +106,10 @@ export function CountUp({
       { threshold: 0.25 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [to, durationMs]);
 
   // Format with locale-aware decimal separator so "4.9" reads as "4,9"
