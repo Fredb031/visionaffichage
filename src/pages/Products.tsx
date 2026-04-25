@@ -552,28 +552,28 @@ export default function Products() {
 
       {/* Banner — premium hero */}
       <div className="pt-[58px]">
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-6 md:px-10 pt-[44px] pb-2">
+        <div className="relative overflow-hidden bg-brand-black px-6 md:px-10 pt-[44px] pb-2">
           {/* Subtle radial accent */}
           <div
             className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none opacity-40"
-            style={{ background: 'radial-gradient(circle at 70% 0%, hsla(40, 82%, 55%, 0.18) 0%, transparent 60%)' }}
+            style={{ background: 'radial-gradient(circle at 70% 0%, rgba(0, 82, 204, 0.22) 0%, transparent 60%)' }}
             aria-hidden="true"
           />
           <div className="relative max-w-[1200px] mx-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-3">
+                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-brand-blue mb-3">
                   <span>⚡</span>
                   {lang === 'en' ? 'Made in Québec · 5 business days' : 'Fabriqué au Québec · 5 jours ouvrables'}
                 </div>
-                <h1 className="text-3xl md:text-5xl font-extrabold tracking-[-1px] text-primary-foreground mb-2 leading-[1.05]">
+                <h1 className="text-3xl md:text-5xl font-extrabold tracking-[-1px] text-brand-white mb-2 leading-[1.05]">
                   {lang === 'en' ? (
-                    <>Dress your team<br /><span className="text-[#E8A838]">to your image.</span></>
+                    <>Dress your team<br /><span className="text-brand-blue">to your image.</span></>
                   ) : (
-                    <>Habille ton équipe<br /><span className="text-[#E8A838]">à ton image.</span></>
+                    <>Habille ton équipe<br /><span className="text-brand-blue">à ton image.</span></>
                   )}
                 </h1>
-                <p className="text-[13px] text-primary-foreground/60 mb-4">
+                <p className="text-[13px] text-brand-white/60 mb-4">
                   {lang === 'en'
                     ? `${PRODUCTS.length} customizable products · No minimum order`
                     : `${PRODUCTS.length} produits personnalisables · Aucun minimum`}
@@ -582,7 +582,7 @@ export default function Products() {
 
               {/* Desktop search */}
               <div className="relative hidden md:flex items-center mt-2">
-                <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
+                <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-brand-white/50 pointer-events-none" />
                 <input
                   ref={searchDesktopRef}
                   type="search"
@@ -591,14 +591,14 @@ export default function Products() {
                   placeholder={lang === 'en' ? 'Search products… (⌘K)' : 'Rechercher… (⌘K)'}
                   aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
                   aria-keyshortcuts="Meta+K"
-                  className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all w-56"
+                  className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-brand-white/10 text-brand-white placeholder:text-brand-white/40 border border-brand-white/20 focus:outline-none focus:ring-2 focus:ring-brand-white/25 transition-all w-56"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
                     aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
-                    className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded"
+                    className="absolute right-2.5 text-brand-white/60 hover:text-brand-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-white/40 rounded"
                   >
                     <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
@@ -608,7 +608,7 @@ export default function Products() {
 
             {/* Mobile search */}
             <div className="relative flex md:hidden items-center mb-4">
-              <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
+              <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-brand-white/50 pointer-events-none" />
               <input
                 ref={searchMobileRef}
                 type="search"
@@ -616,14 +616,14 @@ export default function Products() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === 'en' ? 'Search products…' : 'Rechercher…'}
                 aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
-                className="w-full pl-9 pr-11 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all"
+                className="w-full pl-9 pr-11 py-[9px] text-[13px] rounded-xl bg-brand-white/10 text-brand-white placeholder:text-brand-white/40 border border-brand-white/20 focus:outline-none focus:ring-2 focus:ring-brand-white/25 transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
-                  className="absolute right-0 inset-y-0 w-11 flex items-center justify-center text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-r-xl"
+                  className="absolute right-0 inset-y-0 w-11 flex items-center justify-center text-brand-white/60 hover:text-brand-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-white/40 rounded-r-xl"
                 >
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
@@ -654,26 +654,26 @@ export default function Products() {
                       role="tab"
                       aria-selected={isActive}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`group inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full border snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
+                      className={`group inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full border snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${
                         isActive
                           // Active: white fill + dark text + stronger
-                          // border + gold-tinted shadow so the selection
+                          // border + blue-tinted shadow so the selection
                           // reads even at a glance on mobile.
-                          ? 'bg-white text-[#1B3A6B] border-[#E8A838]/70 shadow-[0_2px_12px_-2px_rgba(232,168,56,0.55)]'
+                          ? 'bg-brand-white text-brand-black border-brand-blue/70 shadow-[0_2px_12px_-2px_rgba(0,82,204,0.55)]'
                           // Inactive: same translucent chip as before
                           // but with an explicit transparent border so
                           // the active/inactive swap doesn't jump 1px.
-                          : 'bg-white/10 text-white/70 border-white/10 hover:bg-white/15 hover:text-white hover:border-white/25'
+                          : 'bg-brand-white/10 text-brand-white/70 border-brand-white/10 hover:bg-brand-white/15 hover:text-brand-white hover:border-brand-white/25'
                       }`}
                     >
                       <Icon
                         aria-hidden="true"
                         className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                          // Gold accent on the active icon — matches the
-                          // existing brand accent used on hero CTAs and
-                          // the sale/quebec badge. Inactive icon inherits
-                          // the muted white so the row reads calm.
-                          isActive ? 'text-[#E8A838]' : 'text-white/60 group-hover:text-white/90'
+                          // Blue accent on the active icon — matches the
+                          // brand accent used on hero CTAs and trust
+                          // badges. Inactive icon inherits the muted
+                          // white so the row reads calm.
+                          isActive ? 'text-brand-blue' : 'text-brand-white/60 group-hover:text-brand-white/90'
                         }`}
                       />
                       <span>{lang === 'en' ? cat.en : cat.fr}</span>
@@ -684,7 +684,7 @@ export default function Products() {
 
               {/* Sort dropdown — stacks under tabs on mobile, sits top-right on desktop */}
               <div className="flex items-center gap-2 pb-1 md:pb-0 md:shrink-0">
-                <label htmlFor="sort-mode" className="text-[11px] font-semibold tracking-wide uppercase text-white/60 whitespace-nowrap">
+                <label htmlFor="sort-mode" className="text-[11px] font-semibold tracking-wide uppercase text-brand-white/60 whitespace-nowrap">
                   {lang === 'en' ? 'Sort' : 'Trier'}
                 </label>
                 <select
@@ -692,11 +692,11 @@ export default function Products() {
                   value={sortMode}
                   onChange={(e) => setSortMode(e.target.value as SortMode)}
                   aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
-                  className="text-[12px] font-bold bg-white/10 text-white border border-white/20 rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#1B3A6B] cursor-pointer hover:bg-white/15 transition-colors"
+                  className="text-[12px] font-bold bg-brand-white/10 text-brand-white border border-brand-white/20 rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-brand-white/70 focus:ring-offset-2 focus:ring-offset-brand-black cursor-pointer hover:bg-brand-white/15 transition-colors"
                 >
-                  <option value="popularity" className="text-foreground">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
-                  <option value="price-asc" className="text-foreground">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
-                  <option value="price-desc" className="text-foreground">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
+                  <option value="popularity" className="text-brand-black">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
+                  <option value="price-asc" className="text-brand-black">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
+                  <option value="price-desc" className="text-brand-black">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
                 </select>
               </div>
             </div>
@@ -783,7 +783,7 @@ export default function Products() {
             <button
               type="button"
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark px-6 py-3 rounded-full transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Retry' : 'Réessayer'}
             </button>
@@ -925,7 +925,7 @@ export default function Products() {
                       <button
                         type="button"
                         onClick={clearAllFilters}
-                        className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                        className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark px-6 py-2.5 rounded-full transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                       >
                         <X className="w-4 h-4" aria-hidden="true" />
                         {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
@@ -1000,7 +1000,7 @@ export default function Products() {
                     <button
                       type="button"
                       onClick={clearAllFilters}
-                      className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                      className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark px-6 py-2.5 rounded-full transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                     >
                       <X className="w-4 h-4" aria-hidden="true" />
                       {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
@@ -1062,7 +1062,7 @@ export default function Products() {
                       <button
                         type="button"
                         onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                        className="w-full md:w-auto inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3 rounded-full shadow-navy hover:opacity-95 transition-opacity focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                        className="w-full md:w-auto inline-flex items-center justify-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark px-8 py-3 rounded-full transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                       >
                         {lang === 'en' ? 'Load more' : 'Charger plus'}
                       </button>
