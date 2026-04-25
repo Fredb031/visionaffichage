@@ -95,8 +95,11 @@ export function CartRecommendations() {
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
               )}
-              <span className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#0052CC] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
-                <Plus size={12} />
+              <span
+                aria-hidden="true"
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#0052CC] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+              >
+                <Plus size={12} aria-hidden="true" />
               </span>
             </div>
             <div className="p-2">
