@@ -623,13 +623,13 @@ export default function ProductDetail() {
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         <div className="container mx-auto px-4 py-20 text-center pt-24" role={isNetworkError ? 'alert' : undefined}>
-          <p className="text-foreground text-lg font-bold mb-2">
+          <p className="text-brand-black text-lg font-bold mb-2">
             {isNetworkError
               ? (lang === 'en' ? 'Couldn\u2019t load this product' : 'Impossible de charger ce produit')
               : (lang === 'en' ? 'Product not found' : 'Produit non trouvé')}
           </p>
           {isNetworkError && (
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-brand-grey mb-4">
               {lang === 'en' ? 'Check your connection and retry.' : 'Vérifie ta connexion et réessaie.'}
             </p>
           )}
@@ -638,14 +638,14 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="text-sm font-bold text-brand-white bg-brand-black hover:bg-brand-blue transition-colors px-6 py-2.5 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Retry' : 'Réessayer'}
               </button>
             )}
             <Link
               to="/products"
-              className="text-sm font-bold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+              className="text-sm font-bold text-brand-grey hover:text-brand-black focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
             >
               {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
             </Link>
@@ -855,47 +855,47 @@ export default function ProductDetail() {
               aria-label={lang === 'en' ? 'Breadcrumb' : "Fil d'Ariane"}
               className="mb-2"
             >
-              <ol className="flex items-center flex-wrap gap-1.5 text-sm text-muted-foreground">
+              <ol className="flex items-center flex-wrap gap-1.5 text-sm text-brand-grey">
                 <li>
                   <Link
                     to="/"
-                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                    className="hover:text-brand-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
                     {homeLabel}
                   </Link>
                 </li>
-                <li aria-hidden="true" className="text-muted-foreground/50">
+                <li aria-hidden="true" className="text-brand-grey/50">
                   <ChevronRight className="h-3.5 w-3.5" />
                 </li>
                 <li>
                   <Link
                     to="/products"
-                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                    className="hover:text-brand-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
                     {productsLabel}
                   </Link>
                 </li>
                 {categorySlug && categoryCrumbLabel && (
                   <>
-                    <li aria-hidden="true" className="text-muted-foreground/50">
+                    <li aria-hidden="true" className="text-brand-grey/50">
                       <ChevronRight className="h-3.5 w-3.5" />
                     </li>
                     <li>
                       <Link
                         to={`/products?cat=${categorySlug}`}
-                        className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                        className="hover:text-brand-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                       >
                         {categoryCrumbLabel}
                       </Link>
                     </li>
                   </>
                 )}
-                <li aria-hidden="true" className="text-muted-foreground/50">
+                <li aria-hidden="true" className="text-brand-grey/50">
                   <ChevronRight className="h-3.5 w-3.5" />
                 </li>
                 <li
                   aria-current="page"
-                  className="text-foreground font-medium truncate max-w-[55vw] sm:max-w-none"
+                  className="text-brand-black font-medium truncate max-w-[55vw] sm:max-w-none"
                   title={productCrumb}
                 >
                   {productCrumb}
@@ -906,7 +906,7 @@ export default function ProductDetail() {
         })()}
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+          className="inline-flex items-center gap-1.5 text-sm text-brand-grey hover:text-brand-black mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
@@ -968,7 +968,7 @@ export default function ProductDetail() {
             if (shots.length === 0) {
               return (
                 <div>
-                  <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border flex items-center justify-center text-muted-foreground text-sm">
+                  <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border flex items-center justify-center text-brand-grey text-sm">
                     {lang === 'en' ? 'No image' : "Pas d'image"}
                   </div>
                 </div>
@@ -986,19 +986,19 @@ export default function ProductDetail() {
                   {/* SKU as small gray subtitle ABOVE the title */}
                   {localProduct && (
                     <div
-                      className="text-[11px] font-mono uppercase tracking-[2px] text-muted-foreground/70 mb-1"
+                      className="text-[11px] font-mono uppercase tracking-[2px] text-brand-grey/70 mb-1"
                       data-sku={localProduct.sku}
                     >
                       {localProduct.sku}
                     </div>
                   )}
                   {/* Type as the main title */}
-                  <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+                  <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-brand-black leading-tight">
                     {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
                   </h1>
                   {/* Garment line in muted */}
                   {localProduct && localProduct.gender !== 'unisex' && (
-                    <div className="text-xs text-muted-foreground mt-1 capitalize">
+                    <div className="text-xs text-brand-grey mt-1 capitalize">
                       {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
                     </div>
                   )}
@@ -1016,8 +1016,8 @@ export default function ProductDetail() {
                     : (lang === 'en' ? 'Save' : 'Enregistrer')}
                   className={`w-11 h-11 rounded-full border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                     saved
-                      ? 'border-[#E8A838] bg-[#E8A838]/10 text-[#B37D10]'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:border-primary'
+                      ? 'border-brand-blue bg-brand-blue/10 text-brand-blue'
+                      : 'border-border text-brand-grey hover:text-brand-black hover:border-primary'
                   }`}
                   style={{ overflow: 'visible' }}
                 >
@@ -1149,7 +1149,7 @@ export default function ProductDetail() {
                   }}
                   disabled={sharing}
                   aria-busy={sharing || undefined}
-                  className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-brand-grey hover:text-brand-black hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={lang === 'en' ? 'Share this product' : 'Partager ce produit'}
                   title={lang === 'en' ? 'Share' : 'Partager'}
                 >
@@ -1161,7 +1161,7 @@ export default function ProductDetail() {
                 <span className="text-2xl font-extrabold text-primary">
                   {price} {currency}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-brand-grey">
                   {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
                 </span>
               </div>
@@ -1220,7 +1220,7 @@ export default function ProductDetail() {
                 </span>
               )}
               {!stockLoading && stock.totalAvailable >= 10 && !isVariantLowStock && !isVariantSoldOut && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-blue-light text-brand-blue font-bold">
                   <Package size={11} aria-hidden="true" />
                   {lang === 'en' ? 'In stock' : 'En stock'}
                 </span>
@@ -1235,7 +1235,7 @@ export default function ProductDetail() {
                 <Ruler size={11} aria-hidden="true" />
                 {lang === 'en' ? 'Size guide' : 'Guide des tailles'}
               </button>
-              <span className="text-muted-foreground">
+              <span className="text-brand-grey">
                 · {lang === 'en'
                   ? `Receive by ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
                   : `Reçu le ${new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}`}
@@ -1259,10 +1259,10 @@ export default function ProductDetail() {
 
                 return (
                   <div key={option.name}>
-                    <label className="text-sm font-bold mb-2 block text-foreground">
+                    <label className="text-sm font-bold mb-2 block text-brand-black">
                       {localizedName}
                       {currentOptions[option.name] && (
-                        <span className="font-normal text-muted-foreground ml-2">
+                        <span className="font-normal text-brand-grey ml-2">
                           — {currentOptions[option.name]}
                         </span>
                       )}
@@ -1366,7 +1366,7 @@ export default function ProductDetail() {
                                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
                                     aria-hidden="true"
                                   >
-                                    <svg width="100%" height="100%" viewBox="0 0 44 44" className="text-foreground/70">
+                                    <svg width="100%" height="100%" viewBox="0 0 44 44" className="text-brand-black/70">
                                       <line x1="6" y1="38" x2="38" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                                     </svg>
                                   </span>
@@ -1407,8 +1407,8 @@ export default function ProductDetail() {
                               aria-label={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
                               className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                 isSel
-                                  ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
-                                  : 'bg-background text-foreground border-border hover:border-primary'
+                                  ? 'bg-brand-black text-brand-white border-transparent shadow-sm'
+                                  : 'bg-background text-brand-black border-border hover:border-primary'
                               } ${!isAvailable ? 'line-through opacity-50 hover:border-border cursor-not-allowed pointer-events-none' : ''}`}
                             >
                               {value}
@@ -1466,7 +1466,7 @@ export default function ProductDetail() {
                 </span>
               )}
               {isVariantInStock && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-blue-light border border-brand-blue/20 text-brand-blue text-xs font-bold">
                   <CheckCircle size={13} aria-hidden="true" />
                   {lang === 'en' ? 'In stock · Ships fast' : 'En stock · Livraison rapide'}
                 </span>
@@ -1477,8 +1477,8 @@ export default function ProductDetail() {
             <button
               ref={inlineCtaRef}
               type="button"
-              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:hover:translate-y-0"
-              style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
+              className="w-full py-4 bg-brand-black hover:bg-brand-blue text-brand-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-black disabled:hover:translate-y-0"
+              style={{ boxShadow: '0 8px 24px rgba(10, 10, 10, 0.35)' }}
               onClick={() => setCustomizerOpen(true)}
               disabled={isVariantSoldOut}
               aria-disabled={isVariantSoldOut || undefined}
@@ -1553,9 +1553,9 @@ export default function ProductDetail() {
               }
               return (
                 <div className="flex flex-col gap-1.5 -mt-1">
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <label className="flex items-center gap-2 text-xs text-brand-grey">
                     <Truck size={13} aria-hidden="true" className="flex-shrink-0" />
-                    <span className="font-bold text-foreground">
+                    <span className="font-bold text-brand-black">
                       {lang === 'en' ? 'Ship to?' : 'Livraison vers ?'}
                     </span>
                     <input
@@ -1570,12 +1570,12 @@ export default function ProductDetail() {
                         const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
                         setShipFsa(raw);
                       }}
-                      className="w-20 px-2 py-1 text-xs font-bold tabular-nums uppercase tracking-wider border border-border rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 placeholder:font-normal placeholder:text-muted-foreground/70 placeholder:normal-case placeholder:tracking-normal"
+                      className="w-20 px-2 py-1 text-xs font-bold tabular-nums uppercase tracking-wider border border-border rounded-md bg-background text-brand-black focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 placeholder:font-normal placeholder:text-brand-grey/70 placeholder:normal-case placeholder:tracking-normal"
                     />
                   </label>
                   {resultText && (
                     <p
-                      className="text-xs text-muted-foreground pl-[22px] leading-snug"
+                      className="text-xs text-brand-grey pl-[22px] leading-snug"
                       role="status"
                       aria-live="polite"
                     >
@@ -1595,7 +1595,7 @@ export default function ProductDetail() {
               ].map((b) => (
                 <div key={b.en} className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl bg-secondary border border-border">
                   <span className="text-sm">{b.icon}</span>
-                  <span className="text-[10px] font-bold text-muted-foreground leading-tight">
+                  <span className="text-[10px] font-bold text-brand-grey leading-tight">
                     {lang === 'en' ? b.en : b.fr}
                   </span>
                 </div>
@@ -1612,12 +1612,12 @@ export default function ProductDetail() {
                       (see useRevealOnScroll). */}
                   <RevealBlock className="pt-3 border-t border-border">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold text-[#0052CC] uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-brand-blue uppercase tracking-wider">
                         {categoryLabel(localProduct.category, lang)}
                       </span>
                       <DeliveryBadge size="sm" variant="inline" />
                     </div>
-                    <p className="text-base font-bold text-foreground leading-snug mb-3">
+                    <p className="text-base font-bold text-brand-black leading-snug mb-3">
                       {desc.tagline}
                     </p>
                     {/* Task 3.14 — On mobile the multi-paragraph fabric/care
@@ -1636,13 +1636,13 @@ export default function ProductDetail() {
 
                   {/* Scroll-reveal: Specs / Caractéristiques block. */}
                   <RevealBlock className="pt-3 border-t border-border">
-                    <h3 className="font-bold mb-2.5 text-sm text-foreground">
+                    <h3 className="font-bold mb-2.5 text-sm text-brand-black">
                       {lang === 'en' ? 'Features' : 'Caractéristiques'}
                     </h3>
                     <ul className="space-y-1.5">
                       {desc.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        <li key={i} className="flex items-start gap-2 text-sm text-brand-grey">
+                          <Check className="w-3.5 h-3.5 text-brand-blue mt-0.5 flex-shrink-0" aria-hidden="true" />
                           {feature}
                         </li>
                       ))}
@@ -1650,10 +1650,10 @@ export default function ProductDetail() {
                   </RevealBlock>
 
                   <div className="pt-3 border-t border-border bg-secondary/40 -mx-4 md:mx-0 px-4 md:px-4 py-3 md:rounded-xl">
-                    <div className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider mb-1">
+                    <div className="text-[11px] font-bold text-brand-blue uppercase tracking-wider mb-1">
                       {lang === 'en' ? 'Best for' : 'Idéal pour'}
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed">{desc.useCase}</p>
+                    <p className="text-sm text-brand-black leading-relaxed">{desc.useCase}</p>
                   </div>
                 </>
               );
@@ -1679,7 +1679,7 @@ export default function ProductDetail() {
           >
             <h2
               id="similar-products-heading"
-              className="scroll-mt-20 text-[clamp(22px,3vw,30px)] font-extrabold tracking-[-0.5px] text-foreground mb-6"
+              className="scroll-mt-20 text-[clamp(22px,3vw,30px)] font-extrabold tracking-[-0.5px] text-brand-black mb-6"
             >
               {lang === 'en' ? 'Similar products' : 'Produits similaires'}
             </h2>
@@ -1736,8 +1736,8 @@ export default function ProductDetail() {
             aria-label={isVariantSoldOut
               ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
               : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
-            className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
+            className="w-full py-3.5 bg-brand-black hover:bg-brand-blue transition-colors text-brand-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ boxShadow: '0 8px 24px rgba(10, 10, 10, 0.35)' }}
           >
             <Shirt size={18} aria-hidden="true" />
             {isVariantSoldOut
@@ -1812,7 +1812,7 @@ function CollapsibleDescription({
           on mobile so we don't ship both copies to the DOM twice. */}
       <div className="hidden md:block">
         {paragraphs.map((p, i) => (
-          <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
+          <p key={i} className="text-brand-grey text-sm leading-relaxed mb-2">
             {p}
           </p>
         ))}
@@ -1823,7 +1823,7 @@ function CollapsibleDescription({
           transition has something to animate into. */}
       <div className="md:hidden">
         {!expanded && needsToggle && (
-          <p className="text-muted-foreground text-sm leading-relaxed mb-2">
+          <p className="text-brand-grey text-sm leading-relaxed mb-2">
             {teaser}
           </p>
         )}
@@ -1836,7 +1836,7 @@ function CollapsibleDescription({
           }
         >
           {paragraphs.map((p, i) => (
-            <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
+            <p key={i} className="text-brand-grey text-sm leading-relaxed mb-2">
               {p}
             </p>
           ))}
@@ -1847,7 +1847,7 @@ function CollapsibleDescription({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
             aria-controls={contentId}
-            className="mt-1 text-sm font-semibold text-gold hover:text-gold-light underline underline-offset-4 decoration-gold/40 hover:decoration-gold transition-colors"
+            className="mt-1 text-sm font-semibold text-brand-blue hover:text-brand-blue-hover underline underline-offset-4 decoration-brand-blue/40 hover:decoration-brand-blue transition-colors"
           >
             {expanded ? lessLabel : moreLabel}
           </button>
@@ -1943,7 +1943,7 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
           decoding="async"
           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
-        <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none">
+        <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-brand-white/90 text-brand-black shadow-sm pointer-events-none">
           {lang === 'en' ? current.labelEn : current.labelFr}
         </div>
       </button>
@@ -2286,7 +2286,7 @@ function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, varian
         </button>
       </div>
       <div className="flex justify-between items-baseline">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-brand-grey">
           {qty} × {fmt(unit)} $
         </span>
         <div className="text-right">
@@ -2312,7 +2312,7 @@ function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, varian
                 aria-label={lang === 'en' ? 'Show price breakdown' : 'Afficher le détail du prix'}
                 aria-describedby={breakdownId}
                 aria-expanded={breakdownOpen}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-brand-grey hover:text-primary hover:bg-primary/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               >
                 <HelpCircle size={14} aria-hidden="true" />
               </button>
@@ -2383,10 +2383,10 @@ function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, varian
                 </div>
               )}
             </div>
-            <div className="text-2xl font-extrabold text-foreground">{fmt(total)} $</div>
+            <div className="text-2xl font-extrabold text-brand-black">{fmt(total)} $</div>
           </div>
           {savings > 0 && (
-            <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+            <div className="text-[10px] font-bold text-brand-blue uppercase tracking-wider">
               {lang === 'en' ? 'Save' : 'Économise'} {fmt(savings)} $
             </div>
           )}
@@ -2396,7 +2396,7 @@ function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, varian
         <button
           type="button"
           onClick={() => setQty(12)}
-          className="w-full mt-2 text-[11px] font-bold text-emerald-700 hover:underline text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 rounded"
+          className="w-full mt-2 text-[11px] font-bold text-brand-blue hover:underline text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 rounded"
         >
           {lang === 'en'
             ? `+ ${12 - qty} units to unlock 10% volume discount →`
