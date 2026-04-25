@@ -805,7 +805,20 @@ export default function VendorDashboard() {
     const bump = () => setRefreshToken(t => t + 1);
     window.addEventListener('vision-commission-change', bump);
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'vision-commission-paid' || e.key === 'vision-commission-credits' || e.key === 'vision-app-settings') bump();
+      // e.key === null fires when a peer tab calls localStorage.clear();
+      // every commission/credits/settings key was just wiped, so bump the
+      // refresh token to re-derive the summary from a clean slate instead
+      // of rendering stale paid/credit overlays until the next reload.
+      // Mirrors the same null-guard applied in commits 0eac287, 4e13b7a,
+      // 224d426, 1bbbcd8.
+      if (
+        e.key === null ||
+        e.key === 'vision-commission-paid' ||
+        e.key === 'vision-commission-credits' ||
+        e.key === 'vision-app-settings'
+      ) {
+        bump();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => {
