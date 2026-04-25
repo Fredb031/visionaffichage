@@ -88,6 +88,31 @@ const SadFaceSvg = () => (
   </svg>
 );
 
+// Trophy icon — replaces banned 🏆 emoji in the "new record" badge so the
+// component stays emoji-free across both win and loss states. Inline so
+// it inherits currentColor from the surrounding gold-text badge.
+const TrophySvg = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    focusable="false"
+    className="inline-block align-[-2px] mr-1"
+  >
+    <path d="M8 21h8" />
+    <path d="M12 17v4" />
+    <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+    <path d="M17 6h2a2 2 0 0 1 0 4h-2" />
+    <path d="M7 6H5a2 2 0 0 0 0 4h2" />
+  </svg>
+);
+
 export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const { lang } = useLang();
   const [hits, setHits] = useState(0);
@@ -467,7 +492,8 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                 aria-live="polite"
                 className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
               >
-                {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
+                <TrophySvg />
+                {lang === 'en' ? 'New record!' : 'Nouveau record !'}
               </div>
             )}
             <p className="text-[12px] text-muted-foreground mb-2">
@@ -515,7 +541,8 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                 aria-live="polite"
                 className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
               >
-                {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
+                <TrophySvg />
+                {lang === 'en' ? 'New record!' : 'Nouveau record !'}
               </div>
             )}
             <p className="text-[13px] text-muted-foreground mb-1">
