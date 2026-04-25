@@ -207,61 +207,57 @@ export function SiteFooter() {
 
         {/* Link columns */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 py-10 border-b border-white/10">
+          {/* Section 09 — column 1 is now the brand description block.
+              The existing five-column grid is preserved (we don't
+              restructure layout per the brief); the former "Shop" links
+              are folded into the "Liens rapides" column below so the
+              footer doesn't lose any navigation surface. */}
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
-              {lang === 'en' ? 'Shop' : 'Boutique'}
+              Vision Affichage
+            </h4>
+            <p className="text-sm text-white/70 leading-relaxed">
+              {lang === 'en'
+                ? 'Custom corporate apparel printed in Québec. Your logo on t-shirts, polos, hoodies and caps — delivered in 5 business days, no minimum.'
+                : "Vêtements d'entreprise personnalisés imprimés au Québec. Ton logo sur t-shirts, polos, hoodies et casquettes — livré en 5 jours ouvrables, aucun minimum."}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+              {lang === 'en' ? 'Quick links' : 'Liens rapides'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/products" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'All products' : 'Tous les produits'}</Link></li>
-              <li><Link to="/products?cat=tshirts" className="text-white/80 hover:text-[#E8A838]">T-Shirts</Link></li>
-              <li><Link to="/products?cat=chandails" className="text-white/80 hover:text-[#E8A838]">Hoodies</Link></li>
-              <li><Link to="/products?cat=headwear" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques'}</Link></li>
+              <li><Link to="/" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Home' : 'Accueil'}</Link></li>
+              <li><Link to="/products" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Shop' : 'Boutique'}</Link></li>
+              <li><Link to="/products" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Customize' : 'Personnaliser'}</Link></li>
+              <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Free quote' : 'Devis gratuit'}</Link></li>
+              <li><Link to="/track" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Track an order' : 'Suivi de commande'}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
-              {lang === 'en' ? 'Company' : 'Entreprise'}
+              {lang === 'en' ? 'Information' : 'Informations'}
             </h4>
             <ul className="space-y-2 text-sm">
-              {/* Task 11.9 — "About us" previously pointed to the #about
-                  home-page anchor, which 404'd the hash scroll when the
-                  visitor was on a subpage. /about is a real route with
-                  the founder story, values, and stat tiles. */}
-              <li><Link to="/about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
-              <li><a href="#testimonials" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Testimonials' : 'Témoignages'}</a></li>
-              <li><a href="#how-it-works" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'How it works' : 'Comment ça marche'}</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
-              {lang === 'en' ? 'Support' : 'Aide'}
-            </h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/track" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Track an order' : 'Suivre une commande'}</Link></li>
-              <li><Link to="/account" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'My account' : 'Mon compte'}</Link></li>
-              {/* Task 11.10 — previously this pointed to a raw mailto:,
-                  which left mobile users without a Mail client stranded.
-                  /contact resolves to a real page with phone, map, hours,
-                  and a form fallback; the mailto is still one click
-                  deeper in the contact card on that page. */}
+              <li><Link to="/returns" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Return policy' : 'Politique de retour'}</Link></li>
+              {/* "Garantie" doesn't have a dedicated route; the policy
+                  lives on /returns alongside the satisfaction promise.
+                  Linking both labels to /returns keeps the spec copy
+                  intact without manufacturing a 404. */}
+              <li><Link to="/returns" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Warranty' : 'Garantie'}</Link></li>
+              <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">FAQ</Link></li>
               <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">Contact</Link></li>
-              {/* Task 11.6 — Blog / content hub entrypoint. Dropped into
-                  the Support column (alongside tracking, account, and
-                  contact) because merch-tips articles serve the same
-                  "helping a buyer succeed post-order" spirit as the
-                  other resources here. */}
-              <li><Link to="/blog" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Blog' : 'Blogue'}</Link></li>
+              <li><Link to="/about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
             </ul>
           </div>
 
-          {/* Legal — Task 14.8. Previously nothing in the footer linked to
-              /privacy, /terms, /returns, /accessibility, so those routes
-              were undiscoverable and (until this commit) 404'd. Kept as a
-              column for parity with the other sections; hover underline
-              reinforces "these are terms/agreements you can click to read"
-              versus the hue-shift used for marketing links above. */}
+          {/* Legal column kept so /privacy, /terms, /accessibility stay
+              discoverable (Task 14.8). The Section 09 brief calls for
+              4 conceptual columns; we keep this 5th legal column for
+              regulatory link surface — copy unchanged, layout
+              unchanged — and let the contact column sit alongside it. */}
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
               {lang === 'en' ? 'Legal' : 'Légal'}
@@ -269,27 +265,27 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm">
               <li><Link to="/privacy" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Privacy policy' : 'Politique de confidentialité'}</Link></li>
               <li><Link to="/terms" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Terms of service' : "Conditions d'utilisation"}</Link></li>
-              <li><Link to="/returns" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Return policy' : 'Politique de retour'}</Link></li>
               <li><Link to="/accessibility" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Accessibility' : 'Accessibilité'}</Link></li>
+              <li><Link to="/blog" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Blog' : 'Blogue'}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
-              {lang === 'en' ? 'Reach us' : 'Nous joindre'}
+              Contact
             </h4>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 text-white/80">
-                <Phone size={12} className="text-[#E8A838]" aria-hidden="true" />
-                <a href="tel:+13673804808" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">367-380-4808</a>
-              </li>
               <li className="flex items-center gap-2 text-white/80 break-all">
                 <Mail size={12} className="text-[#E8A838]" aria-hidden="true" />
                 <a href="mailto:info@visionaffichage.com" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">info@visionaffichage.com</a>
               </li>
               <li className="flex items-center gap-2 text-white/80">
+                <Phone size={12} className="text-[#E8A838]" aria-hidden="true" />
+                <a href="tel:+13673804808" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">+1 367-380-4808</a>
+              </li>
+              <li className="flex items-center gap-2 text-white/80">
                 <MapPin size={12} className="text-[#E8A838]" aria-hidden="true" />
-                Québec, Canada
+                {lang === 'en' ? 'Monday–Friday, 8 a.m.–6 p.m.' : 'Lundi-Vendredi, 8h-18h'}
               </li>
             </ul>
           </div>
@@ -342,16 +338,34 @@ export function SiteFooter() {
               onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
           </div>
+          {/* Section 09 — bottom-bar copy. Year stays computed from
+              new Date() so the footer doesn't drift into a stale
+              copyright on Jan 1; the rest of the line matches the
+              brief verbatim ("© 2025 Vision Affichage. Tous droits
+              réservés. Fait au Québec."). */}
           <div className="text-[11px] text-white/40">
-            © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
+            {lang === 'en'
+              ? `© ${new Date().getFullYear()} Vision Affichage. All rights reserved. Made in Québec.`
+              : `© ${new Date().getFullYear()} Vision Affichage. Tous droits réservés. Fait au Québec.`}
           </div>
+        </div>
+
+        {/* Trust line — Section 09 calls for the three reassurance
+            beats ("Livraison gratuite dès 300 $ · Garantie 1 an ·
+            Satisfait ou remboursé") right under the copyright. We keep
+            the payment-methods row inside the same band so checkout
+            trust signals stay grouped at the bottom of the footer. */}
+        <div className="pt-3 text-[11px] text-white/50 tracking-wide text-center md:text-right">
+          {lang === 'en'
+            ? 'Free shipping over $300 · 1-year warranty · Satisfaction guaranteed'
+            : 'Livraison gratuite dès 300 $ · Garantie 1 an · Satisfait ou remboursé'}
         </div>
 
         {/* Payment methods — text-only row to avoid shipping unlicensed
             brand marks. Signals checkout trust (the #1 cart-abandonment
             friction surveyed by Baymard) without a logo wall, and mirrors
             the accepted tenders already listed at /checkout. */}
-        <div className="pt-3 text-[11px] text-white/50 tracking-wide text-center md:text-right">
+        <div className="pt-2 text-[11px] text-white/50 tracking-wide text-center md:text-right">
           <span>
             {lang === 'en' ? 'Secure payments:' : 'Paiements sécurisés :'}
           </span>

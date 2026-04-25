@@ -439,9 +439,22 @@ export default function ProductDetail() {
   // + category label (e.g. "Hoodies unisexe ATCF2500 — personnalise ton
   // logo. Livré en 5 jours au Québec."). Falls back to the product
   // title when the local catalog doesn't know this handle yet.
-  const pdpTitle = product
-    ? `${localProduct ? categoryLabel(localProduct.category, lang) : product.title} ${localProduct?.sku ?? ''} — Vision Affichage`.trim()
-    : lang === 'en' ? 'Product — Vision Affichage' : 'Produit — Vision Affichage';
+  // Section 09 copy spec — PDP title is the dynamic
+  // "{product.typeName} personnalisé | Vision Affichage" framing so a
+  // shared link or browser-tab label reads as the buyer-facing intent
+  // ("Hoodie personnalisé") rather than an internal SKU. When the
+  // customizer modal is open we swap to the canonical "Personnaliser
+  // ton vêtement" so the tab label tracks the active surface.
+  const pdpTitle = customizerOpen
+    ? (lang === 'en' ? 'Customize your apparel | Vision Affichage' : 'Personnaliser ton vêtement | Vision Affichage')
+    : product
+      ? (() => {
+          const typeName = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+          return lang === 'en'
+            ? `${typeName} customized | Vision Affichage`
+            : `${typeName} personnalisé | Vision Affichage`;
+        })()
+      : lang === 'en' ? 'Product — Vision Affichage' : 'Produit — Vision Affichage';
   const pdpDescription = product
     ? (() => {
         const label = localProduct ? categoryLabel(localProduct.category, lang) : product.title;

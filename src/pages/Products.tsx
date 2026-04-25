@@ -306,7 +306,9 @@ export default function Products() {
   // snippet pitched "personnalise tes vêtements" instead of the catalog
   // itself. Bilingual copy swaps when the user toggles EN.
   useDocumentTitle(
-    lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage',
+    lang === 'en'
+      ? 'Shop — T-shirts, Polos, Hoodies, Jackets | Vision Affichage'
+      : 'Boutique — T-shirts, Polos, Hoodies, Vestes | Vision Affichage',
     lang === 'en'
       ? 'Full catalog of customizable merch — t-shirts, hoodies, polos, caps. Secure checkout, printed in Québec.'
       : 'Catalogue complet de merchs personnalisables — t-shirts, hoodies, polos, casquettes. Paiement sécurisé, imprimé au Québec.',

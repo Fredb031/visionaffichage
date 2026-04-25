@@ -112,18 +112,21 @@ const NotFound = () => {
         className="flex-1 px-6 py-14 pt-24 focus:outline-none"
       >
         <div className="max-w-[780px] mx-auto">
-          {/* Heading block — 404 tastefully small above, friendly title below */}
+          {/* Heading block — 404 tastefully small above, friendly title below.
+              Section 09 copy: loss-aversion + peer-language voice. */}
           <div className="text-center">
             <p className="text-[11px] font-mono tracking-[4px] text-[#E8A838] uppercase mb-2">
               404
             </p>
             <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">
-              {lang === 'en' ? 'Page not found' : 'Page introuvable'}
+              {lang === 'en'
+                ? "This page doesn't exist… but your uniform can."
+                : "Cette page n'existe pas... mais ton uniforme, lui, peut exister."}
             </h1>
             <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-[560px] mx-auto">
               {lang === 'en'
-                ? "We couldn't find that, but here's what might help."
-                : "On n'a pas trouvé ce que vous cherchiez, mais voici ce qui pourrait aider."}
+                ? "You got lost somewhere. We'll still ship in 5 days."
+                : "Tu t'es perdu quelque part. On le fait livrer quand même en 5 jours."}
             </p>
             {location.pathname && (
               <code className="block text-[11px] text-muted-foreground/60 font-mono mt-2">
@@ -258,13 +261,15 @@ const NotFound = () => {
             </section>
           )}
 
-          {/* Secondary home link */}
+          {/* Secondary CTA — Section 09 spec: "Retour à la boutique"
+              → /products (loss-aversion bridge back to a converting
+              surface, not just /home). */}
           <div className="text-center mt-14">
             <Link
-              to="/"
+              to="/products"
               className="text-sm font-bold text-muted-foreground hover:text-[#1B3A6B] underline underline-offset-4 decoration-dotted focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 rounded"
             >
-              {lang === 'en' ? 'Back to home' : "Retour à l'accueil"}
+              {lang === 'en' ? 'Back to the shop' : 'Retour à la boutique'}
             </Link>
           </div>
         </div>

@@ -343,12 +343,17 @@ export default function Cart() {
       maximumFractionDigits: 2,
     });
 
+  // Section 09 — copy spec calls for "Panier | Vision Affichage". We keep
+  // the live item-count prefix so a buyer with multiple tabs open can
+  // still see at a glance which one holds their cart, but the rest of
+  // the title now matches the brand-voice phrasing the rest of the app
+  // routes through useDocumentTitle for.
   useEffect(() => {
     const prev = document.title;
     const count = totalQty > 0 ? ` (${totalQty})` : '';
     document.title = lang === 'en'
-      ? `Cart${count} — Vision Affichage`
-      : `Panier${count} — Vision Affichage`;
+      ? `Cart${count} | Vision Affichage`
+      : `Panier${count} | Vision Affichage`;
     return () => { document.title = prev; };
   }, [lang, totalQty]);
 
@@ -620,19 +625,23 @@ export default function Cart() {
                 0
               </div>
             </div>
+            {/* Section 09 — empty-cart copy in the loss-aversion +
+                peer-language voice. CTA still routes to /products
+                (the canonical converting surface) but the label is
+                now the spec's "Parcourir les produits". */}
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground mb-2">
-              {lang === 'en' ? 'Your cart is empty' : 'Ton panier est vide'}
+              {lang === 'en' ? 'Your cart is empty for now' : "Ton panier est vide pour l'instant"}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {lang === 'en'
-                ? 'Pick a product, drop in your logo, and we ship in 5 business days. No minimum order.'
-                : "Choisis un produit, ajoute ton logo, et on livre en 5 jours ouvrables. Aucun minimum."}
+                ? 'Your team deserves better than t-shirts without a logo.'
+                : 'Ton équipe mérite mieux que des t-shirts sans logo.'}
             </p>
             <Link
               to="/products"
               className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
-              {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
+              {lang === 'en' ? 'Browse products →' : 'Parcourir les produits →'}
             </Link>
             <p className="text-[11px] text-muted-foreground/70 mt-4">
               {lang === 'en' ? 'Made in Québec · Free standard shipping' : 'Fabriqué au Québec · Livraison standard gratuite'}
