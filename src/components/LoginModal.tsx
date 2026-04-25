@@ -53,9 +53,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [emailTouched, setEmailTouched] = useState(false);
 
   // Clear stale auth errors whenever the modal is closed so the next
-  // open doesn't flash the previous attempt's error message.
+  // open doesn't flash the previous attempt's error message. Also wipe
+  // the password fields from local state — leaving them mounted across
+  // close/reopen means a half-typed credential survives in memory and
+  // re-renders on next open, which reads as "did it remember me?" and
+  // also keeps a plaintext password sitting in React state longer than
+  // necessary. emailTouched is reset too so the inline red hint
+  // doesn't flash on the next open before the user types anything.
   useEffect(() => {
-    if (!isOpen && error) clearError();
+    if (!isOpen) {
+      if (error) clearError();
+      setPassword('');
+      setPassword2('');
+      setShowPwd(false);
+      setShowConfirm(false);
+      setCapsOn(false);
+      setEmailTouched(false);
+    }
   }, [isOpen, error, clearError]);
 
   useEscapeKey(isOpen && !submitting, onClose);
