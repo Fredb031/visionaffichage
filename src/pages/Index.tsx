@@ -407,7 +407,7 @@ export default function Index() {
 
       {/* Hero */}
       <section className="scroll-mt-20 min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
-        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.08) 0%, transparent 70%)' }} />
+        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(10,10,10,0.06) 0%, transparent 70%)' }} />
         <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
           {/* Kicker */}
           <div className={`mb-6 flex flex-col items-center gap-3 ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
@@ -415,7 +415,7 @@ export default function Index() {
                 before the h1 carries the weight. Uppercase + wide tracking
                 reads as a category label, matching the type-scale hierarchy
                 used elsewhere on the page (testimonials/steps eyebrows). */}
-            <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-[#E8A838]">
+            <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-brand-blue">
               {lang === 'en' ? 'Corporate merch · Quebec' : 'Merch · Entreprises · Québec'}
             </p>
             <DeliveryBadge size="md" />
@@ -425,7 +425,7 @@ export default function Index() {
           </div>
 
           {/* H1 — clean, professional, conversion-focused. Uniform extrabold
-              reads as confident/trustworthy for a B2B merch buyer; navy
+              reads as confident/trustworthy for a B2B merch buyer; brand-black
               accent line anchors the brand palette without typographic
               gymnastics. */}
           <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
@@ -444,7 +444,7 @@ export default function Index() {
               uppercase label, subtle dividers, hairline border to make
               the block read as a single verified badge rather than loose
               text. */}
-          <div className={`mb-8 inline-flex items-stretch rounded-2xl border border-primary/10 bg-background/60 backdrop-blur-sm shadow-[0_2px_16px_-4px_hsla(var(--navy),0.08)] px-1 py-3 md:px-3 md:py-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
+          <div className={`mb-8 inline-flex items-stretch rounded-2xl border border-primary/10 bg-background/60 backdrop-blur-sm shadow-[0_2px_16px_-4px_rgba(10,10,10,0.08)] px-1 py-3 md:px-3 md:py-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
             {/* Tile 1 — hero stat: verified Google rating. Source attribution
                 is the difference between a claim and proof. */}
             <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[88px]">
@@ -452,14 +452,14 @@ export default function Index() {
                 <span className="text-[22px] md:text-[26px] leading-none tracking-[-0.5px]">
                   <CountUp to={4.9} decimals={1} />
                 </span>
-                <span className="text-[#E8A838] text-[18px] md:text-[20px] leading-none" aria-hidden="true">★</span>
+                <span className="text-brand-blue text-[18px] md:text-[20px] leading-none" aria-hidden="true">★</span>
               </div>
               <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground">
                 {lang === 'en' ? '52 Google reviews' : '52 avis Google'}
               </div>
             </div>
 
-            {/* Divider — hairline navy/10 for cohesion with the card border. */}
+            {/* Divider — hairline brand-black/10 for cohesion with the card border. */}
             <div className="w-px bg-primary/10 my-1" aria-hidden="true" />
 
             {/* Tile 2 — specific count. 547 > "500+" because it reads as
@@ -497,8 +497,8 @@ export default function Index() {
           <div className={heroStaggered ? 'animate-[staggerUp_0.7s_0.35s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}>
             <Link
               to="/products"
-              className="inline-block text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full tracking-[-0.2px] mb-8 relative overflow-hidden cursor-pointer transition-shadow hover:shadow-[0_18px_48px_hsla(var(--navy),0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-              style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
+              className="inline-block text-[17px] font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark border-none px-14 py-[18px] rounded-full tracking-[-0.2px] mb-8 relative overflow-hidden cursor-pointer transition-shadow hover:shadow-[0_18px_48px_rgba(10,10,10,0.45)] focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
+              style={{ boxShadow: '0 10px 32px rgba(10,10,10,0.32)' }}
             >
               {t('heroCta')}
             </Link>
@@ -594,7 +594,7 @@ export default function Index() {
 
       {/* Steps */}
       <FadeIn>
-        <section className="scroll-mt-20 gradient-navy-dark py-12 px-6 md:px-10">
+        <section className="scroll-mt-20 bg-brand-black py-12 px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
@@ -682,8 +682,8 @@ export default function Index() {
                 onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
               />
               <div className="absolute bottom-[18px] left-[18px] right-[18px] bg-card/95 backdrop-blur-[10px] rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-[38px] h-[38px] gradient-navy-dark rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-[18px] h-[18px] stroke-primary-foreground fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
+                <div className="w-[38px] h-[38px] bg-brand-black rounded-[10px] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-[18px] h-[18px] stroke-brand-white fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
                 </div>
@@ -786,11 +786,11 @@ export default function Index() {
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
               {[
-                { init: 'SL', name: 'Samuel Lacroix',           date: lang === 'en' ? '2 months ago' : 'Il y a 2 mois', color: '#1B3A6B', txt: lang === 'en' ? '"Amazing service! Great quality and super fast. Highly recommend for any business wanting to look professional."' : '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
+                { init: 'SL', name: 'Samuel Lacroix',           date: lang === 'en' ? '2 months ago' : 'Il y a 2 mois', color: '#0A0A0A', txt: lang === 'en' ? '"Amazing service! Great quality and super fast. Highly recommend for any business wanting to look professional."' : '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
                 { init: 'WB', name: 'William Barry',             date: lang === 'en' ? '3 months ago' : 'Il y a 3 mois', color: '#1a3d2e', txt: lang === 'en' ? '"I highly recommend Vision Affichage! Fast, courteous service. A true professional who understands SMB needs."' : '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
                 { init: 'JP', name: 'Jean-Philippe N.-L.',       date: lang === 'en' ? '4 months ago' : 'Il y a 4 mois', color: '#5f1f1f', txt: lang === 'en' ? '"Great service, dynamic team. Just as good for custom orders as large corporate orders. I recommend!"' : '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
                 { init: 'MC', name: 'Marie-Claude Tremblay',     date: lang === 'en' ? '5 months ago' : 'Il y a 5 mois', color: '#4C1D95', txt: lang === 'en' ? '"We ordered hoodies for our whole team and the result was impeccable. Fast delivery, premium quality. Will reorder!"' : '"On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!"' },
-                { init: 'PD', name: 'Patrick Dubois',            date: lang === 'en' ? '6 months ago' : 'Il y a 6 mois', color: '#0F2341', txt: lang === 'en' ? '"Excellent experience from A to Z. The customizer tool is brilliant and the final product exceeded expectations."' : '"Excellente expérience du début à la fin. L\'outil de personnalisation est génial et le produit final a dépassé nos attentes."' },
+                { init: 'PD', name: 'Patrick Dubois',            date: lang === 'en' ? '6 months ago' : 'Il y a 6 mois', color: '#0052CC', txt: lang === 'en' ? '"Excellent experience from A to Z. The customizer tool is brilliant and the final product exceeded expectations."' : '"Excellente expérience du début à la fin. L\'outil de personnalisation est génial et le produit final a dépassé nos attentes."' },
                 { init: 'AB', name: 'Audrey Bergeron',           date: lang === 'en' ? '7 months ago' : 'Il y a 7 mois', color: '#6B1B1B', txt: lang === 'en' ? '"Perfect for our construction company. Tough quality, quick turnaround, competitive prices. Our go-to for all our merch."' : '"Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch."' },
               ].map((r, i) => (
                 <div key={i} className="min-w-[280px] md:min-w-0 snap-start bg-secondary border border-border rounded-2xl p-[18px] px-5 flex-shrink-0">
@@ -870,7 +870,7 @@ export default function Index() {
           The CTA links route to /case-studies/<slug> which are planned
           deep-dive pages (see future task) — kept as <Link> so routing
           lights up automatically once the pages exist. Result metric
-          uses the brand gold (#E8A838) to echo the hero + CTA band. */}
+          uses brand-blue to echo the hero + CTA band. */}
       <FadeIn>
         <section aria-label={lang === 'en' ? 'Case studies' : 'Études de cas'} className="scroll-mt-20 py-16 md:py-20 px-6 md:px-10 bg-background border-b border-border">
           <div className="max-w-[1160px] mx-auto">
@@ -950,7 +950,7 @@ export default function Index() {
                     <h3 className="text-[18px] md:text-[19px] font-extrabold text-foreground tracking-[-0.3px]">
                       {cs.client}
                     </h3>
-                    <div aria-hidden="true" className="mt-3 h-[2px] w-10 bg-[#E8A838]" />
+                    <div aria-hidden="true" className="mt-3 h-[2px] w-10 bg-brand-blue" />
                   </header>
 
                   {/* Challenge / Solution / Result columns. Stacked
@@ -975,12 +975,12 @@ export default function Index() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-[#E8A838] mb-1">
+                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-brand-blue mb-1">
                         {lang === 'en' ? 'Result' : 'Résultat'}
                       </dt>
-                      {/* Gold-accented metric — the keystone number that
+                      {/* Brand-blue accented metric — the keystone number that
                           earns the card its place. Uses the same
-                          #E8A838 as the CTA band and hero gold. */}
+                          brand-blue as the CTA band. */}
                       <dd className="text-[17px] font-extrabold tracking-[-0.2px] text-foreground leading-tight">
                         {cs.metric}
                       </dd>
@@ -991,7 +991,7 @@ export default function Index() {
                       with no quote collapse cleanly to just the
                       challenge/solution/result story. */}
                   {cs.quote && (
-                    <blockquote className="mb-5 pl-3 border-l-2 border-[#E8A838]/60 text-[13px] italic text-muted-foreground leading-relaxed">
+                    <blockquote className="mb-5 pl-3 border-l-2 border-brand-blue/60 text-[13px] italic text-muted-foreground leading-relaxed">
                       {cs.quote}
                     </blockquote>
                   )}
@@ -1004,7 +1004,7 @@ export default function Index() {
                       varying body length still align their buttons. */}
                   <Link
                     to={`/case-studies/${cs.slug}`}
-                    className="mt-auto inline-flex items-center gap-1.5 text-[13px] font-bold text-primary hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:underline"
+                    className="mt-auto inline-flex items-center gap-1.5 text-[13px] font-bold text-primary hover:text-brand-blue transition-colors focus:outline-none focus-visible:underline"
                   >
                     {lang === 'en' ? 'Read the full case study' : 'Lire l\u2019étude complète'}
                     <span aria-hidden="true">&rarr;</span>
@@ -1016,23 +1016,23 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Mid-page CTA band — Task 1.10. A slim navy strip punctuating
+      {/* Mid-page CTA band — Task 1.10. A slim brand-black strip punctuating
           the shift from social-proof (testimonials + logos) to FAQ.
           Sits at ~120px desktop height so it reads as a breath-break
-          rather than a competing section. Gold eyebrow + gold CTA keep
+          rather than a competing section. Brand-blue eyebrow + CTA keep
           the brand palette consistent with the hero and footer CTAs.
-          Abstract diagonal gold stripe (SVG) adds movement without
+          Abstract diagonal brand-blue stripe (SVG) adds movement without
           clutter — inherits opacity from the pattern itself so it
           doesn't need a second wrapper to tone down. Stacks on mobile,
           side-by-side from md: up. */}
       <FadeIn>
-        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="scroll-mt-20 relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
-          {/* Top hairline gold accent — 2px band reads as a brand-strip
+        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="scroll-mt-20 relative overflow-hidden bg-brand-black text-brand-white">
+          {/* Top hairline brand-blue accent — 2px band reads as a brand-strip
               without pulling focus from the CTA. */}
-          <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-[#E8A838]" />
-          {/* Diagonal stripe accent — faint gold pattern angled across
+          <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-brand-blue" />
+          {/* Diagonal stripe accent — faint brand-blue pattern angled across
               the band. pointer-events-none so it never intercepts the
-              button. Low opacity so the navy stays dominant. */}
+              button. Low opacity so the brand-black stays dominant. */}
           <svg
             aria-hidden="true"
             className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]"
@@ -1042,14 +1042,14 @@ export default function Index() {
             <defs>
               <pattern id="ctabandStripes" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
                 <rect width="60" height="60" fill="transparent" />
-                <rect x="0" y="0" width="2" height="60" fill="#E8A838" />
+                <rect x="0" y="0" width="2" height="60" fill="#0052CC" />
               </pattern>
             </defs>
             <rect width="1200" height="120" fill="url(#ctabandStripes)" />
           </svg>
           <div className="relative max-w-[1060px] mx-auto px-6 md:px-10 py-7 md:py-0 md:h-[120px] flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 text-center md:text-left">
             <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-1.5">
+              <div className="text-[11px] font-bold tracking-[2px] uppercase text-brand-blue mb-1.5">
                 {lang === 'en' ? '24h guaranteed response' : '24h réponse garantie'}
               </div>
               <h2 className="text-[clamp(20px,2.4vw,26px)] font-extrabold tracking-[-0.3px] leading-tight text-primary-foreground">
@@ -1058,7 +1058,7 @@ export default function Index() {
             </div>
             <Link
               to="/contact"
-              className="self-center md:self-auto flex-shrink-0 inline-flex items-center justify-center px-8 h-[46px] rounded-full bg-[#E8A838] text-[#1B3A6B] text-[14px] font-extrabold tracking-[-0.2px] shadow-[0_6px_18px_rgba(232,168,56,0.35)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(232,168,56,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B]"
+              className="self-center md:self-auto flex-shrink-0 inline-flex items-center justify-center px-8 h-[46px] rounded-full bg-brand-blue hover:bg-brand-blue-hover text-brand-white text-[14px] font-extrabold tracking-[-0.2px] shadow-[0_6px_18px_rgba(0,82,204,0.35)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(0,82,204,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black"
             >
               {lang === 'en' ? 'Request now' : 'Demander maintenant'}
             </Link>
@@ -1102,14 +1102,14 @@ export default function Index() {
                   className="group rounded-lg bg-background border border-border transition-colors hover:bg-muted/20"
                 >
                   <summary
-                    className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-[#1B3A6B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+                    className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-brand-black focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
                   >
                     <span>{item.q}</span>
                     <ChevronDown
                       size={18}
                       strokeWidth={2}
                       aria-hidden="true"
-                      className="faq-chevron flex-shrink-0 text-[#1B3A6B] transition-transform duration-200"
+                      className="faq-chevron flex-shrink-0 text-brand-black transition-transform duration-200"
                     />
                   </summary>
                   <div className="px-5 pb-4 pt-0 text-[14px] text-muted-foreground leading-[1.7]">
@@ -1137,8 +1137,8 @@ export default function Index() {
           </p>
           <Link
             to="/products"
-            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-            style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
+            className="text-[17px] font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
+            style={{ boxShadow: '0 10px 32px rgba(10,10,10,0.32)' }}
           >
             {t('heroCta')}
           </Link>
