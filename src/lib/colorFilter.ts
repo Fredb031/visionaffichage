@@ -33,8 +33,17 @@ export function hasRealColorImage(sku: string, color: ProductColor): boolean {
  * Filter a colour list down to only the ones with real imagery.
  * If the filter would remove everything, return the original list (so we
  * never end up with zero colour options).
+ *
+ * Defensive: callers in the codebase pass `local.colors` from products
+ * data, which is typed as `ProductColor[]` but in practice can be
+ * `undefined` for legacy/incomplete entries (e.g. a freshly-imported
+ * Shopify product whose colours haven't been mapped yet). Guarding
+ * here means the grid renders an empty colour-dot row instead of a
+ * `TypeError: Cannot read properties of undefined (reading 'filter')`
+ * white-screen on the Products page.
  */
 export function filterRealColors(sku: string, colors: ProductColor[]): ProductColor[] {
+  if (!Array.isArray(colors) || colors.length === 0) return [];
   const filtered = colors.filter(c => hasRealColorImage(sku, c));
   return filtered.length > 0 ? filtered : colors;
 }
