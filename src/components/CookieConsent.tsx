@@ -88,8 +88,8 @@ export function CookieConsent() {
   return (
     <div
       role="dialog"
-      aria-live="polite"
       aria-label={isFr ? 'Avis de confidentialité' : 'Privacy notice'}
+      aria-describedby="cookie-consent-description"
       className="fixed bottom-4 left-4 z-[60] max-w-sm rounded-2xl border border-[#D4AF37]/40 bg-[#0A1A2F] text-white shadow-2xl ring-1 ring-black/5"
       // Task 16.10 — lift the consent panel above the iPhone home
       // indicator. margin-bottom on top of the existing bottom-4 so
@@ -115,7 +115,7 @@ export function CookieConsent() {
           </h2>
         </div>
 
-        <p className="text-sm leading-relaxed text-white/80">
+        <p id="cookie-consent-description" className="text-sm leading-relaxed text-white/80">
           {isFr
             ? "Nous utilisons des témoins (cookies) essentiels au fonctionnement et, avec ton accord, des témoins d'analyse pour améliorer l'expérience. Conformément à la Loi 25 du Québec, ton choix est respecté."
             : "We use essential cookies for core site functionality and, with your consent, analytics cookies to improve the experience. In line with Québec's Law 25, your choice is respected."}
