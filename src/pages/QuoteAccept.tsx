@@ -319,7 +319,7 @@ export default function QuoteAccept() {
                 disabled={!canPay}
                 aria-disabled={!canPay}
                 aria-describedby={!canPay ? 'quote-pay-hint' : undefined}
-                className="no-print w-full py-4 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="no-print w-full py-4 bg-brand-black text-brand-white rounded-xl font-extrabold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
               >
                 <CreditCard size={18} aria-hidden="true" />
                 {lang === 'en' ? 'Review & pay' : 'Vérifier et payer'}
