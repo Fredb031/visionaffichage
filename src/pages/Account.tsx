@@ -117,6 +117,10 @@ function filterDeletionRequestsForEmail(email: string | undefined): unknown {
   });
 }
 
+/**
+ * Customer account page — profile header, order history, language and email
+ * preferences, Law 25 (Québec) data export, and self-serve deletion request.
+ */
 export default function Account() {
   const { lang, setLang } = useLang();
   const navigate = useNavigate();
