@@ -313,9 +313,9 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 className="flex flex-col items-center justify-center py-12 px-4 text-center"
               >
                 <div className="relative w-24 h-24 mb-5">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-xl" aria-hidden="true" />
+                  <div className="absolute inset-0 rounded-full bg-brand-blue/10 blur-xl" aria-hidden="true" />
                   <div className="relative w-24 h-24 rounded-full bg-secondary border-2 border-border flex items-center justify-center">
-                    <ShoppingBag size={32} className="text-[#0052CC]" strokeWidth={1.5} aria-hidden="true" />
+                    <ShoppingBag size={32} className="text-brand-blue" strokeWidth={1.5} aria-hidden="true" />
                   </div>
                 </div>
                 <h3 className="text-lg font-extrabold text-foreground mb-1">{t('panierVide')}</h3>
@@ -327,7 +327,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <button
                   type="button"
                   onClick={() => { onClose(); navigate('/products'); }}
-                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="text-sm font-extrabold text-brand-white bg-brand-black px-5 py-2.5 rounded-full shadow-lg hover:bg-brand-dark focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                 >
                   {t('explorerProduits')}
                 </button>
@@ -490,7 +490,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               onMouseDown={e => { e.preventDefault(); pickPromoSuggestion(s.code); }}
                               onMouseEnter={() => setPromoActiveIdx(idx)}
                               className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
-                                active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                                active ? 'bg-brand-blue/15 text-foreground' : 'hover:bg-secondary text-foreground'
                               }`}
                             >
                               <span className="font-mono font-extrabold tracking-wider">{s.code}</span>
@@ -520,8 +520,8 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 : 0;
               const ratePct = Math.round(rate * 100);
               return (
-                <div className="flex items-center gap-2 px-3 py-2 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-xl">
-                  <Tag size={11} className="text-[#E8A838]" aria-hidden="true" />
+                <div className="flex items-center gap-2 px-3 py-2 bg-brand-blue/10 border border-brand-blue/30 rounded-xl">
+                  <Tag size={11} className="text-brand-blue" aria-hidden="true" />
                   <span className="text-xs font-bold text-foreground flex-1 truncate">
                     {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
                     <code className="font-mono">{cart.discountCode}</code>
@@ -532,7 +532,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     )}
                   </span>
                   {savings > 0 && (
-                    <span className="text-xs font-extrabold text-[#E8A838] tabular-nums">
+                    <span className="text-xs font-extrabold text-brand-blue tabular-nums">
                       −{fmtMoney(savings)} $
                     </span>
                   )}
@@ -540,7 +540,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     type="button"
                     onClick={() => cart.clearDiscount()}
                     aria-label={lang === 'en' ? 'Remove discount code' : 'Retirer le code de rabais'}
-                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/60"
                   >
                     <X size={12} aria-hidden="true" />
                   </button>
@@ -616,8 +616,8 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
             <button
               type="button"
-              className="w-full bg-primary text-primary-foreground font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-              style={{ boxShadow: '0 6px 20px rgba(27,58,107,0.3)' }}
+              className="w-full bg-brand-black text-brand-white font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:bg-brand-dark transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
+              style={{ boxShadow: '0 6px 20px rgba(10,10,10,0.3)' }}
               onClick={() => { onClose(); navigate('/cart'); }}
             >
               {t('passerCaisse')} <ChevronRight size={15} aria-hidden="true" />
