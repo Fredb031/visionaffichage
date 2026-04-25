@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Gift, Instagram, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +26,19 @@ export function SiteFooter() {
   // signup feels acknowledged instead of silently toast-only.
   const [submitState, setSubmitState] = useState<SubmitButtonState>('idle');
   const emailInputRef = useRef<HTMLInputElement | null>(null);
+  // Track the two pending setTimeouts that walk submitState through
+  // loading → success → idle. Without this, an unmount mid-flight (or
+  // a rapid second submit) left orphaned timers that fired
+  // setState on an unmounted component — React's
+  // "Can't perform a state update on an unmounted component" warning,
+  // plus stacked timers if the user resubmitted before the 350 ms
+  // dwell expired.
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +82,12 @@ export function SiteFooter() {
     // Short loading dwell so the spinner is visible before the tick —
     // the write above is synchronous, so without this delay the state
     // flips idle→success in a single frame and the user misses the beat.
-    window.setTimeout(() => {
+    // Cancel any in-flight timer first so a rapid re-submit doesn't
+    // stack two success cycles racing each other.
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    loadingTimerRef.current = window.setTimeout(() => {
+      loadingTimerRef.current = null;
       if (duplicate) {
         toast.success(
           lang === 'en' ? 'Already subscribed — thank you!' : 'Déjà inscrit(e) — merci !',
@@ -87,7 +105,10 @@ export function SiteFooter() {
       // Hold the tick for 2s then revert — long enough to read "Envoyé"
       // but short enough that a user who wants to subscribe another
       // address doesn't feel locked out.
-      window.setTimeout(() => setSubmitState('idle'), 2000);
+      successTimerRef.current = window.setTimeout(() => {
+        successTimerRef.current = null;
+        setSubmitState('idle');
+      }, 2000);
       // Refocus the input so a keyboard / screen-reader user can subscribe
       // another address without tabbing back from <body>.
       emailInputRef.current?.focus();
