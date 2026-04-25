@@ -148,7 +148,7 @@ export default function AdminAutomations() {
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
-          <Zap size={16} className="text-[#E8A838]" aria-hidden="true" />
+          <Zap size={16} className="text-brand-blue" aria-hidden="true" />
           <h2 className="font-bold text-sm">Catalogue des automatisations</h2>
           <span className="text-xs text-zinc-400">· {automations.length}</span>
         </div>
@@ -335,7 +335,7 @@ function SummaryCard({ icon: Icon, label, value, color }: SummaryProps) {
       </div>
       <div>
         <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{label}</div>
-        <div className="text-2xl font-extrabold text-[#1B3A6B] leading-tight">{value}</div>
+        <div className="text-2xl font-extrabold text-brand-black leading-tight">{value}</div>
       </div>
     </div>
   );
@@ -375,7 +375,7 @@ function RunsDrawer({ automation, onClose, onToggle }: DrawerProps) {
             <div className="text-[11px] font-bold uppercase tracking-wider text-[#0052CC]">
               Automatisation
             </div>
-            <h2 id="automation-drawer-title" className="text-lg font-extrabold text-[#1B3A6B] truncate">
+            <h2 id="automation-drawer-title" className="text-lg font-extrabold text-brand-black truncate">
               {automation.name}
             </h2>
             <div className="mt-1">
