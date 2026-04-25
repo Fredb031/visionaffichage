@@ -44,6 +44,22 @@ function firstName(full: string | undefined | null): string {
   return esc((full ?? '').split(' ')[0] ?? '');
 }
 
+// Currency formatting was duplicated in three places (quote, payment,
+// order-confirmation) each spelling out the locale tuple and the CAD
+// options object. Lifted here so the locale + currency code are tuned
+// in one spot — when we eventually ship USD or another currency the
+// per-template branches don't all need to change. Defensive on
+// non-finite totals (NaN/Infinity from a malformed cart) — falls back
+// to a zero-currency string instead of letting "$NaN" reach a client. */
+const CAD_LOCALE: Record<Lang, string> = { fr: 'fr-CA', en: 'en-CA' };
+function formatCurrency(total: number, lang: Lang): string {
+  const safe = Number.isFinite(total) ? total : 0;
+  return safe.toLocaleString(CAD_LOCALE[lang], {
+    style: 'currency',
+    currency: 'CAD',
+  });
+}
+
 function wrap(inner: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -89,7 +105,7 @@ export interface QuoteSentCtx {
 
 export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
   const lang = ctx.lang ?? 'fr';
-  const totalFmt = ctx.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD' });
+  const totalFmt = formatCurrency(ctx.total, lang);
 
   if (lang === 'en') {
     return {
@@ -145,7 +161,7 @@ export interface PaymentConfirmationCtx {
 
 export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutput {
   const lang = ctx.lang ?? 'fr';
-  const totalFmt = ctx.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD' });
+  const totalFmt = formatCurrency(ctx.total, lang);
 
   if (lang === 'en') {
     return {
@@ -296,7 +312,7 @@ export interface OrderConfirmationCtx {
 
 export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
   const lang = ctx.lang ?? 'fr';
-  const totalFmt = ctx.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD' });
+  const totalFmt = formatCurrency(ctx.total, lang);
 
   if (lang === 'en') {
     return {
