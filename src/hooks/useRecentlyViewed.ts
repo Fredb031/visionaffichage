@@ -118,7 +118,11 @@ export function useRecentlyViewed() {
   // so sibling hook instances pick up track() calls immediately.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) setHandles(readStorage());
+      // e.key === null fires when another tab calls localStorage.clear()
+      // — re-read in that case too so this tab doesn't keep rendering
+      // recently-viewed cards for handles whose entry was just wiped.
+      // Mirrors the same e.key === null guard useWishlist applies.
+      if (e.key === KEY || e.key === null) setHandles(readStorage());
     };
     const onLocal = () => setHandles(readStorage());
     window.addEventListener('storage', onStorage);
