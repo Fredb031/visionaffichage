@@ -290,7 +290,7 @@ export default function AdminImageGen() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-          <Sparkles size={22} className="text-[#E8A838]" aria-hidden="true" />
+          <Sparkles size={22} className="text-brand-blue" aria-hidden="true" />
           Génération d'images
         </h1>
         <p className="text-sm text-zinc-500 mt-1">
@@ -408,7 +408,7 @@ export default function AdminImageGen() {
       {/* Generate */}
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <h2 className="font-bold text-sm mb-3 flex items-center gap-1.5">
-          <Zap size={14} className="text-[#E8A838]" aria-hidden="true" />
+          <Zap size={14} className="text-brand-blue" aria-hidden="true" />
           Générer une image
         </h2>
 
@@ -484,7 +484,7 @@ export default function AdminImageGen() {
             type="button"
             onClick={handleGenerate}
             disabled={!configured || loading || !prompt.trim()}
-            className="ml-auto inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white rounded-lg text-sm font-bold hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2"
+            className="ml-auto inline-flex items-center gap-2 px-5 py-2 bg-brand-blue text-brand-white rounded-lg text-sm font-bold hover:bg-brand-blue-hover hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
           >
             {loading ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
             {loading ? 'Génération en cours…' : 'Générer'}
