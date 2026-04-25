@@ -672,7 +672,7 @@ export default function AdminVendors() {
         >
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue to-[#B37D10] text-white flex items-center justify-center shadow-sm">
                 <Award size={16} aria-hidden="true" />
               </div>
               <div>
@@ -704,7 +704,7 @@ export default function AdminVendors() {
                 <li
                   key={v.id}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2 border transition-colors ${
-                    isGold   ? 'bg-[#E8A838]/10 border-[#E8A838]/40' :
+                    isGold   ? 'bg-brand-blue/10 border-brand-blue/40' :
                     isSilver ? 'bg-zinc-100/70 border-zinc-300' :
                     isBronze ? 'bg-[#CD7F32]/10 border-[#CD7F32]/30' :
                     'bg-white border-zinc-100'
@@ -915,7 +915,7 @@ export default function AdminVendors() {
           return (
             <div key={v.id} className="bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-lg transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center font-extrabold text-sm">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-blue to-brand-black text-white flex items-center justify-center font-extrabold text-sm">
                   {initials}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1033,7 +1033,7 @@ export default function AdminVendors() {
                   <div className="text-sm font-extrabold text-zinc-900 tabular-nums">{fmtMoney(v.mtdSales)}</div>
                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Ventes MTD</div>
                 </div>
-                <div className="bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-lg p-2 text-center" title={`Commission ${month}`}>
+                <div className="bg-brand-blue/10 border border-brand-blue/30 rounded-lg p-2 text-center" title={`Commission ${month}`}>
                   <div className="text-sm font-extrabold text-[#B37D10] tabular-nums">{fmtMoney(v.mtdCommission)}</div>
                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Comm. MTD</div>
                 </div>
