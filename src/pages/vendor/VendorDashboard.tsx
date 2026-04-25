@@ -482,7 +482,7 @@ const TOUR_STEPS: TourStep[] = [
     bodyFr:
       'Le gros chiffre en bleu est ta commission gagnée aujourd\u2019hui. Le trait doré montre les 7 derniers jours. Il s\u2019anime à chaque nouvelle vente.',
     bodyEn:
-      'The big navy number is the commission you\u2019ve earned today. The gold sparkline covers the last 7 days and re-animates on every new sale.',
+      'The big number is the commission you\u2019ve earned today. The blue sparkline covers the last 7 days and re-animates on every new sale.',
   },
   {
     id: 'quotes',
@@ -683,7 +683,7 @@ function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
       >
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1B3A6B]/10 text-[#1B3A6B]">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-black/10 text-brand-black">
               <Sparkles size={14} aria-hidden="true" />
             </span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
@@ -701,7 +701,7 @@ function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
         </div>
         <h2
           id="vendor-tour-title"
-          className="text-lg font-extrabold tracking-tight text-[#1B3A6B]"
+          className="text-lg font-extrabold tracking-tight text-brand-black"
         >
           {lang === 'fr' ? step.titleFr : step.titleEn}
         </h2>
@@ -954,25 +954,25 @@ export default function VendorDashboard() {
     html,body{margin:0;padding:0;background:#f4f4f5;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:12px;line-height:1.4}
     .page{max-width:800px;margin:24px auto;background:#fff;padding:32px 36px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
     .toolbar{max-width:800px;margin:16px auto 0;display:flex;justify-content:flex-end}
-    .toolbar button{font:inherit;font-weight:700;background:#1B3A6B;color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer}
-    header.brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B3A6B;padding-bottom:14px;margin-bottom:18px}
+    .toolbar button{font:inherit;font-weight:700;background:#0A0A0A;color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer}
+    header.brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0A0A0A;padding-bottom:14px;margin-bottom:18px}
     .logo{display:flex;align-items:center;gap:12px}
-    .logo-mark{width:44px;height:44px;border:2px solid #1B3A6B;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#1B3A6B;font-size:18px;letter-spacing:-.5px}
-    .brand-name{font-size:18px;font-weight:800;color:#1B3A6B;letter-spacing:-.2px}
+    .logo-mark{width:44px;height:44px;border:2px solid #0A0A0A;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#0A0A0A;font-size:18px;letter-spacing:-.5px}
+    .brand-name{font-size:18px;font-weight:800;color:#0A0A0A;letter-spacing:-.2px}
     .brand-tag{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
     .doc-title{text-align:right}
-    .doc-title h1{margin:0;font-size:18px;font-weight:800;color:#1B3A6B;text-transform:uppercase;letter-spacing:.05em}
+    .doc-title h1{margin:0;font-size:18px;font-weight:800;color:#0A0A0A;text-transform:uppercase;letter-spacing:.05em}
     .doc-title .meta{margin-top:4px;font-size:11px;color:#555}
     .who{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:12px}
     .who .box{border:1px solid #d4d4d8;padding:10px 12px;border-radius:4px}
     .who .lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
     .who .val{font-weight:700;color:#111}
     table{width:100%;border-collapse:collapse;margin-top:6px}
-    thead th{background:#1B3A6B;color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+    thead th{background:#0A0A0A;color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
     thead th.num{text-align:right}
     tbody td{border-bottom:1px solid #e5e5e5;padding:7px 10px;vertical-align:top}
     tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
-    tbody td.mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-weight:700;color:#1B3A6B}
+    tbody td.mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-weight:700;color:#0A0A0A}
     tbody td.strong{font-weight:700}
     tbody td.empty{text-align:center;color:#888;padding:24px}
     .totals{margin-top:14px;display:flex;justify-content:flex-end}
@@ -980,7 +980,7 @@ export default function VendorDashboard() {
     .totals td{padding:5px 8px;border:0}
     .totals td.lbl{color:#444}
     .totals td.val{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
-    .totals tr.grand td{border-top:2px solid #1B3A6B;font-size:13px;color:#1B3A6B}
+    .totals tr.grand td{border-top:2px solid #0A0A0A;font-size:13px;color:#0A0A0A}
     .sig{margin-top:40px;display:flex;justify-content:space-between;gap:24px}
     .sig .line{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.08em}
     footer{margin-top:28px;padding-top:10px;border-top:1px solid #e5e5e5;text-align:center;font-size:10px;color:#888}
@@ -1362,7 +1362,7 @@ export default function VendorDashboard() {
             ref={quotesCtaRef}
             to="/vendor/quotes/new"
             aria-label={L('Nouvelle soumission', 'New quote')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#E8A838] text-[#1B3A6B] rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-brand-blue text-brand-white rounded-lg hover:bg-brand-blue-hover shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/60"
           >
             <Plus size={13} aria-hidden="true" />
             {L('Nouvelle soumission', 'New quote')}
@@ -1407,7 +1407,7 @@ export default function VendorDashboard() {
                 `Télécharger le relevé de ${formatMonth(month, lang)} (PDF-prêt)`,
                 `Download statement for ${formatMonth(month, lang)} (print-ready)`,
               )}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#1B3A6B] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-brand-black text-brand-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-black focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             >
               <Printer size={13} aria-hidden="true" />
               {L('Télécharger relevé (PDF-prêt HTML)', 'Download statement (print-ready HTML)')}
@@ -1417,7 +1417,7 @@ export default function VendorDashboard() {
       </header>
 
       {/* Live commission ticker — Task 10.1.
-          Big navy count-up number for today's commission earned, gold
+          Big count-up number for today's commission earned, blue
           sparkline for the last 7 days. Re-animates whenever the
           underlying commissions change (mark-paid, credit re-attribution,
           or a cross-tab write) via the vision-commission-change hook
@@ -1425,21 +1425,21 @@ export default function VendorDashboard() {
       <section
         ref={tickerRef}
         aria-label={L('Commission en direct', 'Live commission')}
-        className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-white via-white to-[#1B3A6B]/[0.04] px-5 py-4 sm:px-6 sm:py-5"
+        className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-brand-white px-5 py-4 sm:px-6 sm:py-5"
       >
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2" aria-hidden="true">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#E8A838] opacity-60 animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8A838]" />
+                <span className="absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-60 animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-blue" />
               </span>
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
                 {L('Commission en direct', 'Live commission')}
               </span>
             </div>
             <div
-              className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-tight text-[#1B3A6B] tabular-nums"
+              className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-black tabular-nums"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -1536,14 +1536,14 @@ export default function VendorDashboard() {
       {fullSummary.lines.length === 0 && recentQuotes.length === 0 && (
         <section
           aria-label={L('Bienvenue', 'Welcome')}
-          className="rounded-2xl border border-[#0052CC]/20 bg-gradient-to-br from-[#0052CC]/5 via-white to-[#E8A838]/10 px-5 py-6 sm:px-6 sm:py-7"
+          className="rounded-2xl border border-brand-blue/20 bg-brand-grey-light px-5 py-6 sm:px-6 sm:py-7"
         >
           <div className="flex items-start gap-4 flex-wrap">
             <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center shadow-sm">
               <Rocket size={20} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#1B3A6B]">
+              <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-brand-black">
                 {L(
                   'Bienvenue chez Vision Affichage!',
                   'Welcome to Vision Affichage!',
@@ -1558,7 +1558,7 @@ export default function VendorDashboard() {
               <div className="mt-4">
                 <Link
                   to="/vendor/quotes/new"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 bg-[#E8A838] text-[#1B3A6B] rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 bg-brand-blue text-brand-white rounded-lg hover:bg-brand-blue-hover shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/60"
                 >
                   <Plus size={15} aria-hidden="true" />
                   {L('Créer ton premier devis', 'Create your first quote')}
@@ -1583,7 +1583,7 @@ export default function VendorDashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
             <div>
               <h2 id="vendor-recent-quotes-heading" className="font-bold flex items-center gap-2">
-                <FileText size={16} className="text-[#1B3A6B]" aria-hidden="true" />
+                <FileText size={16} className="text-brand-black" aria-hidden="true" />
                 {L('Devis récents', 'Recent quotes')}
               </h2>
               <p className="text-xs text-zinc-500 mt-0.5">
@@ -1613,7 +1613,7 @@ export default function VendorDashboard() {
                     `Open quote list — ${q.number} for ${q.client}`,
                   )}
                 >
-                  <div className="flex-shrink-0 font-mono text-[11px] font-bold text-[#1B3A6B] w-[108px] truncate">
+                  <div className="flex-shrink-0 font-mono text-[11px] font-bold text-brand-black w-[108px] truncate">
                     {q.number}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1676,7 +1676,7 @@ export default function VendorDashboard() {
               <tbody>
                 {summary.lines.map(({ order, commission, paid, paidAt }) => (
                   <tr key={order.id} className="border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/50 transition-colors">
-                    <td className="px-5 py-3 font-mono text-xs font-bold text-[#1B3A6B]">{order.name}</td>
+                    <td className="px-5 py-3 font-mono text-xs font-bold text-brand-black">{order.name}</td>
                     <td className="px-3 py-3">
                       <div className="font-semibold text-sm">{order.customerName || '—'}</div>
                       <div className="text-xs text-zinc-500 truncate max-w-[220px]">{order.email}</div>
@@ -1744,7 +1744,7 @@ export default function VendorDashboard() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
           <div>
             <h2 id="vendor-clients-heading" className="font-bold flex items-center gap-2">
-              <Users size={16} className="text-[#1B3A6B]" aria-hidden="true" />
+              <Users size={16} className="text-brand-black" aria-hidden="true" />
               {L('Mes clients', 'My clients')}
             </h2>
             <p className="text-xs text-zinc-500 mt-0.5">
@@ -1812,7 +1812,7 @@ export default function VendorDashboard() {
                         <td className="px-3 py-3 text-right font-bold text-[#B37D10] tabular-nums">{formatMoney(row.ltv, lang)}</td>
                         <td className="px-3 py-3 text-xs text-zinc-600">{formatDate(row.lastOrderAt, lang)}</td>
                         <td className="px-5 py-3 text-right">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-[#1B3A6B]/10 text-[#1B3A6B] px-2 py-1 rounded-md">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-brand-black/10 text-brand-black px-2 py-1 rounded-md">
                             <StickyNote size={11} aria-hidden="true" />
                             {notes.length}
                           </span>
@@ -2016,7 +2016,7 @@ export default function VendorDashboard() {
         <button
           type="button"
           onClick={replayTour}
-          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 hover:text-[#1B3A6B] px-3 py-1.5 rounded-lg hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 hover:text-brand-black px-3 py-1.5 rounded-lg hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50"
           aria-label={L('Revoir la visite guidée du tableau de bord', 'See the dashboard tour again')}
         >
           <HelpCircle size={12} aria-hidden="true" />
