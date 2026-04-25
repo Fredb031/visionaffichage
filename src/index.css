@@ -117,3 +117,31 @@
 /* Scroll-triggered fade */
 .fi { opacity: 0; transform: translateY(18px); transition: opacity 0.75s cubic-bezier(.16,1,.3,1), transform 0.75s cubic-bezier(.16,1,.3,1); }
 .fi.in { opacity: 1; transform: translateY(0); }
+
+/* ── Section 10.4 — Core Web Vitals + mobile UX guards ────────────────── */
+
+/* Prevent CLS from late-loading webfonts: reserve at least one line of
+   line-height for headings so the layout doesn't jump when Plus Jakarta
+   Sans / Lora swap in. */
+h1, h2, h3 { min-height: 1em; }
+
+/* Smooth scroll on anchor links, with offset to clear any sticky header. */
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+/* Prevent overscroll-bounce / pull-to-refresh on iOS Safari, which can
+   make full-bleed sections feel detached from the viewport. */
+body { overscroll-behavior: none; }
+
+/* Disable the iOS double-tap-zoom on interactive elements so taps register
+   immediately (~300ms faster) without breaking pinch-zoom on text. */
+button, a { touch-action: manipulation; }
+
+/* WCAG 2.5.5 — minimum 44×44 CSS-px tap targets on every interactive
+   primitive. Note: components that need a smaller hit-box (icon-only
+   chips inside dense toolbars, e.g. customizer color swatches) should
+   override with their own min-width/min-height — Tailwind utility
+   classes win on specificity over this base rule. */
+button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+  min-width: 44px;
+  min-height: 44px;
+}
