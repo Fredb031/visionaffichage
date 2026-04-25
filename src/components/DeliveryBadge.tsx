@@ -68,9 +68,9 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
   const iconSize = { sm: 10, md: 12, lg: 14 }[size];
 
   const variantCls = {
-    gold: 'bg-[hsla(40,82%,55%,0.12)] text-[hsl(40,82%,40%)] border border-[hsla(40,82%,55%,0.3)]',
-    navy: 'bg-[#1B3A6B] text-white',
-    inline: 'text-[#0052CC] bg-[#0052CC]/5',
+    gold: 'bg-brand-blue-light text-brand-blue border border-brand-blue/30',
+    navy: 'bg-brand-black text-brand-white',
+    inline: 'text-brand-blue bg-brand-blue/5',
   }[variant];
 
   return (
