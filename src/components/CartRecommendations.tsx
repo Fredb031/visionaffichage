@@ -46,7 +46,7 @@ export function CartRecommendations() {
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-[#E8A838]" aria-hidden="true" />
+          <Sparkles size={14} className="text-brand-blue" aria-hidden="true" />
           <h3 className="text-sm font-extrabold text-foreground">
             {lang === 'en' ? 'Customers also ordered' : 'Souvent commandé avec'}
           </h3>

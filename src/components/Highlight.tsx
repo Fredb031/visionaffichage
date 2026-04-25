@@ -62,7 +62,7 @@ export function Highlight({ text, query }: HighlightProps) {
     parts.push(
       <mark
         key={key++}
-        className="bg-[#E8A838]/25 text-inherit rounded-sm px-0.5"
+        className="bg-brand-blue/25 text-inherit rounded-sm px-0.5"
       >
         {match[0]}
       </mark>,

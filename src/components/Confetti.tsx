@@ -33,7 +33,7 @@ interface ConfettiProps {
 }
 
 // Brand colors (per Task 17.3 spec)
-const COLORS = ['#E8A838', '#1B3A6B', '#F5F2E8'];
+const COLORS = ['#0052CC', '#0A0A0A', '#FFFFFF'];
 
 const DURATION_MS = 1500;
 
