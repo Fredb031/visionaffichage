@@ -127,7 +127,7 @@ export class ErrorBoundary extends Component<Props, State> {
           role="alert"
           className="min-h-[60vh] flex items-center justify-center px-4 py-12 bg-background"
         >
-          <div className="w-full max-w-md rounded-2xl border border-[hsl(var(--navy))]/10 bg-card shadow-sm p-8 text-center">
+          <div className="w-full max-w-md rounded-2xl border border-brand-black/10 bg-card shadow-sm p-8 text-center">
             {/* Brand lockup: the logo signals "this is still Vision Affichage,
                 not a raw browser crash page" even when the app tree below has
                 blown up. onError hides the image so a CDN outage doesn't
@@ -197,7 +197,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={() => { window.location.href = '/'; }}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[hsl(var(--navy))]/15 bg-background text-foreground text-sm font-semibold hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-brand-black/15 bg-background text-foreground text-sm font-semibold hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
               >
                 <Home className="w-4 h-4" aria-hidden="true" />
                 {fr ? "Retour à l'accueil" : 'Back home'}
@@ -207,7 +207,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 type="button"
                 onClick={this.copyDetails}
                 aria-live="polite"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[hsl(var(--navy))]/15 bg-background text-foreground text-sm font-semibold hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-brand-black/15 bg-background text-foreground text-sm font-semibold hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
               >
                 {this.state.copied ? (
                   <>
