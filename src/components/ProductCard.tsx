@@ -303,17 +303,29 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
           </div>
 
           {/* Colour dots — only colors with real per-color images.
-              Capped at 4 here; the explicit "+N" / "N couleurs" text
-              now lives in the info row below so buyers scanning the
-              grid can compare variety at a glance without counting dots. */}
+              Section 04 (Master Prompt) bumped the visible cap from 4
+              to 5 and added an inline "+N" chip when more colours
+              exist. The explicit textual "N couleurs" line still lives
+              in the info row below so buyers also get a count they can
+              quickly compare across products. */}
           {local && (() => {
             const realColors = filterRealColors(local.sku, local.colors);
             if (realColors.length === 0) return null;
+            const VISIBLE = 5;
+            const overflow = Math.max(0, realColors.length - VISIBLE);
             return (
-              <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
-                {realColors.slice(0, 4).map(c => (
+              <div className="absolute bottom-2 left-2 flex items-center gap-1 z-[4]">
+                {realColors.slice(0, VISIBLE).map(c => (
                   <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
                 ))}
+                {overflow > 0 && (
+                  <span
+                    className="inline-flex items-center justify-center min-w-[18px] h-[14px] px-1 rounded-full bg-white/85 text-foreground text-[9px] font-bold leading-none ring-1 ring-white/70 shadow-sm"
+                    aria-label={lang === 'en' ? `${overflow} more colors` : `${overflow} couleurs supplémentaires`}
+                  >
+                    +{overflow}
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -400,11 +412,19 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
             if (local) {
               const unit = local.basePrice + PRINT_PRICE;
               const bulk = unit * (1 - BULK_DISCOUNT_RATE);
+              // Section 04 (Master Prompt) — price line reads "À partir
+              // de X$ / pièce" so the printed price is anchored as a
+              // floor (matches the PDP price block copy verbatim) and
+              // the per-unit denominator switches from "unité" to
+              // "pièce" to match the brief.
               return (
                 <div className="mt-2 space-y-1">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[14px] font-extrabold text-primary" aria-label={priceAria(unit)}>{fmtMoney(unit, lang)}</span>
-                    <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'unit' : 'unité'}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {lang === 'en' ? 'From' : 'À partir de'}
+                    </span>
+                    <span className="text-[14px] font-extrabold text-foreground" aria-label={priceAria(unit)}>{fmtMoney(unit, lang)}</span>
+                    <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'piece' : 'pièce'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] font-bold text-green-700" aria-label={priceAria(bulk)}>{fmtMoney(bulk, lang)}</span>

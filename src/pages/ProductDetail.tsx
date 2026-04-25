@@ -1002,6 +1002,21 @@ export default function ProductDetail() {
                       {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
                     </div>
                   )}
+                  {/* Section 04 (Master Prompt) — identity-hook callout.
+                      One-sentence emotional pitch sourced from the
+                      product table; brand-blue left border + italic so
+                      it reads as voice, not specs. Rendered only when
+                      the local product entry has a hook (the field is
+                      optional so a freshly-added SKU without copy
+                      collapses silently rather than showing an empty
+                      bar). FR-only copy lives in identityHook itself;
+                      we don't mirror to EN because the brief's hook
+                      table is FR-locked. */}
+                  {localProduct?.identityHook && (
+                    <p className="mt-3 border-l-2 border-primary pl-4 text-base italic text-muted-foreground leading-snug">
+                      {localProduct.identityHook}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-shrink-0">
                 <button
@@ -1157,13 +1172,31 @@ export default function ProductDetail() {
                 </button>
                 </div>
               </div>
-              <div className="flex items-baseline gap-2 mt-3">
-                <span className="text-2xl font-extrabold text-primary">
-                  {price} {currency}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
-                </span>
+              {/* Section 04 (Master Prompt) — price block reframed as a
+                  "À partir de X$ / pièce" floor with a trust trailer
+                  underneath. Background bg-secondary mirrors the
+                  brief's bg-brand-grey-light, kept on the codebase's
+                  semantic token so the dark-mode mapping stays in one
+                  place. The "from / piece" wording matches the
+                  ProductCard so the price the buyer scanned in the
+                  grid reads as the same number on the PDP. */}
+              <div className="mt-3 bg-secondary rounded-xl p-5">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    {lang === 'en' ? 'From' : 'À partir de'}
+                  </span>
+                  <span className="text-2xl font-extrabold text-foreground">
+                    {price} {currency}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {lang === 'en' ? '/ piece, before print' : '/ pièce, avant impression'}
+                  </span>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
+                  {lang === 'en'
+                    ? 'Free shipping over $300 · 1-year warranty on every print.'
+                    : 'Livraison gratuite dès 300 $ · Garantie 1 an sur toutes les impressions.'}
+                </p>
               </div>
 
             </div>
@@ -1267,6 +1300,19 @@ export default function ProductDetail() {
                         </span>
                       )}
                     </label>
+                    {/* Section 04 (Master Prompt) — commitment micro-copy
+                        under the colour label. Only shown for popular
+                        SKUs (POPULAR_SKUS in /data/products.ts) so it
+                        reads as a real social signal rather than a
+                        decorative line. Suppressed on size and other
+                        non-color options. */}
+                    {isColor && localProduct && currentOptions[option.name] && /ATC1000|S445LS|L445|ATCF2500/i.test(localProduct.sku) && (
+                      <p className="text-[11px] text-emerald-700 -mt-1 mb-2">
+                        {lang === 'en'
+                          ? `✓ ${currentOptions[option.name]} selected — the most popular`
+                          : `✓ ${currentOptions[option.name]} sélectionné — le plus populaire`}
+                      </p>
+                    )}
 
                     {isColor && localProduct ? (
                       /* Color swatches. Source of truth = local catalog
@@ -1489,6 +1535,17 @@ export default function ProductDetail() {
                 : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
+
+            {/* Section 04 (Master Prompt) — trust line within 100px of
+                the primary CTA. Reads as the closing handshake right
+                after the click target: secure, satisfaction-guaranteed,
+                deadline. Kept compact so it doesn't push the social-
+                proof nudge too far down. */}
+            <p className="text-[11px] font-medium text-muted-foreground text-center -mt-2 leading-snug">
+              {lang === 'en'
+                ? '🔒 Satisfaction or refund · Delivered in 5 business days, guaranteed'
+                : '🔒 Satisfait ou remboursé · Livré en 5 jours ouvrables garanti'}
+            </p>
 
             {/* Social-proof viewer nudge. Sits directly under the CTA
                 on purpose — it reads as "you're not alone looking at

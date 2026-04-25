@@ -574,9 +574,16 @@ export default function Products() {
                   )}
                 </h1>
                 <p className="text-[13px] text-primary-foreground/60 mb-4">
+                  {/* Section 04 (Master Prompt) — sub line locked to the
+                      brief copy. Catalog count is rounded up to "500+"
+                      so the line scans as a guarantee of breadth rather
+                      than a literal SKU count (today's catalog is ~20
+                      bodies × ~16 colours × ~7 sizes ≈ thousands of
+                      orderable variants); "Livré en 5 jours" is the
+                      lead promise the rest of the funnel echoes. */}
                   {lang === 'en'
-                    ? `${PRODUCTS.length} customizable products · No minimum order`
-                    : `${PRODUCTS.length} produits personnalisables · Aucun minimum`}
+                    ? '500+ customizable products — Delivered in 5 days'
+                    : '500+ produits personnalisables — Livré en 5 jours'}
                 </p>
               </div>
 

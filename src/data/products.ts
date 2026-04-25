@@ -63,6 +63,14 @@ export type Product = {
   description: string;
   shopifyHandle: string;
   features: string[];
+  /**
+   * Section 04 (Master Prompt) — short emotional/identity-driven hook
+   * shown in the PDP right-column with a brand-blue left border. One
+   * sentence, present tense, addresses the buyer's identity rather
+   * than the garment specs. Optional: a missing entry collapses the
+   * callout silently rather than breaking the layout.
+   */
+  identityHook?: string;
 };
 
 const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
@@ -202,6 +210,7 @@ export const PRODUCTS: Product[] = [
     printZones: HOODIE_ZONES,
     description: 'Hoodie unisexe en French Terry 13 oz à molleton 3 épaisseurs, offrant chaleur et durabilité exceptionnelles. Son traitement anti-boulochage et sa certification OEKO-TEX en font un choix fiable. Idéal pour les uniformes d\'équipe, événements corporatifs et vêtements promotionnels.',
     features: ['13 oz French Terry','Molleton 3 épaisseurs','Capuchon doublé avec cordon','Œillets métal argenté','Poche kangourou','Anti-boulochage','OEKO-TEX® Standard 100'],
+    identityHook: 'Le hoodie qui dit « on est une équipe sérieuse » sans avoir à le crier.',
   },
   {
     id: 'atcy2500', sku: 'ATCY2500',
@@ -215,6 +224,7 @@ export const PRODUCTS: Product[] = [
     printZones: HOODIE_ZONES,
     description: 'Hoodie enfant en French Terry 3 épaisseurs avec capuchon doublé et poche kangourou, conçu pour résister aux journées actives. Même qualité premium que le modèle adulte, dans des tailles jeunesse. Parfait pour les équipes sportives scolaires et les camps.',
     features: ['French Terry 3 épaisseurs','Capuchon doublé','Poche kangourou','Anti-boulochage'],
+    identityHook: 'Le hoodie qui suit la cadence des récrés, des matchs et des camps d\'été.',
   },
   {
     id: 'atcf2600', sku: 'ATCF2600',
@@ -232,6 +242,7 @@ export const PRODUCTS: Product[] = [
     ],
     description: 'Veste à capuche avec fermeture éclair YKK pleine longueur en French Terry 3 épaisseurs, alliant confort et allure professionnelle. Ses deux poches latérales ajoutent une touche pratique au quotidien. Conçu pour les représentants terrain, salons et événements corporatifs.',
     features: ['Fermeture éclair YKK pleine longueur','French Terry 3 épaisseurs','Deux poches latérales','Capuchon doublé'],
+    identityHook: 'La veste qui s\'enfile en deux secondes entre deux rendez-vous client.',
   },
   {
     id: 'atcf2400', sku: 'ATCF2400',
@@ -245,6 +256,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'Crewneck unisexe en French Terry 3 épaisseurs avec col rond côtelé et finitions en côte aux poignets et à la taille. Son look épuré sans capuche offre une silhouette professionnelle et polyvalente. Excellent choix pour les tenues corporatives et les cadeaux d\'entreprise.',
     features: ['French Terry 3 épaisseurs','Col rond côtelé','Poignets et taille en côte'],
+    identityHook: 'Le crewneck propre qui passe du vendredi décontracté au lundi matin.',
   },
 
   // ── T-SHIRTS ─────────────────────────────────────────────────────────────────
@@ -260,6 +272,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt en coton ringspun 100 % de 9,1 oz avec coutures double aiguille et étiquette détachable pour un rebranding facile. Sa certification OEKO-TEX garantit un produit sûr et responsable. Le choix par excellence pour les équipes, événements et campagnes promotionnelles.',
     features: ['100% coton ringspun 9,1 oz','Col côtelé 1×1','Coutures double aiguille','Étiquette détachable','OEKO-TEX® Standard 100'],
+    identityHook: 'Le t-shirt que ton équipe au complet va vouloir porter même hors quart.',
   },
   {
     id: 'atc1000l', sku: 'ATC1000L',
@@ -273,6 +286,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt coupe ajustée femme en coton ringspun 9,1 oz, offrant une silhouette valorisante sans compromis sur la durabilité. Sa finition soignée assure un rendu d\'impression impeccable. Idéal pour les équipes mixtes et les uniformes professionnels féminins.',
     features: ['100% coton ringspun 9,1 oz','Coupe ajustée femme','Col côtelé','OEKO-TEX®'],
+    identityHook: 'Une coupe pensée pour bouger, sans sacrifier l\'allure professionnelle.',
   },
   {
     id: 'atc1000y', sku: 'ATC1000Y',
@@ -286,6 +300,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt enfant en coton ringspun 100 % avec col côtelé résistant, offrant la même qualité éprouvée que le modèle adulte. Sa construction renforcée résiste aux lavages fréquents. Conçu pour les équipes sportives jeunesse, événements scolaires et camps d\'été.',
     features: ['100% coton ringspun','Coupe enfant','Col côtelé','OEKO-TEX®'],
+    identityHook: 'Le t-shirt qui survit aux récrés, aux taches de gazon et aux victoires.',
   },
   {
     id: 'werk250', sku: 'WERK250',
@@ -299,6 +314,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt premium de 250 g/m² au tissu épais et résistant, conçu pour une surface d\'impression optimale et un rendu haut de gamme. Sa construction robuste maintient sa forme lavage après lavage. Parfait pour les environnements de travail exigeants et les collections de marque.',
     features: ['250 g/m² qualité supérieure','Tissu épais et résistant','Surface impression optimale'],
+    identityHook: 'Le t-shirt épais qui tient le coup sur le chantier comme à la brasserie.',
   },
   {
     id: 'atc1015', sku: 'ATC1015',
@@ -312,6 +328,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt manches longues en coton ringspun avec col côtelé 1x1, offrant une protection supplémentaire pour les saisons fraîches. Sa coupe classique et ses coutures renforcées garantissent confort et longévité. Idéal pour les chantiers, événements extérieurs et tenues d\'équipe automne-hiver.',
     features: ['100% coton ringspun','Manches longues','Col côtelé 1×1','OEKO-TEX®'],
+    identityHook: 'Pour les matins frisquets où l\'équipe arrive avant le lever du soleil.',
   },
 
   // ── POLOS ───────────────────────────────────────────────────────────────────
@@ -332,6 +349,7 @@ export const PRODUCTS: Product[] = [
     ],
     description: 'Polo homme à manches courtes avec col classique et placket 3 boutons, offrant une allure soignée en toute occasion. Son tissu respirant assure un confort optimal tout au long de la journée. Parfait pour les uniformes d\'entreprise, réceptions et salons professionnels.',
     features: ['Col polo classique','Placket 3 boutons','Coupe droite','Lavable en machine'],
+    identityHook: 'Le polo qui inspire confiance dès la poignée de main.',
   },
   {
     id: 'l445', sku: 'L445',
@@ -348,6 +366,7 @@ export const PRODUCTS: Product[] = [
     ],
     description: 'Polo femme coupe ajustée à manches courtes avec col polo et placket 3 boutons, offrant une silhouette élégante et professionnelle. Son tissu léger et respirant garantit un confort toute la journée. Idéal pour les équipes mixtes, réceptions et uniformes corporatifs.',
     features: ['Coupe ajustée femme','Col polo','Placket 3 boutons'],
+    identityHook: 'Une silhouette nette qui s\'impose sans en faire trop.',
   },
   {
     id: 's445ls', sku: 'S445LS',
@@ -365,6 +384,7 @@ export const PRODUCTS: Product[] = [
     ],
     description: 'Polo manches longues 4 saisons avec col polo et placket 3 boutons, combinant protection contre les éléments et allure professionnelle. Sa coupe structurée garde un look impeccable du matin au soir. Conçu pour les représentants terrain, événements extérieurs et environnements climatisés.',
     features: ['Manches longues','Col polo','Placket 3 boutons','Usage 4 saisons'],
+    identityHook: 'Le polo 4 saisons des représentants qui roulent du nord au sud.',
   },
 
   // ── T-SHIRTS SPORT ──────────────────────────────────────────────────────────
@@ -380,6 +400,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt sport haute performance en tissu technique avec évacuation d\'humidité et séchage rapide, conçu pour les activités intenses. Sa coupe athlétique offre liberté de mouvement et ventilation optimale. Parfait pour les équipes sportives, tournois et événements promotionnels actifs.',
     features: ['Tissu technique respirant','Évacuation humidité','Séchage rapide'],
+    identityHook: 'Le maillot d\'équipe qui suit la cadence des tournois et des entraînements.',
   },
   {
     id: 'l350', sku: 'L350',
@@ -393,6 +414,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt sport femme en tissu technique respirant à séchage rapide, avec une coupe ajustée qui épouse la silhouette. Sa technologie d\'évacuation d\'humidité garde au sec pendant l\'effort. Idéal pour les équipes sportives féminines, courses et activités de plein air.',
     features: ['Coupe ajustée femme','Tissu respirant','Séchage rapide'],
+    identityHook: 'Pour celles qui mènent l\'équipe — et la course — sans s\'essouffler.',
   },
   {
     id: 'y350', sku: 'Y350',
@@ -406,6 +428,7 @@ export const PRODUCTS: Product[] = [
     printZones: SHIRT_ZONES,
     description: 'T-shirt sport enfant en tissu technique respirant avec la même technologie de séchage rapide que les modèles adultes. Sa coupe adaptée aux tailles jeunesse assure confort et liberté de mouvement. Conçu pour les ligues sportives scolaires, camps et compétitions jeunesse.',
     features: ['Tissu respirant','Coupe enfant','Séchage rapide'],
+    identityHook: 'Le t-shirt sport qui transforme une ligue scolaire en vraie équipe.',
   },
 
   // ── CASQUETTES ──────────────────────────────────────────────────────────────
@@ -421,6 +444,7 @@ export const PRODUCTS: Product[] = [
     printZones: CAP_ZONES,
     description: 'Casquette trucker Yupoong 6606 avec panneau avant structuré en coton et 5 panneaux en maille filet respirante. Son snapback réglable assure un ajustement universel et confortable. Idéale pour la broderie de logos d\'entreprise, équipes sportives et cadeaux promotionnels.',
     features: ['Panneau avant structuré coton','5 panneaux maille filet','Snapback réglable','Zone broderie avant'],
+    identityHook: 'La trucker que ton équipe garde sur la tête du déjeuner au 5 à 7.',
   },
   {
     id: '6245cm', sku: '6245CM',
@@ -434,6 +458,7 @@ export const PRODUCTS: Product[] = [
     printZones: CAP_ZONES,
     description: 'Casquette baseball unisexe à 6 panneaux entièrement structurés offrant une forme classique et durable. Sa fermeture Velcro réglable s\'adapte à toutes les tailles avec facilité. Parfaite pour les uniformes d\'équipe, événements corporatifs et articles promotionnels brodés.',
     features: ['6 panneaux structurés','Fermeture Velcro','Zone broderie avant'],
+    identityHook: 'Le classique baseball qui finit toujours sur la tête du gérant.',
   },
   {
     id: 'atc6277', sku: 'ATC6277',
@@ -447,6 +472,7 @@ export const PRODUCTS: Product[] = [
     printZones: CAP_ZONES,
     description: 'Casquette premium ATC 6277 en coton 100 % avec 6 panneaux et construction haut de gamme pour un rendu de broderie impeccable. Sa fermeture à sangle ajustable offre un port confortable et personnalisé. Le choix de référence pour une image de marque professionnelle et soignée.',
     features: ['100% coton panneau avant','6 panneaux premium','Fermeture sangle','Construction supérieure'],
+    identityHook: 'La casquette premium pour la marque qui ne fait pas les choses à moitié.',
   },
 
   // ── TUQUES ──────────────────────────────────────────────────────────────────
@@ -462,6 +488,7 @@ export const PRODUCTS: Product[] = [
     printZones: BEANIE_ZONES,
     description: 'Tuque à rebord en acrylique 100 % double épaisseur, offrant chaleur et résistance aux intempéries hivernales. Son rebord retroussé constitue la zone idéale pour la broderie de votre logo. Parfaite pour les équipes de chantier, événements hivernaux et cadeaux d\'entreprise saisonniers.',
     features: ['100% acrylique','Double épaisseur','Rebord retroussé','Zone broderie sur rebord'],
+    identityHook: 'La tuque qui fait partie de l\'uniforme dès que la première neige tombe.',
   },
   {
     id: 'c105', sku: 'C105',
@@ -475,6 +502,7 @@ export const PRODUCTS: Product[] = [
     printZones: BEANIE_ZONES,
     description: 'Tuque sans rebord en acrylique 100 % double épaisseur au style épuré et contemporain, offrant une excellente rétention de chaleur. Sa face avant lisse est optimale pour la broderie de logos et emblèmes. Idéale pour les équipes de travail extérieur, promotions hivernales et événements de fin d\'année.',
     features: ['100% acrylique','Double épaisseur','Sans rebord','Broderie face avant'],
+    identityHook: 'La tuque épurée pour ceux qui préfèrent le logo bien centré, sans rebord.',
   },
 ];
 
