@@ -272,7 +272,7 @@ export default function QuoteList() {
           <div className="mx-auto w-12 h-12 rounded-full bg-[#0052CC]/10 flex items-center justify-center mb-4">
             <FileText size={22} className="text-[#0052CC]" aria-hidden="true" />
           </div>
-          <h2 className="text-lg font-extrabold text-[#1B3A6B]">Aucune soumission pour l'instant</h2>
+          <h2 className="text-lg font-extrabold text-brand-black">Aucune soumission pour l'instant</h2>
           <p className="text-sm text-zinc-500 mt-2 max-w-md mx-auto">
             Créez votre première soumission pour commencer à suivre vos devis client.
           </p>

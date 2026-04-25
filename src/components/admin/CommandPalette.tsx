@@ -222,7 +222,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   onClick={() => go(item.to)}
                   onMouseEnter={() => setActive(idx)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 ${
-                    isActive ? 'bg-[#0052CC]/10 text-[#0F2341]' : 'text-zinc-700 hover:bg-zinc-50'
+                    isActive ? 'bg-[#0052CC]/10 text-brand-black' : 'text-zinc-700 hover:bg-zinc-50'
                   }`}
                 >
                   <Icon size={16} strokeWidth={1.8} aria-hidden="true" className="text-zinc-500" />
@@ -248,7 +248,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   onClick={() => go(item.to)}
                   onMouseEnter={() => setActive(seqIdx)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 ${
-                    isActive ? 'bg-[#0052CC]/10 text-[#0F2341]' : 'text-zinc-700 hover:bg-zinc-50'
+                    isActive ? 'bg-[#0052CC]/10 text-brand-black' : 'text-zinc-700 hover:bg-zinc-50'
                   }`}
                 >
                   <Icon size={16} strokeWidth={1.8} aria-hidden="true" className="text-zinc-500" />
