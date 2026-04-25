@@ -79,10 +79,10 @@ export const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(
             <Loader2 size={15} aria-hidden="true" className="animate-spin" />
             {children}
           </span>
-          {/* success row — Check rendered in a lighter gold halo against
-              the button's own bg. On the blue contact submit the default
-              currentColor (white) already reads; on the gold newsletter
-              submit we keep currentColor so the tick inherits the navy. */}
+          {/* success row — Check rendered against the button's own bg.
+              On the brand-blue contact submit the default currentColor
+              (brand-white) already reads; on neutral submits we keep
+              currentColor so the tick inherits the brand-black text. */}
           <span
             aria-hidden={state !== 'success'}
             className={`absolute inset-0 inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-200 ease-out ${
