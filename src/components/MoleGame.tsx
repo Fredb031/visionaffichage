@@ -295,8 +295,8 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
       {stars.map(s => (
         <div
           key={s.id}
-          className="fixed pointer-events-none z-[910] text-lg animate-starburst font-bold"
-          style={{ left: s.x, top: s.y, color: 'hsl(var(--gold))' }}
+          className="fixed pointer-events-none z-[910] text-lg animate-starburst font-bold text-brand-blue"
+          style={{ left: s.x, top: s.y }}
         >
           ✦
         </div>
@@ -314,7 +314,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
         </button>
 
         {/* Header */}
-        <div className="gradient-navy-dark p-[26px] pb-5 text-center">
+        <div className="bg-brand-black p-[26px] pb-5 text-center">
           <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">
             {lang === 'en' ? 'EXCLUSIVE MINI-GAME' : 'MINI-JEU EXCLUSIF'}
           </div>
@@ -382,7 +382,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                         }}
                         aria-label={lang === 'en' ? `Whack mole ${idx + 1}` : `Frapper la taupe ${idx + 1}`}
                         aria-pressed={moleStates[idx] === 'hit'}
-                        className="transition-transform select-none bg-transparent border-none p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--gold))] focus-visible:ring-offset-2 rounded-full"
+                        className="transition-transform select-none bg-transparent border-none p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 rounded-full"
                         style={{
                           transform: moleStates[idx] === 'up'
                             ? 'translateY(0)'
@@ -421,10 +421,9 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                 aria-label={lang === 'en' ? 'Moles hit' : 'Taupes frappées'}
               >
                 <div
-                  className="h-full rounded-full transition-all duration-300"
+                  className="h-full rounded-full transition-all duration-300 bg-brand-black"
                   style={{
                     width: `${progress}%`,
-                    background: 'linear-gradient(90deg, hsl(var(--navy)), hsl(var(--gold)))',
                   }}
                 />
               </div>
@@ -465,7 +464,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               <div
                 role="status"
                 aria-live="polite"
-                className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
+                className="text-[12px] font-bold text-brand-blue mb-2"
               >
                 {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
               </div>
@@ -485,7 +484,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             <button
               type="button"
               onClick={() => onClose(true)}
-              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+              className="block w-full py-[15px] bg-brand-black text-brand-white border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
             >
               {lang === 'en' ? 'Start shopping' : 'Commencer à magasiner'}
             </button>
@@ -513,7 +512,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               <div
                 role="status"
                 aria-live="polite"
-                className="text-[12px] font-bold text-[hsl(var(--gold))] mb-2"
+                className="text-[12px] font-bold text-brand-blue mb-2"
               >
                 {lang === 'en' ? '🏆 New record!' : '🏆 Nouveau record !'}
               </div>
@@ -530,7 +529,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             <button
               type="button"
               onClick={() => onClose(false)}
-              className="block w-full py-[15px] gradient-navy-dark text-primary-foreground border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+              className="block w-full py-[15px] bg-brand-black text-brand-white border-none rounded-xl text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-88 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
             >
               {lang === 'en' ? 'Continue without discount' : 'Continuer sans rabais'}
             </button>
