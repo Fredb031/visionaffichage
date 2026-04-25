@@ -134,6 +134,7 @@ function FadeIn({ children, className = '' }: { children: React.ReactNode; class
   return <div ref={ref} className={`fi ${className}`}>{children}</div>;
 }
 
+/** Homepage route — hero, trust signals, featured products, testimonials, FAQ and quote CTA for Vision Affichage. */
 export default function Index() {
   const { t, lang } = useLang();
   // Task 8.12 — homepage-specific SEO snippet. The index.html default
