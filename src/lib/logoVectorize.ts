@@ -73,9 +73,27 @@ export async function vectorizeInBrowser(file: File): Promise<VectorizeResult> {
   }
 }
 
+/** Delay before revoking an object URL after triggering a download.
+ * Safari (and occasionally older Chrome) race the download start
+ * against an immediate revoke and cancel the transfer; a short delay
+ * lets the browser finish wiring the click before the URL is freed.
+ * Lifted to a named constant so the value isn't duplicated as a magic
+ * number across the file (and so a future tuning PR has one site to
+ * touch). */
+const OBJECT_URL_REVOKE_DELAY_MS = 1000;
+
 /** Download any Blob as a file. Centralised so the admin page and
- * future callers stay consistent about createObjectURL revocation. */
+ * future callers stay consistent about createObjectURL revocation.
+ * No-ops in non-browser contexts (SSR, tests without jsdom) so a
+ * caller wired into a shared helper doesn't crash the render. */
 export function triggerBlobDownload(blob: Blob, filename: string): void {
+  // Guard for SSR / non-DOM environments. `URL.createObjectURL` exists
+  // in Node 18+ but throws on a browser-only Blob in some setups, and
+  // `document` is undefined entirely under SSR. Bail early rather than
+  // letting the call site explode mid-render.
+  if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -83,17 +101,21 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  // Revoke on a short timeout — some browsers (Safari) race the
-  // download start against an immediate revoke and cancel the
-  // transfer. 1s is enough to clear the click handler.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_REVOKE_DELAY_MS);
 }
 
 /** Build a filename like `vision-logo-1570.svg` from an order name +
  * mime/extension. Keeps the admin's Downloads folder tidy — no more
- * `IMG_4821.png` landing in production's inbox with no context. */
+ * `IMG_4821.png` landing in production's inbox with no context.
+ *
+ * Order names from Shopify arrive as `#1570`; the leading `#` strip
+ * has to run BEFORE the alphanumeric filter, otherwise the filter
+ * removes the `#` first and the `^#` regex never matches anything
+ * (the original ordering made the second replace dead code). */
 export function buildLogoFilename(orderName: string, ext: string): string {
-  const safeOrder = orderName.replace(/[^a-z0-9_-]/gi, '').replace(/^#/, '') || 'order';
+  const safeOrder = orderName
+    .replace(/^#/, '')
+    .replace(/[^a-z0-9_-]/gi, '') || 'order';
   const safeExt = ext.replace(/^\./, '').toLowerCase() || 'bin';
   return `vision-logo-${safeOrder}.${safeExt}`;
 }
