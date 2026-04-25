@@ -37,7 +37,14 @@ export function FeaturedProducts() {
             to="/products"
             className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:gap-3 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
           >
-            {lang === 'en' ? `See all ${PRODUCTS.length} products` : `Voir les ${PRODUCTS.length} produits`}
+            {/* Pluralise the CTA so a future catalogue trim that leaves a
+                single SKU doesn't render 'See all 1 products' / 'Voir le
+                1 produits'. English picks 'product' vs 'products';
+                French swaps the article ('le' vs 'les') alongside the
+                noun so the determiner agrees with the count too. */}
+            {lang === 'en'
+              ? `See all ${PRODUCTS.length} ${PRODUCTS.length === 1 ? 'product' : 'products'}`
+              : `Voir ${PRODUCTS.length === 1 ? 'le' : 'les'} ${PRODUCTS.length} ${PRODUCTS.length === 1 ? 'produit' : 'produits'}`}
             <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>
