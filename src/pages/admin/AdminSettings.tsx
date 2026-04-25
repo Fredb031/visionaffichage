@@ -1040,7 +1040,7 @@ function ZapierOutlookSection() {
   const invalidUrl = trimmed.length > 0 && !(() => {
     try {
       const u = new URL(trimmed);
-      return u.protocol === 'https:' || u.protocol === 'http:';
+      return u.protocol === 'https:';
     } catch {
       return false;
     }
