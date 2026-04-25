@@ -1125,7 +1125,7 @@ export default function Index() {
       {/* Footer CTA */}
       <FadeIn>
         <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center">
-          <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
+          <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: '#0052CC', background: 'rgba(0, 82, 204, 0.12)', borderColor: 'rgba(0, 82, 204, 0.2)' }}>
             <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
             {lang === 'en' ? 'Delivered in 5 business days' : 'Livré en 5 jours ouvrables'}
           </div>
@@ -1238,7 +1238,7 @@ export default function Index() {
           <Link
             to="/contact"
             tabIndex={showStickyCta ? 0 : -1}
-            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-accent text-accent-foreground text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_hsla(var(--gold),0.4)] transition-shadow hover:shadow-[0_6px_18px_hsla(var(--gold),0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-accent text-accent-foreground text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(0,82,204,0.4)] transition-shadow hover:shadow-[0_6px_18px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
           >
             {lang === 'en' ? 'Free quote' : 'Soumission gratuite'}
           </Link>
