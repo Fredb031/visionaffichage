@@ -210,9 +210,15 @@ export type TranslationKey = keyof typeof translations.fr;
  * t('fr', 'commanderPlus', 12, 15); // "Commande 12+ pour -15%"
  */
 export function t(lang: Lang, key: TranslationKey, ...args: (string | number)[]): string {
-  let str = (translations[lang][key] as string) ?? (translations.fr[key] as string) ?? key;
-  args.forEach((arg) => { str = str.replace('%d', String(arg)).replace('%s', String(arg)); });
-  return str;
+  const str = (translations[lang][key] as string) ?? (translations.fr[key] as string) ?? key;
+  // Walk placeholders left-to-right and consume one `arg` per match. Using a
+  // global regex with a function callback ensures every `%d` / `%s` is filled
+  // (not just the first of each kind, as a literal `String.replace` would do)
+  // and preserves positional order even when the two placeholder kinds are
+  // mixed in a single string. Out-of-range args leave the placeholder intact
+  // so missing values are visible rather than silently dropped.
+  let i = 0;
+  return str.replace(/%[ds]/g, (match) => (i < args.length ? String(args[i++]) : match));
 }
 
 // ── Pluralisation helper ────────────────────────────────────────────────────
