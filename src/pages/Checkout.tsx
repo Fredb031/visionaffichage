@@ -185,6 +185,33 @@ function addBusinessDays(from: Date, businessDays: number): Date {
   return out;
 }
 
+/**
+ * Section 6.3 — guaranteed delivery date for the urgency banner.
+ *
+ * Rules:
+ * - Cutoff is 3pm local time. Orders placed before 15h00 ship the
+ *   same day; orders placed after bump one business day.
+ * - The promise window is 5 business days (matches the storefront
+ *   copy "livré en 5 jours ouvrables") so we walk the calendar
+ *   skipping Saturdays and Sundays.
+ * - Output is formatted with the fr-CA locale as "weekday day month"
+ *   (e.g. "mardi 28 avril") with no leading capital — the banner
+ *   already provides surrounding French copy.
+ */
+function getDeliveryDate(): string {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setHours(15, 0, 0, 0);
+  const after3pm = now > cutoff;
+  const baseDays = 5;
+  const target = addBusinessDays(now, baseDays + (after3pm ? 1 : 0));
+  return target.toLocaleDateString('fr-CA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
 const empty: ShippingForm = {
   email: '', firstName: '', lastName: '', company: '',
   address: '', city: '', postalCode: '', province: 'QC', phone: '', notes: '',
@@ -1224,80 +1251,98 @@ export default function Checkout() {
                   </span>
                 </label>
 
-                {/* Urgency: ship-by promise. Calculated client-side from
-                    today's date. Past-3pm orders bump one business day,
-                    express cuts the window to 2-3 business days. Pickup
-                    swaps the whole line for a "ready tomorrow" cueillette
-                    message — a delivered-by date would be misleading for
-                    buyers coming in person. */}
-                {(() => {
-                  const now = new Date();
-                  const cutoff = new Date(now);
-                  cutoff.setHours(15, 0, 0, 0);
-                  const after3pm = now > cutoff;
-                  if (shippingMethod === 'pickup') {
-                    const ready = addBusinessDays(now, 1);
-                    return (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
-                        <span className="text-emerald-600 text-base leading-none">📍</span>
-                        <span className="text-emerald-900">
-                          {lang === 'en'
-                            ? <>
-                                <strong>Ready for pickup</strong> in Saint-Hyacinthe by{' '}
-                                <strong>{ready.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                              </>
-                            : <>
-                                <strong>Prêt pour la cueillette</strong> à Saint-Hyacinthe d'ici le{' '}
-                                <strong>{ready.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                              </>}
-                        </span>
-                      </div>
-                    );
-                  }
-                  // Base promise matches the shipping method copy: standard
-                  // = 5 business days, express = 3. Before this, express
-                  // buyers saw the 5-day ETA even after paying for express.
-                  const baseDays = shippingMethod === 'express' ? 3 : 5;
-                  const ship = addBusinessDays(now, baseDays + (after3pm ? 1 : 0));
+                {/* Section 6.3 — urgency banner ABOVE the payment button.
+                    Shows the live business-day delivery date with a 3pm
+                    cutoff via getDeliveryDate(). Pickup swaps the whole
+                    line for a "ready tomorrow" cueillette message because
+                    a delivered-by date would be misleading for buyers
+                    coming in person. */}
+                {shippingMethod === 'pickup' ? (() => {
+                  const ready = addBusinessDays(new Date(), 1);
                   return (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
-                      <span className="text-emerald-600 text-base leading-none">⚡</span>
-                      <span className="text-emerald-900">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs flex items-start gap-2">
+                      <span className="text-green-600 text-base leading-none" aria-hidden="true">📍</span>
+                      <span className="text-green-900">
                         {lang === 'en'
                           ? <>
-                              <strong>{after3pm ? 'Order today —' : 'Order before 3pm —'}</strong> delivered by{' '}
-                              <strong>{ship.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                              <strong>Ready for pickup</strong> in Saint-Hyacinthe by{' '}
+                              <strong>{ready.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
                             </>
                           : <>
-                              <strong>{after3pm ? 'Commande aujourd\'hui —' : 'Commande avant 15h —'}</strong> livrée d'ici le{' '}
-                              <strong>{ship.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                              <strong>Prêt pour la cueillette</strong> à Saint-Hyacinthe d'ici le{' '}
+                              <strong>{ready.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
                             </>}
                       </span>
                     </div>
                   );
-                })()}
+                })() : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs flex items-start gap-2">
+                    <span className="text-green-600 text-base leading-none" aria-hidden="true">⚡</span>
+                    <span className="text-green-900">
+                      <strong>{lang === 'en' ? 'Order before 3pm today' : 'Commande avant 15h aujourd\'hui'}</strong>
+                      {' → '}
+                      {lang === 'en' ? 'Guaranteed delivery on ' : 'Livraison garantie le '}
+                      <strong>{getDeliveryDate()}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {/* Section 6.4 — 4-item trust grid sitting within 100px
+                    of the payment CTA. Reassures the buyer right at the
+                    point of committing to pay: SSL security, accepted
+                    payment methods, tracked shipping, and refund policy. */}
+                <div
+                  className="grid grid-cols-2 md:grid-cols-4 gap-2.5"
+                  role="list"
+                  aria-label={lang === 'en' ? 'Shop with confidence' : 'Achète en confiance'}
+                >
+                  <div role="listitem" className="bg-secondary/50 border border-border rounded-lg p-3 flex flex-col items-center text-center gap-1.5">
+                    <span className="text-lg leading-none" aria-hidden="true">🔒</span>
+                    <span className="text-[11px] font-bold text-foreground leading-tight">
+                      {lang === 'en' ? 'SSL secure payment' : 'Paiement sécurisé SSL'}
+                    </span>
+                  </div>
+                  <div role="listitem" className="bg-secondary/50 border border-border rounded-lg p-3 flex flex-col items-center text-center gap-1.5">
+                    <span className="text-lg leading-none" aria-hidden="true">💳</span>
+                    <span className="text-[11px] font-bold text-foreground leading-tight">
+                      Visa · MC · Apple Pay · Shop Pay
+                    </span>
+                  </div>
+                  <div role="listitem" className="bg-secondary/50 border border-border rounded-lg p-3 flex flex-col items-center text-center gap-1.5">
+                    <span className="text-lg leading-none" aria-hidden="true">📦</span>
+                    <span className="text-[11px] font-bold text-foreground leading-tight">
+                      {lang === 'en' ? 'Tracked delivery' : 'Livraison trackée'}
+                    </span>
+                  </div>
+                  <div role="listitem" className="bg-secondary/50 border border-border rounded-lg p-3 flex flex-col items-center text-center gap-1.5">
+                    <span className="text-lg leading-none" aria-hidden="true">✅</span>
+                    <span className="text-[11px] font-bold text-foreground leading-tight">
+                      {lang === 'en' ? 'Satisfied or refunded' : 'Satisfait ou remboursé'}
+                    </span>
+                  </div>
+                </div>
 
                 <button
                   type="button"
                   disabled={!acceptedTerms || processing}
                   onClick={handlePay}
                   aria-busy={processing}
-                  className="w-full py-4 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full bg-[#0052CC] text-white font-bold py-5 text-lg rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#003d99] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
                 >
                   {processing ? (
-                    <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+                    <Loader2 size={20} className="animate-spin" aria-hidden="true" />
                   ) : (
-                    <Lock size={16} aria-hidden="true" />
+                    <Lock size={18} aria-hidden="true" />
                   )}
                   {processing
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'
-                    : lang === 'en' ? `Pay ${fmtMoney(total)} $ securely` : `Payer ${fmtMoney(total)} $ en sécurité`}
+                    : lang === 'en' ? 'Confirm and pay' : 'Confirmer et payer'}
                 </button>
 
-                <p className="text-[11px] text-muted-foreground text-center">
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
                   {lang === 'en'
-                    ? '🔒 Encrypted · 💳 All cards accepted · 🇨🇦 Made in Québec'
-                    : '🔒 Chiffré · 💳 Toutes cartes acceptées · 🇨🇦 Fabriqué au Québec'}
+                    ? 'By clicking, you accept our terms of sale · All transactions are encrypted'
+                    : 'En cliquant, tu acceptes nos conditions de vente · Toutes les transactions sont chiffrées'}
                 </p>
               </div>
             )}

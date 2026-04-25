@@ -1091,6 +1091,61 @@ export default function Cart() {
               </div>
             </div>
 
+            {/* Section 6.2 — shipping threshold nudge. Surfaces exactly
+                how many dollars are missing for free shipping (300$
+                threshold) so the buyer sees the carrot before they hit
+                the totals; flips to a green confirmation once crossed.
+                Reads totalPrice (which is post-discount) so a discount
+                that drops the cart under 300$ correctly re-shows the
+                nudge. */}
+            {(() => {
+              const FREE_SHIP_THRESHOLD = 300;
+              const cartTotal = totalPrice;
+              if (cartTotal < FREE_SHIP_THRESHOLD) {
+                const missing = FREE_SHIP_THRESHOLD - cartTotal;
+                return (
+                  <div
+                    className="rounded-xl bg-[#0052CC]/10 border border-[#0052CC]/20 p-4 flex items-start gap-3"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="text-2xl leading-none flex-shrink-0" aria-hidden="true">📦</span>
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-sm text-foreground">
+                        {lang === 'en'
+                          ? <>Add <span className="text-[#0052CC]">{fmtMoney(missing)} $</span> for free shipping</>
+                          : <>Ajoute <span className="text-[#0052CC]">{fmtMoney(missing)} $</span> pour la livraison gratuite</>}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {lang === 'en'
+                          ? "You're almost there — it would be a shame to pay for shipping"
+                          : "Tu es presque là — c'est dommage de payer la livraison"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  className="rounded-xl bg-green-50 border border-green-200 p-4 flex items-start gap-3"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="text-2xl leading-none flex-shrink-0" aria-hidden="true">✅</span>
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-sm text-green-900">
+                      {lang === 'en' ? 'Free shipping included' : 'Livraison gratuite incluse'}
+                    </p>
+                    <p className="text-xs text-green-800/80 mt-0.5">
+                      {lang === 'en'
+                        ? 'Your order is over $300'
+                        : 'Ta commande dépasse 300$'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Order summary */}
             <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
               <h2 className="font-extrabold text-sm uppercase tracking-wider text-muted-foreground">
