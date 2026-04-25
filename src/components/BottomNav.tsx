@@ -2,22 +2,30 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
-import { Home, Store, ShoppingCart } from 'lucide-react';
+import { Home, ShoppingBag, Edit3, ShoppingCart } from 'lucide-react';
 
 /**
- * BottomNav — mobile-only fixed bottom tab bar (Home / Shop / Cart) with
- * a live cart-count badge, route-aware active state, and an sr-only
- * live region that announces cart changes regardless of focus.
+ * Vision Affichage redesign Section 03 — Mobile bottom nav.
+ *
+ * Fixed bottom-0 white surface, md:hidden, four items (Accueil / Boutique
+ * / Creer / Panier). Active item uses the brand blue, inactive uses
+ * brand grey, icons are 22px, labels are 10px uppercase tracking-wide.
+ *
+ * Notes
+ *   - "Boutique" routes to `/products` (the route the codebase actually
+ *     ships; the brief used `/boutique` as a placeholder).
+ *   - "Creer" routes to `/products` because the codebase has no
+ *     standalone `/customizer` route — the customizer lives inside the
+ *     ProductDetail page and is reached by selecting a product.
+ *   - sr-only live region announces cart-count changes regardless of
+ *     focus, since the badge is decorative and the link's aria-label
+ *     only fires on focus.
  */
 export function BottomNav() {
   const location = useLocation();
-  const { lang, t } = useLang();
-  const itemCount = useCartStore(s => s.getItemCount());
+  const { lang } = useLang();
+  const itemCount = useCartStore((s) => s.getItemCount());
 
-  // Announce cart count changes to screen readers. The badge itself is
-  // aria-hidden (purely decorative) and the link's aria-label is only
-  // read when it receives focus, so counting changes (item added from
-  // another page, cart cleared, etc.) go silent without a live region.
   const [announcement, setAnnouncement] = useState('');
   const [pulse, setPulse] = useState(false);
   const prevCountRef = useRef(itemCount);
@@ -32,9 +40,6 @@ export function BottomNav() {
     } else {
       setAnnouncement(`Panier : ${itemCount} ${itemCount === 1 ? 'article' : 'articles'}`);
     }
-    // Brief scale pulse so the badge "pops" when the count changes. Pure
-    // CSS via a timed class toggle — avoids pulling in framer-motion for
-    // a 200ms flourish.
     if (itemCount > 0) {
       setPulse(true);
       const id = window.setTimeout(() => setPulse(false), 240);
@@ -42,28 +47,46 @@ export function BottomNav() {
     }
   }, [itemCount, lang]);
 
+  // Section 03 spec: exactly four items.
   const items = [
-    { id: 'home', label: t('accueil'),  path: '/',         icon: Home },
-    { id: 'shop', label: t('boutique'), path: '/products', icon: Store },
-    { id: 'cart', label: t('panier'),   path: '/cart',     icon: ShoppingCart },
+    {
+      id: 'home',
+      label: lang === 'en' ? 'Home' : 'Accueil',
+      path: '/',
+      icon: Home,
+    },
+    {
+      id: 'shop',
+      label: lang === 'en' ? 'Shop' : 'Boutique',
+      path: '/products',
+      icon: ShoppingBag,
+    },
+    {
+      id: 'create',
+      label: lang === 'en' ? 'Create' : 'Creer',
+      path: '/products',
+      icon: Edit3,
+    },
+    {
+      id: 'cart',
+      label: lang === 'en' ? 'Cart' : 'Panier',
+      path: '/cart',
+      icon: ShoppingCart,
+    },
   ] as const;
 
   return (
     <nav
-      // z-[440] sits one tier below the AIChat FAB (z-[450]) so the
-      // floating chat button always overlaps the nav instead of
-      // fighting it.
-      className="fixed bottom-0 left-0 right-0 z-[440] bg-white border-t border-zinc-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E5E7EB] md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       role="navigation"
       aria-label={lang === 'en' ? 'Bottom navigation' : 'Navigation du bas'}
     >
       <div className="flex items-center justify-around h-[60px] max-w-md mx-auto">
-        {items.map(item => {
+        {items.map((item, i) => {
           const Icon = item.icon;
-          // Product detail lives at /product/<handle> (singular), but
-          // that's still 'Shop' in the nav — treat it as part of the
-          // /products tree so the tab actually lights up on PDPs.
+          // Match `/products` and `/product/<handle>` for both the Shop
+          // and Create tabs since they share the route entry point.
           const active = item.path === '/'
             ? location.pathname === '/'
             : item.path === '/products'
@@ -72,12 +95,12 @@ export function BottomNav() {
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? `${item.label} (${itemCount})`
             : item.label;
-          // Use Link instead of button — preserves Cmd/right-click "Open
-          // in new tab", proper screen reader announcement as link, and
-          // browser history works as users expect.
+          // Disambiguate 'shop' and 'create' which share /products — use
+          // the array index in the key so React keeps them as distinct
+          // siblings.
           return (
             <Link
-              key={item.id}
+              key={`${item.id}-${i}`}
               to={item.path}
               className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded-md no-underline"
               aria-current={active ? 'page' : undefined}
@@ -85,30 +108,27 @@ export function BottomNav() {
             >
               <span className="relative">
                 <Icon
-                  size={20}
-                  strokeWidth={active ? 2.2 : 1.5}
-                  className={`transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}
+                  size={22}
+                  strokeWidth={active ? 2.2 : 1.6}
+                  className={`transition-colors ${active ? 'text-[#0052CC]' : 'text-[#6B7280]'}`}
                   aria-hidden="true"
                 />
                 {item.id === 'cart' && itemCount > 0 && (
                   <span
-                    className={`absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5 transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
+                    className={`absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#EF4444] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5 transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
                     aria-hidden="true"
                   >
                     {itemCount > 99 ? '99+' : itemCount}
                   </span>
                 )}
               </span>
-              <span className={`text-[10px] font-semibold transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}>
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                  active ? 'text-[#0052CC]' : 'text-[#6B7280]'
+                }`}
+              >
                 {item.label}
               </span>
-              {/* 2px active indicator bar — sits under the label and only
-                 renders on the active tab. Matches the brand blue used
-                 elsewhere for primary active states. */}
-              <span
-                aria-hidden="true"
-                className={`mt-0.5 h-[2px] w-4 rounded-full transition-colors ${active ? 'bg-[#0052CC]' : 'bg-transparent'}`}
-              />
             </Link>
           );
         })}
