@@ -170,6 +170,7 @@ export function colorNameToHex(name: string): string {
 
   // Tier 2: case-insensitive match.
   const trimmed = name.trim();
+  if (!trimmed) return 'hsl(0, 0%, 70%)';
   const lower = trimmed.toLowerCase();
   for (const key of Object.keys(COLOR_MAP)) {
     if (key.toLowerCase() === lower) return COLOR_MAP[key];
