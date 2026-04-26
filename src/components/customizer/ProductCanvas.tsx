@@ -1434,6 +1434,13 @@ export function ProductCanvas({
         });
         active.setCoords?.();
         fc.current.requestRenderAll?.();
+        // Fabric does not emit object:modified for programmatic .set()
+        // calls, so the history-capture listeners (registered on the
+        // canvas in the init effect) never see arrow-nudges. Without
+        // this fire(), Cmd+Z silently skips over a chain of nudges and
+        // the user's prior position is lost. Mirrors what fabric emits
+        // at the end of a real drag.
+        fc.current.fire?.('object:modified', { target: active });
         // Nudging counts as manual placement — matches drag/align-left/right
         // behaviour. Text assets aren't in the placement store so emit only
         // when we just moved the logo.
