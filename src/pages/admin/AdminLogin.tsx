@@ -71,14 +71,20 @@ export default function AdminLogin() {
   // Live countdown for the client-side rate-limit lockout (Task 14.5).
   // Recomputed every second while > 0 so the user sees it tick down,
   // then cleared so the banner disappears and the form re-enables.
+  // Skip the interval entirely when no lockout is active — the previous
+  // version polled every second on every keystroke for the entire page
+  // lifetime, churning a setState even when there was nothing to count.
   const [lockSeconds, setLockSeconds] = useState(0);
   useEffect(() => {
-    const tick = () => {
-      const remaining = email.trim() ? getSignInLockoutRemaining(email) : 0;
+    const trimmed = email.trim();
+    const initial = trimmed ? getSignInLockoutRemaining(email) : 0;
+    setLockSeconds(initial);
+    if (initial <= 0) return;
+    const id = window.setInterval(() => {
+      const remaining = getSignInLockoutRemaining(email);
       setLockSeconds(remaining);
-    };
-    tick();
-    const id = window.setInterval(tick, 1000);
+      if (remaining <= 0) window.clearInterval(id);
+    }, 1000);
     return () => window.clearInterval(id);
   }, [email]);
 
