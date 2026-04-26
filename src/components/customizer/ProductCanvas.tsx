@@ -540,6 +540,20 @@ export function ProductCanvas({
       if (disposed) return;
       if (fc.current) { fc.current.dispose(); fc.current = null; }
 
+      // Section 5.1 — global fabric prototype styling for selection
+      // controls. Brand-blue circular corner handles + dashed border so
+      // every selectable object (logo, text) inherits the same look
+      // without us having to repeat the same bag of options on each
+      // creation. fabric.Object.prototype is global state, so setting
+      // it inside this once-per-mount init effect is fine — repeated
+      // canvasKey rebuilds re-assign identical values, no leak.
+      fabric.Object.prototype.cornerColor = '#0052CC';
+      fabric.Object.prototype.cornerStyle = 'circle';
+      fabric.Object.prototype.cornerSize = 12;
+      fabric.Object.prototype.transparentCorners = false;
+      fabric.Object.prototype.borderColor = '#0052CC';
+      fabric.Object.prototype.borderDashArray = [4, 4];
+
       const W = containerRef.current!.clientWidth || 360;
       // Adaptive aspect ratio — on narrow phones the canvas stays
       // portrait (tall) so the garment isn't squashed into a square;
@@ -1044,6 +1058,16 @@ export function ProductCanvas({
   //    by the parent's color/view re-render and the logo visibly
   //    snapped back to its pre-click position. renderAll() is sync,
   //    so the move is reflected in the same paint cycle as the click.
+  //
+  //    Section 4.2: instead of snap-setting the new transform, drive
+  //    the move through fabric's animate API (250ms easeOutQuart) so
+  //    users see the logo glide to its new spot when a placement
+  //    preset is chosen. onChange renders every animation frame,
+  //    onComplete calls setCoords + a final render so hit-testing
+  //    matches the final visible position. The center/zone toolbar
+  //    buttons (snapLeft/snapCenter/snapRight/rescale/rotate) still
+  //    use the synchronous .set + renderAll path — they bypass this
+  //    effect entirely so direct toolbar interactions stay instant.
   useEffect(() => {
     if (!fc.current || !logoObj.current || !currentPlacement) return;
     if (currentPlacement.x == null || currentPlacement.y == null) return;
@@ -1070,22 +1094,66 @@ export function ProductCanvas({
     // placements land exactly on the target point.
     const originX = (img as unknown as { originX?: string }).originX;
     const originY = (img as unknown as { originY?: string }).originY;
-    const left = originX === 'center'
+    const targetLeft = originX === 'center'
       ? targetX
       : targetX - (img.width ?? 0) * targetScale / 2;
-    const top = originY === 'center'
+    const targetTop = originY === 'center'
       ? targetY
       : targetY - (img.height ?? 0) * targetScale / 2;
+    const targetAngle = currentPlacement.rotation ?? img.angle ?? 0;
 
-    img.set({
-      left,
-      top,
-      scaleX: targetScale,
-      scaleY: targetScale,
-      angle: currentPlacement.rotation ?? img.angle ?? 0,
+    // Skip the animation if we're already at the target — fabric's
+    // animate still fires onComplete, but a no-op transition wastes a
+    // frame and re-emits placement on every render.
+    const epsilon = 0.5;
+    const alreadyThere =
+      Math.abs((img.left ?? 0) - targetLeft) < epsilon &&
+      Math.abs((img.top ?? 0) - targetTop) < epsilon &&
+      Math.abs((img.scaleX ?? 1) - targetScale) < 0.001 &&
+      Math.abs((img.angle ?? 0) - targetAngle) < epsilon;
+    if (alreadyThere) return;
+
+    // Use fabric.animate for a smooth glide instead of a snap. We import
+    // fabric lazily because the component already does so for canvas
+    // creation; reusing the dynamic import keeps bundle behaviour
+    // consistent. The animate call returns immediately and animates on
+    // its own RAF loop — onChange repaints, onComplete locks coords.
+    let cancelled = false;
+    import('fabric').then(({ fabric }) => {
+      if (cancelled || !fc.current || !logoObj.current) return;
+      // Use the fabric instance's animate API. Type-cast through unknown
+      // because our local FabricObj alias doesn't model `animate`.
+      const animatable = img as unknown as {
+        animate: (
+          props: Record<string, number>,
+          opts: {
+            duration: number;
+            easing?: (t: number, b: number, c: number, d: number) => number;
+            onChange?: () => void;
+            onComplete?: () => void;
+          },
+        ) => void;
+      };
+      animatable.animate(
+        {
+          left: targetLeft,
+          top: targetTop,
+          scaleX: targetScale,
+          scaleY: targetScale,
+          angle: targetAngle,
+        },
+        {
+          duration: 250,
+          easing: fabric.util.ease.easeOutQuart,
+          onChange: () => canvas.renderAll(),
+          onComplete: () => {
+            img.setCoords?.();
+            canvas.renderAll();
+          },
+        },
+      );
     });
-    img.setCoords?.();
-    canvas.renderAll();
+    return () => { cancelled = true; };
     // Tracking individual fields intentionally — a new currentPlacement object
     // every render would retrigger the effect and fight the user's drag.
     // eslint-disable-next-line react-hooks/exhaustive-deps
