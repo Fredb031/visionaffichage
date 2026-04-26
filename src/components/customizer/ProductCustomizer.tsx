@@ -28,6 +28,8 @@ import { LogoUploader } from './LogoUploader';
 import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
 import { TemplatesSection, type CustomizerTemplate } from './TemplatesSection';
+import { TemplateGallery } from './TemplateGallery';
+import type { DesignTemplate } from '@/data/designTemplates';
 import { Confetti } from '@/components/Confetti';
 import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
@@ -1310,6 +1312,97 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       })}
                     </div>
                   </div>
+
+                  {/* Section 16.1 — starter template gallery. Sits just
+                      above the upload zone so first-time buyers can
+                      skip the blank-canvas anxiety: pick a template,
+                      placement coords land on the canvas, then upload
+                      (or already-uploaded) artwork snaps into the new
+                      x/y/width/rotation slot. Hidden only for "Blank"
+                      since templates apply to a placement that doesn't
+                      exist in that mode. */}
+                  {store.placementSides !== 'none' && (
+                    <TemplateGallery
+                      lang={lang}
+                      onApply={(tpl: DesignTemplate) => {
+                        // Map the template's coarse zone to the closest
+                        // printZone on THIS product. Falls back to the
+                        // product's default-front zone if no exact match
+                        // exists (e.g. left-sleeve on a cap).
+                        const zoneFor = (t: DesignTemplate) => {
+                          const zones = product.printZones;
+                          if (t.zone === 'back') {
+                            return zones.find(z => /dos|back/i.test(z.id) || z.side === 'back')
+                              ?? pickDefaultZoneForSide(zones, 'back')
+                              ?? pickDefaultZone(zones);
+                          }
+                          if (t.zone === 'left-sleeve') {
+                            return zones.find(z => /manche-?gauche|left-?sleeve/i.test(z.id))
+                              ?? pickDefaultZone(zones);
+                          }
+                          if (t.zone === 'right-sleeve') {
+                            return zones.find(z => /manche-?droite|right-?sleeve/i.test(z.id))
+                              ?? pickDefaultZone(zones);
+                          }
+                          return pickDefaultZone(zones);
+                        };
+                        const targetZone = zoneFor(tpl);
+                        // If the template is back-zone, flip the active
+                        // view (and the placementSides if user is on
+                        // front-only) so the canvas shows the side the
+                        // template lives on.
+                        if (tpl.zone === 'back') {
+                          if (store.placementSides === 'front') {
+                            store.setPlacementSides('both');
+                          }
+                          store.setView('back');
+                        } else {
+                          // Sleeves and chest variants live on the front
+                          // view in this catalogue.
+                          if (store.placementSides === 'both') {
+                            store.setView('front');
+                          }
+                        }
+                        // Build the placement. Preserve the existing
+                        // artwork (previewUrl/processedUrl/originalFile)
+                        // from the slot we're writing into so applying a
+                        // template AFTER an upload re-positions rather
+                        // than wipes the logo.
+                        const writingToBack =
+                          tpl.zone === 'back' ||
+                          store.placementSides === 'back' ||
+                          (store.placementSides === 'both' && store.activeView === 'back');
+                        const existing = writingToBack
+                          ? store.logoPlacementBack
+                          : store.logoPlacement;
+                        const next: LogoPlacement = {
+                          zoneId: targetZone?.id ?? 'centre',
+                          mode: 'preset',
+                          x: tpl.x,
+                          y: tpl.y,
+                          width: tpl.width,
+                          rotation: tpl.rotation,
+                          previewUrl: existing?.previewUrl,
+                          processedUrl: existing?.processedUrl,
+                          originalFile: existing?.originalFile,
+                        };
+                        if (writingToBack) {
+                          store.setLogoPlacementBack(next);
+                        } else {
+                          store.setLogoPlacement(next);
+                        }
+                        // Also fire a custom event for any listener that
+                        // wants to react (e.g. a future analytics hook
+                        // or a non-mounted canvas dev surface). Cheap
+                        // belt-and-braces: noop if nothing listens.
+                        try {
+                          window.dispatchEvent(new CustomEvent('va:placement-apply', {
+                            detail: { templateId: tpl.id, zone: tpl.zone, placement: next },
+                          }));
+                        } catch { /* SSR / restricted env — ignore */ }
+                      }}
+                    />
+                  )}
 
                   {/* Logo uploader — prominent dashed drop zone, the
                       user's first real action on the page. Hidden only
