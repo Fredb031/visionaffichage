@@ -1,6 +1,8 @@
 import { Zap, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 
+const ICON_COLOR = '#0052CC';
+
 export function TrustSignalsBar() {
   const { lang } = useLang();
 
@@ -50,7 +52,7 @@ export function TrustSignalsBar() {
               aria-label={`${s.title} — ${s.sub}`}
             >
               <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-                <Icon size={18} className="text-[#0052CC]" strokeWidth={2} aria-hidden="true" />
+                <Icon size={18} color={ICON_COLOR} strokeWidth={2} aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <div className="text-[13px] font-extrabold text-foreground leading-tight" aria-hidden="true">{s.title}</div>
