@@ -443,48 +443,9 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ============================================================
-          3. STATS GRID — 3 columns, big brand-blue numbers.
-          ============================================================ */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-b border-border bg-background py-16 md:py-20 px-6 md:px-10">
-          <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 text-center">
-            {[
-              {
-                num: '33\u202F000+',
-                label: lang === 'en' ? 'pieces delivered since 2021' : 'pièces livrées depuis 2021',
-                sub: lang === 'en' ? 'Every print, every stitch — counted.' : 'Chaque impression, chaque couture — comptée.',
-              },
-              {
-                num: '500+',
-                label: lang === 'en'
-                  ? 'businesses: construction, landscaping, corporate'
-                  : 'entreprises construction \u00B7 paysagement \u00B7 corporate',
-                sub: lang === 'en' ? 'From 1-person shops to 500-person teams.' : 'Du solo aux équipes de 500 personnes.',
-              },
-              {
-                num: lang === 'en' ? '5 days' : '5 jours',
-                label: lang === 'en'
-                  ? 'guaranteed turnaround or refunded — no exception'
-                  : 'délai garanti ou remboursé — aucune exception',
-                sub: lang === 'en' ? 'From proof approval to your door.' : 'De l\u2019approbation à ta porte.',
-              },
-            ].map((stat, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="text-[#0052CC] font-black text-5xl md:text-[64px] leading-none tracking-[-2px]">
-                  {stat.num}
-                </div>
-                <div className="mt-3 text-[13px] font-bold uppercase tracking-[2px] text-foreground/70">
-                  {stat.label}
-                </div>
-                <div className="mt-2 text-[13px] text-[#374151] max-w-[260px]">
-                  {stat.sub}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </FadeIn>
+      {/* Stats grid removed (dedup): hero trust bar already surfaces
+          the 33 000+ / 500+ / 5 jours numbers; TrustSignalsBar below
+          carries the delivery / guarantee / Québec promises. */}
 
       {/* Existing trust signals strip (delivery promise, guarantees) */}
       <TrustSignalsBar />
@@ -707,23 +668,10 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Footer CTA */}
-      <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center bg-background">
-          <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
-            {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
-          </h2>
-          <p className="text-[15px] text-[#374151] mb-[34px]">
-            {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
-          </p>
-          <Link
-            to="/products"
-            className="inline-flex items-center justify-center px-12 h-[56px] rounded-full bg-[#0052CC] text-white text-[17px] font-extrabold tracking-[-0.2px] shadow-[0_10px_32px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
-          >
-            {lang === 'en' ? 'Order now' : 'Commander maintenant'}
-          </Link>
-        </section>
-      </FadeIn>
+      {/* Footer CTA section removed (dedup): the loss-aversion section
+          above already ships the same "Commander maintenant" pill, and
+          TrustSignalsBar / FAQ already cover the "no minimum · 1-year
+          guarantee · 5 days" reassurance copy. */}
 
       <SiteFooter />
 
