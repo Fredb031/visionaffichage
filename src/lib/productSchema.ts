@@ -68,15 +68,22 @@ export function buildProductSchema(input: BuildProductSchemaInput): ProductSchem
   const currency = product.priceRange?.minVariantPrice?.currencyCode;
   if (amount === undefined || currency === undefined) return null;
   const price = parseFloat(amount);
-  if (!Number.isFinite(price)) return null;
+  // Reject non-finite *and* non-positive prices: Google's Merchant Center
+  // rejects offers with price <= 0 (it reads them as "free", which conflicts
+  // with InStock + a paid-shipping promise) so emitting the schema would
+  // earn a Search Console warning rather than a rich result.
+  if (!Number.isFinite(price) || price <= 0) return null;
   const resolvedImage = image ?? product.images?.edges?.[0]?.node?.url;
+  // Treat empty/whitespace description the same as missing — Google flags
+  // `description: ""` as an invalid value rather than silently dropping it.
+  const trimmedDescription = product.description?.trim();
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.title,
     sku: localProduct?.sku,
     image: resolvedImage ? [resolvedImage] : undefined,
-    description: product.description ?? undefined,
+    description: trimmedDescription ? trimmedDescription : undefined,
     brand: { '@type': 'Brand', name: 'Vision Affichage' },
     offers: {
       '@type': 'Offer',
