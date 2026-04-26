@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { Home, Store, ShoppingCart } from 'lucide-react';
+
+// Visual + animation constants kept out of JSX so they're easy to tune
+// without diff noise inside the render tree.
+const BADGE_MAX = 99;            // anything beyond this renders as "99+"
+const PULSE_DURATION_MS = 240;   // matches the Tailwind duration-200 ease-out
 
 /**
  * BottomNav — mobile-only fixed bottom tab bar (Home / Shop / Cart) with
@@ -12,7 +17,12 @@ import { Home, Store, ShoppingCart } from 'lucide-react';
 export function BottomNav() {
   const location = useLocation();
   const { lang, t } = useLang();
-  const itemCount = useCartStore(s => s.getItemCount());
+  const rawCount = useCartStore(s => s.getItemCount());
+  // Defensive guard: even though localCartStore.getItemCount() already
+  // filters non-finite quantities, a downstream consumer rendering
+  // "NaN" inside a live region (announced to AT users) is a much worse
+  // failure mode than silently clamping to 0 here.
+  const itemCount = Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 0;
 
   // Announce cart count changes to screen readers. The badge itself is
   // aria-hidden (purely decorative) and the link's aria-label is only
@@ -37,16 +47,19 @@ export function BottomNav() {
     // a 200ms flourish.
     if (itemCount > 0) {
       setPulse(true);
-      const id = window.setTimeout(() => setPulse(false), 240);
+      const id = window.setTimeout(() => setPulse(false), PULSE_DURATION_MS);
       return () => window.clearTimeout(id);
     }
   }, [itemCount, lang]);
 
-  const items = [
+  // Memoised so the items array isn't recreated on every cart update —
+  // small win, but it also keeps Link prop identity stable for any
+  // downstream memoised children that compare by reference.
+  const items = useMemo(() => ([
     { id: 'home', label: t('accueil'),  path: '/',         icon: Home },
     { id: 'shop', label: t('boutique'), path: '/products', icon: Store },
     { id: 'cart', label: t('panier'),   path: '/cart',     icon: ShoppingCart },
-  ] as const;
+  ] as const), [t]);
 
   return (
     <nav
@@ -64,11 +77,17 @@ export function BottomNav() {
           // Product detail lives at /product/<handle> (singular), but
           // that's still 'Shop' in the nav — treat it as part of the
           // /products tree so the tab actually lights up on PDPs.
+          // Use boundary checks (exact, or trailing "/") so a future
+          // route like "/products-export" wouldn't accidentally light
+          // up the Shop tab.
+          const path = location.pathname;
+          const startsWithBoundary = (prefix: string) =>
+            path === prefix || path.startsWith(`${prefix}/`);
           const active = item.path === '/'
-            ? location.pathname === '/'
+            ? path === '/'
             : item.path === '/products'
-              ? location.pathname.startsWith('/products') || location.pathname.startsWith('/product/')
-              : location.pathname.startsWith(item.path);
+              ? startsWithBoundary('/products') || startsWithBoundary('/product')
+              : startsWithBoundary(item.path);
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? `${item.label} (${itemCount})`
             : item.label;
@@ -95,7 +114,7 @@ export function BottomNav() {
                     className={`absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5 transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
                     aria-hidden="true"
                   >
-                    {itemCount > 99 ? '99+' : itemCount}
+                    {itemCount > BADGE_MAX ? `${BADGE_MAX}+` : itemCount}
                   </span>
                 )}
               </span>
