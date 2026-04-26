@@ -301,6 +301,27 @@ export function LogoUploader({
     if (dragCounterRef.current === 0) setIsDragOver(false);
   }, []);
 
+  // Paste-from-clipboard support — users commonly copy logos from Figma,
+  // Photoshop, or a website's "copy image" right-click. Without this they
+  // had to save-then-upload, which was friction. Listen on the drop zone
+  // (focused via tabIndex) so paste only fires when the uploader is the
+  // active element — avoids hijacking pastes meant for other inputs (eg.
+  // the customer's name field down-page).
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          processFile(file);
+          return;
+        }
+      }
+    }
+  }, [processFile]);
+
   const statusLabel: Record<UploadStatus, string> = {
     idle: '',
     'removing-bg': lang === 'en' ? 'Processing...' : 'Traitement...',
@@ -327,6 +348,7 @@ export function LogoUploader({
             onDragOver={(e) => { e.preventDefault(); }}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
+            onPaste={handlePaste}
             role="button"
             tabIndex={0}
             aria-label={t('glisserLogo')}
@@ -352,8 +374,8 @@ export function LogoUploader({
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {lang === 'en'
-                ? 'PNG · JPG · SVG · WebP — max 20 MB'
-                : 'PNG · JPG · SVG · WebP — max 20 Mo'}
+                ? 'PNG · JPG · SVG · WebP — max 20 MB · paste with Ctrl/Cmd+V'
+                : 'PNG · JPG · SVG · WebP — max 20 Mo · colle avec Ctrl/Cmd+V'}
             </p>
             <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
               <CheckCircle2 size={12} aria-hidden="true" /> {t('fondSupprimeAuto')}
