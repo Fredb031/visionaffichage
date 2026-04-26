@@ -46,14 +46,16 @@ export default function Signup() {
     // HTML5 `required` accepts a whitespace-only string, so a name of
     // "   " would otherwise round-trip to Supabase and land as an empty
     // full_name in user_metadata. Reject locally with a friendly note.
-    if (name.trim().length === 0) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (trimmedName.length === 0) {
       useAuthStore.getState().setError('Nom complet requis');
       return;
     }
     // Pre-validate with the stricter email regex — Supabase bounces
     // 'a@b'-style inputs back with an unfriendly message. Catch here
     // so the user gets our own friendly error before a round-trip.
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(trimmedEmail)) {
       useAuthStore.getState().setError('Adresse courriel invalide');
       return;
     }
@@ -67,7 +69,7 @@ export default function Signup() {
     }
     setSubmitting(true);
     try {
-      const result = await signUp(email, password, name);
+      const result = await signUp(trimmedEmail, password, trimmedName);
       if (result.ok) setDone(true);
     } catch (err) {
       // A thrown signUp (network reject) would otherwise leave the
