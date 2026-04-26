@@ -35,8 +35,8 @@ export function useVisitorTracking(): VisitorProfile {
     //    writers don't want to type the prefix every time).
     try {
       const params = new URLSearchParams(window.location.search);
-      const utmSource = params.get('utm_source');
-      const industry = params.get('industry') ?? params.get('utm_industry');
+      const utmSource = params.get('utm_source')?.trim();
+      const industry = (params.get('industry') ?? params.get('utm_industry'))?.trim();
       const patch: Partial<VisitorProfile> = {};
       if (utmSource) patch.utmSource = utmSource;
       if (industry) patch.utmIndustry = industry;
