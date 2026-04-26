@@ -76,6 +76,7 @@ export function getConfiguredWebhook(): string | null {
 /** Persist the admin-provided webhook URL. Pass null/empty to clear. */
 export function setConfiguredWebhook(url: string | null): void {
   try {
+    if (typeof localStorage === 'undefined') return;
     if (!url || url.trim().length === 0) {
       localStorage.removeItem(WEBHOOK_KEY);
       return;
