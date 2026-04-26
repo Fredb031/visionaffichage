@@ -77,5 +77,11 @@ export function isSuspiciousUrl(s: string): boolean {
   // because the attack surface is "text that becomes an href", and any
   // embedded occurrence can be the one that ends up as the link target.
   const normalized = s.replace(/\s+/g, '').toLowerCase();
-  return normalized.includes('javascript:') || normalized.includes('data:');
+  // Require a non-alphanumeric boundary (or string start) before the
+  // scheme token so legitimate words containing it as a substring —
+  // "metadata:", "seedata:", "myjavascript:foo" — don't get flagged.
+  // Real `javascript:` / `data:` URI schemes always sit at the start of
+  // a URL token, so the preceding character is either nothing (start of
+  // string) or punctuation/symbol like `"`, `'`, `(`, `=`, `>`, etc.
+  return /(?:^|[^a-z0-9])(?:javascript|data):/.test(normalized);
 }
