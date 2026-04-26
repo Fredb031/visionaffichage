@@ -33,6 +33,12 @@
     --gold2: 35 91% 55%;
     --goldb: 40 82% 40%;
     --green: 152 62% 29%;
+    /* Vol II §11.2 — WCAG-AA compliant grey for text on light-grey
+       backgrounds. The brief flagged #6B7280-on-#F9FAFB at 3.8:1 (AA fail);
+       #374151 clears AA at 6.2:1. Exposed as a token so future cards/
+       tables/metadata on light-grey surfaces can opt in via
+       text-[hsl(var(--brand-grey-strong))] without re-deriving the hex. */
+    --brand-grey-strong: 220 13% 26%;
   }
   .dark {
     --background: 222 30% 5%;
@@ -75,6 +81,22 @@
   .sr-only:focus-visible {
     outline: none;
   }
+
+  /* Vol II §12.2 — Global typographic rhythm. These rules are
+     intentionally loose so per-section design overrides (a hero with
+     tighter tracking, a price tag with custom leading) still win via
+     specificity. Heading line-heights tighten as size grows; body
+     copy is set at a comfortable 1.65 for prose density. The
+     .label-caps utility is for SKU pills, micro-eyebrows, and table
+     column headers — uppercase + 0.12em tracking + 10px hits the
+     small-caps look without needing a font swap. */
+  h1 { line-height: 1.08; letter-spacing: -0.03em; }
+  h2 { line-height: 1.15; letter-spacing: -0.02em; }
+  h3 { line-height: 1.25; letter-spacing: -0.01em; }
+  p, li, td { line-height: 1.65; letter-spacing: 0; }
+  .price { line-height: 1.0; letter-spacing: -0.02em; }
+  button { letter-spacing: 0.02em; }
+  .label-caps { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; }
 }
 
 @layer utilities {
