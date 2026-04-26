@@ -82,7 +82,9 @@ export function computeTax(
   const code = (province ?? '').toUpperCase() as ProvinceCode;
   const resolved: ProvinceCode = code in TAX_RATES_BY_PROVINCE ? code : 'QC';
   const rates = TAX_RATES_BY_PROVINCE[resolved];
-  const safeSubtotal = Number.isFinite(subtotal) ? subtotal : 0;
+  // Clamp to non-negative: a negative subtotal would yield a negative tax
+  // line, which is never a legal Canadian tax result. Treat it as 0.
+  const safeSubtotal = Number.isFinite(subtotal) && subtotal > 0 ? subtotal : 0;
   const gst = safeSubtotal * rates.gst;
   const pst = safeSubtotal * rates.pst;
   const hst = safeSubtotal * rates.hst;
