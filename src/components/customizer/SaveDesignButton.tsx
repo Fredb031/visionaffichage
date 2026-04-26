@@ -48,7 +48,7 @@ export function SaveDesignButton({ current, className }: Props) {
       const fallbackName = `Design ${new Date().toLocaleDateString('fr-CA')}`;
       const raw = window.prompt(
         'Nomme ton design pour le retrouver plus tard :',
-        current.name || fallbackName,
+        current.name?.trim() || fallbackName,
       );
       // null === user hit Cancel. Treat empty string the same way so
       // an accidental Enter doesn't persist an unnamed entry.
