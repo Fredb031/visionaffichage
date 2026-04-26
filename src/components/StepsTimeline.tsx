@@ -129,7 +129,11 @@ export function StepsTimeline() {
               className="va-animate-bar h-full origin-left transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{
                 transform: `scaleX(${visible ? 1 : 0})`,
-                background: 'linear-gradient(90deg, #0052CC 0%, #E8A838 50%, #10B981 100%)',
+                // Palindrome gradient so the infinite slide loop has no
+                // visible seam — position 0% and 200% render the same
+                // colour, so the wrap-around from `va-bar-shift` is
+                // invisible instead of jumping green→blue every 12s.
+                background: 'linear-gradient(90deg, #0052CC 0%, #E8A838 25%, #10B981 50%, #E8A838 75%, #0052CC 100%)',
                 backgroundSize: '200% 100%',
                 animation: visible ? 'va-bar-shift 12s linear infinite' : undefined,
               }}
