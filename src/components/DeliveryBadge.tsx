@@ -11,6 +11,9 @@ interface DeliveryBadgeProps {
   showDate?: boolean;
 }
 
+const STANDARD_BUSINESS_DAYS = 5;
+const PRODUCTION_CUTOFF_HOUR = 15;
+
 /** Compute today + N business days (skip Sat/Sun). Pure function so
  * it's cheap to call in any render. */
 function addBusinessDays(from: Date, days: number): Date {
@@ -27,7 +30,7 @@ function addBusinessDays(from: Date, days: number): Date {
 export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', showDate = false }: DeliveryBadgeProps) {
   const { lang } = useLang();
   const label = (() => {
-    if (!showDate) return lang === 'en' ? '5 business days' : '5 jours ouvrables';
+    if (!showDate) return lang === 'en' ? `${STANDARD_BUSINESS_DAYS} business days` : `${STANDARD_BUSINESS_DAYS} jours ouvrables`;
     // Honor the 3pm production cutoff so the badge matches the
     // Checkout ship-by promise and the homepage hero — without this,
     // a shopper late in the day saw an earlier date on the badge
@@ -41,9 +44,9 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
     const dow = now.getDay();
     const isWeekend = dow === 0 || dow === 6;
     const cutoff = new Date(now);
-    cutoff.setHours(15, 0, 0, 0);
+    cutoff.setHours(PRODUCTION_CUTOFF_HOUR, 0, 0, 0);
     const pastCutoff = isWeekend || now > cutoff;
-    const days = pastCutoff ? 6 : 5;
+    const days = pastCutoff ? STANDARD_BUSINESS_DAYS + 1 : STANDARD_BUSINESS_DAYS;
     const eta = addBusinessDays(now, days);
     const dateStr = eta.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
       weekday: 'short', day: 'numeric', month: 'short',
@@ -58,8 +61,8 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
   // (production + shipping window) without having to click through.
   // Keyboard users also get this via aria-label on focus.
   const tooltip = lang === 'en'
-    ? 'Standard shipping — estimated delivery within 5 business days from order. Orders placed after 3pm ship the next business day.'
-    : 'Expédition standard — livraison estimée sous 5 jours ouvrables à partir de la commande. Les commandes passées après 15h sont expédiées le jour ouvrable suivant.';
+    ? `Standard shipping — estimated delivery within ${STANDARD_BUSINESS_DAYS} business days from order. Orders placed after ${PRODUCTION_CUTOFF_HOUR % 12 || 12}pm ship the next business day.`
+    : `Expédition standard — livraison estimée sous ${STANDARD_BUSINESS_DAYS} jours ouvrables à partir de la commande. Les commandes passées après ${PRODUCTION_CUTOFF_HOUR}h sont expédiées le jour ouvrable suivant.`;
 
   const sizeCls = {
     sm: 'text-[10px] px-2 py-0.5 gap-1',
