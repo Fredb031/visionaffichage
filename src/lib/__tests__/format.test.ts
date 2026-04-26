@@ -44,6 +44,17 @@ describe('fmtMoney', () => {
     expect(en).toMatch(/-|−|\(/);
   });
 
+  it('renders negative-zero as a plain zero (no leading minus)', () => {
+    // Discount math like (subtotal - subtotal) yields -0 in JS; without the
+    // guard Intl prints "-$0.00" / "-0,00 $" which looks like a refund bug.
+    const fr = fmtMoney(-0, 'fr');
+    const en = fmtMoney(-0, 'en');
+    expect(fr).not.toMatch(/-|−/);
+    expect(en).not.toMatch(/-|−/);
+    expect(fr).toMatch(/0,00/);
+    expect(en).toMatch(/\$0\.00/);
+  });
+
   it('defaults to fr-CA when no lang is passed', () => {
     // Default locale for the site is fr-CA; an unspecified lang must not
     // accidentally flip to en-CA or the UA default.

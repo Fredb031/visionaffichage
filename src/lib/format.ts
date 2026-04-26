@@ -31,8 +31,12 @@ const localeFor = (lang?: Lang): string =>
  */
 export const fmtMoney = (n: number | null | undefined, lang?: Lang): string => {
   if (n == null || !Number.isFinite(n)) return '—';
+  // Collapse negative-zero to positive zero so discount math like
+  // (subtotal - subtotal) doesn't render as "-$0.00" in cart/checkout —
+  // Object.is(-0, 0) is false but Intl preserves the sign on -0.
+  const safe = Object.is(n, -0) ? 0 : n;
   return new Intl.NumberFormat(localeFor(lang), {
     style: 'currency',
     currency: 'CAD',
-  }).format(n);
+  }).format(safe);
 };
