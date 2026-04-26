@@ -93,6 +93,7 @@ export default function AdminPortals() {
                       href="/compte-corporatif"
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="Voir le formulaire d'inscription public (ouvre dans un nouvel onglet)"
                       className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#0052CC] hover:text-[#003D99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
                     >
                       Voir le formulaire d'inscription public
