@@ -367,7 +367,7 @@ export default function AdminProducts() {
         </div>
 
         {products.length === 0 && (
-          <div className="p-12 text-center text-zinc-400 text-sm">Aucun produit trouvé</div>
+          <div role="status" aria-live="polite" className="p-12 text-center text-zinc-400 text-sm">Aucun produit trouvé</div>
         )}
 
         <TablePagination
