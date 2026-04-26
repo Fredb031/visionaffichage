@@ -17,6 +17,7 @@ import { ArrowLeft, Shirt, Check, CheckCircle, ChevronRight, Package, Ruler, Cal
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
+import { PRICING } from '@/data/pricing';
 import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
@@ -1179,7 +1180,7 @@ export default function ProductDetail() {
               // Keep qty stable across variant (color/size) switches on the
               // *same* product so size/color tweaks don't reset the user's
               // chosen quantity.
-              return <BulkCalculator key={handle} basePrice={shopifyBase} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
+              return <BulkCalculator key={handle} sku={localProduct?.sku ?? 'ATC1000'} basePrice={shopifyBase} unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} variantMaxQty={variantMaxQty} />;
             })()}
 
             {/* Compact info row: stock + size guide + delivery.
@@ -2178,7 +2179,7 @@ function PhotoZoomOverlay({
   );
 }
 
-function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, variantMaxQty }: { basePrice: number; unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en'; variantMaxQty?: number }) {
+function BulkCalculator({ sku, basePrice, unitWithPrint, discountedUnit, lang, variantMaxQty }: { sku: string; basePrice: number; unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en'; variantMaxQty?: number }) {
   const [qty, setQty] = useState(12);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const breakdownId = useId();
@@ -2426,6 +2427,83 @@ function BulkCalculator({ basePrice, unitWithPrint, discountedUnit, lang, varian
             : `+ ${12 - qty} unités pour débloquer 10% de rabais →`}
         </button>
       )}
+
+      {/* Mega Blueprint Section 1.3 — bulk-savings indicator.
+          Shows the next 4 SKU pricing tiers from PRICING, with the
+          tier matching the live qty highlighted (brand-blue-light
+          border + bg). Pulls from src/data/pricing.ts so each SKU
+          gets its own per-unit ladder; defends against unknown SKUs
+          via getPricePerUnit's ATC1000 fallback. We pick a window
+          around the active tier (active + 3 next) so the user
+          always sees their position plus a visible upgrade path,
+          even at the very bottom (qty < 12) or top (1000+) ends. */}
+      {(() => {
+        const tiers = PRICING[sku] ?? PRICING['ATC1000'];
+        const activeIdx = (() => {
+          let idx = 0;
+          for (let i = 0; i < tiers.length; i++) if (qty >= tiers[i].minQty) idx = i;
+          return idx;
+        })();
+        // Window of 4 tiers anchored on the active tier — slide right
+        // when active sits near the start, slide left when near the end.
+        const start = Math.max(0, Math.min(activeIdx, tiers.length - 4));
+        const visible = tiers.slice(start, start + 4);
+        const tierLabel = (t: typeof tiers[number], i: number) => {
+          const next = tiers[start + i + 1];
+          if (next) return `${t.minQty}–${next.minQty - 1}`;
+          return `${t.minQty}+`;
+        };
+        return (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground mb-2">
+              {lang === 'en' ? 'Volume savings' : 'Économies de volume'}
+            </div>
+            <div className="grid grid-cols-4 gap-2" role="list">
+              {visible.map((t, i) => {
+                const absoluteIdx = start + i;
+                const isActive = absoluteIdx === activeIdx;
+                return (
+                  <button
+                    key={t.minQty}
+                    type="button"
+                    role="listitem"
+                    onClick={() => {
+                      const target = t.minQty;
+                      if (typeof variantMaxQty === 'number' && Number.isFinite(variantMaxQty)) {
+                        setQty(Math.min(target, Math.max(1, variantMaxQty)));
+                      } else {
+                        setQty(target);
+                      }
+                    }}
+                    aria-pressed={isActive}
+                    aria-label={
+                      lang === 'en'
+                        ? `Set quantity to ${t.minQty} for ${t.pricePerUnit.toFixed(2)} per unit`
+                        : `Régler la quantité à ${t.minQty} pour ${t.pricePerUnit.toFixed(2)} par unité`
+                    }
+                    className={
+                      'rounded-lg border p-2 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ' +
+                      (isActive
+                        ? 'border-blue-500 bg-blue-50 text-blue-900'
+                        : 'border-border bg-background hover:bg-secondary')
+                    }
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {tierLabel(t, i)}
+                    </div>
+                    <div className={'text-sm font-extrabold ' + (isActive ? 'text-blue-900' : 'text-foreground')}>
+                      {fmt(t.pricePerUnit)} $
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      {lang === 'en' ? '/ unit' : '/ unité'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
