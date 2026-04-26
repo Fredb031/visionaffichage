@@ -32,6 +32,15 @@ const VISITED_FLAG = 'va:visited';
 /** Window event name the chat panel listens for. */
 export const CHAT_PREFILL_EVENT = 'va:chat-prefill';
 
+/** Idle delay (ms) before the product-page idle trigger fires. */
+const PRODUCT_IDLE_DELAY_MS = 45_000;
+/** Delay (ms) before the customizer no-upload trigger fires. */
+const CUSTOMIZER_NO_UPLOAD_DELAY_MS = 60_000;
+/** Delay (ms) before the cart no-checkout trigger fires. */
+const CART_IDLE_DELAY_MS = 30_000;
+/** Delay (ms) before the first-visit greeting fires. */
+const FIRST_VISIT_DELAY_MS = 20_000;
+
 /** Guard a session-scoped trigger so it only fires once per tab. */
 function alreadyFired(name: string): boolean {
   try {
@@ -128,11 +137,11 @@ export function useChatTriggers(): void {
 
     const timer = window.setTimeout(() => {
       const idleFor = Date.now() - lastInteractionRef.current;
-      if (idleFor >= 45_000) {
+      if (idleFor >= PRODUCT_IDLE_DELAY_MS) {
         firePrefill('Tu as des questions sur ce produit ? Je suis là.');
         markFired('product-idle');
       }
-    }, 45_000);
+    }, PRODUCT_IDLE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [location.pathname]);
@@ -164,7 +173,7 @@ export function useChatTriggers(): void {
         firePrefill('Besoin d\u2019aide pour téléverser ton logo ? Je peux t\u2019aider.');
         markFired('customizer-no-upload');
       }
-    }, 60_000);
+    }, CUSTOMIZER_NO_UPLOAD_DELAY_MS);
 
     return () => window.clearTimeout(timer);
     // hasLogo intentionally a dep — if the user uploads, we tear down
@@ -194,7 +203,7 @@ export function useChatTriggers(): void {
         firePrefill('Des questions avant de commander ? Livraison garantie en 5 jours.');
         markFired('cart-idle');
       }
-    }, 30_000);
+    }, CART_IDLE_DELAY_MS);
 
     return () => {
       window.clearTimeout(timer);
@@ -226,7 +235,7 @@ export function useChatTriggers(): void {
       firePrefill('Bonjour ! Tu veux habiller ton équipe ? Je peux t\u2019aider en 2 minutes.');
       markFired('first-visit');
       writeLocalFlag(FIRST_VISIT_GREETED, '1');
-    }, 20_000);
+    }, FIRST_VISIT_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [location.pathname]);
