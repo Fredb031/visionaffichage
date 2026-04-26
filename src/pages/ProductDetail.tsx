@@ -604,6 +604,16 @@ export default function ProductDetail() {
               <div className="h-6 bg-secondary rounded-xl animate-pulse w-1/3" />
               <div className="h-4 bg-secondary rounded-lg animate-pulse w-full" />
               <div className="h-4 bg-secondary rounded-lg animate-pulse w-5/6" />
+              {/* Section 11 #5 — swatch-row placeholder so the layout
+                  doesn't shift when the real 4-pill colour selector
+                  hydrates. Four 28px circles in a row mirror the
+                  default colour-pill component used in the PDP. */}
+              <div className="flex items-center gap-2 pt-2">
+                <div className="h-7 w-7 rounded-full bg-secondary animate-pulse" />
+                <div className="h-7 w-7 rounded-full bg-secondary animate-pulse" />
+                <div className="h-7 w-7 rounded-full bg-secondary animate-pulse" />
+                <div className="h-7 w-7 rounded-full bg-secondary animate-pulse" />
+              </div>
               <div className="h-12 bg-secondary rounded-xl animate-pulse mt-6" />
             </div>
           </div>
