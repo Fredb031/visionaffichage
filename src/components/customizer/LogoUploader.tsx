@@ -187,6 +187,18 @@ export function LogoUploader({
           markHandedOff(noBgUrl);
           markHandedOff(uploadedUrl ?? noBgUrl);
           onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
+          // uploadLogo can return null on a soft failure (misconfigured
+          // env vars, empty blob, getPublicUrl miss). Without surfacing
+          // that here we used to silently ship the local blob URL as
+          // the "processed" URL — the cart and order then carried a
+          // blob: URL that fulfilment couldn't resolve, so prints went
+          // out without the customer's logo. Tell the user their asset
+          // is only saved on this device and we'll retry at checkout.
+          if (!uploadedUrl) {
+            safeSetErrorMsg(lang === 'en'
+              ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
+              : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
+          }
         } catch (uploadErr) {
           // Supabase upload failed but BG-removal worked — surface a soft
           // warning and keep using the local blob so the user can still
@@ -198,8 +210,8 @@ export function LogoUploader({
           markHandedOff(noBgUrl);
           onLogoReady(noBgUrl, noBgUrl, file);
           safeSetErrorMsg(lang === 'en'
-            ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
-            : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
+            ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
+            : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
         }
       } catch (bgErr) {
         // BG-removal failed. Common causes: SVG without rasterization,
@@ -263,6 +275,15 @@ export function LogoUploader({
       markHandedOff(noBgUrl);
       markHandedOff(uploadedUrl ?? noBgUrl);
       onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, currentFile);
+      // Mirror the auto-flow null guard: a null return means the
+      // upload soft-failed (misconfig / empty blob / public URL miss)
+      // and the local blob URL is what got handed off. Tell the user
+      // so they don't think a printable asset is now on the server.
+      if (!uploadedUrl) {
+        safeSetErrorMsg(lang === 'en'
+          ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
+          : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
+      }
     } catch (uploadErr) {
       // Upload failed but BG-removal worked — commit the BG-removed URL
       // to the store anyway so the printed logo matches the preview.
@@ -272,8 +293,8 @@ export function LogoUploader({
       markHandedOff(noBgUrl);
       onLogoReady(noBgUrl, noBgUrl, currentFile);
       safeSetErrorMsg(lang === 'en'
-        ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
-        : 'Logo sauvegardé localement — on finalise l\u2019upload à la commande.');
+        ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
+        : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
     }
   }, [currentFile, onLogoReady, lang]);
 

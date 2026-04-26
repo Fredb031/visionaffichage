@@ -1,7 +1,17 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// IMPORTANT: this must match the env var name exposed in `.env` and used by
+// the canonical client at src/integrations/supabase/client.ts —
+// `VITE_SUPABASE_PUBLISHABLE_KEY`. Reading `VITE_SUPABASE_ANON_KEY`
+// resolved to undefined in every build, leaving `supabase` null, so
+// `uploadLogo()` always returned null and customer logos never made it
+// to Supabase Storage. We also accept the legacy `VITE_SUPABASE_ANON_KEY`
+// as a fallback so older `.env.local` overrides keep working without a
+// forced rename.
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Only create client when both env vars are present
 export const supabase: SupabaseClient | null =
@@ -22,7 +32,9 @@ const PNG_CONTENT_TYPE = 'image/png';
 
 export async function uploadLogo(blob: Blob, filename: string): Promise<string | null> {
   if (!supabase) {
-    console.warn('Supabase not configured — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env');
+    console.error(
+      'Supabase not configured — add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to .env',
+    );
     return null;
   }
   // Defensive validation: callers pass `file.name` from a File object,
