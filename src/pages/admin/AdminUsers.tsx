@@ -363,7 +363,7 @@ export default function AdminUsers() {
           <button
             type="button"
             onClick={() => setShowInvite(true)}
-            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={15} aria-hidden="true" />
             Inviter un membre
@@ -676,7 +676,7 @@ export default function AdminUsers() {
                   <button
                     type="button"
                     onClick={savePermOverrides}
-                    className="text-xs font-extrabold text-white px-5 py-2 rounded-lg bg-[#0052CC] hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-1"
+                    className="text-xs font-extrabold text-white px-5 py-2 rounded-xl bg-[#0052CC] hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Enregistrer
                   </button>
@@ -767,7 +767,7 @@ export default function AdminUsers() {
               <button
                 type="submit"
                 disabled={inviteSubmitting}
-                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="w-full py-3 bg-[#0052CC] text-white rounded-xl text-sm font-extrabold hover:bg-[#003D99] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               >
                 {inviteSubmitting ? 'Envoi…' : "Envoyer l'invitation"}
               </button>

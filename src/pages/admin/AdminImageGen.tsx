@@ -358,7 +358,7 @@ export default function AdminImageGen() {
             type="button"
             onClick={handleSaveKey}
             disabled={provider === 'none' || !apiKey.trim()}
-            className="px-5 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="px-5 py-2 bg-[#0052CC] text-white rounded-xl text-sm font-bold hover:bg-[#003D99] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             Sauvegarder
           </button>

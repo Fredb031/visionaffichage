@@ -804,7 +804,7 @@ function BackupRestoreSection() {
           <button
             type="button"
             onClick={() => setConfirmReset(true)}
-            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1"
+            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#DC2626] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#B91C1C] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-1"
           >
             <RotateCcw size={12} aria-hidden="true" /> Réinitialiser · Reset
           </button>
@@ -915,7 +915,7 @@ function BackupRestoreSection() {
               <button
                 type="button"
                 onClick={confirmResetAll}
-                className="inline-flex items-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center gap-1.5 bg-[#DC2626] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#B91C1C] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-1"
               >
                 <RotateCcw size={12} aria-hidden="true" /> Tout effacer · Wipe all
               </button>

@@ -653,7 +653,7 @@ export default function AdminVendors() {
           <button
             type="button"
             onClick={() => setShowInvite(true)}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={15} aria-hidden="true" />
             Ajouter un vendeur
@@ -1159,7 +1159,7 @@ export default function AdminVendors() {
               </label>
               <button
                 type="submit"
-                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90"
+                className="w-full py-3 bg-[#0052CC] text-white rounded-xl text-sm font-extrabold hover:bg-[#003D99] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
               >
                 Envoyer l'invitation
               </button>

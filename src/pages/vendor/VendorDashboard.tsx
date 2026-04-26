@@ -734,7 +734,7 @@ function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
             type="button"
             onClick={advance}
             autoFocus
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             aria-label={
               stepIndex + 1 >= total
                 ? L('Terminer la visite', 'Finish tour')

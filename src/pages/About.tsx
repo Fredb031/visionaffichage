@@ -224,7 +224,7 @@ export default function About() {
           </p>
           <Link
             to="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
           >
             {lang === 'en' ? 'Contact us' : 'Nous joindre'}
             <ArrowRight size={16} aria-hidden="true" />

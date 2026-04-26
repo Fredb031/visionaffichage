@@ -499,7 +499,7 @@ export function AIChatPanel() {
             <button
               type="submit"
               disabled={!input.trim() || thinking}
-              className="w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center disabled:opacity-30 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1"
+              className="w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1"
               aria-label={lang === 'en' ? 'Send' : 'Envoyer'}
             >
               <Send size={14} aria-hidden="true" />

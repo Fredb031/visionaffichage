@@ -363,7 +363,7 @@ export default function TrackOrder() {
               <div className="print-hide border-t border-border pt-4 flex items-center gap-3 flex-wrap">
                 <a
                   href={`mailto:info@visionaffichage.com?subject=${encodeURIComponent(`Question commande #${mockOrder.orderNumber}`)}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-lg hover:bg-[#0047B3] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                 >
                   <Mail size={12} aria-hidden="true" />
                   {lang === 'en' ? 'Contact support' : 'Contacter le support'}
@@ -467,7 +467,7 @@ export default function TrackOrder() {
                     }
                   }}
                   aria-label={lang === 'en' ? 'Share order status' : 'Partager le statut de commande'}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-lg hover:bg-[#0047B3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                 >
                   <Share2 size={12} aria-hidden="true" />
                   {lang === 'en' ? 'Share' : 'Partager'}

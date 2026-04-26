@@ -466,7 +466,7 @@ export default function AdminQuotes() {
           </button>
           <Link
             to="/admin/quotes/new"
-            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             <Plus size={16} aria-hidden="true" />
             Nouvelle soumission
@@ -782,7 +782,7 @@ function ConvertToOrderDialog({
             onClick={handleConfirm}
             disabled={submitting}
             aria-busy={submitting || undefined}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-xl hover:bg-[#003D99] shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowRightCircle size={14} aria-hidden="true" />
             Créer la commande

@@ -595,10 +595,10 @@ export default function CompteCorporatif() {
                     || !annualVolume
                     || !industry
                   }
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                     submitState === 'success'
                       ? 'bg-emerald-600 hover:bg-emerald-600 focus-visible:ring-emerald-500/50'
-                      : 'bg-[#0052CC] hover:bg-[#0041A6] disabled:opacity-50 disabled:hover:bg-[#0052CC] focus-visible:ring-[#0052CC]/50'
+                      : 'bg-[#0052CC] hover:bg-[#003D99] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#0052CC] focus-visible:ring-[#0052CC]/50'
                   }`}
                 >
                   <Send size={15} aria-hidden="true" />

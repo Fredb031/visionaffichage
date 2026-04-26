@@ -96,7 +96,7 @@ export function RequirePermission({ permission, children }: RequirePermissionPro
           <button
             type="button"
             onClick={() => navigate('/admin')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#0052CC] text-white hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-[#0052CC] text-white hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             {isEn ? 'Admin home' : 'Accueil admin'}
           </button>
