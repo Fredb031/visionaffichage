@@ -58,7 +58,15 @@ export async function uploadLogo(blob: Blob, filename: string): Promise<string |
     .replace(/\.[a-z0-9]+$/i, '')       // drop trailing extension
     .replace(/[^a-z0-9.]/gi, '-')       // sanitize
     .slice(0, MAX_BASENAME_LEN) || FALLBACK_BASENAME;
-  const suffix = Math.random().toString(36).slice(2, 2 + RANDOM_SUFFIX_LEN);
+  // Math.random().toString(36) can return a short string when the random
+  // value has trailing zeros in base-36 (e.g. 0.5 → "0.i"), so .slice(2,8)
+  // would yield fewer than RANDOM_SUFFIX_LEN chars and weaken the
+  // collision-avoidance guarantee. padEnd with a deterministic fill
+  // keeps every suffix exactly RANDOM_SUFFIX_LEN chars.
+  const suffix = Math.random()
+    .toString(36)
+    .slice(2, 2 + RANDOM_SUFFIX_LEN)
+    .padEnd(RANDOM_SUFFIX_LEN, '0');
   const path = `logos/${Date.now()}-${suffix}-${base}.png`;
   // Wrap the upload in try/catch: supabase-js can REJECT (not just return
   // { error }) on raw network failures (offline, DNS, CORS preflight
