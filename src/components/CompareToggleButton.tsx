@@ -28,16 +28,16 @@ interface CompareToggleButtonProps {
 
 export function CompareToggleButton({ sku, productName }: CompareToggleButtonProps) {
   const { lang } = useLang();
-  // Subscribe to items so the toggle re-renders when compareStore
-  // changes from elsewhere (e.g. removed via the CompareBar). Reading
-  // through getState() in the click handler would skip the subscription.
-  const items = useCompareStore(s => s.items);
+  // Subscribe to scalar derived values rather than the items array — a
+  // fresh array reference is published on every toggle, which would
+  // otherwise re-render every CompareToggleButton on the catalogue page
+  // even though only one SKU's selection state actually changed.
+  const isSelected = useCompareStore(s => (sku ? s.items.includes(sku) : false));
+  const isFull = useCompareStore(s => s.items.length >= COMPARE_MAX);
   const toggle = useCompareStore(s => s.toggle);
 
   if (!sku) return null;
 
-  const isSelected = items.includes(sku);
-  const isFull = items.length >= COMPARE_MAX;
   const disabled = isFull && !isSelected;
 
   const handleClick = (e: React.MouseEvent) => {
