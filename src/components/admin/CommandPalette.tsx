@@ -115,12 +115,19 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return ITEMS;
+    if (!q) {
+      // When no query, the "Pages" section excludes anything already
+      // surfaced in "Récents" — otherwise the same row appears twice
+      // and arrow-key nav has to traverse a phantom duplicate.
+      if (recentItems.length === 0) return ITEMS;
+      const recentSet = new Set(recentItems.map(i => i.to));
+      return ITEMS.filter(i => !recentSet.has(i.to));
+    }
     return ITEMS.filter(i =>
       i.label.toLowerCase().includes(q) ||
       (i.keywords?.toLowerCase().includes(q) ?? false),
     );
-  }, [query]);
+  }, [query, recentItems]);
 
   // Arrow-key navigation needs a single flat sequence that mirrors the
   // rendered order: Récents first (when shown), then the full/filtered
