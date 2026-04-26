@@ -370,7 +370,7 @@ export default function AcceptInvite() {
                 </p>
               )}
               {password.length > 0 && confirm.length > 0 && password !== confirm && (
-                <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1" role="status">
+                <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1" role="alert">
                   <AlertCircle size={12} aria-hidden="true" /> Les mots de passe ne correspondent pas
                 </p>
               )}
