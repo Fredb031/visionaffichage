@@ -38,6 +38,13 @@ const formatFileSize = (bytes: number, lang: 'fr' | 'en'): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} ${m}`;
 };
 
+/** Hard ceiling for logo uploads. Anything above this is almost certainly
+ * a phone photo the customer dropped in by mistake — our BG-removal model
+ * tops out around this size and Supabase storage charges per MB. Lifted
+ * so the validation check and the user-facing error message can't drift. */
+const MAX_UPLOAD_MB = 20;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
 type QualityCheck = {
   ok: boolean;
   naturalWidth: number;
@@ -146,8 +153,8 @@ export function LogoUploader({
       setStatus('error');
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setErrorMsg(lang === 'en' ? 'File too large (max 20MB).' : 'Fichier trop volumineux (max 20 Mo).');
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErrorMsg(lang === 'en' ? `File too large (max ${MAX_UPLOAD_MB}MB).` : `Fichier trop volumineux (max ${MAX_UPLOAD_MB} Mo).`);
       setStatus('error');
       return;
     }
@@ -395,8 +402,8 @@ export function LogoUploader({
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {lang === 'en'
-                ? 'PNG · JPG · SVG · WebP — max 20 MB · paste with Ctrl/Cmd+V'
-                : 'PNG · JPG · SVG · WebP — max 20 Mo · colle avec Ctrl/Cmd+V'}
+                ? `PNG · JPG · SVG · WebP — max ${MAX_UPLOAD_MB} MB · paste with Ctrl/Cmd+V`
+                : `PNG · JPG · SVG · WebP — max ${MAX_UPLOAD_MB} Mo · colle avec Ctrl/Cmd+V`}
             </p>
             <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
               <CheckCircle2 size={12} aria-hidden="true" /> {t('fondSupprimeAuto')}
