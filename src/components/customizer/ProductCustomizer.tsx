@@ -45,6 +45,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { fmtMoney } from '@/lib/format';
 import { AnimatedPrice } from '@/components/AnimatedPrice';
 import { getSettings } from '@/lib/appSettings';
+import { setCustomizerAttributes } from '@/lib/shopifyCartAttributes';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -892,6 +893,55 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         // thought they'd deleted.
         shopifyVariantIds: [shopifyColor.variantId],
       });
+    }
+
+    // Volume II §18.1 — surface customizer payload to Shopify Admin via
+    // cart attributes so the VA team can see logo / placement / sizes
+    // on the order page. Fire-and-forget: helper logs and swallows
+    // errors, never throws into the render path. We pull cartId off the
+    // live store (the hook-bound `shopifyCartStore` here is the
+    // render-time snapshot, not the post-await state). Size matrix is
+    // derived from multiVariants when present, otherwise from
+    // store.sizeQuantities for the legacy single-color flow.
+    {
+      const liveCartId = useShopifyCartStore.getState().cartId;
+      if (liveCartId) {
+        const sizeMatrix: Record<string, number> = {};
+        if (multiVariants.length > 0) {
+          for (const v of multiVariants) {
+            const key = `${v.colorName}/${v.size}`;
+            sizeMatrix[key] = (sizeMatrix[key] ?? 0) + v.qty;
+          }
+        } else {
+          for (const sq of store.sizeQuantities) {
+            if (sq.quantity > 0) sizeMatrix[sq.size] = sq.quantity;
+          }
+        }
+        const printZones: string[] = [];
+        if (store.logoPlacement?.zone) printZones.push(`front:${store.logoPlacement.zone}`);
+        if (store.logoPlacementBack?.zone) printZones.push(`back:${store.logoPlacementBack.zone}`);
+        const logoUrl =
+          store.logoPlacement?.processedUrl ??
+          store.logoPlacement?.previewUrl ??
+          store.logoPlacementBack?.processedUrl ??
+          store.logoPlacementBack?.previewUrl;
+        const canvasPreviewUrl = getSnapshotRef.current?.();
+        // Fire-and-forget — operator gets the customizer trail when the
+        // network behaves; falls back to the existing side-channel when
+        // it doesn't. Awaiting would block the toast and slow the UX.
+        void setCustomizerAttributes(liveCartId, {
+          logoUrl: logoUrl ?? undefined,
+          placement: {
+            front: store.logoPlacement,
+            back: store.logoPlacementBack,
+            sides: store.placementSides,
+          },
+          printZones,
+          canvasPreviewUrl: canvasPreviewUrl ?? undefined,
+          productSku: product.sku,
+          sizeMatrix,
+        });
+      }
     }
 
     const colorCount = multiVariants.length > 0 ? new Set(multiVariants.map(v => v.colorId)).size : 1;
