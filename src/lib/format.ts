@@ -23,6 +23,19 @@ import type { Lang } from './i18n';
 const localeFor = (lang?: Lang): string =>
   lang === 'en' ? 'en-CA' : 'fr-CA';
 
+// Cache formatter instances per locale: Intl.NumberFormat construction is
+// non-trivially expensive (ICU lookup + option resolution), and fmtMoney is
+// called per-row in cart/checkout/product-grid renders.
+const formatterCache = new Map<string, Intl.NumberFormat>();
+const getFormatter = (locale: string): Intl.NumberFormat => {
+  let f = formatterCache.get(locale);
+  if (!f) {
+    f = new Intl.NumberFormat(locale, { style: 'currency', currency: 'CAD' });
+    formatterCache.set(locale, f);
+  }
+  return f;
+};
+
 /**
  * Format a number as CAD currency, locale-aware.
  *
@@ -35,8 +48,5 @@ export const fmtMoney = (n: number | null | undefined, lang?: Lang): string => {
   // (subtotal - subtotal) doesn't render as "-$0.00" in cart/checkout —
   // Object.is(-0, 0) is false but Intl preserves the sign on -0.
   const safe = Object.is(n, -0) ? 0 : n;
-  return new Intl.NumberFormat(localeFor(lang), {
-    style: 'currency',
-    currency: 'CAD',
-  }).format(safe);
+  return getFormatter(localeFor(lang)).format(safe);
 };
