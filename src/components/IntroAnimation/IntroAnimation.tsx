@@ -297,6 +297,13 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
         shortCircuitToComplete();
         return;
       }
+      // Modifier-only / navigation keys aren't a real "begin" gesture —
+      // a user pressing Tab to focus the Skip button or holding Shift
+      // shouldn't kick off the audio-unlock + timeline path early.
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' ||
+          e.key === 'Meta' || e.key === 'Tab') {
+        return;
+      }
       // Any other key counts as a "begin" gesture (unlocks audio the
       // same way click / touchstart do).
       startIntro();
