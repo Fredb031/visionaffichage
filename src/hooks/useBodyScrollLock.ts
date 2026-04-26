@@ -60,11 +60,16 @@ export function useBodyScrollLock(active: boolean): void {
         0,
         window.innerWidth - document.documentElement.clientWidth,
       );
-      capturedScrollY =
+      // Clamp at zero: iOS Safari rubber-band overscroll can momentarily
+      // report a negative scrollY, which would produce `top: --Npx`
+      // (invalid CSS, silently ignored) and the body would jump to the
+      // top of the page instead of staying pinned at the user's scroll.
+      const rawScrollY =
         window.scrollY ||
         window.pageYOffset ||
         document.documentElement.scrollTop ||
         0;
+      capturedScrollY = Math.max(0, rawScrollY);
       priorOverflow = body.style.overflow;
       priorPaddingRight = body.style.paddingRight;
       priorPosition = body.style.position;
