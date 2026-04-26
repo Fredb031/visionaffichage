@@ -89,7 +89,9 @@ export function BottomNav() {
               ? startsWithBoundary('/products') || startsWithBoundary('/product')
               : startsWithBoundary(item.path);
           const ariaLabel = item.id === 'cart' && itemCount > 0
-            ? `${item.label} (${itemCount})`
+            ? lang === 'en'
+              ? `${item.label}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`
+              : `${item.label}, ${itemCount} ${itemCount === 1 ? 'article' : 'articles'}`
             : item.label;
           // Use Link instead of button — preserves Cmd/right-click "Open
           // in new tab", proper screen reader announcement as link, and
