@@ -116,9 +116,16 @@ function dayKey(iso: string): string {
 
 // Parse a local YYYY-MM-DD back into a Date in local time (not UTC).
 // `new Date('2026-04-16')` is parsed as UTC midnight which shifts the
-// weekday label in negative timezones.
+// weekday label in negative timezones. Guards NaN components (a
+// malformed key would otherwise produce an Invalid Date that renders
+// as "Invalid Date" in the chart label and aria-label) by falling
+// back to the epoch — callers display the bar without a usable label
+// rather than crashing the section.
 function parseDayKeyLocal(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+    return new Date(0);
+  }
   return new Date(y, m - 1, d);
 }
 
