@@ -4,9 +4,10 @@
  * Pass the SanMar style number (e.g. "ATCF2500") and you get back live
  * inventory across all warehouses, with cross-color/size aggregation.
  *
- * Caches for 2 minutes to avoid hammering the API while a user browses.
- * Returns `null` if the edge function isn't deployed yet — the UI degrades
- * gracefully rather than breaking.
+ * Caches for 5 minutes (staleTime) and keeps the entry in memory for
+ * 1 hour after unmount (gcTime) to avoid hammering the API while a user
+ * browses. Returns `null` if the edge function isn't deployed yet — the
+ * UI degrades gracefully rather than breaking.
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
