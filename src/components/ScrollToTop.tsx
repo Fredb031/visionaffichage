@@ -25,7 +25,15 @@ export function ScrollToTop() {
       // would throw in querySelector (e.g. '#1foo' is an invalid CSS
       // selector). Use getElementById which accepts any string.
       const id = hash.startsWith('#') ? hash.slice(1) : hash;
-      const el = id ? document.getElementById(decodeURIComponent(id)) : null;
+      let decoded = id;
+      if (id) {
+        try {
+          decoded = decodeURIComponent(id);
+        } catch {
+          // Malformed percent-encoding — fall back to the raw id.
+        }
+      }
+      const el = decoded ? document.getElementById(decoded) : null;
       if (el) {
         el.scrollIntoView({ block: 'start' });
         return;
