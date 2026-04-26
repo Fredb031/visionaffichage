@@ -111,6 +111,13 @@ const IndustryPlomberieElectricite = lazy(() => import("./pages/industries/Plomb
 const IndustryCorporate = lazy(() => import("./pages/industries/Corporate"));
 const IndustryMunicipalites = lazy(() => import("./pages/industries/Municipalites"));
 
+// Volume II §14 — /histoires-de-succes hub + /:slug detail. Lazy
+// because they're reached from the homepage mini-card row and the
+// nav, not the home hot path; matches how /industries and /blog
+// are split.
+const CaseStudies = lazy(() => import("./pages/CaseStudies"));
+const CaseStudyDetail = lazy(() => import("./pages/CaseStudyDetail"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -303,6 +310,10 @@ const AnimatedRoutes = () => {
           <Route path="/industries/plomberie-electricite" element={<IndustryPlomberieElectricite />} />
           <Route path="/industries/corporate" element={<IndustryCorporate />} />
           <Route path="/industries/municipalites" element={<IndustryMunicipalites />} />
+
+          {/* Volume II §14 — case studies hub + detail. */}
+          <Route path="/histoires-de-succes" element={<CaseStudies />} />
+          <Route path="/histoires-de-succes/:slug" element={<CaseStudyDetail />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

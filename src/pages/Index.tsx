@@ -16,6 +16,7 @@ import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CountUp } from '@/components/CountUp';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
+import { CASE_STUDIES } from '@/data/caseStudies';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
@@ -869,6 +870,77 @@ export default function Index() {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* Volume II §14.2 — "Ils ont fait confiance à Vision Affichage"
+          mini-card row. Three case-study teasers (we render the first
+          three CASE_STUDIES entries on desktop; the 4th lives on the
+          /histoires-de-succes hub) link into the new detail pages.
+          Sits above the existing Task 11.5 case-studies block which
+          uses the older /case-studies route shape — the new section
+          owns the new routes and the older block stays intact for
+          continuity until the operator consolidates. */}
+      <FadeIn>
+        <section
+          aria-label={lang === 'en' ? 'They trusted Vision Affichage' : 'Ils ont fait confiance à Vision Affichage'}
+          className="scroll-mt-20 py-16 md:py-20 px-6 md:px-10 bg-secondary border-b border-border"
+        >
+          <div className="max-w-[1160px] mx-auto">
+            <div className="text-center mb-10 md:mb-12">
+              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
+                {lang === 'en' ? 'Success stories' : 'Histoires de succès'}
+              </div>
+              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
+                {lang === 'en'
+                  ? 'They trusted Vision Affichage'
+                  : 'Ils ont fait confiance à Vision Affichage'}
+              </h2>
+              <p className="text-[14px] text-muted-foreground mt-3 max-w-[600px] mx-auto">
+                {lang === 'en'
+                  ? 'Quebec teams in construction, landscaping, corporate consulting, and municipal — same playbook, real results.'
+                  : "Équipes du Québec en construction, paysagement, services-conseils et municipal — même méthode, résultats concrets."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+              {CASE_STUDIES.slice(0, 3).map(cs => (
+                <Link
+                  key={cs.slug}
+                  to={`/histoires-de-succes/${cs.slug}`}
+                  className="group flex flex-col bg-card border border-border rounded-2xl p-6 md:p-7 transition-all hover:-translate-y-[2px] hover:shadow-[0_12px_32px_rgba(15,35,65,0.10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1.5">
+                    {cs.industry}
+                  </div>
+                  <h3 className="text-[18px] md:text-[19px] font-extrabold text-foreground tracking-[-0.3px] mb-2">
+                    {cs.companyName}
+                  </h3>
+                  <div aria-hidden="true" className="h-[2px] w-10 bg-[#E8A838] mb-4" />
+                  <p className="text-[13.5px] leading-relaxed text-foreground/85 mb-5 line-clamp-4">
+                    {cs.result}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between gap-3 pt-3 border-t border-border">
+                    <span className="text-[12px] text-muted-foreground">
+                      {cs.location}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-primary group-hover:text-[#E8A838] transition-colors">
+                      {lang === 'en' ? 'Read story' : "Lire l'histoire"}
+                      <span aria-hidden="true">&rarr;</span>
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link
+                to="/histoires-de-succes"
+                className="inline-flex items-center gap-2 text-[14px] font-bold text-primary hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:underline"
+              >
+                {lang === 'en' ? 'See all success stories' : 'Voir toutes les histoires de succès'}
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
             </div>
           </div>
         </section>
