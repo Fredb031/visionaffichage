@@ -117,6 +117,9 @@ function fitLabel(p: Product, lang: 'fr' | 'en'): string {
       if (word.startsWith('classi')) return 'Classic';
       if (word.startsWith('athl'))  return 'Athletic';
       if (word.startsWith('struct')) return 'Structured';
+      // Unknown French fit word — fall back to the neutral EN default
+      // rather than leaking "Coupe <french>" into the English table.
+      return 'Regular';
     }
     return `Coupe ${word}`;
   }
