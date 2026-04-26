@@ -6,6 +6,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const BEST_SCORE_KEY = 'va:mole-game-best';
+const GAME_DURATION_SECONDS = 20;
 
 const readBestScore = (): number => {
   if (typeof window === 'undefined') return 0;
@@ -116,7 +117,7 @@ const TrophySvg = () => (
 export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const { lang } = useLang();
   const [hits, setHits] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(20);
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION_SECONDS);
   useEscapeKey(isOpen, useCallback(() => onClose(false), [onClose]));
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
   useBodyScrollLock(isOpen);
@@ -154,7 +155,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
 
   useEffect(() => {
     if (!isOpen) {
-      setHits(0); setTimeLeft(20); setGameStarted(false); setGameWon(false);
+      setHits(0); setTimeLeft(GAME_DURATION_SECONDS); setGameStarted(false); setGameWon(false);
       setMoleStates(['down', 'down', 'down']);
       setNewRecord(false);
       setCopied(false);
