@@ -229,9 +229,13 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
                     <tbody>
                       {rows.map(size => {
                         const row = chart[size];
+                        // Localize the French-only "Taille unique" label so
+                        // English shoppers see "One size" instead of an
+                        // untranslated French phrase in their size column.
+                        const displaySize = size === 'Taille unique' && lang === 'en' ? 'One size' : size;
                         return (
                           <tr key={size} className="border-b border-border/50 hover:bg-secondary/50">
-                            <td className="py-2.5 px-2 font-bold text-foreground">{size}</td>
+                            <td className="py-2.5 px-2 font-bold text-foreground">{displaySize}</td>
                             <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.chest, unit)}</td>
                             {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.length, unit)}</td>}
                             {hasSleeveColumn && (
