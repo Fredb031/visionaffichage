@@ -351,7 +351,7 @@ export default function Index() {
       <section className="relative overflow-hidden bg-white min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
         <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
           {/* H1 */}
-          <h1 className="font-display font-black text-[#0A0A0A] text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
+          <h1 className="font-display font-black text-[#0A0A0A] text-5xl md:text-6xl xl:text-7xl leading-[1.02] tracking-[-0.04em]">
             {lang === 'en' ? (
               <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
             ) : (
@@ -360,7 +360,7 @@ export default function Index() {
           </h1>
 
           {/* Sub */}
-          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-[#374151] max-w-[620px] mx-auto leading-relaxed">
+          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-[#1F2937] max-w-[620px] mx-auto leading-relaxed">
             {lang === 'en'
               ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
               : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
@@ -370,7 +370,7 @@ export default function Index() {
           <div className="mt-9 flex flex-col items-center justify-center">
             <Link
               to="/products"
-              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.6)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               {lang === 'en' ? 'Order now' : 'Commander maintenant'}
             </Link>
@@ -591,7 +591,7 @@ export default function Index() {
       <FadeIn>
         <section
           aria-label={lang === 'en' ? 'The cost of waiting' : 'Le coût de l\u2019attente'}
-          className="scroll-mt-20 bg-[#0A0A0A] text-white py-24 md:py-28 px-6 md:px-10"
+          className="scroll-mt-20 bg-[#0A0A0A] text-white py-24 md:py-28 px-6 md:px-10 border-t border-b border-[#E5E7EB]"
         >
           <div className="max-w-[920px] mx-auto text-center">
             <div className="text-[12px] font-bold tracking-[2.5px] uppercase text-white/60 mb-5">

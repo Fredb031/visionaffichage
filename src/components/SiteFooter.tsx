@@ -150,7 +150,7 @@ export function SiteFooter() {
                 ? '10% off your first order'
                 : '10\u00a0% sur ta première commande'}
             </h3>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-white/80">
               {lang === 'en'
                 ? 'Subscribe to get VISION10 and upcoming deals'
                 : 'Abonne-toi pour recevoir le code VISION10 + nos promos'}
@@ -182,8 +182,8 @@ export function SiteFooter() {
                   // so SRs re-read the hint when the user refocuses
                   // the field after the role=alert one-shot announce.
                   aria-describedby={emailErr ? 'footer-newsletter-error' : undefined}
-                  className={`w-full pl-9 pr-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 transition-shadow ${
-                    emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#0052CC]'
+                  className={`w-full pl-9 pr-4 py-3 bg-white text-[#0A0A0A] border rounded-l-xl text-sm placeholder:text-[#6B7280] outline-none focus:bg-white focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 transition-shadow ${
+                    emailErr ? 'border-rose-400 focus:border-rose-500' : 'border-white/30 focus:border-[#0052CC]'
                   }`}
                   autoComplete="email"
                   required
@@ -211,7 +211,7 @@ export function SiteFooter() {
             ) : (
               // Privacy microcopy — concrete "what won't happen" beats marketing-speak
               // and matches the unsubscribe escape hatch promised in the toast.
-              <p className="text-[11px] text-white/50 mt-1.5 pl-1">
+              <p className="text-[11px] text-white/70 mt-1.5 pl-1">
                 {lang === 'en'
                   ? 'No spam. One-click unsubscribe.'
                   : 'Pas de spam. Désabonnement en 1 clic.'}
@@ -223,7 +223,7 @@ export function SiteFooter() {
         {/* Link columns */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 py-10 border-b border-white/10">
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white mb-3">
               {lang === 'en' ? 'Shop' : 'Boutique'}
             </h4>
             <ul className="space-y-2 text-sm">
@@ -235,7 +235,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white mb-3">
               {lang === 'en' ? 'Company' : 'Entreprise'}
             </h4>
             <ul className="space-y-2 text-sm">
@@ -256,7 +256,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white mb-3">
               {lang === 'en' ? 'Support' : 'Aide'}
             </h4>
             <ul className="space-y-2 text-sm">
@@ -278,7 +278,7 @@ export function SiteFooter() {
               reinforces "these are terms/agreements you can click to read"
               versus the hue-shift used for marketing links above. */}
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white mb-3">
               {lang === 'en' ? 'Legal' : 'Légal'}
             </h4>
             <ul className="space-y-2 text-sm">
@@ -290,7 +290,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white mb-3">
               {lang === 'en' ? 'Reach us' : 'Nous joindre'}
             </h4>
             <ul className="space-y-2 text-sm">
@@ -355,11 +355,11 @@ export function SiteFooter() {
               // never competes with hero/product images for bandwidth.
               loading="lazy"
               decoding="async"
-              className="h-5 opacity-70"
+              className="h-5 opacity-90"
               onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
           </div>
-          <div className="text-[11px] text-white/40">
+          <div className="text-[11px] text-white/70">
             © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
           </div>
         </div>
@@ -368,7 +368,7 @@ export function SiteFooter() {
             brand marks. Signals checkout trust (the #1 cart-abandonment
             friction surveyed by Baymard) without a logo wall, and mirrors
             the accepted tenders already listed at /checkout. */}
-        <div className="pt-3 text-[11px] text-white/50 tracking-wide text-center md:text-right">
+        <div className="pt-3 text-[11px] text-white/70 tracking-wide text-center md:text-right">
           <span>
             {lang === 'en' ? 'Secure payments:' : 'Paiements sécurisés :'}
           </span>
