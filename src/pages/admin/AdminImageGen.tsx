@@ -564,7 +564,18 @@ export default function AdminImageGen() {
                 <div className="p-3">
                   <p className="text-xs text-zinc-700 line-clamp-3">{img.prompt}</p>
                   <div className="text-[10px] text-zinc-400 mt-1 uppercase tracking-wider">
-                    {img.provider} · {new Date(img.generatedAt).toLocaleTimeString('fr-CA')}
+                    {img.provider}
+                    {(() => {
+                      // Stored history from older builds can lack generatedAt
+                      // (or carry a malformed string), which would otherwise
+                      // render the literal "Invalid Date" next to the
+                      // provider name. Skip the timestamp segment when the
+                      // date can't be parsed.
+                      const t = new Date(img.generatedAt).getTime();
+                      return Number.isFinite(t)
+                        ? ` · ${new Date(t).toLocaleTimeString('fr-CA')}`
+                        : '';
+                    })()}
                   </div>
                 </div>
               </div>
