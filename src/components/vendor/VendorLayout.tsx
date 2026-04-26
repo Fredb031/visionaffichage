@@ -47,7 +47,7 @@ export function VendorLayout() {
     navigate('/');
   };
 
-  const firstName = user?.name?.split(' ')[0] ?? 'Vendeur';
+  const firstName = user?.name?.trim().split(/\s+/)[0] || 'Vendeur';
   const roleLabel = user?.title ?? (user?.role ? ROLE_LABEL[user.role] : 'Vendeur');
 
   return (
