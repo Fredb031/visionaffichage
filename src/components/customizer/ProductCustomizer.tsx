@@ -37,6 +37,7 @@ import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
 import { PRODUCTS, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage, pickDefaultZone, pickDefaultZoneForSide } from '@/data/products';
+import { getDisplayColors } from '@/lib/colorFilter';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
@@ -176,14 +177,18 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // ── Display colours (computed above the early return so the mount
   // effect below can sync the store to the FIRST truly-available colour).
   //
-  // STRICT: a colour only appears if findColorImage(sku, name) returns a
-  // real front drive image for this product. No drive image → the colour
-  // does not exist for this product and must not be shown. (Previously
-  // we let 'noir'/'black' through even without photography, which showed
-  // the generic product fallback and confused users.)
+  // SINGLE SOURCE OF TRUTH: routes through `getDisplayColors` from
+  // @/lib/colorFilter — the SAME helper the PDP swatch row consumes.
+  // That guarantees the customizer and the PDP can never diverge on
+  // which palette they offer for a given product. If a colour appears
+  // here, it appears on the PDP (and vice versa).
   //
-  // Back images are NOT required — many products are front-only; the
-  // canvas already handles a missing back gracefully.
+  // For canvas rendering we additionally need a front image — when
+  // findColorImage doesn't produce one we fall back to the product's
+  // generic devant photo so the swatch still renders (the PDP doesn't
+  // need a per-colour image because it only shows a hex dot). Back
+  // images are NOT required — many products are front-only; the canvas
+  // already handles a missing back gracefully.
   //
   // Order: black first (when present), then catalog order. Shopify
   // metadata (variantId, price, sizeOptions) is merged by name match.
@@ -193,23 +198,26 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     if (!product) return [];
     const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    // Only keep local colours with a REAL front drive image for this SKU.
-    const withImages = product.colors
-      .map(c => {
-        const img = findColorImage(product.sku, c.nameEn) ?? findColorImage(product.sku, c.name);
-        return { c, img };
-      })
-      .filter(({ img }) => !!img?.front)
-      .map(({ c, img }) => ({
+    // Shared per-product palette (PDP + customizer agree on this list).
+    const localPalette = getDisplayColors(product.sku, product.colors);
+
+    const withImages = localPalette.map(c => {
+      const img = findColorImage(product.sku, c.nameEn) ?? findColorImage(product.sku, c.name);
+      return {
         variantId: c.id,
         colorName: c.name,
         hex: c.hex,
-        imageDevant: img!.front!,
-        imageDos: img!.back ?? c.imageDos ?? product.imageDos,
+        // Front image is required for the canvas — fall back to the
+        // product's default devant photo when no per-colour shot exists
+        // (e.g. Black on a SKU with one master photo). The canvas tints
+        // the fallback with the swatch hex so the preview still reads.
+        imageDevant: img?.front ?? c.imageDevant ?? product.imageDevant,
+        imageDos: img?.back ?? c.imageDos ?? product.imageDos,
         price: product.basePrice.toString(),
         availableForSale: true,
         sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
-      } as ShopifyVariantColor));
+      } as ShopifyVariantColor;
+    });
 
     // Merge Shopify metadata (variantId, price, sizeOptions) where names match.
     const merged = withImages.map(loc => {

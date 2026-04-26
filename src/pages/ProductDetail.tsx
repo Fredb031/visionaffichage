@@ -17,6 +17,7 @@ import { ArrowLeft, Shirt, Check, CheckCircle, ChevronRight, Package, Ruler, Cal
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
+import { getDisplayColors } from '@/lib/colorFilter';
 import { PRICING } from '@/data/pricing';
 import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
@@ -1315,16 +1316,18 @@ export default function ProductDetail() {
                     </label>
 
                     {isColor && localProduct ? (
-                      /* Color swatches. Source of truth = local catalog
-                         (so Black + other core colours can't be missing
-                         when Shopify's list is incomplete). Shopify's
-                         values are appended for anything extra. Only
-                         colours with a real drive image are shown. */
+                      /* Color swatches. Source of truth = `getDisplayColors`
+                         from @/lib/colorFilter — the SAME helper the Merge
+                         customizer's ColorPicker consumes, so the two
+                         surfaces can't drift on which swatches exist for
+                         a given product. Shopify's option.values are
+                         appended afterwards for anything extra (e.g. a
+                         freshly-added Shopify variant we haven't yet
+                         photographed). */
                       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
                         {(() => {
                           const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                          const localNames = localProduct.colors
-                            .filter(c => !!findColorImage(localProduct.sku, c.nameEn) || !!findColorImage(localProduct.sku, c.name) || /^(black|noir)$/i.test(c.nameEn))
+                          const localNames = getDisplayColors(localProduct.sku, localProduct.colors)
                             .map(c => c.name);
                           const extra = (option.values ?? []).filter(v => !localNames.some(n => norm(n) === norm(v)));
                           const entries = [...localNames, ...extra];

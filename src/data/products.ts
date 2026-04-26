@@ -107,7 +107,14 @@ const ATCF2500_COLORS: ProductColor[] = [
   { id: 'black',            name: 'Noir',              nameEn: 'Black',            hex: '#141414' },
   { id: 'white',            name: 'Blanc',             nameEn: 'White',            hex: '#F2F0EB' },
   { id: 'navy',             name: 'Marine',            nameEn: 'Navy',             hex: '#1D2B4F' },
-  { id: 'steel-grey',       name: 'Gris acier',        nameEn: 'Steel Grey',       hex: '#6E7278' },
+  // Dropped: Steel Grey (Gris acier, #6E7278). Audit 2026-04-26: no
+  // steel/iron/coal grey image exists for ATCF2500/F2600/F2400/Y2500
+  // bodies, so the COLOR_ALT_SLUGS chain falls all the way through to
+  // `darkheathergrey_012017` — the SAME photo used by Dark Heather
+  // (Gris foncé chiné, #3E3F42) below. The two swatches were visually
+  // identical on the PDP and in the customizer despite the slightly
+  // different hex chips. Polos (S445/L445/S445LS) keep Steel Grey
+  // because their image set has real `irongrey_*` photography.
   { id: 'dark-heather',     name: 'Gris foncé chiné',  nameEn: 'Dark Heather',     hex: '#3E3F42' },
   // Dropped: Light Heather — no matching Drive image on ATCF2500/Y2500/F2600/F2400;
   // the alt-slug chain doesn't reach a light-heather asset, so the swatch
