@@ -474,7 +474,7 @@ type RawShopifyVariant = {
     id: string;
     title: string;
     availableForSale: boolean;
-    price: { amount: string; currencyCode?: string };
+    price: { amount?: string | null; currencyCode?: string } | null;
     selectedOptions: RawShopifyOption[];
     image?: { url: string; altText?: string | null } | null;
   };
@@ -502,13 +502,18 @@ export function parseProductColors(raw: RawShopifyProduct | null | undefined): S
     const size = sizeOpt?.value ?? variant.title;
 
     if (!colorMap.has(colorName)) {
+      // Defensive: Shopify variants nearly always carry a price, but during
+      // partial/incomplete GraphQL payloads (regional outages, schema drift)
+      // `price.amount` can be null/undefined. Coercing to '0' here keeps
+      // downstream `parseFloat`/Intl.NumberFormat calls in the PDP from
+      // emitting `NaN $` to shoppers.
       colorMap.set(colorName, {
         variantId: variant.id,
         colorName,
         hex: colorNameToHex(colorName),
         imageDevant: variant.image?.url ?? null,
         imageDos: null,
-        price: variant.price.amount,
+        price: variant.price?.amount ?? '0',
         availableForSale: variant.availableForSale,
         sizeOptions: [],
       });
