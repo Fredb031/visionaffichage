@@ -1458,17 +1458,20 @@ export default function VendorDashboard() {
               {L('7 derniers jours', 'Last 7 days')}
             </p>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex flex-col items-end gap-1">
             <Sparkline
               data={last7Days}
               width={180}
               height={56}
               strokeWidth={2}
               ariaLabel={L(
-                'Commission des 7 derniers jours',
-                'Commission over the last 7 days',
+                'Aperçu synthétique de la commission des 7 derniers jours — données réelles à venir',
+                'Synthetic preview of commission over the last 7 days — real data coming soon',
               )}
             />
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
+              {L('Aperçu synthétique — données réelles à venir', 'Synthetic preview — real data coming soon')}
+            </span>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2, Download, Languages, BellRing } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, ShieldCheck, AlertTriangle, Trash2, Download, Languages, BellRing } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -14,8 +14,6 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { WishlistGrid } from '@/components/WishlistGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
-import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
-import { normalizeInvisible } from '@/lib/utils';
 
 // Law 25 (Québec) account-deletion request queue. We persist the
 // request in localStorage so an admin can drain it manually while the
@@ -166,18 +164,6 @@ export default function Account() {
   const deleteDialogRef = useFocusTrap<HTMLDivElement>(deleteOpen);
 
   useDocumentTitle(lang === 'en' ? 'My account — Vision Affichage' : 'Mon compte — Vision Affichage');
-
-  // Match orders by customer email (best-effort with the snapshot).
-  // Strip invisibles on both sides so a Shopify-exported order email
-  // that accidentally carried a ZWSP still matches the signed-in
-  // user's normalized email.
-  const myOrders = useMemo(() => {
-    if (!user?.email) return [];
-    const me = normalizeInvisible(user.email).trim().toLowerCase();
-    return SHOPIFY_ORDERS_SNAPSHOT
-      .filter(o => normalizeInvisible(o.email).trim().toLowerCase() === me)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [user?.email]);
 
   if (hydrated && !user) {
     return (
@@ -396,7 +382,11 @@ export default function Account() {
         {/* Saved products — renders nothing when the wishlist is empty */}
         <WishlistGrid />
 
-        {/* Orders */}
+        {/* Orders — wired to a "coming soon" panel until the section is
+            connected to real Shopify orders for the signed-in customer.
+            The previous implementation rendered a hard-coded snapshot
+            (Sophie Tremblay's test orders) to every authed user, which
+            is a direct trust failure. */}
         <div className="bg-white border border-border rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-border flex items-center justify-between">
             <h2 className="font-bold flex items-center gap-2">
@@ -407,73 +397,24 @@ export default function Account() {
               {lang === 'en' ? 'Track an order →' : 'Suivre une commande →'}
             </Link>
           </div>
-
-          {myOrders.length === 0 ? (
-            <div className="p-10 md:p-12 text-center">
-              <ShoppingBag size={36} className="text-[#0052CC]/30 mx-auto mb-3" aria-hidden="true" />
-              <h3 className="text-base font-extrabold text-foreground mb-1">
-                {lang === 'en' ? 'No orders yet' : 'Pas encore de commande'}
+          <div className="p-5">
+            <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-8 text-center">
+              <h3 className="font-display font-bold text-xl text-[#0A0A0A] mb-2">
+                {lang === 'en' ? 'Order history coming soon' : 'Historique des commandes à venir'}
               </h3>
-              <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto leading-relaxed">
+              <p className="text-[#374151] text-sm mb-4 max-w-md mx-auto">
                 {lang === 'en'
-                  ? 'Once you place an order, you\u2019ll see status, tracking and delivery dates right here.'
-                  : 'Dès ta première commande, tu verras le statut, le suivi et la date de livraison ici.'}
+                  ? 'We\u2019re wiring this section to your real Shopify orders. For now, contact us to track an order.'
+                  : 'On branche cette section à tes vraies commandes Shopify. Pour l\u2019instant, écris-nous pour suivre une commande.'}
               </p>
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              <a
+                href="mailto:info@visionaffichage.com"
+                className="inline-flex items-center bg-[#0052CC] text-white font-bold px-5 py-2.5 rounded-xl hover:bg-[#003D99] transition-all"
               >
-                {lang === 'en' ? 'Start your first order →' : 'Commencer ma première commande →'}
-              </Link>
+                {lang === 'en' ? 'Email us' : 'Nous écrire'}
+              </a>
             </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {myOrders.map(o => {
-                const status = o.fulfillmentStatus === 'fulfilled' ? 'delivered'
-                  : o.financialStatus === 'pending' ? 'pending'
-                  : 'production';
-                const statusLabel = {
-                  delivered: { fr: 'Livré', en: 'Delivered' },
-                  pending: { fr: 'Paiement en attente', en: 'Payment pending' },
-                  production: { fr: 'En production', en: 'In production' },
-                }[status];
-                const statusTone = {
-                  delivered: 'bg-emerald-50 text-emerald-700',
-                  pending: 'bg-amber-50 text-amber-700',
-                  production: 'bg-blue-50 text-blue-700',
-                }[status];
-                return (
-                  <Link
-                    key={o.id}
-                    to={`/track/${o.name.replace('#', '')}`}
-                    className="flex items-center gap-4 p-4 hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-                      <Package size={16} className="text-primary" aria-hidden="true" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold">{o.name}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusTone}`}>
-                          {lang === 'en' ? statusLabel.en : statusLabel.fr}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
-                        <span className="flex items-center gap-1"><Calendar size={10} aria-hidden="true" /> {new Date(o.createdAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</span>
-                        <span>{o.itemsCount} {lang === 'en'
-                          ? `item${o.itemsCount !== 1 ? 's' : ''}`
-                          : `article${o.itemsCount !== 1 ? 's' : ''}`}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-extrabold">{o.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { minimumFractionDigits: 2 })} $</div>
-                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] group-focus-visible:text-[#0052CC] inline-block" aria-hidden="true" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Recently-viewed strip — useful for returning customers to

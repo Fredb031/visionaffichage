@@ -191,40 +191,9 @@ export default function VendorProfile() {
           </div>
         </section>
 
-        {/* Bio block — placeholder bilingual copy. TODO(bio): replace
-            once the vendor supplies a real paragraph. Keep the 2-3
-            paragraph rhythm so the page height stays consistent. */}
-        {/* TODO(bio): swap placeholder narrative for vendor-supplied
-            copy. Do not invent biographical facts about the real person
-            — the shop owner collects this offline. */}
-        <section
-          aria-labelledby="vendor-bio"
-          className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm mb-10"
-        >
-          <h2
-            id="vendor-bio"
-            className="text-xl md:text-2xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-4"
-          >
-            {lang === 'en' ? 'About' : 'À propos'}
-          </h2>
-          <div className="space-y-4 text-[15px] leading-relaxed text-zinc-700">
-            <p>
-              {lang === 'en'
-                ? 'Placeholder bio — this paragraph will be replaced with the vendor\u2019s own words. Expect a short intro covering background, how they got into print & embroidery, and what kind of projects they enjoy most.'
-                : 'Biographie provisoire — ce paragraphe sera remplacé par les mots du vendeur. Attendez-vous à une courte présentation couvrant le parcours, le chemin vers l\u2019impression et la broderie, et les types de projets préférés.'}
-            </p>
-            <p>
-              {lang === 'en'
-                ? 'Placeholder continued — typical clients, favorite product categories, and the kind of rush jobs they\u2019re happy to take on will land here. For now, the stats panel below gives a factual snapshot while the real bio is being collected.'
-                : 'Suite provisoire — la clientèle habituelle, les catégories de produits préférées et les commandes urgentes acceptées viendront ici. D\u2019ici là, les statistiques ci-dessous offrent un portrait factuel pendant que la vraie biographie est recueillie.'}
-            </p>
-          </div>
-        </section>
-
-        {/* Stats — factual numbers the vendor can vouch for even while
-            the bio is still placeholder copy. Grid collapses to a
-            single column under sm: so the tiles stack cleanly on
-            phones. */}
+        {/* Stats — factual numbers the vendor can vouch for. Grid
+            collapses to a single column under sm: so the tiles stack
+            cleanly on phones. */}
         <section aria-labelledby="vendor-stats" className="mb-10">
           <h2
             id="vendor-stats"

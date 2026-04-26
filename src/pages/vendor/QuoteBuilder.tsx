@@ -7,7 +7,6 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProductColors } from '@/hooks/useProductColors';
 import type { ShopifyVariantColor } from '@/lib/shopify';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
-import { isAutomationActive } from '@/lib/automations';
 import { useAuthStore } from '@/stores/authStore';
 
 // The size column order that matches what the client can actually order on
@@ -467,17 +466,6 @@ export default function QuoteBuilder() {
 
   const handleSendToClient = () => {
     if (!canSend) return;
-    // Honor the /admin/automations pause toggle. When an admin has
-    // flipped 'quote-requested-admin' to paused, don't compose the
-    // mailto — surface a toast so the vendor knows why nothing opened
-    // and log so we can confirm the gate actually fired in the console.
-    if (!isAutomationActive('quote-requested-admin')) {
-      console.info('[automation] skipped paused automation:', 'quote-requested-admin');
-      toast.warning('Envoi de soumission suspendu', {
-        description: 'L\u2019automatisation « Quote requested » est en pause dans /admin/automations.',
-      });
-      return;
-    }
     const q = persistQuote('sent');
     // Truncate the line list if the client ordered so many items that
     // the full mailto URL would blow the browser limit (~2000 chars in
