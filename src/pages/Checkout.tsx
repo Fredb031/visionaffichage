@@ -29,6 +29,14 @@ interface ShippingForm {
   province: string;
   phone: string;
   notes: string;
+  /** Mega 17.8 — optional B2B PO number. Buyers from procurement teams
+   *  paste their internal "bon de commande" reference so the supplier-
+   *  side invoice can be matched against their AP system. Not validated
+   *  beyond a 64-char cap (operator-side AP systems use a wide variety
+   *  of formats). Forwarded to localStorage `va:po-number` and into the
+   *  pending-checkout payload so a follow-up can wire it to a Shopify
+   *  cart attribute / order metafield. */
+  poNumber: string;
 }
 
 // Quebec effective combined rate is 14.975% (5% GST + 9.975% QST).
@@ -188,7 +196,31 @@ function addBusinessDays(from: Date, businessDays: number): Date {
 const empty: ShippingForm = {
   email: '', firstName: '', lastName: '', company: '',
   address: '', city: '', postalCode: '', province: 'QC', phone: '', notes: '',
+  poNumber: '',
 };
+
+/** Mega 17.8 — localStorage key for the persisted PO number so a
+ *  returning B2B buyer doesn't have to re-paste their bon-de-commande
+ *  reference on every order. Cleared on successful checkout (same hook
+ *  as the draft wipe) so a stale PO doesn't leak into the next order. */
+const PO_NUMBER_STORAGE_KEY = 'va:po-number';
+
+/** Mega 17.8 — soft cap on PO-number length. AP systems vary wildly
+ *  (Coupa: ~20 chars, SAP: ~10, mom-and-pop: free-form) so we cap
+ *  defensively at 64 to keep the field usable without letting a paste
+ *  bomb crater layout. */
+const PO_NUMBER_MAX = 64;
+
+/** Mega 17.9 — localStorage key + validation regex for the optional
+ *  TVQ-exemption organism number. Quebec's Revenu Québec issues
+ *  exemption numbers as a numeric string of 10-16 digits depending on
+ *  the era (older NEQ-aligned formats run shorter, modern non-profit
+ *  exemption certificates run longer). The actual tax-skip fires at
+ *  the Shopify discount-rule level — operators must configure the
+ *  rule on the Shopify side; this field just captures the number
+ *  for the order metadata so finance/AR can audit. */
+const TAX_EXEMPT_ORG_STORAGE_KEY = 'va:tax-exempt-org';
+const TAX_EXEMPT_ORG_REGEX = /^\d{10,16}$/;
 
 /**
  * Multi-step checkout page (info → shipping → payment → done) with EN/FR
@@ -376,6 +408,94 @@ export default function Checkout() {
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState('');
 
+  // Mega 17.9 — TVQ-exemption fields. The checkbox toggles whether the
+  // organism-number input is visible; the input is validated as 10-16
+  // digits ONLY when the checkbox is checked (an unchecked exempt flag
+  // has no number to validate). Both pieces hydrate from localStorage
+  // on mount so a returning municipal/non-profit buyer doesn't have to
+  // re-enter their certificate number. Wrapped in try/catch because
+  // privacy-mode Safari + first-party-storage-blocked configurations
+  // throw on localStorage.getItem.
+  const [taxExempt, setTaxExempt] = useState<boolean>(false);
+  const [taxExemptOrg, setTaxExemptOrg] = useState<string>('');
+  const taxExemptHydratedRef = useRef(false);
+  useEffect(() => {
+    if (taxExemptHydratedRef.current) return;
+    if (typeof window === 'undefined') return;
+    taxExemptHydratedRef.current = true;
+    try {
+      const saved = window.localStorage.getItem(TAX_EXEMPT_ORG_STORAGE_KEY);
+      if (saved && TAX_EXEMPT_ORG_REGEX.test(saved)) {
+        setTaxExemptOrg(saved);
+        setTaxExempt(true);
+      }
+    } catch { /* private mode / SSR — ignore */ }
+  }, []);
+
+  // Mega 17.8 — PO number hydration. Same belt-and-suspenders pattern
+  // as the tax-exempt org number above. Synced into the form state so
+  // the existing draft-persistence pipeline + the pending-checkout
+  // payload pick it up automatically.
+  const poHydratedRef = useRef(false);
+  useEffect(() => {
+    if (poHydratedRef.current) return;
+    if (typeof window === 'undefined') return;
+    poHydratedRef.current = true;
+    try {
+      const saved = window.localStorage.getItem(PO_NUMBER_STORAGE_KEY);
+      if (saved && saved.trim()) {
+        setForm(f => (f.poNumber ? f : { ...f, poNumber: saved.slice(0, PO_NUMBER_MAX) }));
+      }
+    } catch { /* private mode / SSR — ignore */ }
+  }, []);
+
+  // Mega 17.8/17.9 — debounced persist to localStorage. Mirrors the
+  // existing checkout-draft persistence so the two new fields survive a
+  // refresh / new tab independently of the full draft (a buyer might
+  // clear the draft via the banner but still want their PO number kept
+  // for the next order). 500ms debounce avoids hammering localStorage
+  // on every keystroke.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const t = setTimeout(() => {
+      try {
+        const trimmed = form.poNumber.trim();
+        if (trimmed) {
+          window.localStorage.setItem(PO_NUMBER_STORAGE_KEY, trimmed.slice(0, PO_NUMBER_MAX));
+        } else {
+          window.localStorage.removeItem(PO_NUMBER_STORAGE_KEY);
+        }
+      } catch { /* quota / private mode — ignore */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.poNumber]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const t = setTimeout(() => {
+      try {
+        if (taxExempt && TAX_EXEMPT_ORG_REGEX.test(taxExemptOrg)) {
+          window.localStorage.setItem(TAX_EXEMPT_ORG_STORAGE_KEY, taxExemptOrg);
+        } else if (!taxExempt) {
+          window.localStorage.removeItem(TAX_EXEMPT_ORG_STORAGE_KEY);
+        }
+      } catch { /* quota / private mode — ignore */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [taxExempt, taxExemptOrg]);
+
+  // Mega 17.9 — validation helpers. The org number is required ONLY
+  // when the checkbox is checked; an unchecked-exempt state is valid
+  // (the buyer simply isn't claiming exemption). Empty input while
+  // checked is treated as "not yet entered" (no red border) so the
+  // field doesn't look broken on first reveal.
+  const taxExemptOrgTrimmed = taxExemptOrg.trim();
+  const taxExemptOrgValid =
+    !taxExempt ||
+    taxExemptOrgTrimmed.length === 0 ||
+    TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed);
+  const taxExemptComplete = !taxExempt || TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed);
+
   // Debounced (500ms) write of the non-sensitive portion of the form
   // into `vision-checkout-draft`. Any re-render that changes form or
   // shippingMethod schedules a fresh timer; the previous one is
@@ -436,6 +556,13 @@ export default function Checkout() {
     if (step !== 'done') return;
     if (typeof window === 'undefined') return;
     try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* private mode — ignore */ }
+    // Mega 17.8/17.9 — clear stashed B2B fields too, so a stale PO
+    // number or exemption certificate doesn't auto-populate the next
+    // (potentially unrelated) order. Keep the same try/catch pattern
+    // as the draft wipe — privacy-mode Safari throws on any
+    // localStorage call here.
+    try { localStorage.removeItem(PO_NUMBER_STORAGE_KEY); } catch { /* private mode — ignore */ }
+    try { localStorage.removeItem(TAX_EXEMPT_ORG_STORAGE_KEY); } catch { /* private mode — ignore */ }
     setDraftOffer(null);
   }, [step]);
 
@@ -557,7 +684,11 @@ export default function Checkout() {
   const infoValid =
     isValidEmail(form.email) &&
     form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
-    form.city.trim() && postalValid && isValidPhone;
+    form.city.trim() && postalValid && isValidPhone &&
+    // Mega 17.9 — block "Continue" if the exempt checkbox is on but
+    // the org number isn't a valid 10-16 digit string. Unchecked
+    // exempt is always valid (no claim being made).
+    taxExemptComplete;
 
   const handlePay = async () => {
     if (!acceptedTerms) return;
@@ -602,11 +733,24 @@ export default function Checkout() {
           // checkout blob so a pasted tag / oversized whitespace payload
           // can't poison the fulfillment pipeline that reads it back.
           const giftNote = isGift ? sanitizeText(giftMessage, { maxLength: GIFT_MESSAGE_MAX }) : '';
+          // Mega 17.8/17.9 — capture PO + tax-exempt info into the
+          // pending-checkout payload so the downstream order-confirmation
+          // toast (and any future Shopify cart-attribute follow-up) can
+          // surface the buyer's procurement reference + organism number.
+          // Sanitized identically to the gift note so a paste-bomb can't
+          // poison the payload.
+          const poClean = sanitizeText(form.poNumber, { maxLength: PO_NUMBER_MAX });
+          const orgClean = taxExempt && TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed)
+            ? taxExemptOrgTrimmed
+            : '';
           localStorage.setItem('vision-pending-checkout', JSON.stringify({
             ...form,
+            poNumber: poClean,
             total,
             isGift: isGift && giftNote.length > 0,
             giftMessage: giftNote,
+            taxExempt: orgClean.length > 0,
+            taxExemptOrg: orgClean,
             ts: Date.now(),
           }));
         } catch (e) {
@@ -931,6 +1075,20 @@ export default function Checkout() {
                     <Input value={form.firstName} onChange={v => setForm(f => ({ ...f, firstName: v }))} placeholder={lang === 'en' ? 'First name' : 'Prénom'} autoComplete="given-name" autoCapitalize="words" required />
                     <Input value={form.lastName}  onChange={v => setForm(f => ({ ...f, lastName: v }))}  placeholder={lang === 'en' ? 'Last name' : 'Nom'} autoComplete="family-name" autoCapitalize="words" required />
                     <Input value={form.company}   onChange={v => setForm(f => ({ ...f, company: v }))}   placeholder={lang === 'en' ? 'Company (optional)' : 'Entreprise (optionnel)'} autoComplete="organization" autoCapitalize="words" className="col-span-2" />
+                    {/* Mega 17.8 — optional B2B PO number, persisted to
+                        localStorage `va:po-number` for returning
+                        procurement-team buyers. Cap at PO_NUMBER_MAX so a
+                        paste-bomb can't blow out the layout. */}
+                    <Input
+                      value={form.poNumber}
+                      onChange={v => setForm(f => ({ ...f, poNumber: v.slice(0, PO_NUMBER_MAX) }))}
+                      placeholder={lang === 'en'
+                        ? 'Purchase order number (optional)'
+                        : 'Numéro de bon de commande (optionnel)'}
+                      autoComplete="off"
+                      maxLength={PO_NUMBER_MAX}
+                      className="col-span-2"
+                    />
                     <Input value={form.address}   onChange={v => setForm(f => ({ ...f, address: v }))}   placeholder={lang === 'en' ? 'Street address' : 'Adresse'} autoComplete="street-address" autoCapitalize="words" className="col-span-2" required />
                     <Input value={form.city}      onChange={v => setForm(f => ({ ...f, city: v }))}      placeholder={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" autoCapitalize="words" required />
                     <Input
@@ -971,6 +1129,82 @@ export default function Checkout() {
                       ariaInvalid={phoneTrimmed.length > 0 && !isValidPhone}
                     />
                   </div>
+                </div>
+
+                {/* Mega 17.9 — TVQ-exemption (organism number). Targeted
+                    at municipal / non-profit / first-nations buyers who
+                    hold a valid Revenu Québec exemption certificate.
+                    The actual tax-skip is configured operator-side as
+                    a Shopify discount rule keyed on the order metadata —
+                    this UI just captures the number for the audit trail.
+                    Validation is 10-16 digits ONLY when checked; the
+                    invalid state is silent until the user has typed
+                    something so the field doesn't look broken on first
+                    reveal. */}
+                <div className="border border-border rounded-xl overflow-hidden">
+                  <label
+                    className={`flex items-start gap-3 p-3 transition-colors ${
+                      taxExempt ? 'bg-amber-50' : 'bg-secondary/30 hover:bg-secondary/50'
+                    } cursor-pointer`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={taxExempt}
+                      onChange={e => {
+                        setTaxExempt(e.target.checked);
+                        if (!e.target.checked) setTaxExemptOrg('');
+                      }}
+                      aria-controls="checkout-tax-exempt-input"
+                      aria-expanded={taxExempt}
+                      className={`mt-0.5 w-5 h-5 ${taxExempt ? 'accent-amber-600' : 'accent-primary'}`}
+                    />
+                    <span className="text-sm">
+                      <span className={taxExempt ? 'font-semibold text-amber-900' : ''}>
+                        {lang === 'en'
+                          ? 'I am exempt from QST (organism number)'
+                          : "Je suis exempté(e) de TVQ (numéro d'organisme)"}
+                      </span>
+                    </span>
+                  </label>
+                  {taxExempt && (
+                    <div className="px-3 pb-3 pt-2 bg-amber-50/40 border-t border-amber-100">
+                      <input
+                        id="checkout-tax-exempt-input"
+                        type="text"
+                        inputMode="numeric"
+                        value={taxExemptOrg}
+                        onChange={e => setTaxExemptOrg(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                        placeholder={lang === 'en'
+                          ? 'Organism number (10-16 digits)'
+                          : "Numéro d'organisme (10-16 chiffres)"}
+                        aria-label={lang === 'en' ? 'Organism number' : "Numéro d'organisme"}
+                        aria-invalid={
+                          taxExempt && taxExemptOrgTrimmed.length > 0 && !TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed)
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby="checkout-tax-exempt-helper"
+                        maxLength={16}
+                        className={`w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus-visible:ring-2 transition-shadow ${
+                          taxExempt && taxExemptOrgTrimmed.length > 0 && !TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed)
+                            ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                            : 'border-amber-200 focus:border-amber-400 focus-visible:ring-amber-400/40'
+                        }`}
+                      />
+                      <p id="checkout-tax-exempt-helper" className="mt-1 text-[11px] text-muted-foreground">
+                        {lang === 'en'
+                          ? 'The actual tax-skip is applied at Shopify checkout once your file is verified.'
+                          : "L'exemption sera appliquée au paiement Shopify après vérification du dossier."}
+                      </p>
+                      {taxExempt && taxExemptOrgTrimmed.length > 0 && !taxExemptOrgValid && (
+                        <p role="alert" className="mt-1 text-[11px] text-rose-600">
+                          {lang === 'en'
+                            ? 'Enter 10 to 16 digits.'
+                            : 'Entre 10 à 16 chiffres.'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <button
