@@ -37,6 +37,11 @@ const STATUS_COLORS: Record<string, string> = {
   voided: 'bg-zinc-100 text-zinc-700',
 };
 
+// Cadence at which relative-time labels ("il y a 5 min") refresh while
+// the dashboard stays open. One minute matches the smallest visible
+// unit — anything tighter just burns renders without changing pixels.
+const RELATIVE_TIME_TICK_MS = 60_000;
+
 // ───────────── Task 9.9 — Activity feed deep-links ─────────────
 // Synthesizes recent orders / quotes / abandoned carts into a single
 // freshest-first stream and deep-links each row back to its source
@@ -128,7 +133,7 @@ function useActivityItems(): ActivityItem[] {
   // "à l'instant".
   const [, setTick] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setTick(t => t + 1), 60_000);
+    const id = window.setInterval(() => setTick(t => t + 1), RELATIVE_TIME_TICK_MS);
     return () => window.clearInterval(id);
   }, []);
 
@@ -303,7 +308,7 @@ function RecentAuditCard() {
   // dashboard stays open, same rhythm as ActivityFeedCard.
   const [, setTick] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setTick(t => t + 1), 60_000);
+    const id = window.setInterval(() => setTick(t => t + 1), RELATIVE_TIME_TICK_MS);
     return () => window.clearInterval(id);
   }, []);
 
@@ -545,18 +550,11 @@ export default function AdminDashboard() {
           </div>
           <div className="divide-y divide-zinc-100">
             {recentOrders.map(order => {
-              const date = new Date(order.createdAt);
-              const relTime = (() => {
-                // Clamp to 0 — order.createdAt can be a few seconds
-                // ahead of the browser clock (NTP drift) and would
-                // render "il y a -1h" otherwise.
-                const diff = Math.max(0, Date.now() - date.getTime());
-                const mins = Math.floor(diff / 60000);
-                if (mins < 60) return mins < 1 ? "à l'instant" : `il y a ${mins} min`;
-                const h = Math.floor(mins / 60);
-                if (h < 24) return `il y a ${h}h`;
-                return `il y a ${Math.floor(h / 24)}j`;
-              })();
+              // Reuse the shared helper — inline duplication had drifted
+              // from the activity feed copy (same NTP-drift clamp + same
+              // bucket boundaries) and any future fix would have to land
+              // in two places to stay consistent.
+              const relTime = relativeTimeFr(new Date(order.createdAt).getTime());
               // Refunded / voided orders used to fall through to the
               // 'paid' branch and render a green "Payé" badge on the
               // dashboard — misleading for the admin trying to spot
