@@ -135,3 +135,113 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Volume II Section 13 micro-interactions ──────────────────────────
+   Named utility classes for the 20-item motion bundle. Most of Sec 13
+   (cart bounce, product zoom, scroll-fade, modal focus traps, drawer
+   slide, intro animation) was already shipped via component-level
+   styles; these utilities exist so future components can opt into the
+   canonical timings without re-deriving the keyframes.
+   The global `prefers-reduced-motion` media rule above collapses all
+   of these to ~0ms — no per-class guard needed. */
+
+/* #4 — One-shot bounce. Drop on an element when something completes
+   (e.g. a copy-link button confirming the click). Runs once. */
+@keyframes vaBounceOnce {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.va-bounce-once { animation: vaBounceOnce 0.5s ease-out 1; }
+
+/* #5 — Shimmer wave for skeletons. An alternative to animate-pulse
+   that reads as "loading" rather than "throbbing". Pair with a base
+   `bg-secondary` so the gradient layers on top. */
+@keyframes vaShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.va-shimmer {
+  background-image: linear-gradient(90deg,
+    hsla(var(--secondary), 0) 0%,
+    hsla(0, 0%, 100%, 0.5) 50%,
+    hsla(var(--secondary), 0) 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: vaShimmer 1.4s ease-in-out infinite;
+}
+
+/* #15 — Animated checkmark. Apply to an SVG <path> (or set on the
+   wrapping <svg>'s <path>). The path needs stroke-dasharray equal
+   to its own pathLength (use `pathLength="1"` and dasharray `1`). */
+@keyframes vaCheckmarkDraw {
+  to { stroke-dashoffset: 0; }
+}
+.va-checkmark-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: vaCheckmarkDraw 0.4s cubic-bezier(.65,0,.35,1) forwards;
+}
+
+/* #9 — Toast slide-in from top with fade. */
+@keyframes vaToastSlide {
+  0%   { opacity: 0; transform: translateY(-16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.va-toast-slide { animation: vaToastSlide 0.25s cubic-bezier(.16,1,.3,1) both; }
+
+/* #15 — Modal enter (scale + fade). Pair with backdrop fade. */
+@keyframes vaModalEnter {
+  0%   { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.va-modal-enter { animation: vaModalEnter 0.2s cubic-bezier(.16,1,.3,1) both; }
+
+/* #16 — Drawer slide. Default RTL drawer (translateX from 100% → 0).
+   For an LTR drawer flip the sign in your component, or compose with
+   an inline transform. */
+@keyframes vaDrawerSlide {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(0); }
+}
+.va-drawer-slide { animation: vaDrawerSlide 0.32s cubic-bezier(.22,.61,.36,1) both; }
+
+/* #18 — Progress bar fill on mount. Set the parent to overflow:hidden
+   and put `.va-progress-fill` on the inner bar. The final width is
+   inherited from the element's actual width — the keyframe just
+   animates from 0 to that. */
+@keyframes vaProgressFill {
+  0%   { width: 0; }
+  100% { width: var(--va-progress-target, 100%); }
+}
+.va-progress-fill { animation: vaProgressFill 0.6s cubic-bezier(.16,1,.3,1) both; }
+
+/* #19 — Tooltip pop. Use with transform-origin set to the anchor
+   side so the scale grows out of the trigger. */
+@keyframes vaTooltipPop {
+  0%   { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.va-tooltip-pop { animation: vaTooltipPop 0.15s cubic-bezier(.16,1,.3,1) both; }
+
+/* #5 — Skeleton primitive (shimmer over branded bg). A self-contained
+   alternative to animate-pulse; the pseudo-element carries the
+   sweeping highlight so the parent's bg/rounded utilities stay free
+   for the consumer. */
+.va-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: hsl(var(--secondary));
+}
+.va-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg,
+    hsla(0, 0%, 100%, 0) 0%,
+    hsla(0, 0%, 100%, 0.45) 50%,
+    hsla(0, 0%, 100%, 0) 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: vaShimmer 1.4s ease-in-out infinite;
+}
