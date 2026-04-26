@@ -86,8 +86,16 @@ export const useCustomizerStore = create<CustomizerStore>()(
 
       /** Toggle the visible canvas face (front / back). */
       setView: (activeView) => set({ activeView }),
-      /** Jump the wizard to a specific step (1..3). */
-      setStep: (step) => set({ step }),
+      /** Jump the wizard to a specific step (1..3). Clamps out-of-range
+       * values rather than letting a stray caller (URL param, devtools,
+       * untyped JS consumer) land step=0 or step=99 — same blank-modal
+       * failure mode that onRehydrateStorage already defends against. */
+      setStep: (step) => {
+        const n = Math.floor(Number(step));
+        if (!Number.isFinite(n)) return;
+        const clamped = Math.max(1, Math.min(3, n)) as 1 | 2 | 3;
+        set({ step: clamped });
+      },
 
       /** Sum of quantities across all size rows. NaN-guarded so a malformed
        * row (devtools edit, cross-version state imported via setState before
