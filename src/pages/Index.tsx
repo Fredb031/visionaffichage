@@ -216,7 +216,7 @@ export default function Index() {
       name: 'Vision Affichage',
       alternateName: 'Vision Affichage Inc.',
       url: 'https://visionaffichage.com',
-      logo: 'https://visionaffichage.com/logo.svg',
+      logo: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651',
       telephone: '+1-367-380-4808',
       email: 'info@visionaffichage.com',
       address: {
@@ -264,48 +264,10 @@ export default function Index() {
     };
   }, [lang]);
 
-  // LocalBusiness JSON-LD schema — feeds Google Maps-style
-  // business-card fields.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    if (document.head.querySelector('script[data-local-business-ld]')) return;
-    const localBusinessSchema = {
-      '@context': 'https://schema.org',
-      '@type': 'LocalBusiness',
-      name: 'Vision Affichage',
-      image: 'https://visionaffichage.com/logo.svg',
-      priceRange: '$$',
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: '<owner fills in>',
-        addressLocality: 'Saint-Hyacinthe',
-        addressRegion: 'QC',
-        postalCode: '<owner fills in>',
-        addressCountry: 'CA',
-      },
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: 45.62,
-        longitude: -72.95,
-      },
-      telephone: '+1-367-380-4808',
-      email: 'info@visionaffichage.com',
-      openingHours: 'Mo-Fr 08:00-17:00',
-      url: 'https://visionaffichage.com',
-      sameAs: [
-        'https://instagram.com/visionaffichage',
-        'https://facebook.com/visionaffichage',
-      ],
-    };
-    const el = document.createElement('script');
-    el.type = 'application/ld+json';
-    el.dataset.localBusinessLd = 'true';
-    el.text = JSON.stringify(localBusinessSchema);
-    document.head.appendChild(el);
-    return () => {
-      if (el.parentNode) document.head.removeChild(el);
-    };
-  }, []);
+  // LocalBusiness JSON-LD lives statically in index.html (canonical
+  // single source of truth). The runtime duplicate here was removed —
+  // it carried "<owner fills in>" placeholders and conflicted with the
+  // static schema, confusing Google's knowledge-graph extractor.
 
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
