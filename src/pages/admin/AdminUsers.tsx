@@ -466,8 +466,12 @@ export default function AdminUsers() {
                 // ?? keeps '' (only null/undefined fall through), so a legacy
                 // profile row with full_name = '' used to render a blank
                 // avatar circle and a blank display name. Fall back to the
-                // email for any empty/whitespace-only full_name too.
-                const displayName = (u.full_name ?? '').trim() || u.email;
+                // email's local-part for any empty/whitespace-only full_name
+                // so the avatar initials match the name we render below
+                // (previously the avatar derived initials from the full
+                // email — 'fred@example.com' → 'FE' — but the row showed
+                // 'fred', causing a visible mismatch).
+                const displayName = (u.full_name ?? '').trim() || u.email.split('@')[0];
                 const initials = displayName.split(/[\s@]/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
                 const isMe = u.id === me?.id;
                 return (
