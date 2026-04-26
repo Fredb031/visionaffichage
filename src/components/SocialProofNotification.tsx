@@ -142,13 +142,19 @@ export const SocialProofNotification = () => {
     // continues until the cap is reached.
     if (fireCountRef.current < MAX_PER_SESSION) {
       scheduleTimerRef.current = window.setTimeout(() => {
-        // Re-fire by toggling a state nudge — simplest is to re-pick
-        // and show.
+        // Re-check the cap at fire-time: another tab in the same
+        // session may have written to sessionStorage between schedule
+        // and fire, pushing us past the per-session limit.
+        const live = Math.max(fireCountRef.current, readFireCount());
+        if (live >= MAX_PER_SESSION) {
+          fireCountRef.current = live;
+          return;
+        }
         const next =
           RECENT_ORDERS[Math.floor(Math.random() * RECENT_ORDERS.length)];
         setOrder(next);
         setVisible(true);
-        fireCountRef.current += 1;
+        fireCountRef.current = live + 1;
         writeFireCount(fireCountRef.current);
         dismissTimerRef.current = window.setTimeout(() => {
           setVisible(false);
