@@ -32,9 +32,13 @@ function groupLabel(ts: number, now: number): string {
   const n = new Date(now);
   const startOfDay = (x: Date) =>
     new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  // Subtract days via the Date constructor rather than fixed 86_400_000-ms
+  // arithmetic. In America/Toronto (Quebec) DST transitions make some
+  // calendar days 23h or 25h long, which would otherwise mis-bucket
+  // "Hier" as "Cette semaine" (or vice-versa) twice a year.
   const today = startOfDay(n);
-  const yesterday = today - 86_400_000;
-  const weekAgo = today - 6 * 86_400_000;
+  const yesterday = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime();
+  const weekAgo = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6).getTime();
   const entry = startOfDay(d);
   if (entry === today) return "Aujourd'hui";
   if (entry === yesterday) return 'Hier';
