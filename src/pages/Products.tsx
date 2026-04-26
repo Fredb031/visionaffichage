@@ -70,7 +70,16 @@ export default function Products() {
   //   2. localStorage['va:products-sort'] (returning visitor's last pick)
   //   3. 'popularity' default
   const SORT_STORAGE_KEY = 'va:products-sort';
-  const initialSort: SortMode = (() => {
+  const [activeCategory, setActiveCategory] = useState(initialCat);
+  // Hydrate the search field from ?q= so shareable URLs like
+  // /products?q=hoodie round-trip back into the same filtered view.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
+  // Debounce so the filter pipeline + URL sync don't re-fire on every
+  // keystroke. Controlled input updates instantly; debounced lags 300ms.
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
+  // Lazy initializer: resolve sort once at mount instead of running the
+  // IIFE (which reads localStorage and parses ?sort=...) on every render.
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
     const raw = searchParams.get('sort');
     if ((SORT_VALUES as readonly string[]).includes(raw ?? '')) return raw as SortMode;
     try {
@@ -80,15 +89,7 @@ export default function Products() {
       /* localStorage blocked — fall through to default */
     }
     return 'popularity';
-  })();
-  const [activeCategory, setActiveCategory] = useState(initialCat);
-  // Hydrate the search field from ?q= so shareable URLs like
-  // /products?q=hoodie round-trip back into the same filtered view.
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
-  // Debounce so the filter pipeline + URL sync don't re-fire on every
-  // keystroke. Controlled input updates instantly; debounced lags 300ms.
-  const debouncedQuery = useDebouncedValue(searchQuery, 300);
-  const [sortMode, setSortMode] = useState<SortMode>(initialSort);
+  });
   // Client-side pagination. Sub-30 catalogs render the whole set.
   const PAGE_SIZE = 30;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
