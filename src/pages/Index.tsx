@@ -14,11 +14,12 @@ import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Upload, Zap, Package, ChevronDown } from 'lucide-react';
+import { Shirt, Upload, Zap, Package, ChevronDown, ArrowRight } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
+import { QuickPriceCalculator } from '@/components/QuickPriceCalculator';
 
 // FAQ Q&A pairs — lifted out of the JSX render path so they can be
 // reused by the FAQPage JSON-LD injection without duplicating the
@@ -331,83 +332,112 @@ export default function Index() {
       ) : null}
 
       {/* ============================================================
-          1. LOSS-AVERSION HERO
-          Full-bleed brand-black, 92vh. Headline frames the cost of
-          inaction ("Ton équipe a l'air d'amateurs") with d'amateurs.
-          in brand-blue. Background photo is operator-supplied later;
-          onError hides the broken image cleanly.
+          1. HERO — Phase 1.2 rebuild.
+          Full-bleed brand-black, min-h-screen. Two-column on desktop:
+          left = headline + CTAs, right = QuickPriceCalculator. Hero
+          background photo is graceful-fallback (asset may be missing).
           ============================================================ */}
-      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
-        {/* Background hero photo — fallback gracefully if absent */}
+      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-screen flex items-center px-6 md:px-10 pt-[88px] pb-20">
+        {/* Background hero photo — opacity-25 + onError fallback so the
+            section reads as intentional even when the asset is absent. */}
         <img
-          src="/hero-team.jpg"
+          src="/hero-team.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
+          className="absolute inset-0 w-full h-full object-cover opacity-25"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
-        {/* Black-to-transparent gradient overlay so headline text
-            stays legible whether the photo loads or not. */}
+        {/* Left-to-right brand-black gradient — keeps left column
+            readable while letting any photo breathe on the right. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(180deg, #0A0A0A 0%, rgba(10,10,10,0.65) 45%, rgba(10,10,10,0.85) 100%)',
-          }}
+          className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/90 to-[#0A0A0A]/40"
+        />
+        {/* Bottom fade — softens the boundary into the next section. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-32 pointer-events-none bg-gradient-to-b from-transparent to-[#0A0A0A]"
         />
 
-        <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
-          {/* Headline — DM Sans 800 if loaded, else font-bold. */}
-          <h1
-            className="font-bold text-white tracking-[-2px] leading-[0.95] text-[clamp(40px,7.5vw,96px)]"
-            style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
-          >
-            {lang === 'en' ? (
-              <>Your team looks <span className="text-[#0052CC]">like amateurs.</span><br />Clients notice.</>
-            ) : (
-              <>Ton équipe a l’air <span className="text-[#0052CC]">d’amateurs.</span><br />Les clients le remarquent.</>
-            )}
-          </h1>
-
-          {/* Sub */}
-          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-white/80 max-w-[620px] mx-auto leading-relaxed">
-            {lang === 'en'
-              ? '500+ Québec businesses fixed it. Delivered in 5 business days.'
-              : '500+ entreprises au Québec ont réglé ça. Livré en 5 jours ouvrables.'}
-          </p>
-
-          {/* CTAs */}
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-5">
-            <Link
-              to="/devis"
-              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-            >
-              {lang === 'en' ? 'Get a free quote' : 'Obtenir une soumission gratuite'}
-            </Link>
-            <a
-              href="#how-it-works"
-              className="text-white/80 text-[14px] font-semibold underline underline-offset-4 decoration-white/30 hover:decoration-white hover:text-white transition-colors"
-            >
-              {lang === 'en' ? 'See how it works \u2192' : 'Voir comment ça fonctionne \u2192'}
-            </a>
-          </div>
-
-          {/* Trust bar — single line, no scrolling. */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-white/75">
-            <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden="true" className="flex gap-0.5">
-                <StarSvg /><StarSvg /><StarSvg /><StarSvg /><StarSvg />
+        <div className="relative z-[1] max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
+          {/* LEFT — pitch */}
+          <div className="text-left">
+            {/* Trust pill */}
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 text-[12px] md:text-[13px] text-white font-medium mb-6">
+              <span aria-hidden="true" className="text-[#E8A838]">★★★★★</span>
+              <span>
+                {lang === 'en'
+                  ? '5/5 \u00B7 500+ businesses \u00B7 Delivery guaranteed in 5 days'
+                  : '5/5 \u00B7 500+ entreprises \u00B7 Livraison garantie en 5 jours'}
               </span>
-              <span className="font-bold">5/5 Google</span>
-            </span>
-            <span aria-hidden="true" className="text-white/30">·</span>
-            <span>{lang === 'en' ? '500+ businesses' : '500+ entreprises'}</span>
-            <span aria-hidden="true" className="text-white/30">·</span>
-            <span>{lang === 'en' ? '33,000+ pieces' : '33\u202F000+ pièces'}</span>
-            <span aria-hidden="true" className="text-white/30">·</span>
-            <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
+            </div>
+
+            {/* H1 */}
+            <h1 className="font-display font-black text-white text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
+              {lang === 'en' ? (
+                <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
+              ) : (
+                <>Ton équipe travaille.<br /><span className="text-[#0052CC]">Qui sait c'est qui?</span></>
+              )}
+            </h1>
+
+            {/* Sub */}
+            <p className="mt-6 text-white/70 text-lg md:text-xl max-w-[600px] leading-relaxed">
+              {lang === 'en'
+                ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
+                : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
+            </p>
+
+            {/* TWO CTAs */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <Link
+                to="/products"
+                className="inline-flex items-center justify-center gap-2 bg-[#0052CC] text-white font-bold px-8 py-4 rounded-xl text-lg hover:bg-[#003D99] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-[#0052CC]/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+              >
+                <span>{lang === 'en' ? 'Order now' : 'Commander maintenant'}</span>
+                <ArrowRight size={20} aria-hidden="true" />
+              </Link>
+              <Link
+                to="/product/atc1000?customize=1"
+                className="inline-flex items-center justify-center bg-transparent text-white font-semibold px-8 py-4 rounded-xl text-lg border-2 border-white/40 hover:bg-white/10 hover:border-white/70 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+              >
+                {lang === 'en' ? 'Customize my product' : 'Personnaliser mon produit'}
+              </Link>
+            </div>
+
+            {/* Trust bar below CTAs */}
+            <div className="mt-6 text-white/50 text-sm flex flex-wrap gap-x-4 gap-y-1">
+              <span>
+                {lang === 'en' ? '\u2713 From 1 piece' : '\u2713 \u00C0 partir d\u20191 pièce'}
+              </span>
+              <span>
+                {lang === 'en' ? '\u2713 Free shipping $300+' : '\u2713 Livraison gratuite dès 300$'}
+              </span>
+              <span>
+                {lang === 'en' ? '\u2713 1-year guarantee' : '\u2713 Garanti 1 an'}
+              </span>
+              <span>
+                {lang === 'en' ? '\u2713 No minimum' : '\u2713 Aucun minimum'}
+              </span>
+            </div>
           </div>
+
+          {/* RIGHT — calculator */}
+          <div className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto">
+            <QuickPriceCalculator />
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div
+          aria-hidden="true"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none"
+        >
+          <ChevronDown
+            size={28}
+            className="text-white/30 animate-bounce"
+            strokeWidth={2}
+          />
         </div>
 
         <div ref={heroSentinelRef} aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full pointer-events-none" />
@@ -418,11 +448,11 @@ export default function Index() {
           ============================================================ */}
       <section aria-label={lang === 'en' ? 'Trusted by Québec professionals' : 'Les pros du Québec'} className="border-b border-border bg-background">
         <div className="max-w-[1160px] mx-auto px-6 md:px-10 py-7">
-          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-3">
+          <h2 className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-3">
             {lang === 'en'
-              ? 'Québec\u2019s pros trust Vision Affichage'
-              : 'Les pros du Québec font confiance à Vision Affichage'}
-          </div>
+              ? 'Québec\u2019s pros choose Vision Affichage'
+              : 'Les pros du Québec choisissent Vision Affichage'}
+          </h2>
           <div
             className="overflow-hidden relative"
             style={{
@@ -456,17 +486,21 @@ export default function Index() {
             {[
               {
                 num: '33\u202F000+',
-                label: lang === 'en' ? 'pieces delivered' : 'pièces livrées',
+                label: lang === 'en' ? 'pieces delivered since 2021' : 'pièces livrées depuis 2021',
                 sub: lang === 'en' ? 'Every print, every stitch — counted.' : 'Chaque impression, chaque couture — comptée.',
               },
               {
                 num: '500+',
-                label: lang === 'en' ? 'Québec businesses' : 'entreprises au Québec',
+                label: lang === 'en'
+                  ? 'businesses: construction, landscaping, corporate'
+                  : 'entreprises construction \u00B7 paysagement \u00B7 corporate',
                 sub: lang === 'en' ? 'From 1-person shops to 500-person teams.' : 'Du solo aux équipes de 500 personnes.',
               },
               {
                 num: lang === 'en' ? '5 days' : '5 jours',
-                label: lang === 'en' ? 'guaranteed turnaround' : 'délai garanti',
+                label: lang === 'en'
+                  ? 'guaranteed turnaround or refunded — no exception'
+                  : 'délai garanti ou remboursé — aucune exception',
                 sub: lang === 'en' ? 'From proof approval to your door.' : 'De l\u2019approbation à ta porte.',
               },
             ].map((stat, i) => (
@@ -520,24 +554,24 @@ export default function Index() {
                   Icon: Upload,
                   title: lang === 'en' ? 'You send your logo' : 'Tu envoies ton logo',
                   body: lang === 'en'
-                    ? 'PNG, SVG, AI, PDF — whatever you have. We tell you within 24h if it\u2019s ready to print.'
-                    : 'PNG, SVG, AI, PDF — ce que tu as. On t\u2019avise en 24 h si c\u2019est prêt à imprimer.',
+                    ? 'PNG, SVG, JPEG. We accept everything.'
+                    : 'PNG, SVG, JPEG. On accepte tout.',
                 },
                 {
                   n: '02',
                   Icon: Zap,
                   title: lang === 'en' ? 'We prep everything' : 'On prépare tout',
                   body: lang === 'en'
-                    ? 'Proof, color match, sizing chart, production. You approve once — we handle the rest.'
-                    : 'Épreuve, calibration couleur, grille de tailles, production. Tu approuves une fois — on gère le reste.',
+                    ? 'Layout, quality, positioning.'
+                    : 'Mise en page, qualité, positionnement.',
                 },
                 {
                   n: '03',
                   Icon: Package,
                   title: lang === 'en' ? 'You receive in 5 days' : 'Tu reçois en 5 jours',
                   body: lang === 'en'
-                    ? 'Boxed, labeled, shipped. Free over $300. Your team looks like a brand the next morning.'
-                    : 'Boîté, étiqueté, expédié. Gratuit dès 300$. Ton équipe a l\u2019air d\u2019une marque dès le lendemain.',
+                    ? 'Delivered everywhere in Québec. Guaranteed.'
+                    : 'Livré partout au Québec. Garanti.',
                 },
               ].map((step, i) => {
                 const Icon = step.Icon;
@@ -638,34 +672,24 @@ export default function Index() {
               style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
             >
               {lang === 'en' ? (
-                <>While you read this,<br /><span className="text-[#0052CC]">your team is out there</span><br /><span className="text-[#0052CC]">without your logo.</span></>
+                <>While you read this, your teams are out there <span className="text-[#0052CC]">without your logo.</span></>
               ) : (
-                <>Pendant que tu lis ça,<br /><span className="text-[#0052CC]">tes équipes sont dehors</span><br /><span className="text-[#0052CC]">sans ton logo.</span></>
+                <>Pendant que tu lis ça, tes équipes sont dehors <span className="text-[#0052CC]">sans ton logo.</span></>
               )}
             </h2>
             <div className="mt-9 max-w-[640px] mx-auto space-y-4 text-[15px] md:text-[17px] text-white/80 leading-relaxed">
               <p>
                 {lang === 'en'
-                  ? 'Every job site, every meeting, every delivery — that\u2019s a billboard you didn\u2019t buy.'
-                  : 'Chaque chantier, chaque rencontre, chaque livraison — c\u2019est un panneau publicitaire que t\u2019as pas acheté.'}
-              </p>
-              <p>
-                {lang === 'en'
-                  ? 'Competitors with branded teams close more deals. Not because they\u2019re better — because they look like it.'
-                  : 'Tes compétiteurs avec des équipes brandées ferment plus de contrats. Pas parce qu\u2019ils sont meilleurs — parce qu\u2019ils ont l\u2019air de l\u2019être.'}
-              </p>
-              <p className="text-white">
-                {lang === 'en'
-                  ? <>Five days from now, that stops. <span className="text-[#0052CC] font-bold">Or it doesn’t.</span></>
-                  : <>Dans 5 jours, ça arrête. <span className="text-[#0052CC] font-bold">Ou pas.</span></>}
+                  ? 'Every day without uniforms is wasted advertising. Customers who don\u2019t know who you are.'
+                  : 'Chaque journée sans uniforme, c\u2019est de la publicité perdue. Des clients qui ne savent pas qui tu es.'}
               </p>
             </div>
             <div className="mt-10">
               <Link
-                to="/devis"
+                to="/products"
                 className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.6)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
               >
-                {lang === 'en' ? 'Stop the bleeding \u2192' : 'Arrêter l\u2019hémorragie \u2192'}
+                {lang === 'en' ? 'Order now \u2192' : 'Commander maintenant \u2192'}
               </Link>
             </div>
           </div>
@@ -727,10 +751,10 @@ export default function Index() {
             {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
           </p>
           <Link
-            to="/devis"
+            to="/products"
             className="inline-flex items-center justify-center px-12 h-[56px] rounded-full bg-[#0052CC] text-white text-[17px] font-extrabold tracking-[-0.2px] shadow-[0_10px_32px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
           >
-            {lang === 'en' ? 'Get a free quote' : 'Obtenir une soumission gratuite'}
+            {lang === 'en' ? 'Order now' : 'Commander maintenant'}
           </Link>
         </section>
       </FadeIn>
@@ -751,7 +775,7 @@ export default function Index() {
             </div>
             <div className="min-w-0">
               <div className="text-[12px] font-bold leading-tight truncate">
-                {lang === 'en' ? 'Quote in 24h' : 'Soumission en 24h'}
+                {lang === 'en' ? 'Order in 24h' : 'Commande en 24h'}
               </div>
               <div className="text-[10px] text-white/70 leading-tight truncate">
                 {lang === 'en' ? '5-day delivery · No minimum' : '5 jours · Aucun minimum'}
@@ -759,11 +783,11 @@ export default function Index() {
             </div>
           </div>
           <Link
-            to="/devis"
+            to="/products"
             tabIndex={showStickyCta ? 0 : -1}
             className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-[#0052CC] text-white text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(0,82,204,0.5)] transition-shadow hover:shadow-[0_6px_18px_rgba(0,82,204,0.65)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
           >
-            {lang === 'en' ? 'Free quote' : 'Soumission gratuite'}
+            {lang === 'en' ? 'Order now' : 'Commander'}
           </Link>
         </div>
       </div>
