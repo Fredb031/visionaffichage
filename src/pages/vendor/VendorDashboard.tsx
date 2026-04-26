@@ -152,7 +152,14 @@ function useCountUp(to: number, durationMs = 900): number {
 
 function formatMonth(ym: string, lang: 'fr' | 'en'): string {
   const [ys, ms] = ym.split('-');
-  const d = new Date(Number(ys), Number(ms) - 1, 1);
+  const y = Number(ys);
+  const m = Number(ms);
+  // Guard against a malformed key (e.g. empty string, missing dash, or a
+  // corrupted localStorage value) so the picker doesn't render "Invalid
+  // Date". Falls back to the raw ym so the user still sees something
+  // recognisable while admins debug the upstream source.
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return ym;
+  const d = new Date(y, m - 1, 1);
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA';
   return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 }
