@@ -13,6 +13,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { WishlistGrid } from '@/components/WishlistGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
+import { LoyaltyCard } from '@/components/LoyaltyCard';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 import { normalizeInvisible } from '@/lib/utils';
 
@@ -359,6 +360,12 @@ export default function Account() {
             {lang === 'en' ? 'Sign out' : 'Déconnexion'}
           </button>
         </div>
+
+        {/* Loyalty — Mega Blueprint Section 15.2. Surfaces points,
+            dollar-equivalent rebate, tier badge, and progress to free
+            express shipping. localStorage-backed for now; flip to
+            Supabase once loyalty_accounts ships. */}
+        <LoyaltyCard />
 
         {/* Quick stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
