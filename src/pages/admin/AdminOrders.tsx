@@ -324,9 +324,11 @@ export default function AdminOrders() {
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const bulkBarRef = useRef<HTMLDivElement>(null);
 
-  // Reset to first page whenever the filter or search changes so we
-  // don't strand the user on an empty page 5 after narrowing a filter.
-  useEffect(() => { setPage(0); }, [query, statusFilter]);
+  // Reset to first page whenever the filter, search, or archived toggle
+  // changes so we don't strand the user on an empty page 5 after
+  // narrowing a filter — or after flipping to "Voir archivées" when only
+  // a handful of orders are stashed there.
+  useEffect(() => { setPage(0); }, [query, statusFilter, showArchived]);
   // Also drop any cross-view stale selection — the admin expects the
   // bulk bar counter to reflect the rows they can actually see.
   useEffect(() => { setSelectedIds(new Set()); }, [query, statusFilter]);
