@@ -143,14 +143,21 @@ export function updateProfile(patch: Partial<VisitorProfile>): VisitorProfile {
       // the dedupe order "most recent at the end" matches how the
       // returning-visitor banner uses lastViewedProduct semantics.
       const incoming = Array.isArray(value) ? (value as string[]) : [];
+      // Walk from the end so the most recent occurrence of a duplicate
+      // wins — a caller passing [...prev, item] where `item` already
+      // appeared in `prev` should see `item` slide to the tail, not get
+      // dropped in favour of its older self. This matches the
+      // "most recent at the end" contract documented above.
       const seen = new Set<string>();
-      const merged: string[] = [];
-      for (const item of incoming) {
+      const reversed: string[] = [];
+      for (let i = incoming.length - 1; i >= 0; i--) {
+        const item = incoming[i];
         if (typeof item !== 'string' || !item) continue;
         if (seen.has(item)) continue;
         seen.add(item);
-        merged.push(item);
+        reversed.push(item);
       }
+      const merged = reversed.reverse();
       // Cap from the end — recent entries win when the list overflows.
       const capped = merged.slice(-LIST_CAP);
       (next[rawKey] as unknown as string[]) = capped;
