@@ -103,6 +103,12 @@ export default function ResetPassword() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Clear any stale error from a previous attempt — without this, a
+    // server error (e.g. "session expired") lingered visibly while the
+    // next submit was in flight, then got replaced only if the new
+    // attempt also failed. Wipe first so the form reflects the *current*
+    // attempt's state honestly.
+    useAuthStore.getState().setError(null);
     if (newPwd !== confirmPwd) {
       useAuthStore.getState().setError('Les mots de passe ne correspondent pas');
       return;
