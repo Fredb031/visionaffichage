@@ -60,10 +60,20 @@ export function FeaturedProducts() {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             });
+            // Compose a single accessible name for the card so screen readers
+            // announce 'Toile — à partir de 27,54 $' as one unit instead of
+            // reading the SKU code, category, and price as three disjoint
+            // fragments (the visible SKU stays for sighted shoppers but is
+            // noise when spoken aloud). Matches the pattern other product
+            // cards on the site already use.
+            const cardLabel = lang === 'en'
+              ? `${categoryLabel(p.category, lang)} — from $${priceFmt}`
+              : `${categoryLabel(p.category, lang)} — à partir de ${priceFmt} $`;
             return (
             <Link
               key={p.sku}
               to={`/product/${p.shopifyHandle}`}
+              aria-label={cardLabel}
               className="group block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary border border-border transition-all hover:border-[#0052CC]/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.1)] hover:-translate-y-1">
