@@ -305,14 +305,17 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
                   {categoryLabel(p.category, lang)}
                 </div>
                 <div className="text-[11px] text-primary font-bold mt-0.5">
-                  {/* Use locale formatter so the French build renders '27,54 $'
-                      rather than '27.54 $' — .toFixed(2) always emits '.' which
-                      looks out of place next to every other price on the page. */}
-                  {lang === 'en' ? 'From' : '\u00c0 partir de'}{' '}
+                  {/* Use the locale's currency formatter so 'fr-CA' renders
+                      '27,54\u00a0$' with a non-breaking space — a regular
+                      space lets the amount wrap away from the '$' on narrow
+                      tiles. style:'currency' + currency:'CAD' also fixes the
+                      decimal separator (',' vs '.') in one shot. */}
+                  {lang === 'en' ? 'From' : '\u00c0 partir de'}{'\u00a0'}
                   {p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })} $
+                    style: 'currency',
+                    currency: 'CAD',
+                    currencyDisplay: 'narrowSymbol',
+                  })}
                 </div>
               </div>
             </Link>
