@@ -43,6 +43,19 @@ export function setMuted(muted: boolean): void {
       /* gain ramp failed — stopAllScheduledAudio below still silences */
     }
     stopAllScheduledAudio();
+  } else if (!muted && ctxSingleton && masterGainSingleton) {
+    // Restore master gain on unmute — without this, a previous mute
+    // leaves master at 0 and every subsequent play* call funnels into a
+    // silent chain because ensureMasterChain reuses the existing gain
+    // singleton instead of recreating it.
+    try {
+      const now = ctxSingleton.currentTime;
+      masterGainSingleton.gain.cancelScheduledValues(now);
+      masterGainSingleton.gain.setValueAtTime(masterGainSingleton.gain.value, now);
+      masterGainSingleton.gain.linearRampToValueAtTime(0.85, now + 0.05);
+    } catch {
+      /* gain ramp failed — next play* call will still attempt audio */
+    }
   }
 }
 
