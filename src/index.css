@@ -316,3 +316,26 @@
   min-height: 0;
   overflow: hidden;
 }
+
+@keyframes va-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes va-fadeinup {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-va-fadein {
+  animation: va-fadein 0.4s ease-out both;
+}
+.animate-va-fadeinup {
+  animation: va-fadeinup 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-va-fadein,
+  .animate-va-fadeinup {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
