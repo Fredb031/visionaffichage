@@ -28,6 +28,7 @@ const AIChatPanel = lazy(() =>
 export function AIChat() {
   const [primed, setPrimed] = useState(false);
   useEffect(() => {
+    const timers = new Set<number>();
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ message?: string }>;
       // Force-mount the panel if it isn't already loaded so the panel's
@@ -48,14 +49,22 @@ export function AIChat() {
           const refire = () => {
             attempts += 1;
             window.dispatchEvent(new CustomEvent('va:chat-prefill', { detail: { message } }));
-            if (attempts < 5) window.setTimeout(refire, 200);
+            if (attempts < 5) {
+              const id = window.setTimeout(refire, 200);
+              timers.add(id);
+            }
           };
-          window.setTimeout(refire, 50);
+          const id = window.setTimeout(refire, 50);
+          timers.add(id);
         }
       }
     };
     window.addEventListener('va:chat-prefill', handler);
-    return () => window.removeEventListener('va:chat-prefill', handler);
+    return () => {
+      window.removeEventListener('va:chat-prefill', handler);
+      timers.forEach(id => window.clearTimeout(id));
+      timers.clear();
+    };
   }, [primed]);
 
   return (
