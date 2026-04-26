@@ -59,13 +59,16 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
   // flicker to "—" and back, which is exactly the silent-twitch problem
   // this component was meant to mask. Pin the displayed label to the last
   // good formatted value instead, so a non-finite blip is visually a no-op.
-  const lastGoodFormattedRef = useRef<string>(fmtMoney(value, lang));
-  const formatted = Number.isFinite(value)
-    ? fmtMoney(value, lang)
-    : lastGoodFormattedRef.current;
+  // Seed lazily and only from finite values: if the very first `value` is
+  // NaN, eagerly storing fmtMoney(NaN) would lock the cache to "—" and
+  // defeat the guard for every subsequent non-finite render.
+  const lastGoodFormattedRef = useRef<string | null>(null);
   if (Number.isFinite(value)) {
-    lastGoodFormattedRef.current = formatted;
+    lastGoodFormattedRef.current = fmtMoney(value, lang);
   }
+  const formatted = Number.isFinite(value)
+    ? (lastGoodFormattedRef.current as string)
+    : (lastGoodFormattedRef.current ?? fmtMoney(value, lang));
 
   // Track the previous value so we can decide whether to animate and what
   // to render for the outgoing clone.
