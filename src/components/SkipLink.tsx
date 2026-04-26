@@ -21,6 +21,9 @@ export function SkipLink({ target = '#main-content' }: { target?: string } = {})
     // Explicitly focus the target so screen readers and keyboard users
     // land on the correct element.
     const id = target.startsWith('#') ? target.slice(1) : target;
+    // Bail out if the caller passed an empty / `#` target — getElementById('')
+    // always returns null and we don't want to update the URL hash to just `#`.
+    if (!id) return;
     const el = typeof document !== 'undefined' ? document.getElementById(id) : null;
     if (el) {
       event.preventDefault();
@@ -29,9 +32,15 @@ export function SkipLink({ target = '#main-content' }: { target?: string } = {})
         el.setAttribute('tabindex', '-1');
       }
       el.focus({ preventScroll: false });
-      // Keep the URL hash in sync so deep-linking still works.
+      // Keep the URL hash in sync so deep-linking still works. Wrap in
+      // try/catch because replaceState can throw SecurityError in sandboxed
+      // iframes or when the document has no browsing context.
       if (typeof history !== 'undefined' && history.replaceState) {
-        history.replaceState(null, '', `#${id}`);
+        try {
+          history.replaceState(null, '', `#${id}`);
+        } catch {
+          // Ignore — focus already succeeded, hash sync is best-effort.
+        }
       }
     }
   };
