@@ -8,6 +8,7 @@ import { LangProvider, useLang } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useChatTriggers } from "@/lib/chatTriggers";
+import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { CookieConsent } from "@/components/CookieConsent";
@@ -178,6 +179,18 @@ const LazyFallback = () => {
 // cause the routed tree to re-render on every store change.
 const ChatTriggers = () => {
   useChatTriggers();
+  return null;
+};
+
+// Volume II §06 — visitor profile tracker. Bumps sessionCount on
+// mount and captures UTM/industry hints from the landing URL into
+// the persisted profile so the home banner + AI chat + recommendation
+// surfaces can read a populated profile from first paint. Sits inside
+// <BrowserRouter> for parity with ChatTriggers and to let future
+// per-route tracking (already supported in the hook) plug in without
+// a tree move.
+const VisitorTracker = () => {
+  useVisitorTracking();
   return null;
 };
 
@@ -360,6 +373,7 @@ const App = () => (
             <SkipLink />
             <ScrollToTop />
             <ChatTriggers />
+            <VisitorTracker />
             {/* Volume II §09 — floating WhatsApp Business CTA. Sits
                 outside <AnimatedRoutes> so route transitions don't
                 fade the button in/out (it self-gates via a 10s

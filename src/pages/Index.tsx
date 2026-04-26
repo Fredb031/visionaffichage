@@ -24,6 +24,7 @@ import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
 
 const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
 
@@ -156,6 +157,16 @@ export default function Index() {
   );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
+  // Volume II §6.2 — second-visit banner. Read once on mount so
+  // the pill is on screen at first paint (not after a hydration
+  // tick); useVisitorTracking has already bumped sessionCount and
+  // captured UTM hints by the time Index renders, but a defensive
+  // refresh in an effect catches the case where Index mounts before
+  // VisitorTracker finishes its own effect on slow CPUs.
+  const [visitor, setVisitor] = useState<VisitorProfile>(() => getProfile());
+  useEffect(() => {
+    setVisitor(getProfile());
+  }, []);
   const [showGame, setShowGame] = useState(false);
   // Intro animation disabled by default. The cinematic GSAP/Web Audio
   // sequence was reported as "fucking disgusting and fully bugged" by
@@ -406,6 +417,34 @@ export default function Index() {
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Volume II §6.2 — returning-visitor "Bon retour!" pill.
+          Renders only when sessionCount >= 2 AND we have a recorded
+          last-viewed product, so first-time visitors and stale
+          profiles (cleared localStorage) don't see a broken pill.
+          bg-brand-blue-light + a navy-light fallback so the class
+          reads correctly even if the brand-blue-light token isn't
+          defined in the Tailwind theme yet. Sits between the navbar
+          and the hero so it's the first thing a returning visitor
+          notices without competing with the hero h1. */}
+      {visitor.sessionCount >= 2 && visitor.lastViewedProduct && visitor.lastViewedHref ? (
+        <div className="px-6 md:px-10 pt-[88px]" data-vision-returning-banner>
+          <div className="max-w-[920px] mx-auto">
+            <Link
+              to={visitor.lastViewedHref}
+              className="inline-flex items-center gap-2 rounded-full bg-brand-blue-light bg-navy-light/15 px-4 py-2 text-sm text-foreground hover:bg-navy-light/25 transition-colors"
+            >
+              <span aria-hidden="true">{'\uD83D\uDC4B'}</span>
+              <span>
+                {lang === 'en'
+                  ? `Welcome back! Looking for ${visitor.lastViewedProduct}? Pick up where I left off`
+                  : `Bon retour\u00A0! Tu cherchais ${visitor.lastViewedProduct}\u00A0? Reprendre o\u00F9 je me suis arr\u00EAt\u00E9`}
+              </span>
+              <span aria-hidden="true">{'\u2192'}</span>
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {/* Hero */}
       <section className="scroll-mt-20 min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">

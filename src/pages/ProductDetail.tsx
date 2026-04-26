@@ -31,6 +31,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useProductColors } from '@/hooks/useProductColors';
 import { useProducts } from '@/hooks/useProducts';
 import { readLS, writeLS } from '@/lib/storage';
+import { updateProfile, getProfile } from '@/lib/visitorProfile';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { buildProductSchema } from '@/lib/productSchema';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -320,6 +321,36 @@ export default function ProductDetail() {
     // state.
     if (handle && product) trackRecentlyViewed(handle);
   }, [handle, product, trackRecentlyViewed]);
+
+  // Volume II §06 — visitor profile signal trail. Push the current
+  // SKU + category onto the profile so the homepage hero, the
+  // returning-visitor banner and the AI chat have something to read
+  // on the next page load. Same gate as Recently Viewed: wait for
+  // the Shopify fetch so a 404 handle doesn't pollute the trail.
+  // updateProfile dedupes + caps each list at 50 entries; we pass
+  // [...prev, item] semantics by reading the current arrays inline,
+  // matching the contract the spec calls out.
+  useEffect(() => {
+    if (!handle || !product) return;
+    const current = getProfile();
+    const sku = localProduct?.sku ?? handle;
+    const category = localProduct?.category;
+    const lastViewedHref = `/product/${handle}`;
+    // Title we want the banner to render. localProduct.shortName is
+    // the human-friendly French label (e.g. "Casquette de chantier
+    // ATCF2500"); fall back to the Shopify product title if the SKU
+    // isn't in the local catalog yet (vendor-uploaded products that
+    // skipped the productLabels mapping).
+    const lastViewedProduct = localProduct?.shortName ?? product.title ?? sku;
+    updateProfile({
+      viewedProducts: [...current.viewedProducts, sku],
+      visitedCategories: category
+        ? [...current.visitedCategories, category]
+        : current.visitedCategories,
+      lastViewedProduct,
+      lastViewedHref,
+    });
+  }, [handle, product, localProduct]);
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = handle ? isWishlisted(handle) : false;
