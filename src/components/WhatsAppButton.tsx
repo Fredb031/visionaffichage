@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { WA_MESSAGES, waLink } from '@/lib/whatsapp';
+import { useLang } from '@/lib/langContext';
 
 // Volume II §09.1 — floating WhatsApp Business CTA. Sits bottom-right
 // above the BottomNav (fixed bottom-20) so it never overlaps the mobile
@@ -37,6 +38,13 @@ const WhatsAppLogo = () => (
 
 export function WhatsAppButton() {
   const { pathname } = useLocation();
+  const { lang } = useLang();
+  // Localized aria-label — EN screen-reader users on the EN-toggled
+  // site were hearing the French label, which is the kind of mismatch
+  // that quietly tanks accessibility audits. No visible text inside
+  // the button (icon only), so the aria-label is the entire a11y
+  // surface and must follow `lang`.
+  const ariaLabel = lang === 'en' ? 'Contact us on WhatsApp' : 'Contacter par WhatsApp';
   const [visible, setVisible] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -71,7 +79,8 @@ export function WhatsAppButton() {
       href={waLink(WA_MESSAGES.default)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Contacter par WhatsApp"
+      aria-label={ariaLabel}
+      lang={lang}
       className="fixed bottom-20 right-4 z-30 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 hover:bg-[#1FB855] transition-all duration-200 animate-in fade-in focus:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/40 focus-visible:ring-offset-2"
       style={{ boxShadow: '0 6px 20px rgba(37, 211, 102, 0.45)' }}
     >

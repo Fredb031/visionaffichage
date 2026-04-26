@@ -700,7 +700,13 @@ export default function ProductDetail() {
   const images = localProduct
     ? [
         { node: { url: localProduct.imageDevant, altText: `${localProduct.shortName} devant` } },
-        { node: { url: localProduct.imageDos, altText: `${localProduct.shortName} dos` } },
+        // Skip the back-view tab when the product has no distinct back
+        // photo — otherwise the gallery rendered the same front URL
+        // under a "Dos" label, which looked like a bug. C105 (audit
+        // P3 #14) is the first product to hit this path.
+        ...(localProduct.imageDos
+          ? [{ node: { url: localProduct.imageDos, altText: `${localProduct.shortName} dos` } }]
+          : []),
       ]
     : shopifyImages;
   const productOptions: Array<{ name: string; values: string[] }> = product.options ?? [];

@@ -148,12 +148,21 @@ export default function AdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img
-            src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
-            alt="Vision Affichage"
-            className="h-9 mx-auto mb-6 opacity-90"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-          />
+          {/* Local wordmark — admin login must boot offline. The old
+              <img src="https://visionaffichage.com/cdn/...">  meant a
+              Shopify CDN outage would leave the login screen with a
+              broken image where the brand belongs. A pure-text
+              wordmark renders from the bundled CSS alone, so the
+              admin can always sign in. */}
+          <div
+            className="mx-auto mb-6 select-none text-center"
+            role="img"
+            aria-label="Vision Affichage"
+          >
+            <span className="font-display text-2xl font-extrabold tracking-tight text-white">
+              Vision <span className="text-[#E8A838]">Affichage</span>
+            </span>
+          </div>
           <h1 className="text-2xl font-extrabold text-white mb-1">Espace administration</h1>
           <p className="text-sm text-white/60">Connecte-toi pour gérer ton entreprise</p>
         </div>

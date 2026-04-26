@@ -78,7 +78,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
     ? { url: local.imageDevant, altText: local.shortName }
     : shopifyImage;
   const backImage = local
-    ? { url: local.imageDos, altText: `${local.shortName} dos` }
+    ? (local.imageDos ? { url: local.imageDos, altText: `${local.shortName} dos` } : null)
     : shopifyBackImage;
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();

@@ -56,7 +56,12 @@ export type Product = {
   category: 'tshirt' | 'hoodie' | 'crewneck' | 'polo' | 'longsleeve' | 'sport' | 'cap' | 'toque';
   gender: 'unisex' | 'homme' | 'femme' | 'enfant';
   basePrice: number;
-  imageDevant: string; imageDos: string;
+  imageDevant: string;
+  /** Back-view photo. Optional: some products only ship with a single
+   *  front photo — when undefined, consumers (PDP gallery, ProductCard
+   *  hover-flip, CartDrawer thumb) skip the back tab gracefully rather
+   *  than rendering the front image twice. */
+  imageDos?: string;
   colors: ProductColor[];
   sizes: string[];
   printZones: PrintZone[];
@@ -468,7 +473,9 @@ export const PRODUCTS: Product[] = [
     name: 'Tuque sans rebords — C105', shortName: 'Tuque Légère',
     category: 'toque', gender: 'unisex', basePrice: 7.13,
     imageDevant: `${CDN}/c105-2_c5d6b8c6-8c32-43f3-851d-f48dd2d35913.jpg?v=1763598172&width=800`,
-    imageDos:    `${CDN}/c105-2_c5d6b8c6-8c32-43f3-851d-f48dd2d35913.jpg?v=1763598172&width=800`,
+    // No back photo on file for C105 — previously this referenced the
+    // same front URL, which surfaced an identical image on the "Dos"
+    // tab. Better to omit and let the gallery hide the back view.
     shopifyHandle: 'c105-1',
     colors: BEANIE_C105_COLORS,
     sizes: ['Taille unique'],
