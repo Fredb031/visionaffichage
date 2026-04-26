@@ -1244,59 +1244,10 @@ export default function ProductDetail() {
                     {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
                   </span>
                 </div>
-                {/* Phase 3.4 §5 — volume discount tier pills.
-                    Pulls the per-product pricing tier table from
-                    src/data/pricing.ts when present, otherwise falls back
-                    to a 4-tier curve (1+, 12+, 25+, 50+) anchored on the
-                    Shopify base price. Pills are presentational only —
-                    the BulkCalculator below still owns the live tier
-                    selection logic, this row is a quick scannable anchor
-                    so visitors see the volume opportunity before they
-                    even touch the calculator. */}
-                {(() => {
-                  const base = parseFloat(price);
-                  if (!Number.isFinite(base) || base <= 0) return null;
-                  const sku = localProduct?.sku;
-                  const skuPricing = sku ? PRICING?.[sku] : undefined;
-                  let tiers: Array<{ minQty: number; price: number }> = [];
-                  if (skuPricing && Array.isArray(skuPricing) && skuPricing.length > 0) {
-                    tiers = skuPricing
-                      .map((t: { minQty?: number; pricePerUnit?: number }) => ({
-                        minQty: Number(t.minQty ?? 1),
-                        price: Number(t.pricePerUnit ?? 0),
-                      }))
-                      .filter(t => Number.isFinite(t.minQty) && Number.isFinite(t.price) && t.price > 0)
-                      .sort((a, b) => a.minQty - b.minQty)
-                      .slice(0, 4);
-                  }
-                  if (tiers.length === 0) {
-                    tiers = [
-                      { minQty: 1,  price: base },
-                      { minQty: 12, price: base * 0.85 },
-                      { minQty: 25, price: base * 0.75 },
-                      { minQty: 50, price: base * 0.65 },
-                    ];
-                  }
-                  return (
-                    <div
-                      className="flex flex-wrap gap-1.5 mt-3"
-                      role="list"
-                      aria-label={lang === 'en' ? 'Volume pricing tiers' : 'Paliers de prix par quantité'}
-                    >
-                      {tiers.map(t => (
-                        <span
-                          key={t.minQty}
-                          role="listitem"
-                          className="inline-flex items-center gap-1 bg-white border border-[#E5E7EB] text-[#0A0A0A] rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
-                        >
-                          <span className="text-[#6B7280]">{t.minQty}+ {lang === 'en' ? 'pcs' : 'pces'}</span>
-                          <span aria-hidden="true" className="text-[#9CA3AF]">·</span>
-                          <span>{lang === 'en' ? `$${t.price.toFixed(2)}` : `${t.price.toFixed(2)}$`}</span>
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
+                {/* Volume tier pills removed — the BulkCalculator
+                    ("Estimation rapide") below is the single source of
+                    truth for qty-based pricing. The pills duplicated
+                    that surface as a static, less-useful preview. */}
                 <p className="text-xs text-[#6B7280] mt-3">
                   {lang === 'en'
                     ? 'Free shipping over $300 · 1-year warranty'
