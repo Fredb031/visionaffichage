@@ -78,6 +78,12 @@ export function logAdminAction(
   details?: Record<string, unknown>,
 ): void {
   try {
+    // Defensive: an empty or non-string action would produce an
+    // unidentifiable entry that's worse than no entry at all (it
+    // pollutes the trail and breaks group-by-action consumers). Drop
+    // silently — same contract as the outer catch: the audit write
+    // never interrupts the real action it's observing.
+    if (typeof action !== 'string' || action.trim() === '') return;
     const list = readLS<AuditEntry[]>(STORAGE_KEY, []);
     const existing = Array.isArray(list) ? list : [];
     const entry: AuditEntry = {
