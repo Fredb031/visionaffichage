@@ -97,18 +97,22 @@ export function ProductViewersNudge({ handle, inStock, className = '' }: Product
     ? `${viewers} people are viewing this product right now`
     : `${viewers} personnes consultent ce produit en ce moment`;
 
+  // Intentionally NOT a live region: the count is pseudo-random UX polish,
+  // not real-time data, so announcing it (or its silent updates on product
+  // navigation) would be misleading to assistive-tech users. role="status"
+  // implies aria-live="polite", so we omit both and surface a plain label
+  // via aria-label on the wrapper.
   return (
     <div
       className={`flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground ${className}`}
-      role="status"
-      aria-live="off"
+      aria-label={label}
     >
       <span className="relative flex h-2 w-2" aria-hidden="true">
         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
       </span>
       <Eye size={12} aria-hidden="true" className="opacity-70" />
-      <span>{label}</span>
+      <span aria-hidden="true">{label}</span>
     </div>
   );
 }
