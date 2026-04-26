@@ -13,6 +13,15 @@ import { FooterTestimonialBar } from '@/components/FooterTestimonialBar';
 // (and makes the ledger self-describing for manual inspection).
 type NewsletterRow = { email: string; at: number };
 const NEWSLETTER_KEY = 'vision-newsletter-subscribers';
+// Cap kept low enough that JSON.stringify of the ledger stays under the
+// ~5 MB localStorage budget even with long emails, while preserving
+// enough history that re-signups dedupe correctly across months.
+const MAX_SUBSCRIBERS = 2000;
+// Loading-dwell so the spinner actually paints before the success tick.
+const LOADING_DWELL_MS = 350;
+// Success-tick hold — long enough to read "Envoyé", short enough that
+// a user who wants to subscribe another address doesn't feel locked out.
+const SUCCESS_DWELL_MS = 2000;
 
 export function SiteFooter() {
   const { lang } = useLang();
@@ -32,7 +41,7 @@ export function SiteFooter() {
   // a rapid second submit) left orphaned timers that fired
   // setState on an unmounted component — React's
   // "Can't perform a state update on an unmounted component" warning,
-  // plus stacked timers if the user resubmitted before the 350 ms
+  // plus stacked timers if the user resubmitted before the loading
   // dwell expired.
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,10 +81,9 @@ export function SiteFooter() {
       duplicate = clean.some(row => row.email === normalized);
       if (!duplicate) {
         clean.push({ email: normalized, at: Date.now() });
-        // Keep only the most-recent 2000 — a brand-new subscriber
-        // is the freshest and stays in the list. Cap AFTER append so
-        // boundary case never overflows by one.
-        const capped = clean.slice(-2000);
+        // Cap AFTER append so a brand-new subscriber (freshest) stays
+        // in the list and the boundary case never overflows by one.
+        const capped = clean.slice(-MAX_SUBSCRIBERS);
         localStorage.setItem(NEWSLETTER_KEY, JSON.stringify(capped));
       }
     } catch { /* noop */ }
@@ -109,11 +117,11 @@ export function SiteFooter() {
       successTimerRef.current = window.setTimeout(() => {
         successTimerRef.current = null;
         setSubmitState('idle');
-      }, 2000);
+      }, SUCCESS_DWELL_MS);
       // Refocus the input so a keyboard / screen-reader user can subscribe
       // another address without tabbing back from <body>.
       emailInputRef.current?.focus();
-    }, 350);
+    }, LOADING_DWELL_MS);
   };
 
   return (
