@@ -45,17 +45,19 @@ export function RequirePermission({ permission, children }: RequirePermissionPro
   // permission validation pass purely to recompute the same boolean.
   // Only invalidate when the identity bits or the requested permission
   // change.
+  // Memoise the coerced role so the denied UI does not re-run
+  // coerceToPermissionRole on every parent re-render (lang toggle,
+  // authStore tick) while the user role itself is unchanged.
+  const role = useMemo(() => coerceToPermissionRole(userRole), [userRole]);
+
   const allowed = useMemo(() => {
     if (!userId) return false;
-    const role = coerceToPermissionRole(userRole);
     const overrides = getUserOverrides(userId);
     return hasPermission(role, permission, overrides);
-  }, [userId, userRole, permission]);
+  }, [userId, role, permission]);
 
   if (!user) return null;
   if (allowed) return <>{children}</>;
-
-  const role = coerceToPermissionRole(user.role);
 
   const isEn = lang === 'en';
   return (
