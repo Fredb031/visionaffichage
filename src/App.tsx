@@ -7,6 +7,7 @@ import { SkipLink } from "@/components/SkipLink";
 import { LangProvider, useLang } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { useChatTriggers } from "@/lib/chatTriggers";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { CookieConsent } from "@/components/CookieConsent";
@@ -116,6 +117,15 @@ const LazyFallback = () => {
       <span className="sr-only">{lang === 'en' ? 'Loading' : 'Chargement'}</span>
     </div>
   );
+};
+
+// Mounts the proactive chat trigger hook (Mega Blueprint §3.2). Sits
+// inside <BrowserRouter> so useLocation() works, but separate from
+// AnimatedRoutes so customizer-store subscriptions in the hook don't
+// cause the routed tree to re-render on every store change.
+const ChatTriggers = () => {
+  useChatTriggers();
+  return null;
 };
 
 // AnimatePresence needs useLocation() to key routes, which requires being
@@ -280,6 +290,7 @@ const App = () => (
           <BrowserRouter>
             <SkipLink />
             <ScrollToTop />
+            <ChatTriggers />
             <Suspense fallback={<LazyFallback />}>
               <AnimatedRoutes />
             </Suspense>

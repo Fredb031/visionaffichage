@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 // AIChat is mounted on every page (Index, Products, ProductDetail, Cart,
 // Checkout, Account, TrackOrder, NotFound) but initially renders nothing
@@ -18,7 +18,46 @@ const AIChatPanel = lazy(() =>
   import('./AIChatPanel').then(m => ({ default: m.AIChatPanel })),
 );
 
+// Mega Blueprint §3.2 — proactive triggers fire `va:chat-prefill`
+// before the user has clicked the FAB, which means the lazy panel
+// chunk hasn't loaded yet. The shim eagerly listens for the event,
+// flips a state flag that triggers the lazy import, and re-fires the
+// event after the panel mounts so its own listener can post the
+// suggestion. Without the re-fire the prefill is lost in the gap
+// between the lazy chunk fetch and the panel's effect mount.
 export function AIChat() {
+  const [primed, setPrimed] = useState(false);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ message?: string }>;
+      // Force-mount the panel if it isn't already loaded so the panel's
+      // own listener attaches and sees the (re-)dispatched event.
+      if (!primed) {
+        setPrimed(true);
+        // Re-dispatch on the next animation frame so the lazy chunk
+        // has time to resolve and the panel's effect attaches its
+        // listener before we fire again. requestAnimationFrame +
+        // microtask chain is heuristic but works because the lazy
+        // chunk is small (~23 KB) and was already preloaded by the
+        // browser if the user had any interaction earlier.
+        const message = ce.detail?.message;
+        if (typeof message === 'string' && message.length > 0) {
+          // Wait for next microtask cycle, then refire. We try a few
+          // times in case the chunk is still loading on a cold start.
+          let attempts = 0;
+          const refire = () => {
+            attempts += 1;
+            window.dispatchEvent(new CustomEvent('va:chat-prefill', { detail: { message } }));
+            if (attempts < 5) window.setTimeout(refire, 200);
+          };
+          window.setTimeout(refire, 50);
+        }
+      }
+    };
+    window.addEventListener('va:chat-prefill', handler);
+    return () => window.removeEventListener('va:chat-prefill', handler);
+  }, [primed]);
+
   return (
     <Suspense fallback={null}>
       <AIChatPanel />

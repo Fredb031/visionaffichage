@@ -137,6 +137,35 @@ export function AIChatPanel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, view]);
 
+  // Mega Blueprint §3.2 — proactive trigger listener. The chatTriggers
+  // hook (mounted at the router root) dispatches `va:chat-prefill` on
+  // `window` with `{ message: string }` at four conversion moments
+  // (idle PDP, idle customizer, idle cart, first-visit). When we hear
+  // it: open the panel, jump to the chat view, and post the message
+  // as an assistant suggestion the user can immediately reply to.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ message?: string }>;
+      const message = ce.detail?.message;
+      if (typeof message !== 'string' || !message.trim()) return;
+      setOpen(true);
+      setView('chat');
+      setMessages(m => {
+        // Don't double-post the same prefill if the user has just
+        // closed and reopened — last assistant message is the same.
+        const last = m[m.length - 1];
+        if (last && last.role === 'assistant' && last.text === message) return m;
+        const next: ChatMessage[] = [
+          ...m,
+          { role: 'assistant', text: message, ts: Date.now() },
+        ];
+        return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
+      });
+    };
+    window.addEventListener('va:chat-prefill', handler);
+    return () => window.removeEventListener('va:chat-prefill', handler);
+  }, []);
+
   useEscapeKey(open, () => setOpen(false), { skipInTextInputs: true });
 
   const hello = lang === 'fr'
