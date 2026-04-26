@@ -59,7 +59,9 @@ export function CapacityWidget({ variant = 'hero', className = '' }: CapacityWid
   const remaining = getRemainingSlots(capacity);
   // Authentic-scarcity gate. Above the threshold the widget is
   // invisible — shoppers don't see the badge until it's true.
-  if (remaining >= SCARCITY_THRESHOLD) return null;
+  // At zero we also hide: "Only 0 slots left" reads as broken UI
+  // and contradicts the "order now to guarantee delivery" CTA.
+  if (remaining <= 0 || remaining >= SCARCITY_THRESHOLD) return null;
 
   const nextDelivery = getNextDeliveryDate();
   const dateStr = nextDelivery.toLocaleDateString(
