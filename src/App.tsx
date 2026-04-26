@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { SkipLink } from "@/components/SkipLink";
@@ -211,9 +211,10 @@ const VisitorTracker = () => {
 const AnimatedRoutes = () => {
   const location = useLocation();
   const reduce = useReducedMotion();
-  const transition = reduce
-    ? { duration: 0 }
-    : { duration: 0.15, ease: 'easeOut' as const };
+  const transition = useMemo(
+    () => (reduce ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' as const }),
+    [reduce]
+  );
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
