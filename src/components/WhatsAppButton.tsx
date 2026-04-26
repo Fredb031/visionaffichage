@@ -22,6 +22,7 @@ import { useLang } from '@/lib/langContext';
 // need a new dep. The brand-spec green is #25D366.
 
 const SESSION_FLAG = 'va.wa.shown';
+const REVEAL_DELAY_MS = 10_000;
 
 const WhatsAppLogo = () => (
   <svg
@@ -63,7 +64,7 @@ export function WhatsAppButton() {
         /* private mode / disabled storage — still show the button */
       }
       setVisible(true);
-    }, 10_000);
+    }, REVEAL_DELAY_MS);
     return () => window.clearTimeout(t);
   }, [visible]);
 
