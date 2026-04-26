@@ -52,7 +52,7 @@ export const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(
           <span aria-hidden="true" className="invisible inline-flex items-center gap-2 whitespace-nowrap">
             {children}
             <span className="inline-flex items-center gap-2">
-              <Check size={15} aria-hidden="true" />
+              <Check size={16} aria-hidden="true" strokeWidth={3} />
               {successLabel}
             </span>
           </span>
