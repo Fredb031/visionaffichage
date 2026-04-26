@@ -151,7 +151,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
                 // pointer — touch users tap to navigate and would
                 // otherwise see a flash of the dos photo before the
                 // route change fires.
-                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-[1.03] ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
+                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
                 loading={eager ? 'eager' : 'lazy'}
                 fetchPriority={eager ? 'high' : 'auto'}
                 decoding="async"
@@ -171,7 +171,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
                     : `${local?.shortName ?? title} — vue arrière`}
                   width={400}
                   height={400}
-                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-[1.03] [@media(hover:hover)]:group-hover:opacity-100"
+                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-105 [@media(hover:hover)]:group-hover:opacity-100"
                   loading="lazy"
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
