@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -5,9 +6,18 @@ import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useCartStore } from '@/stores/localCartStore';
 
+// Maximum number of cross-sell cards rendered. Matches the md+ grid (4 cols)
+// so on desktop every rec is visible; on mobile users scroll horizontally.
+const MAX_RECS = 4;
+// Scoring weights for the cross-sell ranking. Same-category products get a
+// stronger boost so a hoodie buyer sees other hoodies/sweatshirts first
+// before unrelated categories like caps or bags.
+const SCORE_SAME_CATEGORY = 2;
+const SCORE_DEFAULT = 1;
+
 /**
  * Cross-sell module shown above the cart total on the Cart page and
- * inside the CartDrawer. Picks up to 4 products the customer DOESN'T
+ * inside the CartDrawer. Picks up to MAX_RECS products the customer DOESN'T
  * already have in their cart, biased toward the same category as their
  * existing items (people who buy hoodies also buy t-shirts, caps, etc.).
  *
@@ -20,23 +30,30 @@ export function CartRecommendations() {
   const { lang, t } = useLang();
   const items = useCartStore(s => s.items);
 
+  // Memoise the rec computation: PRODUCTS is a static array of ~dozens of
+  // entries, but recomputing the filter+sort on every cart store update (qty
+  // bumps, option toggles in the drawer) wastes work. Re-runs only when the
+  // cart's product membership actually changes.
+  const recs = useMemo(() => {
+    if (items.length === 0) return [];
+    const inCartIds = new Set(items.map(it => it.productId));
+    const categoriesInCart = new Set(
+      items
+        .map(it => PRODUCTS.find(p => p.id === it.productId)?.category)
+        .filter(Boolean),
+    );
+    return PRODUCTS
+      .filter(p => !inCartIds.has(p.id))
+      .map(p => ({
+        p,
+        score: categoriesInCart.has(p.category) ? SCORE_SAME_CATEGORY : SCORE_DEFAULT,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_RECS)
+      .map(x => x.p);
+  }, [items]);
+
   if (items.length === 0) return null;
-
-  const inCartIds = new Set(items.map(it => it.productId));
-  const categoriesInCart = new Set(
-    items
-      .map(it => PRODUCTS.find(p => p.id === it.productId)?.category)
-      .filter(Boolean),
-  );
-
-  // Score: products NOT in cart + bonus if same category as cart
-  const recs = PRODUCTS
-    .filter(p => !inCartIds.has(p.id))
-    .map(p => ({ p, score: categoriesInCart.has(p.category) ? 2 : 1 }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map(x => x.p);
-
   if (recs.length === 0) return null;
 
   return (
