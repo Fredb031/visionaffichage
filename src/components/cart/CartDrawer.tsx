@@ -704,6 +704,11 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
               <span className="tabular-nums">{fmtMoney(cart.getTotal())} $</span>
               <ChevronRight size={15} aria-hidden="true" />
             </button>
+            <p className="text-center text-[#374151] text-xs">
+              {lang === 'en'
+                ? 'Secure checkout \u00B7 SSL \u00B7 Tracked delivery'
+                : 'Paiement s\u00E9curis\u00E9 \u00B7 SSL \u00B7 Livraison track\u00E9e'}
+            </p>
             {/* Phase 3.1 — secondary "view full cart" link. Replaces the
                 old livraisonNote subtext (the free-shipping pill above
                 already covers the shipping callout). */}

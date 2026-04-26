@@ -1550,6 +1550,11 @@ export default function Checkout() {
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'
                     : lang === 'en' ? `Confirm and pay ${fmtMoney(total)} $` : `Confirmer et payer ${fmtMoney(total)} $`}
                 </button>
+                <p className="text-center text-[#374151] text-xs">
+                  {lang === 'en'
+                    ? 'You can cancel within 2 hours if you change your mind'
+                    : 'Tu peux annuler dans les 2h si tu changes d\u2019id\u00E9e'}
+                </p>
               </div>
             )}
           </div>

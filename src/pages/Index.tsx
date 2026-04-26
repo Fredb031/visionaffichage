@@ -367,13 +367,16 @@ export default function Index() {
           </p>
 
           {/* Single primary CTA — one pill only, no ghost link. */}
-          <div className="mt-9 flex items-center justify-center">
+          <div className="mt-9 flex flex-col items-center justify-center">
             <Link
               to="/products"
               className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               {lang === 'en' ? 'Order now' : 'Commander maintenant'}
             </Link>
+            <p className="mt-3 text-[#374151] text-xs">
+              {lang === 'en' ? '5-day delivery guaranteed' : 'Livraison garantie en 5 jours ouvrables'}
+            </p>
           </div>
 
           {/* Trust bar — single line, wraps gracefully on mobile. */}
@@ -469,8 +472,8 @@ export default function Index() {
               </div>
               <h2 className="text-[clamp(28px,3.4vw,44px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
                 {lang === 'en'
-                  ? <>From logo to delivered, <span className="text-[#0052CC]">in 3 steps.</span></>
-                  : <>De ton logo à la livraison, <span className="text-[#0052CC]">en 3 étapes.</span></>}
+                  ? <>Three steps. <span className="text-[#0052CC]">One uniform.</span></>
+                  : <>Trois actions. <span className="text-[#0052CC]">Un uniforme.</span></>}
               </h2>
             </div>
 
@@ -479,26 +482,26 @@ export default function Index() {
                 {
                   n: '01',
                   Icon: Upload,
-                  title: lang === 'en' ? 'You send your logo' : 'Tu envoies ton logo',
+                  title: lang === 'en' ? 'Send your logo. We handle the rest.' : 'Tu envoies ton logo \u2014 on gère le reste.',
                   body: lang === 'en'
-                    ? 'PNG, SVG, JPEG. We accept everything.'
-                    : 'PNG, SVG, JPEG. On accepte tout.',
+                    ? 'PNG, SVG or JPEG \u2014 whatever you have. No design skills needed.'
+                    : 'PNG, SVG ou JPEG. On accepte tout. Aucune retouche requise de ta part.',
                 },
                 {
                   n: '02',
                   Icon: Zap,
-                  title: lang === 'en' ? 'We prep everything' : 'On prépare tout',
+                  title: lang === 'en' ? 'We print. You don\u2019t approve anything.' : 'On imprime. Tu approuves rien.',
                   body: lang === 'en'
-                    ? 'Layout, quality, positioning.'
-                    : 'Mise en page, qualité, positionnement.',
+                    ? 'Our team positions your logo to industry standards. You\u2019ll love the result.'
+                    : 'Notre équipe positionne ton logo selon les standards de l\u2019industrie. Tu n\u2019as pas besoin d\u2019être graphiste.',
                 },
                 {
                   n: '03',
                   Icon: Package,
-                  title: lang === 'en' ? 'You receive in 5 days' : 'Tu reçois en 5 jours',
+                  title: lang === 'en' ? 'You receive it. In 5 days. Guaranteed.' : 'Tu reçois. En 5 jours. Garanti.',
                   body: lang === 'en'
-                    ? 'Delivered everywhere in Québec. Guaranteed.'
-                    : 'Livré partout au Québec. Garanti.',
+                    ? 'Delivered anywhere in Quebec. One day late? You get a refund. We\u2019ve never had to give one.'
+                    : 'Livré partout au Québec. Si c\u2019est en retard d\u2019un seul jour, on te rembourse. On n\u2019a jamais eu à le faire.',
                 },
               ].map((step, i) => {
                 const Icon = step.Icon;
@@ -599,16 +602,16 @@ export default function Index() {
               style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
             >
               {lang === 'en' ? (
-                <>While you read this, your teams are out there <span className="text-[#0052CC]">without your logo.</span></>
+                <>Every week your crew works without a logo is a week clients <span className="text-[#0052CC]">don{'\u2019'}t remember your name.</span></>
               ) : (
-                <>Pendant que tu lis ça, tes équipes sont dehors <span className="text-[#0052CC]">sans ton logo.</span></>
+                <>Chaque semaine que ton équipe sort sans logo, c{'\u2019'}est une commande qui va <span className="text-[#0052CC]">à quelqu{'\u2019'}un d{'\u2019'}autre.</span></>
               )}
             </h2>
             <div className="mt-9 max-w-[640px] mx-auto space-y-4 text-[15px] md:text-[17px] text-white/80 leading-relaxed">
               <p>
                 {lang === 'en'
-                  ? 'Every day without uniforms is wasted advertising. Customers who don\u2019t know who you are.'
-                  : 'Chaque journée sans uniforme, c\u2019est de la publicité perdue. Des clients qui ne savent pas qui tu es.'}
+                  ? '500 Quebec business owners solved this. Most started with 5 shirts.'
+                  : '500 entrepreneurs au Québec ont réglé ça. La plupart ont commencé avec 5 t-shirts.'}
               </p>
             </div>
             <div className="mt-10">
