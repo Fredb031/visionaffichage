@@ -47,16 +47,22 @@ export function FooterTestimonialBar() {
 
   useEffect(() => {
     if (reducedMotion || paused) return;
+    // Track the inner timeout so an unmount or pause mid-fade can't
+    // leave a pending setState that fires after cleanup.
+    let fadeTimeout: number | undefined;
     const tick = window.setInterval(() => {
       // Fade out → swap → fade in. The inner timeout matches the CSS
       // transition duration so the new line never pops in mid-fade.
       setVisible(false);
-      window.setTimeout(() => {
+      fadeTimeout = window.setTimeout(() => {
         setIndex(i => (i + 1) % REVIEW_LINES.length);
         setVisible(true);
       }, FADE_MS);
     }, ROTATION_MS);
-    return () => window.clearInterval(tick);
+    return () => {
+      window.clearInterval(tick);
+      if (fadeTimeout !== undefined) window.clearTimeout(fadeTimeout);
+    };
   }, [reducedMotion, paused]);
 
   const review = REVIEW_LINES[reducedMotion ? 0 : index];
