@@ -77,6 +77,11 @@ const Accessibility = lazy(() => import("./pages/legal/Accessibility"));
 // footer/nav, not the hot path. Keeps the Index bundle lean.
 const Contact = lazy(() => import("./pages/Contact"));
 
+// Mega Blueprint §9.5 + §17.11 — /merci order-confirmation page that
+// Shopify's "Order status URL" can redirect to after checkout. Lazy
+// because it's a one-shot post-checkout landing, not a navbar route.
+const ThankYou = lazy(() => import("./pages/ThankYou"));
+
 // About surface (Task 11.9) — bilingual founder story + values + stat
 // tiles. Same lazy rationale as Contact: reached from the footer, not
 // the home hot path, so it shouldn't bloat the Index chunk.
@@ -284,6 +289,7 @@ const AnimatedRoutes = () => {
           <Route path="/returns" element={<Returns />} />
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/merci" element={<ThankYou />} />
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
