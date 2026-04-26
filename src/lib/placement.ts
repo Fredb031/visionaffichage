@@ -110,12 +110,18 @@ export function centerOnChest(p: Params) {
   return { x: 50, y: 37, width: clampWidth(p.widthPct, 32) };
 }
 
-/** Center on a specific print zone (used when user picks a zone preset). */
+/** Center on a specific print zone (used when user picks a zone preset).
+ * Width is clamped through the same `clampWidth` floor/ceiling the other
+ * helpers use so a future zone with an oversized declared width (or a
+ * tiny one a designer half-edited in the catalogue) can't render the
+ * logo with `width > 100` (overflowing the canvas) or `width < 5`
+ * (invisible). Keeps zone-preset behaviour aligned with chest / garment
+ * autoplace instead of silently diverging at this single call site. */
 export function centerOnZone(zone: PrintZone) {
   return {
     x: zone.x + zone.width / 2,
     y: zone.y + zone.height / 2,
-    width: zone.width * 0.85,
+    width: clampWidth(zone.width * 0.85, defaultWidth(null)),
   };
 }
 
@@ -147,14 +153,23 @@ export function autoPlaceOnUpload(
   return centerOnChest(p);
 }
 
-/** Type guard for deserialized placement data (localStorage, URL params, API). */
+/** Type guard for deserialized placement data (localStorage, URL params, API).
+ *
+ * Enforces the canvas-percent contract documented at the top of this
+ * module: x/y must land in [0..100] and width must sit inside the
+ * MIN_WIDTH_PCT..MAX_WIDTH_PCT band the helpers above clamp into. A
+ * tampered localStorage entry like `{ x: -500, y: 9999, width: 5000 }`
+ * would otherwise pass the bare-finite check and render the logo
+ * invisibly off-canvas (or with NaN-producing geometry after the
+ * downstream `width / 2` math). Mirrors the same bounds `clampWidth`
+ * applies on writes so reads and writes agree on what counts as valid. */
 export function isValidPlacement(p: unknown): p is Placement {
   if (!p || typeof p !== 'object') return false;
   const { x, y, width } = p as Record<string, unknown>;
   return (
-    typeof x === 'number' && Number.isFinite(x) &&
-    typeof y === 'number' && Number.isFinite(y) &&
+    typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 100 &&
+    typeof y === 'number' && Number.isFinite(y) && y >= 0 && y <= 100 &&
     typeof width === 'number' && Number.isFinite(width) &&
-    width > 0
+    width >= MIN_WIDTH_PCT && width <= MAX_WIDTH_PCT
   );
 }
