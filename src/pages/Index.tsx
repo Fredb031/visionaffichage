@@ -344,35 +344,14 @@ export default function Index() {
       ) : null}
 
       {/* ============================================================
-          1. HERO — restored centered single-CTA layout.
-          Full-bleed brand-black. Headline + sub centered, single
-          primary CTA pill, ghost "see how it works" link, single-line
-          trust bar. Background photo is graceful-fallback.
+          1. HERO — restored classic light surface with single CTA.
+          Flat white background. Headline + sub centered, ONE primary
+          CTA pill (no ghost link), single-line trust bar.
           ============================================================ */}
-      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
-        {/* Background hero photo — opacity-20 + onError fallback so the
-            section reads as intentional even when the asset is absent. */}
-        <img
-          src="/hero-team.webp"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-        />
-        {/* Black-to-transparent gradient overlay so headline text
-            stays legible whether the photo loads or not. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(180deg, #0A0A0A 0%, rgba(10,10,10,0.65) 45%, rgba(10,10,10,0.85) 100%)',
-          }}
-        />
-
+      <section className="relative overflow-hidden bg-white min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
         <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
           {/* H1 */}
-          <h1 className="font-display font-black text-white text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
+          <h1 className="font-display font-black text-[#0A0A0A] text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
             {lang === 'en' ? (
               <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
             ) : (
@@ -381,41 +360,35 @@ export default function Index() {
           </h1>
 
           {/* Sub */}
-          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-white/80 max-w-[620px] mx-auto leading-relaxed">
+          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-[#374151] max-w-[620px] mx-auto leading-relaxed">
             {lang === 'en'
               ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
               : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
           </p>
 
-          {/* Single primary CTA + ghost link */}
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-5">
+          {/* Single primary CTA — one pill only, no ghost link. */}
+          <div className="mt-9 flex items-center justify-center">
             <Link
               to="/products"
-              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               {lang === 'en' ? 'Order now' : 'Commander maintenant'}
             </Link>
-            <a
-              href="#how-it-works"
-              className="text-white/80 text-[14px] font-semibold underline underline-offset-4 decoration-white/30 hover:decoration-white hover:text-white transition-colors"
-            >
-              {lang === 'en' ? 'See how it works \u2192' : 'Voir comment ça fonctionne \u2192'}
-            </a>
           </div>
 
           {/* Trust bar — single line, wraps gracefully on mobile. */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-white/75">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-[#374151]">
             <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden="true" className="flex gap-0.5">
+              <span aria-hidden="true" className="flex gap-0.5 text-[#F59E0B]">
                 <StarSvg /><StarSvg /><StarSvg /><StarSvg /><StarSvg />
               </span>
               <span className="font-bold">5/5 Google</span>
             </span>
-            <span aria-hidden="true" className="text-white/30">·</span>
+            <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
             <span>{lang === 'en' ? '500+ businesses' : '500+ entreprises'}</span>
-            <span aria-hidden="true" className="text-white/30">·</span>
+            <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
             <span>{lang === 'en' ? '33,000+ pieces' : '33\u202F000+ pièces'}</span>
-            <span aria-hidden="true" className="text-white/30">·</span>
+            <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
             <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
           </div>
         </div>
