@@ -409,7 +409,16 @@ export default function TrackOrder() {
                   </div>
                   <div className="text-xl font-extrabold">{order.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(order.createdAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}
+                    {(() => {
+                      // Same NaN guard as the ETA derivation above — a
+                      // malformed createdAt would otherwise render the
+                      // literal string "Invalid Date" right under the
+                      // order number on the success card.
+                      const d = new Date(order.createdAt);
+                      return Number.isFinite(d.getTime())
+                        ? d.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')
+                        : '—';
+                    })()}
                   </div>
                 </div>
                 <div className="text-right">
