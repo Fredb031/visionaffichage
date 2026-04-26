@@ -1488,6 +1488,31 @@ export default function ProductDetail() {
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
 
+            {/* Section 09 — sample-order pivot. Reduces sizing risk for
+                large team orders by offering a single piece at cost
+                price before they commit to bulk. The button currently
+                stubs to a sonner toast pending operator setup of a
+                dedicated 1-piece-at-cost Shopify variant (TODO). French
+                accents on "échantillon" / "à prix coûtant" preserved
+                deliberately. */}
+            <p className="text-center text-muted-foreground text-xs mt-2">
+              {lang === 'en' ? "Not sure about the size? " : 'Pas certain de la taille? '}
+              <button
+                type="button"
+                onClick={() => toast.info(
+                  lang === 'en'
+                    ? 'Sample orders coming soon — contact us for a single piece at cost price.'
+                    : 'Échantillons bientôt disponibles — contactez-nous pour une pièce à prix coûtant.'
+                )}
+                className="text-primary underline hover:no-underline font-bold"
+              >
+                {lang === 'en' ? 'Order a sample' : 'Commande un échantillon'}
+              </button>
+              {lang === 'en'
+                ? ' at cost price before your bulk order.'
+                : ' à prix coûtant avant ta grosse commande.'}
+            </p>
+
             {/* Social-proof viewer nudge. Sits directly under the CTA
                 on purpose — it reads as "you're not alone looking at
                 this" right when the purchase commitment is happening.
