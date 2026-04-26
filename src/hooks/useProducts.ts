@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { storefrontApiRequest, PRODUCTS_QUERY, ShopifyProduct } from '@/lib/shopify';
+import { storefrontApiRequest, PRODUCTS_QUERY, ShopifyError, ShopifyProduct } from '@/lib/shopify';
 
 /**
  * React Query hook that fetches the Shopify storefront product catalog.
@@ -33,7 +33,15 @@ export function useProducts(first = 50) {
     // sleep / reconnects: without it, every tab the user has open
     // retries at the exact same t=1000/2000/4000ms mark, which just
     // replays the 429 that queued them up in the first place.
-    retry: 2,
+    // Honour ShopifyError.retryable=false so 401/403 (rejected
+    // Storefront token) short-circuit immediately instead of burning
+    // two extra round-trips that will fail identically — the previous
+    // bare `retry: 2` ignored the tagged flag and flooded auth-failure
+    // logs that the lib/shopify.ts comments explicitly call out.
+    retry: (failureCount, error) => {
+      if (error instanceof ShopifyError && error.retryable === false) return false;
+      return failureCount < 2;
+    },
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
   });
 }
