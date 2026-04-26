@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:smoke": "playwright test tests/smoke.spec.ts"
+    "test:smoke": "playwright test tests/smoke.spec.ts",
+    "icons": "node --experimental-strip-types scripts/build-icons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",
