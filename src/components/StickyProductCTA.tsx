@@ -224,6 +224,7 @@ export function StickyProductCTA({
           onClick={handleTap}
           disabled={disabled}
           aria-disabled={disabled || undefined}
+          tabIndex={visible ? 0 : -1}
           aria-label={lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit'}
           className="shrink-0 px-4 py-2.5 gradient-navy-dark text-primary-foreground rounded-xl text-[13px] font-extrabold cursor-pointer flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ boxShadow: '0 4px 14px hsla(var(--navy), 0.3)' }}
