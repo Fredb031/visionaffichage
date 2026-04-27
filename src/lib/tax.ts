@@ -27,31 +27,37 @@ export type ProvinceCode =
   | 'NT'
   | 'NU';
 
-export interface TaxRates {
+export type TaxRates = Readonly<{
   gst: number;
   pst: number;
   hst: number;
-}
+}>;
 
-export const TAX_RATES_BY_PROVINCE: Record<ProvinceCode, TaxRates> = {
-  // QC: GST + QST
-  QC: { gst: 0.05, pst: 0.09975, hst: 0 },
-  // HST provinces (single line on the cart)
-  ON: { gst: 0, pst: 0, hst: 0.13 },
-  NB: { gst: 0, pst: 0, hst: 0.15 },
-  NS: { gst: 0, pst: 0, hst: 0.15 },
-  PE: { gst: 0, pst: 0, hst: 0.15 },
-  NL: { gst: 0, pst: 0, hst: 0.15 },
-  // GST + PST
-  BC: { gst: 0.05, pst: 0.07, hst: 0 },
-  SK: { gst: 0.05, pst: 0.06, hst: 0 },
-  MB: { gst: 0.05, pst: 0.07, hst: 0 },
-  // GST only
-  AB: { gst: 0.05, pst: 0, hst: 0 },
-  YT: { gst: 0.05, pst: 0, hst: 0 },
-  NT: { gst: 0.05, pst: 0, hst: 0 },
-  NU: { gst: 0.05, pst: 0, hst: 0 },
-};
+// Frozen at module load to prevent any caller (or stray test, or hot-reload
+// hook) from mutating Canadian tax rates mid-session. Mirrors the pricing-
+// tier freeze applied in ba33680: the rate table is a financial source-of-
+// truth, so deep-freeze (table + each TaxRates entry) gives us a runtime
+// guarantee on top of the `Readonly` compile-time guard.
+export const TAX_RATES_BY_PROVINCE: Readonly<Record<ProvinceCode, TaxRates>> =
+  Object.freeze({
+    // QC: GST + QST
+    QC: Object.freeze({ gst: 0.05, pst: 0.09975, hst: 0 }),
+    // HST provinces (single line on the cart)
+    ON: Object.freeze({ gst: 0, pst: 0, hst: 0.13 }),
+    NB: Object.freeze({ gst: 0, pst: 0, hst: 0.15 }),
+    NS: Object.freeze({ gst: 0, pst: 0, hst: 0.15 }),
+    PE: Object.freeze({ gst: 0, pst: 0, hst: 0.15 }),
+    NL: Object.freeze({ gst: 0, pst: 0, hst: 0.15 }),
+    // GST + PST
+    BC: Object.freeze({ gst: 0.05, pst: 0.07, hst: 0 }),
+    SK: Object.freeze({ gst: 0.05, pst: 0.06, hst: 0 }),
+    MB: Object.freeze({ gst: 0.05, pst: 0.07, hst: 0 }),
+    // GST only
+    AB: Object.freeze({ gst: 0.05, pst: 0, hst: 0 }),
+    YT: Object.freeze({ gst: 0.05, pst: 0, hst: 0 }),
+    NT: Object.freeze({ gst: 0.05, pst: 0, hst: 0 }),
+    NU: Object.freeze({ gst: 0.05, pst: 0, hst: 0 }),
+  });
 
 export interface TaxBreakdown {
   gst: number;
