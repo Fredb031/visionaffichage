@@ -55,6 +55,20 @@ function formatDate(iso: string | null): string {
 // group sensibly.
 const CONSUMER_DOMAINS = new Set(['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com', 'me.com']);
 
+// Strip diacritics + lowercase so French queries match French data.
+// Mirrors the NFD-strip contract used by src/lib/searchIndex.ts (2a831fb)
+// and src/lib/colorMap.ts (1e7268d): the haystack here is full of
+// Quebec names/cities ("Lévis", "Québec", "Marc-André", "Frédérick",
+// "Saint-Jean-sur-Richelieu") so a query like "levis"/"andre"/"frederick"
+// would silently miss every accented row without normalisation. Both
+// sides of the comparison must live in the same character space.
+function normaliseSearch(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 function deriveCompany(c: ShopifyCustomerSnapshot): string {
   const tagHint = c.tags
     .split(',')
@@ -101,12 +115,12 @@ export default function AdminClients() {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normaliseSearch(query.trim());
     if (!q) return rows;
     return rows.filter(r =>
-      r.company.toLowerCase().includes(q) ||
-      fullName(r).toLowerCase().includes(q) ||
-      r.email.toLowerCase().includes(q),
+      normaliseSearch(r.company).includes(q) ||
+      normaliseSearch(fullName(r)).includes(q) ||
+      normaliseSearch(r.email).includes(q),
     );
   }, [rows, query]);
 
