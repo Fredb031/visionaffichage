@@ -19,7 +19,12 @@
  */
 import { create } from 'zustand';
 
-interface UiStore {
+/**
+ * Public shape of the UI store. Exported so consumers (selectors,
+ * test harnesses, future hooks) can type their accessors precisely
+ * instead of leaning on `ReturnType<typeof useUiStore.getState>`.
+ */
+export interface UiStore {
   /** True when the global cart drawer should be open. Set by cartStore
    * on a successful addItem and cleared by the drawer's onClose. */
   cartDrawerOpen: boolean;
@@ -27,8 +32,22 @@ interface UiStore {
   closeCartDrawer: () => void;
 }
 
-export const useUiStore = create<UiStore>((set) => ({
+export const useUiStore = create<UiStore>((set, get) => ({
   cartDrawerOpen: false,
-  openCartDrawer: () => set({ cartDrawerOpen: true }),
-  closeCartDrawer: () => set({ cartDrawerOpen: false }),
+  // Idempotent guards — `cartStore.addItem` fires `openCartDrawer` on
+  // every successful add, and rapid double-adds (or a customizer that
+  // re-adds on prop change) used to write `{ cartDrawerOpen: true }`
+  // again and again. Each `set` notifies every subscriber: CartDrawer
+  // re-evaluates its selector, and any future surface listening to
+  // `cartDrawerOpen` re-runs for nothing. Skipping the write when
+  // already in the target state keeps the no-op path truly free, and
+  // also prevents a closeCartDrawer() called from a drawer that was
+  // only opened via prop (not the store) from flipping the store flag
+  // from `false` → `false` and waking unrelated subscribers.
+  openCartDrawer: () => {
+    if (!get().cartDrawerOpen) set({ cartDrawerOpen: true });
+  },
+  closeCartDrawer: () => {
+    if (get().cartDrawerOpen) set({ cartDrawerOpen: false });
+  },
 }));
