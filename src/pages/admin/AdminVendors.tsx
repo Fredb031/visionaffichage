@@ -941,7 +941,7 @@ export default function AdminVendors() {
                             cancelNameEdit();
                           }
                         }}
-                        aria-label={`Renommer le vendeur ${v.name}`}
+                        aria-label={`Renommer le vendeur ${shownName}`}
                         aria-invalid={nameError ? true : undefined}
                         className={`w-full font-bold text-sm bg-white border rounded-lg px-2 py-1 outline-none ring-2 ${
                           nameError
