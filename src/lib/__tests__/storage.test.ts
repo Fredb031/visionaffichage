@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readLS, writeLS } from '../storage';
+import { readLS, writeLS, removeLS } from '../storage';
 
 // readLS / writeLS are the synchronous guard rails that stop a corrupt
 // localStorage entry from crashing the admin shell on first paint.
@@ -66,5 +66,37 @@ describe('writeLS', () => {
     const cycle: Record<string, unknown> = {};
     cycle.self = cycle;
     expect(writeLS('cycle', cycle)).toBe(false);
+  });
+});
+
+describe('removeLS', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('removes an existing key and returns true', () => {
+    localStorage.setItem('to-clear', '"value"');
+    expect(removeLS('to-clear')).toBe(true);
+    expect(localStorage.getItem('to-clear')).toBeNull();
+  });
+
+  it('returns true when removing a key that was never set', () => {
+    // localStorage.removeItem is a no-op on missing keys — the contract
+    // is "after this call the key is gone", which holds either way.
+    expect(removeLS('never-existed')).toBe(true);
+  });
+
+  it('returns false (never throws) when removeItem throws a SecurityError', () => {
+    // Locked-down origins (Safari private mode, certain enterprise
+    // policies) raise SecurityError synchronously on removeItem.
+    const spy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('SecurityError', 'SecurityError');
+    });
+    expect(() => removeLS('blocked')).not.toThrow();
+    expect(removeLS('blocked')).toBe(false);
+    expect(spy).toHaveBeenCalled();
   });
 });
