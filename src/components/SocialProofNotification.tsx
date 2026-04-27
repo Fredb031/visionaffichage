@@ -141,7 +141,10 @@ export const SocialProofNotification = () => {
     // Even on manual dismiss, queue the next one so the rotation
     // continues until the cap is reached.
     if (fireCountRef.current < MAX_PER_SESSION) {
-      scheduleTimerRef.current = window.setTimeout(() => {
+      // Self-referential rotation: each fire chains the next so the
+      // cadence keeps running after a manual dismiss, matching the
+      // behavior of the primary fire() loop in the mount effect.
+      const fireAndChain = () => {
         // Re-check the cap at fire-time: another tab in the same
         // session may have written to sessionStorage between schedule
         // and fire, pushing us past the per-session limit.
@@ -158,8 +161,15 @@ export const SocialProofNotification = () => {
         writeFireCount(fireCountRef.current);
         dismissTimerRef.current = window.setTimeout(() => {
           setVisible(false);
+          if (fireCountRef.current < MAX_PER_SESSION) {
+            scheduleTimerRef.current = window.setTimeout(
+              fireAndChain,
+              randomDelay(),
+            );
+          }
         }, DISMISS_AFTER_MS);
-      }, randomDelay());
+      };
+      scheduleTimerRef.current = window.setTimeout(fireAndChain, randomDelay());
     }
   };
 
