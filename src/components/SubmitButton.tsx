@@ -27,6 +27,21 @@ export const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(
   function SubmitButton({ state, children, className, disabled, type, ...rest }, ref) {
     const { lang } = useLang();
     const successLabel = lang === 'en' ? 'Sent' : 'Envoyé';
+    // The visible label lives inside three aria-hidden-toggled rows, so
+    // putting aria-live on the <button> itself never fires — when state
+    // flips, the row that *becomes* visible was already in the DOM with
+    // its text, just gated by aria-hidden, and most AT don't re-announce
+    // on aria-hidden flips inside a live region. To actually tell screen
+    // reader users what just happened we render a dedicated sr-only
+    // status region whose *text content* changes between empty / loading
+    // phrase / success phrase. role="status" + aria-live="polite" makes
+    // it announce without stealing focus.
+    const statusMessage =
+      state === 'loading'
+        ? lang === 'en' ? 'Sending…' : 'Envoi en cours…'
+        : state === 'success'
+        ? successLabel
+        : '';
     // During loading/success the button MUST refuse further clicks —
     // otherwise a user impatient with the 2s success dwell could fire
     // the parent handler again and double-post. Merge with any caller-
@@ -40,7 +55,6 @@ export const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(
         type={type ?? 'submit'}
         disabled={effectiveDisabled}
         aria-busy={state === 'loading' || undefined}
-        aria-live="polite"
         data-state={state}
         className={className}
         {...rest}
@@ -94,6 +108,12 @@ export const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(
             <Check size={16} aria-hidden="true" strokeWidth={3} />
             {successLabel}
           </span>
+        </span>
+        {/* Polite SR-only status region — empty in idle, populated in
+            loading/success. Screen readers announce the change because
+            the *text node* itself swaps, not just an aria-hidden flag. */}
+        <span role="status" aria-live="polite" className="sr-only">
+          {statusMessage}
         </span>
       </button>
     );
