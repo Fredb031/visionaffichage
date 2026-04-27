@@ -32,8 +32,10 @@ interface ConfettiProps {
   onDone?: () => void;
 }
 
-// Brand colors (per Task 17.3 spec)
-const COLORS = ['#E8A838', '#1B3A6B', '#F5F2E8'];
+// Brand colors — brand-only palette (matches legal-pages/v2 master prompt
+// retirement of legacy navy/gold). Pulled from index.css --brand-* tokens
+// so the burst always tracks whatever the rest of the site uses.
+const COLORS = ['#0052CC', '#0A0A0A', '#EBF2FF'];
 
 // Longest possible particle lifetime: max duration (1500ms) + max delay
 // (150ms). The fire-and-fade timer below adds a 200ms cushion so onDone
