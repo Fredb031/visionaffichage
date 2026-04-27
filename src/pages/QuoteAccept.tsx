@@ -81,7 +81,7 @@ export default function QuoteAccept() {
   const tax = (subtotal - discountAmount) * 0.14975;
   const total = subtotal - discountAmount + tax;
 
-  const canPay = logoFile !== null && acceptedTerms;
+  const canPay = logoFile !== null && acceptedTerms && !isExpired;
 
   // Expiration countdown: refresh "now" every 60s so the header stays live.
   useEffect(() => {
@@ -89,9 +89,15 @@ export default function QuoteAccept() {
     return () => window.clearInterval(t);
   }, []);
 
+  const expiresMs = useMemo(() => {
+    const ms = Date.parse(MOCK_QUOTE.expiresAt);
+    return Number.isNaN(ms) ? null : ms;
+  }, []);
+
+  const isExpired = expiresMs !== null && expiresMs - now <= 0;
+
   const expiryLabel = useMemo(() => {
-    const expiresMs = Date.parse(MOCK_QUOTE.expiresAt);
-    if (Number.isNaN(expiresMs)) return null;
+    if (expiresMs === null) return null;
     const diff = expiresMs - now;
     if (diff <= 0) {
       return lang === 'en' ? 'Expired' : 'Expirée';
@@ -102,7 +108,7 @@ export default function QuoteAccept() {
     return lang === 'en'
       ? `Expires in ${days}d ${hours}h`
       : `Expire dans ${days}j ${hours}h`;
-  }, [now, lang]);
+  }, [expiresMs, now, lang]);
 
   const handleCopyLink = async () => {
     try {
@@ -327,9 +333,11 @@ export default function QuoteAccept() {
 
               {!canPay && (
                 <p id="quote-pay-hint" className="text-[11px] text-muted-foreground text-center">
-                  {!logoFile
-                    ? lang === 'en' ? '⬆ Upload your logo first' : '⬆ Téléverse ton logo d\'abord'
-                    : lang === 'en' ? '⬆ Accept terms to continue' : '⬆ Accepte les conditions pour continuer'}
+                  {isExpired
+                    ? lang === 'en' ? 'This quote has expired — contact your rep for a renewal' : 'Cette soumission est expirée — contacte ton conseiller pour un renouvellement'
+                    : !logoFile
+                      ? lang === 'en' ? '⬆ Upload your logo first' : '⬆ Téléverse ton logo d\'abord'
+                      : lang === 'en' ? '⬆ Accept terms to continue' : '⬆ Accepte les conditions pour continuer'}
                 </p>
               )}
 
