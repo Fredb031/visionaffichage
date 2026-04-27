@@ -73,6 +73,13 @@ export function buildProductSchema(input: BuildProductSchemaInput): ProductSchem
   // with InStock + a paid-shipping promise) so emitting the schema would
   // earn a Search Console warning rather than a rich result.
   if (!Number.isFinite(price) || price <= 0) return null;
+  // `name` is a required field on schema.org/Product. An empty or
+  // whitespace-only title produces `name: ""`, which Google's rich-result
+  // validator rejects outright (logged as ITEM_NAME_MISSING in Search
+  // Console). Bail to null so the caller skips injection entirely rather
+  // than shipping a schema that's guaranteed to fail validation.
+  const trimmedName = product.title?.trim();
+  if (!trimmedName) return null;
   const resolvedImage = image ?? product.images?.edges?.[0]?.node?.url;
   // Treat empty/whitespace description the same as missing — Google flags
   // `description: ""` as an invalid value rather than silently dropping it.
@@ -80,7 +87,7 @@ export function buildProductSchema(input: BuildProductSchemaInput): ProductSchem
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: product.title,
+    name: trimmedName,
     sku: localProduct?.sku,
     image: resolvedImage ? [resolvedImage] : undefined,
     description: trimmedDescription ? trimmedDescription : undefined,
