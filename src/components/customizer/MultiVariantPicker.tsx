@@ -387,7 +387,9 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
                     type="button"
                     onClick={() => adjustQty(activeColor, size, q => q - 1)}
                     disabled={qty === 0 || unavailable}
-                    aria-label={lang === 'en' ? `Decrease ${size}` : `Diminuer ${size}`}
+                    aria-label={lang === 'en'
+                      ? `Decrease size ${size} for ${activeColor.colorName} by 1 (currently ${qty})`
+                      : `Diminuer la taille ${size} pour ${activeColor.colorName} de 1 (actuellement ${qty})`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <Minus size={12} aria-hidden="true" />
@@ -406,7 +408,9 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
                     type="button"
                     onClick={() => adjustQty(activeColor, size, q => q + 1)}
                     disabled={unavailable}
-                    aria-label={lang === 'en' ? `Increase ${size}` : `Augmenter ${size}`}
+                    aria-label={lang === 'en'
+                      ? `Increase size ${size} for ${activeColor.colorName} by 1 (currently ${qty})`
+                      : `Augmenter la taille ${size} pour ${activeColor.colorName} de 1 (actuellement ${qty})`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <Plus size={12} aria-hidden="true" />
