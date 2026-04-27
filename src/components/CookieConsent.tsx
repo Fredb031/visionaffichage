@@ -187,9 +187,10 @@ export function CookieConsent() {
           type="button"
           onClick={() => setCustomizing((v) => !v)}
           aria-expanded={customizing}
+          aria-label={isFr ? 'Préférences cookies' : 'Cookie preferences'}
           className="mt-3 text-xs text-white/60 underline-offset-2 hover:text-[#D4AF37] hover:underline focus:outline-none focus:ring-2 focus:ring-[#D4AF37] rounded"
         >
-          {isFr ? 'Personnaliser' : 'Customize'}
+          {isFr ? 'Préférences cookies' : 'Cookie preferences'}
         </button>
       </div>
     </div>
