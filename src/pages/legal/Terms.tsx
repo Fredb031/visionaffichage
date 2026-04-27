@@ -24,9 +24,31 @@ export default function Terms() {
         </p>
         <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-[#374151]">
           <p>
-            {lang === 'en'
-              ? 'This page is under review. Contact us at support@visionaffichage.com for questions.'
-              : 'Cette page est en cours de révision. Pour toute question, écris-nous à support@visionaffichage.com.'}
+            {lang === 'en' ? (
+              <>
+                This page is under review. For questions about these terms or to request the full draft before signing, contact us at{' '}
+                <a
+                  href="mailto:support@visionaffichage.com?subject=Terms%20of%20service%20inquiry"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0A0A0A]"
+                  aria-label="Email Vision Affichage about the terms of service"
+                >
+                  support@visionaffichage.com
+                </a>
+                . We aim to respond within 5 business days.
+              </>
+            ) : (
+              <>
+                Cette page est en cours de révision. Pour toute question sur ces conditions ou pour demander la version complète avant signature, écris-nous à{' '}
+                <a
+                  href="mailto:support@visionaffichage.com?subject=Renseignement%20conditions%20d%27utilisation"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0A0A0A]"
+                  aria-label="Écrire à Vision Affichage au sujet des conditions d'utilisation"
+                >
+                  support@visionaffichage.com
+                </a>
+                . Nous visons une réponse sous 5 jours ouvrables.
+              </>
+            )}
           </p>
         </div>
       </main>
