@@ -29,8 +29,8 @@ export default function AdminChatLogs() {
 
   return (
     <div>
-      <div className="mb-6 rounded-xl border border-[#D97706]/30 bg-[#FFFBEB] p-4 flex items-start gap-3">
-        <span className="text-[#D97706] text-lg flex-shrink-0 mt-0.5" aria-hidden>⚠</span>
+      <div role="status" className="mb-6 rounded-xl border border-[#D97706]/30 bg-[#FFFBEB] p-4 flex items-start gap-3">
+        <span className="text-[#D97706] text-lg flex-shrink-0 mt-0.5" aria-hidden="true">⚠</span>
         <div className="flex-1">
           <p className="font-semibold text-[#0A0A0A] text-sm">Fonctionnalité en développement</p>
           <p className="text-[#374151] text-xs mt-1 leading-relaxed">
