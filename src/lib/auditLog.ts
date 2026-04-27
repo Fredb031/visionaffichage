@@ -115,15 +115,22 @@ export function getAuditLog(): AuditEntry[] {
   // Lightweight per-row shape check — tolerate unknown extra fields
   // (forward-compat with future additions) but drop rows missing the
   // required scaffolding so downstream renderers don't have to guard.
+  // `at` is additionally parsed: a row with a corrupt/non-ISO string
+  // (left behind by an older build or a devtools edit) would otherwise
+  // pass the typeof check and surface as "Invalid Date" / NaN in the
+  // dashboard's relative-time math. Drop those rows here, once.
   return raw.filter((r): r is AuditEntry => {
     if (!r || typeof r !== 'object') return false;
     const row = r as Partial<AuditEntry>;
-    return (
-      typeof row.id === 'string' &&
-      typeof row.action === 'string' &&
-      typeof row.by === 'string' &&
-      typeof row.at === 'string'
-    );
+    if (
+      typeof row.id !== 'string' ||
+      typeof row.action !== 'string' ||
+      typeof row.by !== 'string' ||
+      typeof row.at !== 'string'
+    ) {
+      return false;
+    }
+    return Number.isFinite(Date.parse(row.at));
   });
 }
 
