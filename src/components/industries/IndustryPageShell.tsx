@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, MapPin } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
@@ -87,9 +87,16 @@ export function IndustryPageShell({
 
   // Resolve SKUs once. Filter out misses so the grid never renders a
   // hollow card when a brief lists a SKU that doesn't exist locally.
-  const products = productSkus
-    .map(findProductBySku)
-    .filter((p): p is Product => Boolean(p));
+  // Memoized so the lang toggle (and any other parent re-render) doesn't
+  // re-walk PRODUCTS for each SKU and doesn't churn the array reference,
+  // which would defeat downstream memoization on the product cards.
+  const products = useMemo(
+    () =>
+      productSkus
+        .map(findProductBySku)
+        .filter((p): p is Product => Boolean(p)),
+    [productSkus],
+  );
 
   // FAQ accordion — same one-at-a-time native <details> dance Index.tsx
   // uses. Keyboard + screen-reader semantics come for free; the effect
