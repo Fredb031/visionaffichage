@@ -77,7 +77,7 @@ export const translations = {
     rabaisVolume12: '15% de rabais dès 12 unités',
     // Cart
     monPanier: 'Mon panier',
-    panierVide: 'Ton panier est vide',
+    panierVide: "Ton panier attend ton équipe",
     explorerProduits: 'Explorer les produits',
     codeRabais: 'Code de rabais',
     appliquer: 'Appliquer',
@@ -158,7 +158,7 @@ export const translations = {
     zonesRecommandees: 'Preset zones · place freely',
     rabaisVolume12: '15% off on 12+ units',
     monPanier: 'My cart',
-    panierVide: 'Your cart is empty',
+    panierVide: "Your cart's waiting on your team",
     explorerProduits: 'Explore products',
     codeRabais: 'Discount code',
     appliquer: 'Apply',

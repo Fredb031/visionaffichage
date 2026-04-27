@@ -633,13 +633,13 @@ export default function Cart() {
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0A0A0A] mb-3">
               {lang === 'en'
-                ? 'Your cart is empty for now'
-                : "Ton panier est vide pour l'instant"}
+                ? "Your cart's waiting on your team."
+                : "Ton panier attend ton équipe."}
             </h2>
             <p className="text-sm text-[#6B7280] mb-7 leading-relaxed">
               {lang === 'en'
-                ? 'Your team deserves better than logo-less t-shirts.'
-                : "Ton équipe mérite mieux que des t-shirts sans logo."}
+                ? '500+ Quebec teams started with 5 shirts. Pick yours.'
+                : "500+ équipes au Québec ont commencé avec 5 t-shirts. Choisis les tiens."}
             </p>
             <Link
               to="/products"
@@ -1199,6 +1199,22 @@ export default function Cart() {
                         ? '🔒 Secure payment · 📦 Delivered in 5 days · ✅ Satisfied or refunded'
                         : '🔒 Paiement sécurisé · 📦 Livré en 5 jours · ✅ Satisfait ou remboursé'}
                     </p>
+
+                    {/* Social-proof chip — single attributed customer quote.
+                        Sits inside the aside next to the CTA so the buyer's
+                        last beat before checkout is "people like me did this
+                        and it worked." Static (no rotation) to keep visual
+                        noise low — FooterTestimonialBar handles rotation. */}
+                    <div className="mt-1 flex items-start gap-2 rounded-lg bg-white border border-[#E5E7EB] px-3 py-2.5 text-left">
+                      <span className="inline-flex items-center text-[#E8A838] flex-shrink-0 mt-0.5" aria-label={lang === 'en' ? '5 stars out of 5' : '5 étoiles sur 5'}>
+                        <span aria-hidden="true" className="text-[10px] tracking-tight">★★★★★</span>
+                      </span>
+                      <p className="text-[11px] text-[#374151] leading-snug italic">
+                        {lang === 'en'
+                          ? '"20 pieces, delivered in 4 days." — Jean-Philippe R., Plumbing'
+                          : '« 20 pièces livrées en 4 jours. » — Jean-Philippe R., Plomberie'}
+                      </p>
+                    </div>
                   </div>
                 );
               })()}

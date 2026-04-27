@@ -1823,8 +1823,31 @@ export default function ProductDetail() {
                     {/* Sec 11/02 — identityHook quote in italic gray
                         with brand-blue left border, matching homepage
                         c08e02e and Products 5625e4c language. */}
-                    <p className="text-[#6B7280] text-base italic mb-5 border-l-2 border-[#0052CC] pl-4">
+                    <p className="text-[#6B7280] text-base italic mb-3 border-l-2 border-[#0052CC] pl-4">
                       {desc.tagline}
+                    </p>
+                    {/* Reciprocity lever — free fabric swatches were
+                        buried in the FAQ. Surface as a subtle inline
+                        link so the buyer sees the offer without us
+                        adding a heavy banner. */}
+                    <p className="text-xs text-[#6B7280] mb-5">
+                      {lang === 'en' ? (
+                        <>
+                          Want to feel the fabric first?{' '}
+                          <Link to="/contact" className="font-semibold text-[#0052CC] underline underline-offset-2 decoration-dotted hover:no-underline">
+                            Free swatches on 25+ orders
+                          </Link>{' '}
+                          — refundable on smaller runs.
+                        </>
+                      ) : (
+                        <>
+                          Tu veux toucher le tissu avant ?{' '}
+                          <Link to="/contact" className="font-semibold text-[#0052CC] underline underline-offset-2 decoration-dotted hover:no-underline">
+                            Échantillons gratuits dès 25 pièces
+                          </Link>{' '}
+                          — remboursable sur les plus petites.
+                        </>
+                      )}
                     </p>
                     {/* Task 3.14 — On mobile the multi-paragraph fabric/care
                         copy was pushing the Add-to-cart button well below
@@ -2545,11 +2568,23 @@ function BulkCalculator({ sku, basePrice, unitWithPrint, discountedUnit, lang, v
 
   return (
     <div className="bg-gradient-to-br from-secondary/60 to-background border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Calculator size={14} className="text-[#0052CC]" aria-hidden="true" />
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC]">
-          {lang === 'en' ? 'Quick price estimate' : 'Estimation rapide'}
-        </span>
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Calculator size={14} className="text-[#0052CC]" aria-hidden="true" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC]">
+            {lang === 'en' ? 'Quick price estimate' : 'Estimation rapide'}
+          </span>
+        </div>
+        {/* Commitment lever — low-friction sample tier. Sets qty=1 so the
+            buyer can feel the fabric before committing a team order. */}
+        <button
+          type="button"
+          onClick={() => setQty(1)}
+          aria-label={lang === 'en' ? 'Test with 1 sample' : 'Tester avec 1 échantillon'}
+          className="text-[10px] font-bold uppercase tracking-wider text-[#0A0A0A] bg-white border border-border hover:border-[#0052CC]/40 hover:text-[#0052CC] px-2.5 py-1 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        >
+          {lang === 'en' ? 'Test with 1 sample' : 'Tester avec 1 échantillon'}
+        </button>
       </div>
       <div className="flex items-center gap-3 mb-3">
         <button

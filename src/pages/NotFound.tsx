@@ -118,8 +118,8 @@ const NotFound = () => {
             </h1>
             <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-[560px] mx-auto">
               {lang === 'en'
-                ? "We couldn't find that, but here's what might help."
-                : "On n'a pas trouvé ce que vous cherchiez, mais voici ce qui pourrait aider."}
+                ? "This page took an early lunch. Your team's logo doesn't have to — start here."
+                : "Cette page est partie dîner. Le logo de ton équipe n'est pas obligé — commence ici."}
             </p>
             {location.pathname && (
               <code className="block text-[11px] text-muted-foreground/60 font-mono mt-2">

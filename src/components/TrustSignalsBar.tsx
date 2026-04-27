@@ -30,22 +30,22 @@ export function TrustSignalsBar() {
     {
       icon: Zap,
       title: lang === 'en' ? '5 business days' : '5 jours ouvrables',
-      sub: lang === 'en' ? 'From design to doorstep' : 'De la conception à la livraison',
+      sub: lang === 'en' ? 'Proof to doorstep, no rush fee' : 'Épreuve à porte, sans frais de rush',
     },
     {
       icon: MapPin,
-      title: lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec',
-      sub: lang === 'en' ? 'Local printing, local quality' : 'Impression locale, qualité locale',
+      title: lang === 'en' ? 'Printed in Québec' : 'Imprimé au Québec',
+      sub: lang === 'en' ? 'OEKO-TEX® certified inks' : 'Encres certifiées OEKO-TEX®',
     },
     {
       icon: ShieldCheck,
-      title: lang === 'en' ? '1-year guarantee' : 'Garantie 1 an',
-      sub: lang === 'en' ? 'Print + fabric covered' : 'Impression + tissu couverts',
+      title: lang === 'en' ? '1-year remake guarantee' : 'Garantie 1 an refaite',
+      sub: lang === 'en' ? 'We misprint, we redo it free' : 'Mauvais résultat, on refait sans frais',
     },
     {
       icon: Users,
       title: companiesTitle,
-      sub: lang === 'en' ? 'Trust us since 2021' : 'Nous font confiance depuis 2021',
+      sub: lang === 'en' ? '5/5 on Google · since 2021' : '5/5 sur Google · depuis 2021',
     },
   ];
 

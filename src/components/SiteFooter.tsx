@@ -152,8 +152,8 @@ export function SiteFooter() {
             </h3>
             <p className="text-sm text-white/80">
               {lang === 'en'
-                ? 'Subscribe to get VISION10 and upcoming deals'
-                : 'Abonne-toi pour recevoir le code VISION10 + nos promos'}
+                ? 'Drop your email — we send VISION10 instantly. One promo a month, no spam.'
+                : "Laisse ton courriel — on t'envoie VISION10 tout de suite. Une promo par mois, pas de spam."}
             </p>
           </div>
 

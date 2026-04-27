@@ -908,11 +908,11 @@ export default function Checkout() {
   // step-aware h1 keeps the buyer oriented; the breadcrumb sub-line
   // stays consistent regardless of step.
   const pageTitle = step === 'payment'
-    ? (lang === 'en' ? 'Finalize your order' : 'Finaliser ta commande')
-    : (lang === 'en' ? 'Checkout' : 'Paiement');
+    ? (lang === 'en' ? 'Confirm your order' : 'Confirme ta commande')
+    : (lang === 'en' ? 'Confirm your order' : 'Confirme ta commande');
   const breadcrumb = lang === 'en'
-    ? 'Cart > Shipping > Payment'
-    : 'Panier > Livraison > Paiement';
+    ? 'Your cart > Shipping > Payment'
+    : 'Ton panier > Livraison > Paiement';
 
   return (
     <div id="main-content" tabIndex={-1} data-va-checkout className="min-h-screen bg-white focus:outline-none">
