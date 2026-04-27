@@ -14,16 +14,16 @@ export default function Accessibility() {
   useDocumentTitle(lang === 'en' ? 'Accessibility — Vision Affichage' : 'Accessibilité — Vision Affichage');
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
       <main id="main-content" className="flex-1 max-w-[860px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-3">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-3">
           {lang === 'en' ? 'Accessibility' : 'Accessibilité'}
         </h1>
         <p className="text-xs text-zinc-500 mb-8">
           {lang === 'en' ? 'Last updated: April 2026' : 'Dernière mise à jour\u00a0: avril 2026'}
         </p>
-        <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-zinc-700">
+        <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-[#374151]">
           <p>
             {lang === 'en'
               ? 'This page is under review. Contact us at support@visionaffichage.com for questions.'
