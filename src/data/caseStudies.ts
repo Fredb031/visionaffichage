@@ -11,7 +11,14 @@
 // public folder; the detail page <img> falls back to a brand-colored
 // div via onError so the layout doesn't break before the photos land.
 
-export interface CaseStudy {
+// Case studies are a copy/source-of-truth fixture used by the hub page,
+// the detail page, and the homepage trust-row. The array and each entry
+// are frozen on export so a stray consumer can't mutate
+// `CASE_STUDIES[0].quote = ''` or `CASE_STUDIES.sort(...)` mid-render and
+// silently corrupt the layout for the rest of the SPA session. The type
+// uses `Readonly`/`readonly` to surface the same guarantee at compile
+// time (consumers already only call `.find`/`.map`, both read-only).
+export type CaseStudy = Readonly<{
   slug: string;
   companyName: string;
   industry: string;
@@ -23,13 +30,13 @@ export interface CaseStudy {
   quote: string;
   quotePerson: string;
   heroImage: string; // placeholder path — operator drops real photo at /public/case-studies/<slug>.jpg
-  productsUsed: string[];
+  productsUsed: readonly string[];
   orderSize: string;
   deliveryDays: number;
   orderDate: string;
-}
+}>;
 
-export const CASE_STUDIES: CaseStudy[] = [
+export const CASE_STUDIES: readonly CaseStudy[] = Object.freeze([
   {
     slug: 'construction-rivard',
     companyName: 'Construction Rivard',
@@ -46,7 +53,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       "On dirait pas, mais quand mes gars débarquent en uniforme avec le logo brodé, le client signe sans négocier. C'est rendu notre meilleur outil de vente.",
     quotePerson: 'Marc-André Rivard, propriétaire',
     heroImage: '/case-studies/construction-rivard.jpg',
-    productsUsed: ['t-shirt-haute-visibilite', 'hoodie-zippe', 'casquette-brodee'],
+    productsUsed: Object.freeze(['t-shirt-haute-visibilite', 'hoodie-zippe', 'casquette-brodee']),
     orderSize: '28 pièces',
     deliveryDays: 5,
     orderDate: '2025-09-12',
@@ -67,7 +74,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       "Vision a livré en cinq jours pendant qu'un autre fournisseur me promettait trois semaines. Sans eux, je commençais ma saison avec une équipe en t-shirts blancs.",
     quotePerson: 'Stéphanie Verdure, fondatrice',
     heroImage: '/case-studies/paysagement-verdure-qc.jpg',
-    productsUsed: ['polo-respirant-brode', 'casquette-brodee', 'softshell-zippe'],
+    productsUsed: Object.freeze(['polo-respirant-brode', 'casquette-brodee', 'softshell-zippe']),
     orderSize: '20 polos + 14 casquettes + 14 softshells',
     deliveryDays: 5,
     orderDate: '2025-04-01',
@@ -88,7 +95,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       "On voulait avoir l'air d'un Big Four sans le budget d'un Big Four. Vision nous a livré exactement ça — broderie ton-sur-ton impeccable, livraison à temps, et un service en français.",
     quotePerson: 'Isabelle Lafleur, associée principale',
     heroImage: '/case-studies/cabinet-lafleur-conseil.jpg',
-    productsUsed: ['chemise-oxford-brodee', 'veste-molletonnee', 'sac-fourre-tout'],
+    productsUsed: Object.freeze(['chemise-oxford-brodee', 'veste-molletonnee', 'sac-fourre-tout']),
     orderSize: '32 chemises + 32 vestes + 50 sacs',
     deliveryDays: 7,
     orderDate: '2025-08-04',
@@ -109,9 +116,9 @@ export const CASE_STUDIES: CaseStudy[] = [
       "Pour un appel d'offres municipal, ce qu'on cherche c'est zéro surprise — conformité CSA, dates respectées, factures qui passent au comptable du premier coup. Vision a livré sur les trois.",
     quotePerson: 'Robert Tremblay, directeur des achats',
     heroImage: '/case-studies/ville-saint-eustache.jpg',
-    productsUsed: ['t-shirt-haute-visibilite', 'hoodie-zippe', 'casquette-brodee', 'manteau-hiver-csa'],
+    productsUsed: Object.freeze(['t-shirt-haute-visibilite', 'hoodie-zippe', 'casquette-brodee', 'manteau-hiver-csa']),
     orderSize: '85 t-shirts + 85 hoodies + 85 casquettes + 40 manteaux',
     deliveryDays: 10,
     orderDate: '2025-10-15',
   },
-];
+].map(cs => Object.freeze(cs)));
