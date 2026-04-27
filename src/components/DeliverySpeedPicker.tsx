@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { Truck, Zap, Clock } from 'lucide-react';
 import { DELIVERY_OPTIONS, type DeliveryOption } from '@/data/deliveryOptions';
 import { readLS, writeLS } from '@/lib/storage';
@@ -46,6 +46,15 @@ export function DeliverySpeedPicker({ subtotal, value, onChange }: Props) {
 
   const groupId = useId();
 
+  // Mirror getDeliverySurcharge: clamp negative / non-finite subtotals once
+  // so the inline display matches the cart total math exactly and a stale
+  // value can never produce NaN or a negative surcharge. Lifted out of the
+  // .map() below so it isn't recomputed for every option on every render.
+  const safeSubtotal = useMemo(
+    () => (Number.isFinite(subtotal) ? Math.max(0, subtotal) : 0),
+    [subtotal],
+  );
+
   return (
     <fieldset
       className="space-y-2 border-t border-border pt-3"
@@ -60,10 +69,6 @@ export function DeliverySpeedPicker({ subtotal, value, onChange }: Props) {
       <div role="radiogroup" aria-labelledby={`${groupId}-legend`} className="space-y-2">
         {DELIVERY_OPTIONS.map((opt) => {
           const Icon = ICONS[opt.id];
-          // Mirror getDeliverySurcharge: clamp negative / non-finite subtotals
-          // so the inline display matches the cart total math exactly and a
-          // stale value can never produce NaN or a negative surcharge.
-          const safeSubtotal = Number.isFinite(subtotal) ? Math.max(0, subtotal) : 0;
           const surchargeAmount = safeSubtotal * opt.surcharge;
           const isActive = value === opt.id;
           const inputId = `${groupId}-${opt.id}`;
