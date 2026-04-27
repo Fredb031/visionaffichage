@@ -25,9 +25,31 @@ export default function Accessibility() {
         </p>
         <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-[#374151]">
           <p>
-            {lang === 'en'
-              ? 'This page is under review. Contact us at support@visionaffichage.com for questions.'
-              : 'Cette page est en cours de révision. Pour toute question, écris-nous à support@visionaffichage.com.'}
+            {lang === 'en' ? (
+              <>
+                This page is under review. To report an accessibility barrier or request content in an alternate format, contact us at{' '}
+                <a
+                  href="mailto:support@visionaffichage.com?subject=Accessibility%20feedback"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0A0A0A]"
+                  aria-label="Email Vision Affichage about an accessibility issue"
+                >
+                  support@visionaffichage.com
+                </a>
+                . We aim to respond within 5 business days.
+              </>
+            ) : (
+              <>
+                Cette page est en cours de révision. Pour signaler un obstacle d{'’'}accessibilité ou demander un contenu dans un format alternatif, écris-nous à{' '}
+                <a
+                  href="mailto:support@visionaffichage.com?subject=Commentaire%20accessibilit%C3%A9"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0A0A0A]"
+                  aria-label="Écrire à Vision Affichage au sujet d'un problème d'accessibilité"
+                >
+                  support@visionaffichage.com
+                </a>
+                . Nous visons une réponse sous 5 jours ouvrables.
+              </>
+            )}
           </p>
         </div>
       </main>
