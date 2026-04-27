@@ -56,6 +56,7 @@ export function fireConfetti(opts?: { count?: number; durationMs?: number }): vo
   ].join(';');
 
   let maxLifetime = 0;
+  let longestPiece: HTMLSpanElement | null = null;
   for (let i = 0; i < count; i++) {
     const color = COLORS[i % COLORS.length];
     const dx = Math.round((Math.random() - 0.5) * 440);
@@ -67,8 +68,7 @@ export function fireConfetti(opts?: { count?: number; durationMs?: number }): vo
     const left = 40 + Math.random() * 20;
     const radius = Math.random() > 0.5 ? '1px' : '50%';
 
-    maxLifetime = Math.max(maxLifetime, duration + delay);
-
+    const lifetime = duration + delay;
     const piece = document.createElement('span');
     piece.style.cssText = [
       'position:absolute', `left:${left}%`, 'top:0',
@@ -82,12 +82,27 @@ export function fireConfetti(opts?: { count?: number; durationMs?: number }): vo
     piece.style.setProperty('--vc-dy', `${dy}px`);
     piece.style.setProperty('--vc-rot', `${rot}deg`);
     container.appendChild(piece);
+
+    if (lifetime > maxLifetime) {
+      maxLifetime = lifetime;
+      longestPiece = piece;
+    }
   }
 
   document.body.appendChild(container);
 
-  // Cushion past the longest particle so we don't yank the DOM mid-flight.
-  window.setTimeout(() => {
+  // Prefer the actual `animationend` event on the longest-lived piece for
+  // tight cleanup, with a setTimeout safety net so we never leak the
+  // container if the event is missed (tab backgrounding, animation cancel,
+  // external DOM mutation, etc.).
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     container.remove();
-  }, maxLifetime + 200);
+  };
+  if (longestPiece) {
+    longestPiece.addEventListener('animationend', cleanup, { once: true });
+  }
+  window.setTimeout(cleanup, maxLifetime + 200);
 }
