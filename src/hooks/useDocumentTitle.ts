@@ -123,6 +123,15 @@ export function useDocumentTitle(
     // otherwise flash a blank tab label while data loads.
     const safeTitle = clampTitle(sanitizeTitle(title));
 
+    // Mirror the title sanitization for description so a stray <strong>
+    // or <br/> in interpolated copy doesn't reach <meta name="description">
+    // / og:description / twitter:description (crawlers render those
+    // literally too). We only treat `undefined` as "don't manage the
+    // tag" — an explicit empty string from a caller still flows through
+    // (sanitized to '') to clear the tag on this route.
+    const safeDescription =
+      description === undefined ? undefined : sanitizeTitle(description);
+
     const prevTitle = document.title;
     if (safeTitle.length > 0) {
       document.title = safeTitle;
@@ -201,7 +210,7 @@ export function useDocumentTitle(
       } else {
         prevDescription = metaEl.getAttribute('content');
       }
-      metaEl.setAttribute('content', description);
+      metaEl.setAttribute('content', safeDescription as string);
     }
 
     // OG + Twitter bookkeeping — for each managed tag, record whether it
@@ -258,7 +267,7 @@ export function useDocumentTitle(
         case 'og:description':
         case 'twitter:description':
           // Only pushed into `managed` when description !== undefined.
-          value = description as string;
+          value = safeDescription as string;
           break;
         case 'og:image':
         case 'twitter:image':
