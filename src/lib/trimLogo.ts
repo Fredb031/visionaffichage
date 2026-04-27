@@ -119,7 +119,9 @@ function loadImage(blobOrUrl: Blob | string): Promise<HTMLImageElement> {
  * don't touch the canvas edge. */
 export async function trimTransparentPadding(blob: Blob): Promise<Blob> {
   // SVGs don't have raster padding — nothing to trim, return as-is.
-  if (blob.type === 'image/svg+xml') return blob;
+  // Match the type prefix so MIME params (e.g. "image/svg+xml; charset=utf-8")
+  // still take this path instead of falling through to the raster pipeline.
+  if (blob.type.split(';')[0].trim().toLowerCase() === 'image/svg+xml') return blob;
 
   let img: HTMLImageElement;
   try {
