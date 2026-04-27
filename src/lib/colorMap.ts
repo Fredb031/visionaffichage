@@ -8,6 +8,26 @@
  * shows the dreaded #888 blob.
  */
 
+/**
+ * Strip diacritics + lowercase. Mirrors the `normaliseIndexText()` helper
+ * in searchIndex.ts (2a831fb) and the `normalise()` in search.ts so the
+ * three modules share one character-space contract: a query typed as
+ * "vert foret" / "bleu pale" / "creme" / "cafe" lands on the same key
+ * the customizer rendered with "Vert forêt" / "Bleu pâle" / "Crème" /
+ * "Café". Without this, Tier 2's case-insensitive compare alone leaves
+ * every accented FR colour name (≈12 of the ~80 catalogue entries:
+ * Crème, Noir chiné, Gris pâle, Gris foncé, Gris chiné, Bleu pâle,
+ * Bleu pétrole, Vert forêt, Vert armée, Orange brûlé, Bourgogne, Café)
+ * silently falling through to the Tier 4 hash — producing a muted hue
+ * instead of the actual swatch on every customizer render.
+ */
+function normaliseColorName(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
 export const COLOR_MAP: Record<string, string> = {
   // ── Blacks / charcoals ────────────────────────────────────────────────
   'Noir': '#0A0A0A',
@@ -149,48 +169,74 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 /**
+ * Pre-built diacritic-stripped lookup. Building this once at module load
+ * (a) makes Tier 2 O(1) instead of an Object.keys() scan per call, and
+ * (b) gives Tier 3 a normalised-key set so the longest-match scan also
+ * matches accent-free input. Insertion order = COLOR_MAP order, so when
+ * an FR/EN pair shares the same hex (e.g. 'Khaki' / 'Kaki'), the first
+ * key wins on collision — which is fine since the values are identical.
+ */
+const NORMALISED_COLOR_MAP: ReadonlyMap<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const [key, hex] of Object.entries(COLOR_MAP)) {
+    const norm = normaliseColorName(key);
+    if (norm && !m.has(norm)) m.set(norm, hex);
+  }
+  return m;
+})();
+
+/** Muted neutral returned for empty / non-string inputs. */
+const FALLBACK_EMPTY_HSL = 'hsl(0, 0%, 70%)';
+
+/**
  * Resolve a Shopify variant colour name to an sRGB hex string.
  *
  * Match order (Section 2.3):
  *   1. Direct exact-key lookup against COLOR_MAP.
- *   2. Case-insensitive lookup (normalises trailing whitespace).
- *   3. Partial match — any COLOR_MAP key contained in the input or vice
- *      versa, longest match wins (so "Bleu marine foncé" still snaps to
- *      Bleu marine instead of Bleu).
+ *   2. Diacritic-insensitive lookup against NORMALISED_COLOR_MAP. The
+ *      normalisation contract (NFD-strip + lowercase) mirrors
+ *      searchIndex.ts 2a831fb and search.ts so a query "vert foret"
+ *      lands on "Vert forêt" instead of falling to Tier 4.
+ *   3. Partial match on the normalised forms — any normalised key
+ *      contained in the input or vice versa, longest match wins (so
+ *      "Bleu marine foncé" still snaps to Bleu marine instead of Bleu).
  *   4. Deterministic hash → hsl(hue, 30%, 55%) — never returns #888.
  *      Same input always yields the same colour, so swatches stay stable
  *      across renders even for unmapped names.
  */
 export function colorNameToHex(name: string): string {
-  if (!name) return 'hsl(0, 0%, 70%)';
+  if (!name) return FALLBACK_EMPTY_HSL;
 
-  // Tier 1: exact match.
+  // Tier 1: exact match (preserves any consumer that already passes a
+  // canonical map key — fastest path, no normalisation overhead).
   const direct = COLOR_MAP[name];
   if (direct) return direct;
 
-  // Tier 2: case-insensitive match.
+  // Tier 2: diacritic + case-insensitive exact match.
   const trimmed = name.trim();
-  if (!trimmed) return 'hsl(0, 0%, 70%)';
-  const lower = trimmed.toLowerCase();
-  for (const key of Object.keys(COLOR_MAP)) {
-    if (key.toLowerCase() === lower) return COLOR_MAP[key];
-  }
+  if (!trimmed) return FALLBACK_EMPTY_HSL;
+  const norm = normaliseColorName(trimmed);
+  if (!norm) return FALLBACK_EMPTY_HSL;
+  const normHit = NORMALISED_COLOR_MAP.get(norm);
+  if (normHit) return normHit;
 
-  // Tier 3: partial match (longest key wins so we don't snap "Bleu marine"
-  // to the shorter "Bleu" entry by accident).
+  // Tier 3: partial match on normalised keys (longest key wins so we
+  // don't snap "Bleu marine" to the shorter "Bleu" entry by accident).
+  // Using the normalised forms means "vert foret armee" still finds
+  // "vert armee" without the accents.
   let bestKey = '';
-  for (const key of Object.keys(COLOR_MAP)) {
-    const k = key.toLowerCase();
-    if ((lower.includes(k) || k.includes(lower)) && k.length > bestKey.length) {
+  for (const key of NORMALISED_COLOR_MAP.keys()) {
+    if ((norm.includes(key) || key.includes(norm)) && key.length > bestKey.length) {
       bestKey = key;
     }
   }
-  if (bestKey) return COLOR_MAP[bestKey];
+  if (bestKey) return NORMALISED_COLOR_MAP.get(bestKey)!;
 
-  // Tier 4: deterministic hash → hue. djb2-style accumulator over chars.
+  // Tier 4: deterministic hash → hue. djb2-style accumulator over chars
+  // of the normalised form — so "Café" and "cafe" hash to the same hue.
   let hash = 0;
-  for (let i = 0; i < lower.length; i++) {
-    hash = (hash * 31 + lower.charCodeAt(i)) | 0;
+  for (let i = 0; i < norm.length; i++) {
+    hash = (hash * 31 + norm.charCodeAt(i)) | 0;
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 30%, 55%)`;
