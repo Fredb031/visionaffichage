@@ -131,9 +131,18 @@ function writeRecent(list: string[]) {
   }
 }
 
-/** WCAG relative luminance, 0..1 on sRGB. */
+/** WCAG relative luminance, 0..1 on sRGB. Hardened to expand shorthand
+ * (#fff → #ffffff) and clamp on malformed input — callers feed this from
+ * `normalizeHex` today, but a regression that bypassed normalization
+ * would otherwise yield NaN luminance and silently disable the contrast
+ * warning. Returns 0.5 (mid-tone) on bad input so the warning simply
+ * doesn't fire rather than misfire. */
 const lum = (hex: string) => {
-  const n = hex.replace('#', '');
+  const raw = hex.replace('#', '');
+  const n = raw.length === 3
+    ? raw[0] + raw[0] + raw[1] + raw[1] + raw[2] + raw[2]
+    : raw;
+  if (n.length < 6 || !/^[0-9a-fA-F]{6}$/.test(n.slice(0, 6))) return 0.5;
   const rgb = [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16) / 255)
     .map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
