@@ -44,6 +44,10 @@ const FALLBACK: Record<'fr' | 'en', string> = {
  *   "Article" / "Item" for the given language instead of returning
  *   `undefined`, which would otherwise render literally in alt text
  *   and document.title.
+ * - String inputs are normalised (trimmed + lower-cased) before lookup
+ *   so CSV / Shopify imports with stray whitespace or mixed casing
+ *   (e.g. " T-Shirt", "Hoodie") still resolve to the canonical label
+ *   instead of falling through to the generic "Article" / "Item".
  * - Unknown `lang` values fall back to French (the historical default
  *   matches the prior signature so existing callers are unaffected). */
 export function categoryLabel(category: Category, lang: 'fr' | 'en' = 'fr'): string {
@@ -51,7 +55,10 @@ export function categoryLabel(category: Category, lang: 'fr' | 'en' = 'fr'): str
   // Bracket lookup is safe even for unexpected runtime values (URL
   // params, stale persisted state, mistyped CSV import) because we
   // narrow the result back to string via the fallback below.
-  const label = dict[category as Category];
+  const key = typeof category === 'string'
+    ? (category.trim().toLowerCase() as Category)
+    : (category as Category);
+  const label = dict[key];
   if (typeof label === 'string' && label) return label;
   return lang === 'en' ? FALLBACK.en : FALLBACK.fr;
 }
