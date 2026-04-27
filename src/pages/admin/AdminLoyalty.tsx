@@ -20,12 +20,42 @@ import { getLoyalty, type LoyaltyAccount, type LoyaltyTransaction } from '@/lib/
 
 const TX_KEY = 'va:loyalty:transactions';
 
+// Strict transaction-shape validator. Mirrors AdminCapacity 0636a9f
+// parseSlotCount discipline applied to the loyalty TX log.
+//
+// `Array.isArray(parsed)` alone is not enough: entries can be edited
+// by hand in localStorage, partially written by an aborted
+// awardPoints() call, or carried over from an older shim version. A
+// single bad row poisons the admin page in two visible ways:
+//   1. totals tiles — `reduce((s, t) => s + t.points, 0)` propagates
+//      NaN when `t.points` is anything but a finite number, and the
+//      tile renders "NaN" / a rejected toLocaleString call;
+//   2. date column — `new Date(t.at).toLocaleString(...)` returns the
+//      string "Invalid Date" for corrupt timestamps, which is what
+//      the operator then sees in production.
+// Be picky on read: validate every field, reject the row otherwise.
+// type=earn|redeem (literal), points=finite non-negative integer,
+// reason=string, at=parseable ISO timestamp.
+function isValidTransaction(t: unknown): t is LoyaltyTransaction {
+  if (!t || typeof t !== 'object') return false;
+  const tx = t as Record<string, unknown>;
+  if (tx.type !== 'earn' && tx.type !== 'redeem') return false;
+  const points = Number(tx.points);
+  if (!Number.isFinite(points) || !Number.isInteger(points) || points < 0) return false;
+  if (typeof tx.reason !== 'string') return false;
+  if (typeof tx.at !== 'string') return false;
+  const ts = Date.parse(tx.at);
+  if (!Number.isFinite(ts)) return false;
+  return true;
+}
+
 function readTransactions(): LoyaltyTransaction[] {
   try {
     const raw = localStorage.getItem(TX_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed as LoyaltyTransaction[] : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidTransaction);
   } catch {
     return [];
   }
