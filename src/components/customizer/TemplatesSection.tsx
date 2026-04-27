@@ -52,6 +52,12 @@ export const TEMPLATES_KEY = 'vision-customizer-templates';
  *  UIs converges on 5-15; 10 is a comfortable middle that still fits
  *  on one screen without scrolling on mobile. */
 export const TEMPLATES_CAP = 10;
+/** Max characters in a template name. Keep in sync with the input's
+ *  `maxLength`, the keystroke `slice` guard, the `sanitizeText` cap,
+ *  and the "X/MAX" character counter beneath the input. Lifted to a
+ *  single constant so a future bump (e.g. to 80) is one edit, not
+ *  four scattered magic numbers that drift apart. */
+export const TEMPLATE_NAME_MAX_LENGTH = 50;
 
 export interface CustomizerTemplate {
   /** Time-based unique id; crypto.randomUUID isn't available in every
@@ -182,6 +188,17 @@ export function TemplatesSection({
   // Load UI state — "show ALL templates" toggle.
   const [showAll, setShowAll] = useState(false);
 
+  // Memoize the sanitized draft. Without this, the disabled-prop on the
+  // Save button re-runs sanitizeText on every render — including every
+  // keystroke into other inputs higher in the tree. Cheap to memoize,
+  // and it gives handleSave a single source of truth so the "is the
+  // button disabled?" and "what gets persisted?" checks can never
+  // disagree (e.g. if sanitizeText's behaviour ever became non-pure).
+  const cleanDraft = useMemo(
+    () => sanitizeText(draftName, { maxLength: TEMPLATE_NAME_MAX_LENGTH }),
+    [draftName],
+  );
+
   // Pre-filter for the list. Sort newest-first regardless of filter so
   // the most recently touched template is always on top.
   const visible = useMemo(() => {
@@ -209,14 +226,13 @@ export function TemplatesSection({
   };
 
   const handleSave = () => {
-    const clean = sanitizeText(draftName, { maxLength: 50 });
-    if (!clean) {
+    if (!cleanDraft) {
       toast.error(lang === 'en' ? 'Name cannot be empty' : 'Le nom ne peut pas être vide');
       return;
     }
     const tpl: CustomizerTemplate = {
       id: makeId(),
-      name: clean,
+      name: cleanDraft,
       savedAt: Date.now(),
       config: { handle, colorId, colorName, placementSides },
     };
@@ -277,12 +293,12 @@ export function TemplatesSection({
             <input
               type="text"
               value={draftName}
-              onChange={e => setDraftName(e.target.value.slice(0, 50))}
+              onChange={e => setDraftName(e.target.value.slice(0, TEMPLATE_NAME_MAX_LENGTH))}
               onKeyDown={e => {
                 if (e.key === 'Enter') { e.preventDefault(); handleSave(); }
                 if (e.key === 'Escape') { setSaving(false); setDraftName(''); }
               }}
-              maxLength={50}
+              maxLength={TEMPLATE_NAME_MAX_LENGTH}
               autoFocus
               placeholder={lang === 'en' ? 'e.g. Team navy fronts' : 'ex. Équipe marine devant'}
               className="w-full px-2.5 py-1.5 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
@@ -290,7 +306,7 @@ export function TemplatesSection({
             />
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] text-muted-foreground">
-                {draftName.length}/50
+                {draftName.length}/{TEMPLATE_NAME_MAX_LENGTH}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -303,7 +319,7 @@ export function TemplatesSection({
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={!sanitizeText(draftName, { maxLength: 50 })}
+                  disabled={!cleanDraft}
                   className="text-[11px] font-black bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 rounded-md transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                 >
                   {lang === 'en' ? 'Save' : 'Enregistrer'}
