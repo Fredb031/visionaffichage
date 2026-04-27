@@ -89,9 +89,19 @@ export function setCurrentCapacity(c: WeeklyCapacity): boolean {
 
 /** Convenience: slots remaining = total - booked, clamped at 0 so
  * an over-booked week (negative remaining) can't render as
- * "Plus que -3 créneaux..." which would read as broken UI. */
+ * "Plus que -3 créneaux..." which would read as broken UI.
+ *
+ * Also guards against NaN / non-finite inputs: `typeof NaN ===
+ * 'number'` so a corrupted localStorage blob can slip past the
+ * type checks in getCurrentCapacity, and `Math.max(0, NaN)` is
+ * NaN (not 0), which would render as "Plus que NaN créneaux..."
+ * — strictly worse than the negative case the clamp was added to
+ * prevent. Falling back to 0 mirrors the over-booked branch: from
+ * the customer's POV, "no slots left" is the safe story. */
 export function getRemainingSlots(c: WeeklyCapacity): number {
-  return Math.max(0, c.totalSlots - c.bookedSlots);
+  const total = Number.isFinite(c.totalSlots) ? c.totalSlots : 0;
+  const booked = Number.isFinite(c.bookedSlots) ? c.bookedSlots : 0;
+  return Math.max(0, total - booked);
 }
 
 /** Returns the ETA the customer can expect if they order today —
