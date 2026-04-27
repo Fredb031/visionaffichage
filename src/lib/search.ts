@@ -18,8 +18,24 @@
 import { SEARCH_INDEX, type SearchIndexEntry } from '@/lib/searchIndex';
 import { SYNONYMS } from '@/data/searchSynonyms';
 
-const MIN_QUERY_LENGTH = 2;
-const MAX_RESULTS = 5;
+/**
+ * Centralised tuning knobs for the search engine. Lifted out of the body so
+ * an operator can tweak ranking + result-list shape without spelunking
+ * through scoring logic. Frozen so callers can't mutate it at runtime.
+ *
+ *   minQueryLength     — below this, return [] (dropdown stays closed)
+ *   maxResults         — hard cap on returned entries
+ *   exactMatchScore    — bonus when the whole query equals sku/name
+ *   wordMatchScore     — per-token full word-boundary hit
+ *   partialMatchScore  — per-token substring or Levenshtein-1 hit
+ */
+export const SEARCH_TUNING = {
+  minQueryLength: 2,
+  maxResults: 5,
+  exactMatchScore: 10,
+  wordMatchScore: 1,
+  partialMatchScore: 0.5,
+} as const;
 
 /**
  * Strip diacritics + lowercase. We index lowercase already, but queries
@@ -110,7 +126,7 @@ function scoreEntry(entry: SearchIndexEntry, expandedTokens: string[], rawQuery:
     normalise(entry.typeName) === q ||
     normalise(entry.typeNameEn) === q
   ) {
-    score += 10;
+    score += SEARCH_TUNING.exactMatchScore;
   }
 
   // ── Per-token scoring ─────────────────────────────────────────────────────
@@ -122,14 +138,14 @@ function scoreEntry(entry: SearchIndexEntry, expandedTokens: string[], rawQuery:
     // .test() is fine (no need for an Aho-Corasick automaton here).
     const wordRe = new RegExp(`(?:^|\\s)${escapeRegex(tok)}(?:\\s|$)`);
     if (wordRe.test(entry.haystack)) {
-      score += 1;
+      score += SEARCH_TUNING.wordMatchScore;
       continue;
     }
 
     // Substring (partial) match: +0.5 — covers prefix searches like
     // "hood" matching "hoodie" before the user has finished typing.
     if (entry.haystack.includes(tok)) {
-      score += 0.5;
+      score += SEARCH_TUNING.partialMatchScore;
       continue;
     }
 
@@ -142,7 +158,7 @@ function scoreEntry(entry: SearchIndexEntry, expandedTokens: string[], rawQuery:
       for (const w of words) {
         if (Math.abs(w.length - tok.length) > 1) continue;
         if (levenshtein(w, tok, 1) <= 1) {
-          score += 0.5;
+          score += SEARCH_TUNING.partialMatchScore;
           break;
         }
       }
@@ -157,9 +173,10 @@ function escapeRegex(s: string): string {
 }
 
 /**
- * Run the search. Returns at most {@link MAX_RESULTS} entries sorted by
- * descending score. Below {@link MIN_QUERY_LENGTH} we return an empty
- * list — the dropdown should stay closed until the query is meaningful.
+ * Run the search. Returns at most {@link SEARCH_TUNING.maxResults} entries
+ * sorted by descending score. Below {@link SEARCH_TUNING.minQueryLength} we
+ * return an empty list — the dropdown should stay closed until the query is
+ * meaningful.
  */
 export function search(query: string): SearchIndexEntry[] {
   // Defensive: callers wire this to an <input value>, which can occasionally
@@ -168,7 +185,7 @@ export function search(query: string): SearchIndexEntry[] {
   if (typeof query !== 'string' || query.length === 0) return [];
 
   const normalised = normalise(query);
-  if (normalised.length < MIN_QUERY_LENGTH) return [];
+  if (normalised.length < SEARCH_TUNING.minQueryLength) return [];
 
   const tokens = tokenise(normalised);
   if (tokens.length === 0) return [];
@@ -188,5 +205,5 @@ export function search(query: string): SearchIndexEntry[] {
     return a.entry.sku.localeCompare(b.entry.sku);
   });
 
-  return scored.slice(0, MAX_RESULTS).map(s => s.entry);
+  return scored.slice(0, SEARCH_TUNING.maxResults).map(s => s.entry);
 }
