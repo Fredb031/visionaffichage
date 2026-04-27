@@ -179,6 +179,16 @@ function nextManualOrderNumber(now: Date): string {
   return `MAN-${datePart}-${String(seq).padStart(4, '0')}`;
 }
 
+// Coerce a possibly-stringified numeric (older localStorage rows
+// occasionally persisted `unitPrice: "29.99"` after a form round-trip)
+// into a finite number. `Number.isFinite` alone returns false for
+// string inputs, which silently zeroed the field and produced a $0
+// manual-order total. `Number()` first, then guard against NaN/±Infinity.
+function toFiniteNumber(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // Recompute a quote's line-item total from the persisted matrix so the
 // manual order carries an authoritative number even if the quote's
 // stored `total` was stale (e.g. rounded pre-tax vs. post-tax). Falls
@@ -187,7 +197,7 @@ function nextManualOrderNumber(now: Date): string {
 function computeLineItemsTotal(items: QuoteLineItem[]): number {
   let sum = 0;
   for (const it of items) {
-    const unit = Number.isFinite(it.unitPrice) ? (it.unitPrice as number) : 0;
+    const unit = toFiniteNumber(it.unitPrice);
     if (it.sizeQuantities && typeof it.sizeQuantities === 'object') {
       let qty = 0;
       for (const row of Object.values(it.sizeQuantities)) {
@@ -199,7 +209,7 @@ function computeLineItemsTotal(items: QuoteLineItem[]): number {
       }
       sum += unit * qty;
     } else {
-      const qty = Number.isFinite(it.quantity) ? (it.quantity as number) : 0;
+      const qty = toFiniteNumber(it.quantity);
       sum += unit * qty;
     }
   }
@@ -739,7 +749,7 @@ function ConvertToOrderDialog({
                     }
                     return q;
                   }
-                  return Number.isFinite(it.quantity) ? (it.quantity as number) : 0;
+                  return toFiniteNumber(it.quantity);
                 })();
                 return (
                   <li
