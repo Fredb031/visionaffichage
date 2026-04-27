@@ -191,7 +191,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
 
           {/* Popular badge */}
           {isPopular && (
-            <div className="absolute top-2.5 left-2.5 z-[5] text-[10px] font-extrabold text-primary-foreground gradient-navy-dark px-2.5 py-[3px] rounded-full shadow-sm">
+            <div className="absolute top-2.5 left-2.5 z-[5] text-[10px] font-extrabold bg-[#0052CC] text-white px-2.5 py-[3px] rounded-full shadow-sm">
               {lang === 'en' ? '⭐ Popular' : '⭐ Populaire'}
             </div>
           )}

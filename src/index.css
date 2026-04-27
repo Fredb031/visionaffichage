@@ -84,7 +84,7 @@
      `:where()` keeps specificity at 0 so any component-level
      focus-visible:* override wins via Tailwind's higher specificity. */
   :where(button, a, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"]), input, select, textarea):focus-visible {
-    outline: 2px solid #E8A838;
+    outline: 2px solid #0052CC;
     outline-offset: 2px;
     border-radius: 4px;
   }
