@@ -141,7 +141,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
            trailing em-dash ('T-shirt — ') that screen readers read out
            loud. */
         aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : title}
-        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 ease-out hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1.5 motion-reduce:transform-none motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Image */}
         <div className="relative overflow-hidden bg-secondary" style={{ aspectRatio: '1' }}>
@@ -158,7 +158,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
                 // pointer — touch users tap to navigate and would
                 // otherwise see a flash of the dos photo before the
                 // route change fires.
-                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
+                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
                 loading={eager ? 'eager' : 'lazy'}
                 fetchPriority={eager ? 'high' : 'auto'}
                 decoding="async"
@@ -178,7 +178,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
                     : `${local?.shortName ?? title} — vue arrière`}
                   width={400}
                   height={400}
-                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-105 [@media(hover:hover)]:group-hover:opacity-100"
+                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none [@media(hover:hover)]:group-hover:opacity-100"
                   loading="lazy"
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
@@ -304,13 +304,15 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               mapping are excluded. */}
           <CompareToggleButton sku={local?.sku} productName={local?.shortName ?? title} />
 
-          {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
+          {/* Customize CTA — visible on mobile, fade-in on desktop hover.
+              Layer 4 of the 4-layer micro-interaction: opacity-0 + translate-y-2
+              → group-hover/focus-within: opacity-100 + translate-y-0. */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 md:focus-within:opacity-100 md:focus-within:translate-y-0 transition-all duration-200 ease-out motion-reduce:transform-none motion-reduce:transition-none flex items-end justify-center pb-3 pt-12 z-[3]">
             <button
               type="button"
               onClick={handleCustomize}
               aria-label={`${t('personnaliserProduit')} — ${local?.shortName ?? title}`}
-              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
+              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 md:focus-within:translate-y-0 hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
             >
               {t('personnaliserProduit')} →
             </button>
@@ -323,7 +325,12 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
           {local && realColors.length > 0 && (
             <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
               {realColors.slice(0, 4).map(c => (
-                <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
+                <div
+                  key={c.id}
+                  className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0 transition-transform duration-150 ease-out hover:scale-110 hover:ring-2 hover:ring-[#0052CC]/50 motion-reduce:transform-none motion-reduce:transition-none"
+                  style={{ background: c.hex }}
+                  title={c.name}
+                />
               ))}
             </div>
           )}
