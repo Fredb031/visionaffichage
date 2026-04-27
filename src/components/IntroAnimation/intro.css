@@ -5,13 +5,17 @@
 #va-intro-overlay {
   position: fixed;
   inset: 0;
-  background: #080808;
+  /* Deep, near-black surface with a faint radial glow toward the center.
+   * The radial sets up the parallax depth — the logo emerges out of the
+   * lit center rather than a flat field. */
+  background:
+    radial-gradient(circle at 50% 50%, #121212 0%, #050505 70%);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  will-change: opacity;
+  will-change: opacity, background;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -34,7 +38,12 @@
   left: 50%;
   width: 140px;
   height: auto;
-  transform: translate(-50%, -50%);
+  /* Start slightly zoomed-in (1.05) and invisible — GSAP eases it down
+   * to 1.0 as it fades in. Subtle zoom-out reads as premium / settling
+   * into place; zoom-in (which the previous elastic 0→1 used) reads as
+   * aggressive. */
+  transform: translate(-50%, -50%) scale(1.05);
+  opacity: 0;
   will-change: transform, opacity;
   pointer-events: none;
   filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18));
@@ -63,8 +72,9 @@
 #va-intro-logo .va-mark {
   transform-origin: 50% 50%;
   transform-box: fill-box;
-  /* Initial state: invisible, will scale up via GSAP */
-  transform: scale(0);
+  /* Marks ride along with the parent SVG's scale-down + fade-in;
+   * no per-mark scale needed any more. */
+  transform: none;
 }
 
 #va-intro-hint {

@@ -1,16 +1,33 @@
 /**
  * Vision Affichage — Cinematic intro animation
  *
- * 4.2-second sequence: void → horizon line → split → logo emerges →
- * breathe → collapse → reveal main site.
+ * Apple-tier 2.4-second sequence:
+ *   0.00–0.20s   anticipation hold (dark surface, no motion)
+ *   0.20–0.55s   horizon line draws out from center
+ *   0.45–0.75s   line splits vertically into top + bottom
+ *   0.70–1.30s   wordmark scales 1.05 → 1.00 + fades in (parallax depth)
+ *   1.05–1.55s   gold accent line draws under the wordmark
+ *   1.50–1.95s   sustain — let it breathe for one beat
+ *   1.95–2.40s   fade-to-light: overlay washes from near-black to white
+ *                so the user lands on a familiar surface, not a hard cut.
  *
- * GSAP handles every timing; Web Audio API synthesizes 3 sound layers.
- * Skip-on-repeat via localStorage.
+ * Easing: ease-out cubic-bezier(0.16, 1, 0.3, 1) on every reveal —
+ * fast attack, gentle settle, no elastic bounce.
+ *
+ * GSAP handles every timing; Web Audio API plays a single low chord
+ * at the visual peak (the wordmark settle, t≈0.70s).
+ * Skip-on-repeat via localStorage; reduced-motion + saveData fully bail.
  */
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { playHorizonTone, playLogoTone, playExitWhisper, unlockAudio, stopAllScheduledAudio } from './audio';
+import { playLogoTone, unlockAudio, stopAllScheduledAudio } from './audio';
 import './intro.css';
+
+// Apple-tier ease-out — fast attack, gentle settle. Shared across every
+// reveal tween for consistency. expo.out closely matches the
+// cubic-bezier(0.16, 1, 0.3, 1) curve Apple uses for product reveals,
+// without requiring the paid CustomEase plugin.
+const EASE_OUT_EXPO = 'expo.out';
 
 export interface IntroAnimationProps {
   onComplete: () => void;
@@ -151,105 +168,94 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       });
       timelineRef.current = tl;
 
-      // Audio cues — only if unlocked
+      // Single audio cue — one low chord at the visual peak (when the
+      // wordmark settles into place). No multi-note jingle. The horizon
+      // tone + exit whisper layers are intentionally dropped: restraint
+      // is what reads as premium.
       if (audioOk) {
-        playHorizonTone(0);   // fires immediately at timeline t=0 (which is phase 1 start)
-        playLogoTone(0.95);   // ~1.55s into the visual sequence (phase 1 was already 0.6s in)
-        playExitWhisper(2.80); // phase 5 collapse
+        playLogoTone(0.70);
       }
 
-      // PHASE 1 — Horizon line draws (0.00s relative to timeline = 0.60s after start)
+      // ANTICIPATION — 0.00–0.20s. No motion. The waiting beat is what
+      // makes the reveal feel intentional. We register a do-nothing
+      // tween so the timeline has a concrete starting offset.
+      tl.to({}, { duration: 0.20 }, 0);
+
+      // STAGE 1 — 0.20–0.55s. Horizon line draws out from center.
+      // 320ms feels like a confident draw without dragging.
       tl.fromTo(
         ['#va-intro-line-top', '#va-intro-line-bottom'],
-        { width: 0 },
-        { width: 280, duration: 0.50, ease: 'power4.out', stagger: 0 },
-        0,
+        { width: 0, y: 0, opacity: 1 },
+        { width: 280, duration: 0.35, ease: EASE_OUT_EXPO },
+        0.20,
       );
 
-      // PHASE 2 — Lines split apart (relative t = 0.50)
+      // STAGE 2 — 0.45–0.75s. Lines split vertically. Slight overlap
+      // with the draw-in (10ms) so the split feels like a continuation,
+      // not a stop-and-restart.
       tl.to('#va-intro-line-top', {
-        y: -28,
-        width: 240,
-        duration: 0.45,
-        ease: 'power2.inOut',
-      }, 0.50)
+        y: -22,
+        width: 220,
+        duration: 0.30,
+        ease: EASE_OUT_EXPO,
+      }, 0.45)
       .to('#va-intro-line-bottom', {
-        y: 28,
-        width: 240,
-        duration: 0.45,
+        y: 22,
+        width: 220,
+        duration: 0.30,
+        ease: EASE_OUT_EXPO,
+      }, 0.45);
+
+      // STAGE 3 — 0.70–1.30s. Wordmark reveal. Parallax depth: scale
+      // 1.05 → 1.00 (subtle zoom-out) while fading in. 600ms is long
+      // enough that the eye registers the settle, short enough not to
+      // drag. Single tween on the parent SVG — the marks ride along.
+      // Stagger of 350ms after Stage 1 satisfies the "one hero element
+      // at a time" principle.
+      tl.fromTo(
+        '#va-intro-logo',
+        { scale: 1.05, opacity: 0 },
+        { scale: 1.0, opacity: 1, duration: 0.60, ease: EASE_OUT_EXPO },
+        0.70,
+      );
+
+      // STAGE 4 — 1.05–1.55s. Gold accent line draws under the
+      // wordmark, 350ms after the wordmark started its reveal.
+      tl.fromTo(
+        '#va-intro-accent',
+        { width: 0, opacity: 0 },
+        { width: 88, opacity: 1, duration: 0.50, ease: EASE_OUT_EXPO },
+        1.05,
+      );
+
+      // STAGE 5 — 1.50–1.95s. Sustain. Hold the composed frame for
+      // ~450ms. Without this beat the fade-to-light feels rushed.
+      tl.to({}, { duration: 0.45 }, 1.50);
+
+      // STAGE 6 — 1.95–2.40s. Fade-to-light. Cross-fade the overlay
+      // from the dark radial to white, then fade overlay opacity at
+      // the very end. Lines + accent gracefully thin to zero opacity
+      // so they don't get stranded mid-frame as the bg whitens.
+      tl.to('#va-intro-overlay', {
+        background: 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f7f7f7 70%)',
+        duration: 0.40,
         ease: 'power2.inOut',
-      }, 0.50);
-
-      // PHASE 3 — Logo emerges (relative t = 0.95)
-      tl.to('#va-mark-1', {
-        scale: 1,
-        duration: 0.80,
-        ease: 'elastic.out(1, 0.75)',
-      }, 0.95)
-      .to('#va-mark-2', {
-        scale: 1,
-        duration: 0.80,
-        ease: 'elastic.out(1, 0.75)',
-      }, 1.05)
-      .to(['#va-intro-line-top', '#va-intro-line-bottom'], {
-        width: 320,
-        duration: 0.60,
-        ease: 'power3.out',
-      }, 1.05);
-
-      // Gold accent line reveals subtly under the logo (premium signature)
-      tl.to('#va-intro-accent', {
-        width: 80,
-        opacity: 1,
-        duration: 0.55,
-        ease: 'power2.out',
-      }, 1.80);
-
-      // PHASE 4 — Breathe (relative t = 2.10)
-      tl.to(['#va-intro-line-top', '#va-intro-line-bottom'], {
-        opacity: 0.4,
-        duration: 0.35,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: 1,
-      }, 2.10)
-      .to('#va-intro-logo', {
-        scale: 1.008,
-        duration: 0.35,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: 1,
-      }, 2.10);
-
-      // PHASE 5 — Collapse (relative t = 2.80)
-      tl.to('#va-intro-accent', {
-        width: 0,
+      }, 1.95)
+      .to(['#va-intro-line-top', '#va-intro-line-bottom', '#va-intro-accent'], {
         opacity: 0,
         duration: 0.30,
         ease: 'power2.in',
-      }, 2.80)
+      }, 1.95)
       .to('#va-intro-logo', {
         opacity: 0,
-        duration: 0.35,
+        duration: 0.25,
         ease: 'power2.in',
-      }, 2.80)
-      .to('#va-intro-line-top', {
-        y: 0,
-        width: 0,
-        duration: 0.40,
-        ease: 'power4.in',
-      }, 2.80)
-      .to('#va-intro-line-bottom', {
-        y: 0,
-        width: 0,
-        duration: 0.40,
-        ease: 'power4.in',
-      }, 2.80)
+      }, 2.10)
       .to('#va-intro-overlay', {
         opacity: 0,
-        duration: 0.25,
-        ease: 'power1.in',
-      }, 3.35);
+        duration: 0.30,
+        ease: 'power1.inOut',
+      }, 2.10);
     };
 
     // Try to auto-start (works on most desktop browsers)
@@ -289,7 +295,7 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     // Escape skips straight to the main site — both before the
     // timeline has auto-started (impatient returning visitor who
     // landed during the 200ms pre-roll window) and mid-playback
-    // (anyone who'd rather not watch the 4s sequence a second time).
+    // (anyone who'd rather not watch the 2.4s sequence a second time).
     // We short-circuit the GSAP timeline by killing it and invoking
     // the same onComplete path the natural finish uses.
     const onKeyDown = (e: KeyboardEvent) => {
@@ -377,7 +383,7 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       {/* Subtle gold accent line that draws under the logo at exit — premium signature */}
       <div id="va-intro-accent" />
 
-      {/* Skip button — lets users bail without waiting the full 4s.
+      {/* Skip button — lets users bail without waiting the full 2.4s.
           Mirrors the Escape key + reduced-motion / saveData skip paths
           and runs through the same completion handler so the parent
           sees exactly one onComplete invocation. stopPropagation
