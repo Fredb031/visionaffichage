@@ -127,7 +127,13 @@ const ATCF2500_COLORS: ProductColor[] = [
   { id: 'burgundy',         name: 'Bourgogne',         nameEn: 'Burgundy',         hex: '#7F1D1D' },
   { id: 'purple',           name: 'Mauve',             nameEn: 'Purple',           hex: '#4C1D95' },
   { id: 'gold',             name: 'Or',                nameEn: 'Gold',             hex: '#B45309' },
-  { id: 'charcoal',         name: 'Charbon',           nameEn: 'Charcoal',         hex: '#374151' },
+  // Dropped: Charcoal (Charbon, #374151). Audit 2026-04-27: ATCF2500/Y2500/
+  // F2600/F2400 bodies have NO dedicated charcoal/coalgrey/darkgrey asset,
+  // so the COLOR_ALT_SLUGS chain for `charcoal` falls through to
+  // `darkheathergrey_012017` — the SAME photo Dark Heather (Gris foncé
+  // chiné) resolves to. Same precedent as Steel Grey above (commit 70c3706).
+  // Polos (S445/L445/S445LS) keep Charbon because they have dedicated
+  // greyconcrete_092015 imagery distinct from irongrey (Steel Grey).
   { id: 'military-green',   name: 'Vert militaire',    nameEn: 'Military Green',   hex: '#3F4F2A' },
   // Dropped: Black Heather — no heather/black_heather Drive image on
   // ATCF2500 and extending the alt chain would collide with Dark Heather.
