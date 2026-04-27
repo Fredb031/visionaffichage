@@ -73,20 +73,29 @@ export interface ProductViewersNudgeProps {
   className?: string;
 }
 
+function resolveViewers(handle: string | undefined): number | null {
+  if (!handle) return null;
+  const stored = readSessionViewers(handle);
+  if (stored !== null) return stored;
+  const picked = pickViewerCount();
+  writeSessionViewers(handle, picked);
+  return picked;
+}
+
 export function ProductViewersNudge({ handle, inStock, className = '' }: ProductViewersNudgeProps) {
   const { lang } = useLang();
-  const [viewers, setViewers] = useState<number | null>(null);
+  // Lazy initializer resolves the count synchronously on first render so
+  // the badge appears in the same paint as the rest of the PDP CTA stack
+  // — without it we'd flash a layout-shifting empty slot for one frame
+  // between mount and the post-effect setState. Vite is CSR-only here,
+  // so reading sessionStorage during initial render is safe.
+  const [viewers, setViewers] = useState<number | null>(() => resolveViewers(handle));
 
-  // Lazy-pick on mount (and when the handle changes — navigating from
-  // product A to product B in the same session needs a fresh read so
-  // B's stored value wins, and if B has none, a fresh pick for B).
+  // On handle change (navigating from product A to product B in the same
+  // session), re-resolve so B's stored value wins or B gets its own fresh
+  // pick. The lazy init above has already covered the first-mount case.
   useEffect(() => {
-    if (!handle) { setViewers(null); return; }
-    const stored = readSessionViewers(handle);
-    if (stored !== null) { setViewers(stored); return; }
-    const picked = pickViewerCount();
-    writeSessionViewers(handle, picked);
-    setViewers(picked);
+    setViewers(resolveViewers(handle));
   }, [handle]);
 
   if (!inStock) return null;
