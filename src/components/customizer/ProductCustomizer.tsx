@@ -542,44 +542,84 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     blueprintPresets.find(p => p.id === activePresetId) ?? null;
 
   // Customizer Blueprint §4.1 — apply a named preset's xPct/yPct/maxWidthPct
-  // onto the active LogoPlacement. Routes through setCurrentPlacement so
-  // the side-aware logoPlacement / logoPlacementBack split is preserved.
-  // We translate xPct/yPct (preset-space, percent of canvas) to the
-  // canonical LogoPlacement.x/y range the canvas already understands —
-  // which is also percent of canvas — so the values pass through directly.
+  // onto the active LogoPlacement. We write DIRECTLY to the side-correct
+  // store slot rather than routing through setCurrentPlacement, because
+  // setCurrentPlacement reads placementSidesRef which only updates AFTER
+  // render — so calling it synchronously after setPlacementSides would
+  // write to the OLD side and clobber the existing logo on that side.
+  //
+  // SEV1 guardrail (Dos complet bug): when the user has already uploaded
+  // a logo on one side and picks a preset for the OPPOSITE side, do NOT
+  // discard the existing logo. Promote placementSides to 'both' so both
+  // logos remain mounted on the canvas (front view shows the front logo,
+  // back view shows the new back placement). The previous behaviour
+  // silently flipped sides to 'back' which orphaned the front logo and
+  // left placementComplete=false, locking the "Suivant" button.
   const applyBlueprintPreset = (preset: PlacementPreset) => {
     setActivePresetId(preset.id);
     const targetView: 'front' | 'back' =
       preset.zone === 'back' ? 'back' : 'front';
     if (targetView !== store.activeView) store.setView(targetView);
-    // Canvas view determines the slot (front vs back). Side mode is
-    // automatically promoted: if user is in 'front' and picks a back
-    // preset, flip placementSides to 'back' so the canvas wires the
-    // correct slot via setCurrentPlacement. Don't downgrade 'both'.
+
+    const oppositeSlotHasLogo =
+      preset.zone === 'back'
+        ? !!store.logoPlacement?.previewUrl
+        : !!store.logoPlacementBack?.previewUrl;
+
+    // Decide the destination slot first, BEFORE we mutate placementSides,
+    // so we can read store state synchronously and aim at the right slot.
+    const writeToBack = preset.zone === 'back';
+
+    // Side-mode promotion — never downgrade an existing placement.
     if (store.placementSides !== 'both') {
-      if (preset.zone === 'back' && store.placementSides !== 'back') {
+      if (oppositeSlotHasLogo) {
+        // Both sides will be in play after this preset lands.
+        store.setPlacementSides('both');
+      } else if (preset.zone === 'back' && store.placementSides !== 'back') {
         store.setPlacementSides('back');
       } else if (preset.zone !== 'back' && store.placementSides === 'back') {
         store.setPlacementSides('front');
       }
     }
-    const base = currentPlacement ?? { zoneId: preset.id, mode: 'preset' as const };
-    setCurrentPlacement({
+
+    // Pull the base from the slot we're about to write — preserves the
+    // existing previewUrl/processedUrl/originalFile on that side. If the
+    // target slot is empty (first preset on this side), seed from the
+    // opposite-side logo so the user keeps their uploaded artwork.
+    const baseForTargetSlot = writeToBack
+      ? (store.logoPlacementBack ?? store.logoPlacement)
+      : (store.logoPlacement ?? store.logoPlacementBack);
+    const base = baseForTargetSlot ?? { zoneId: preset.id, mode: 'preset' as const };
+
+    const next: LogoPlacement = {
       ...base,
       zoneId: preset.id,
       mode: 'preset',
       x: preset.xPct,
       y: preset.yPct,
       width: preset.maxWidthPct,
-    });
+    };
+
+    if (writeToBack) {
+      store.setLogoPlacementBack(next);
+    } else {
+      store.setLogoPlacement(next);
+    }
   };
 
-  // A "placement is ready" when the picked sides all have a previewUrl.
+  // "Placement ready" gate — relaxed (Apr 2026): ANY uploaded logo on
+  // ANY side satisfies the predicate. Previously a per-side strict
+  // equality forced the user to upload to every selected side, but the
+  // "Dos complet" preset path could silently flip placementSides to
+  // 'back' after a front logo was already in place, leaving the back
+  // slot empty and the gate stuck on `false` with no clear recovery.
+  // The preset chip handler now preserves the opposite-side logo
+  // (promotes to 'both' as needed), and this gate accepts any uploaded
+  // artwork so the "Suivant" button can never be silently disabled by
+  // a side-mode swap. 'none' means blank-canvas — always allowed.
   const placementComplete = (() => {
     if (store.placementSides === 'none') return true;
-    if (store.placementSides === 'front') return !!store.logoPlacement?.previewUrl;
-    if (store.placementSides === 'back')  return !!store.logoPlacementBack?.previewUrl;
-    return !!store.logoPlacement?.previewUrl && !!store.logoPlacementBack?.previewUrl;
+    return !!store.logoPlacement?.previewUrl || !!store.logoPlacementBack?.previewUrl;
   })();
 
   const anyLogoUploaded =
