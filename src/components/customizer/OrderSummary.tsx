@@ -59,8 +59,12 @@ export interface OrderSummaryProps {
   isAdding?: boolean;
 }
 
-const formatCAD = (n: number) =>
-  `${n.toFixed(2).replace(/\.00$/, '')}$`;
+const formatCAD = (n: number) => {
+  // Defensive: protect against NaN / null / undefined / Infinity slipping
+  // through upstream pricing math — never render "NaN$" to a customer.
+  const safe = Number.isFinite(n) ? n : 0;
+  return `${safe.toFixed(2).replace(/\.00$/, '')}$`;
+};
 
 export function OrderSummary({
   canvasPreviewUrl,
