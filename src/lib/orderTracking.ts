@@ -92,11 +92,23 @@ export function getOrderStatus(orderNumber: string): TrackedOrder | null {
         })
       : [];
 
+    // ETA is documented as an ISO date string. A corrupted localStorage blob
+    // (devtools edit, older build with a different shape, partial write from
+    // a crashed tab) can stash an unparseable value here — and the customer-
+    // facing tracker would then render the raw garbage string in the
+    // "Expected delivery" slot. Reject anything new Date() can't parse so the
+    // UI cleanly omits the ETA row instead.
+    let eta: string | null = null;
+    if (typeof r.eta === 'string' && r.eta.trim() !== '') {
+      const parsed = new Date(r.eta);
+      if (!Number.isNaN(parsed.getTime())) eta = r.eta;
+    }
+
     return {
       orderNumber: num,
       stage,
       trackingNumber: typeof r.trackingNumber === 'string' ? r.trackingNumber : null,
-      eta: typeof r.eta === 'string' ? r.eta : null,
+      eta,
       items,
     };
   }
