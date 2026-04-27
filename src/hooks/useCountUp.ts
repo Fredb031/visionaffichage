@@ -15,6 +15,16 @@ export function useCountUp(target: number, inView: boolean, duration = DEFAULT_D
       return;
     }
 
+    // Respect prefers-reduced-motion: skip animation, snap to final value.
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      setCount(Math.floor(target));
+      return;
+    }
+
     let raf = 0;
     const startTime = performance.now();
 
