@@ -253,7 +253,18 @@ export function useDocumentTitle(
       restore.push({ el, prev, created });
     };
 
-    const ogImage = ogImageKey ?? DEFAULT_OG_IMAGE;
+    // OG/Twitter image specs require absolute URLs — Facebook, Slack,
+    // Twitter, LinkedIn crawlers all reject or silently drop relative
+    // paths like `/og-default.png`. Resolve any non-absolute value
+    // (default or caller-provided) against the current origin so the
+    // preview card renders the right image regardless of how callers
+    // pass it. Anything already absolute (http://, https://, //, data:)
+    // is left untouched.
+    const rawOgImage = ogImageKey ?? DEFAULT_OG_IMAGE;
+    const ogImage =
+      typeof window !== 'undefined' && /^\//.test(rawOgImage) && !rawOgImage.startsWith('//')
+        ? window.location.origin + rawOgImage
+        : rawOgImage;
     const ogType = ogTypeKey ?? 'website';
     const ogUrl = typeof window !== 'undefined' ? window.location.href : '';
 
