@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
@@ -95,6 +95,9 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
   // feel like the heart quietly clearing, not a second celebration.
   const [burstKey, setBurstKey] = useState(0);
   const handleWishlistClick = (e: React.MouseEvent) => {
+    // Anchor wraps the whole card — preventDefault stops the Link
+    // from navigating when the heart is clicked.
+    e.preventDefault();
     e.stopPropagation();
     if (!handle) return;
     const wasAdding = !saved;
@@ -102,47 +105,54 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
     if (wasAdding) setBurstKey(k => k + 1);
   };
 
+  // Analytics-only click handler. The actual navigation now happens
+  // via the real <a href> emitted by react-router's <Link>, which
+  // fixes middle-click / cmd-click "Open in New Tab", lets SEO
+  // crawlers follow the card, and satisfies WCAG 2.1.1 + 4.1.2.
+  // GA4 select_product still fires for plain left-clicks AND for
+  // modifier-clicks (anchor onClick fires before the browser opens
+  // the new tab) so the analytics intent is preserved.
   const handleCardClick = () => {
     if (!handle) return;
-    // GA4 select_product — consent-gated; dispatches the SKU + title
-    // so the owner can see which grid cards turn into PDP visits.
     trackEvent('select_product', {
       product_handle: handle,
       product_name: local?.shortName ?? title,
       sku: local?.sku,
     });
-    navigate(`/product/${handle}`);
   };
   const handleCustomize = (e: React.MouseEvent) => {
+    // Anchor wraps the whole card now — preventDefault stops the
+    // Link from navigating to the PDP when the user opens the
+    // customizer overlay instead.
+    e.preventDefault();
     e.stopPropagation();
     if (local) setCustomizerOpen(true);
     else if (handle) navigate(`/product/${handle}`);
   };
 
-  const onCardKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Screen readers announce this as a link, keyboard users expect
-    // Enter/Space to activate. Ignore when a child button has focus
-    // (e.g. Customize) so its own handler runs instead.
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
-    e.preventDefault();
-    if (handle) navigate(`/product/${handle}`);
-  };
+  // Real <a href> via react-router Link. This restores middle-click
+  // / cmd-click "Open in New Tab", lets SEO crawlers follow the
+  // card to the PDP, and satisfies WCAG 2.1.1 (keyboard) + 4.1.2
+  // (name/role/value). Inner buttons (wishlist heart, compare
+  // toggle, "Personnaliser" CTA) call stopPropagation +
+  // preventDefault so they keep their own behaviour without also
+  // navigating to the PDP. Color-dot divs are non-interactive.
+  // The `block` + className overrides drop the default anchor
+  // text-decoration/color so visual styling is unchanged from the
+  // pre-fix card.
+  const cardClassName = "group block border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer no-underline text-inherit transition-all duration-300 ease-out hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1.5 motion-reduce:transform-none motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+  /* Title + SKU when we have a local match, else just the Shopify
+     title — joining with " — " when SKU is absent leaves a stray
+     trailing em-dash ('T-shirt — ') that screen readers read out
+     loud. */
+  const cardAriaLabel = local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : title;
 
-  return (
+  // When the Shopify payload is incomplete and we have no handle,
+  // fall back to a non-link wrapper so we don't emit <a href="">
+  // (which would point at the current URL and silently swallow
+  // clicks). The visual card still renders.
+  const cardInner = (
     <>
-      <div
-        onClick={handleCardClick}
-        onKeyDown={onCardKey}
-        role="link"
-        tabIndex={0}
-        /* Title + SKU when we have a local match, else just the Shopify
-           title — joining with " — " when SKU is absent leaves a stray
-           trailing em-dash ('T-shirt — ') that screen readers read out
-           loud. */
-        aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : title}
-        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 ease-out hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1.5 motion-reduce:transform-none motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      >
         {/* Image */}
         <div className="relative overflow-hidden bg-secondary" style={{ aspectRatio: '1' }}>
           {image ? (
@@ -450,7 +460,25 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
             </span>
           </div>
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <>
+      {handle ? (
+        <Link
+          to={`/product/${handle}`}
+          onClick={handleCardClick}
+          aria-label={cardAriaLabel}
+          className={cardClassName}
+        >
+          {cardInner}
+        </Link>
+      ) : (
+        <div aria-label={cardAriaLabel} className={cardClassName}>
+          {cardInner}
+        </div>
+      )}
 
       <AnimatePresence>
         {customizerOpen && local && (
