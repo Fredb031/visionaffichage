@@ -36,10 +36,13 @@ describe('csvEscape', () => {
     expect(csvEscape('@Brown')).toBe('"\t@Brown"');
   });
 
-  it('neutralises TAB and CR leaders too', () => {
+  it('neutralises TAB, CR, and LF leaders too', () => {
     // Less common but still on the OWASP CSV-injection leader list.
+    // LF matters because Excel/Sheets strip leading newlines before
+    // re-parsing, so "\n=cmd|..." would otherwise reach the evaluator.
     expect(csvEscape('\tfoo')).toBe('"\t\tfoo"');
     expect(csvEscape('\rfoo')).toBe('"\t\rfoo"');
+    expect(csvEscape('\n=cmd|"/c calc"!A1')).toBe('"\t\n=cmd|""/c calc""!A1"');
   });
 
   it('leaves interior formula characters alone', () => {

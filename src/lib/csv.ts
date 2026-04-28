@@ -7,10 +7,13 @@
 //    internal quote. This keeps Excel, Numbers, and Google Sheets
 //    happy even when a cell contains commas, newlines, or quotes.
 //  - CSV-injection safety: prefix values starting with `=`, `+`, `-`,
-//    `@`, TAB, or CR with a literal TAB so Excel/Sheets treat them as
-//    text instead of executing them as formulas. A customer surname
+//    `@`, TAB, CR, or LF with a literal TAB so Excel/Sheets treat them
+//    as text instead of executing them as formulas. A customer surname
 //    like "@Brown" would otherwise trigger a lookup; a product type
-//    named "=SUM(A1:A99)" would execute on open.
+//    named "=SUM(A1:A99)" would execute on open. LF is on the OWASP
+//    leader list because Excel/Sheets re-parse cells after stripping
+//    leading newlines, so "\n=cmd|..." reaches the formula evaluator
+//    even though our RFC-4180 quoting wraps it.
 //  - UTF-8 BOM: prefix the blob with \ufeff so Excel-on-Windows renders
 //    Québécois accents (é, è, à, ô, …) instead of mojibake. macOS
 //    Numbers and modern LibreOffice ignore the BOM.
@@ -26,7 +29,7 @@
 // mean a cell rendered as a formula in one export and as text in
 // another.
 
-const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const FORMULA_TRIGGERS = /^[=+\-@\t\r\n]/;
 
 /** A single raw CSV cell before escaping — anything String-coercible, a
  *  Date (rendered as ISO-8601), or nullish (rendered as an empty cell). */
