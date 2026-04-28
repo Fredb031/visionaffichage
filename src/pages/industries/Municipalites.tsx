@@ -1,5 +1,7 @@
 import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
 
+const MUNICIPALITES_PRODUCT_SKUS: string[] = ['S445', 'ATC1000', 'ATCF2500', 'ATC6606'];
+
 /**
  * Mega Blueprint §08.3 — Municipalités landing page. Targets
  * "uniformes municipalité Québec", "vêtements personnel ville",
@@ -24,7 +26,7 @@ export default function Municipalites() {
       ctaLabel="Personnaliser pour mon équipe municipalités"
       productsHeading="Vêtements recommandés pour les municipalités"
       productsSubcopy="Notre sélection pour les villes et MRC — du polo représentatif pour l'hôtel de ville au t-shirt durable pour les travaux publics."
-      productSkus={['S445', 'ATC1000', 'ATCF2500', 'ATC6606']}
+      productSkus={MUNICIPALITES_PRODUCT_SKUS}
       faqHeading="Questions fréquentes — Municipalités"
       faq={[
         {
