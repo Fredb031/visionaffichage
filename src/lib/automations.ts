@@ -219,6 +219,12 @@ const DEFAULTS: Automation[] = [
 /** Seed registry of automations with their ship-default status and mock recent-runs. */
 export const AUTOMATIONS: ReadonlyArray<Automation> = DEFAULTS;
 
+// Set of registered automation ids — used to drop stale flag entries on
+// read so renaming/removing an automation self-heals the override map
+// instead of leaving orphaned entries in localStorage forever. Built
+// once at module load; the registry is a static const.
+const KNOWN_AUTOMATION_IDS: ReadonlySet<string> = new Set(AUTOMATIONS.map(a => a.id));
+
 // ───────────────── localStorage flag overrides ─────────────────
 //
 // Admin toggles on /admin/automations write `{ [id]: 'active' | 'paused' }`
@@ -233,13 +239,22 @@ export const AUTOMATION_FLAGS_KEY = 'vision-automation-flags';
 /** Map of automation id → admin-selected override status. */
 export type AutomationFlagMap = Record<string, AutomationStatus>;
 
-/** Read + validate the stored override map; returns `{}` if missing/corrupt. */
+/**
+ * Read + validate the stored override map; returns `{}` if missing/corrupt.
+ *
+ * Also drops entries whose id is no longer in the registry — this keeps
+ * a renamed/removed automation from leaving a paused-forever ghost flag
+ * behind, which would silently resurrect itself if a future automation
+ * ever reused the same id.
+ */
 export function readAutomationFlags(): AutomationFlagMap {
   const parsed = readLS<unknown>(AUTOMATION_FLAGS_KEY, {});
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
   const out: AutomationFlagMap = {};
   for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-    if (v === 'active' || v === 'paused') out[k] = v;
+    if ((v === 'active' || v === 'paused') && KNOWN_AUTOMATION_IDS.has(k)) {
+      out[k] = v;
+    }
   }
   return out;
 }
@@ -247,11 +262,14 @@ export function readAutomationFlags(): AutomationFlagMap {
 /** Persist the admin's automation override map; no-ops on SSR or quota errors. */
 export function writeAutomationFlags(flags: AutomationFlagMap): void {
   // Mirror readAutomationFlags' validation on the write path so a
-  // caller passing a TS-cast invalid status doesn't leave stale junk
-  // bytes in localStorage that the reader will silently discard.
+  // caller passing a TS-cast invalid status (or an id no longer in the
+  // registry) doesn't leave stale junk bytes in localStorage that the
+  // reader will silently discard.
   const sanitized: AutomationFlagMap = {};
   for (const [k, v] of Object.entries(flags)) {
-    if (v === 'active' || v === 'paused') sanitized[k] = v;
+    if ((v === 'active' || v === 'paused') && KNOWN_AUTOMATION_IDS.has(k)) {
+      sanitized[k] = v;
+    }
   }
   // writeLS handles the quota/private-mode guard + the SSR-safe early
   // return. Overrides just won't persist on failure — callers don't
