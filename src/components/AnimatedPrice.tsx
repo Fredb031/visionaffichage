@@ -24,6 +24,11 @@ type AnimatedPriceProps = {
 // the outgoing clone out of the DOM.
 const ANIMATED_PRICE_DURATION_MS = 220;
 const ANIMATED_PRICE_CLEANUP_MS = 260;
+// Material-style "standard" easing — accelerate-then-decelerate. Lifted to a
+// named constant so the outgoing-clone keyframe (line ~178) and the incoming
+// keyframe (line ~193) can't drift apart when one is tweaked and the other
+// is forgotten. Same curve on both halves keeps the cross-fade symmetric.
+const ANIMATED_PRICE_EASING = 'cubic-bezier(.4, 0, .2, 1)';
 
 /**
  * AnimatedPrice — renders a formatted money amount that "flips" whenever
@@ -175,7 +180,7 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
           aria-hidden="true"
           className="absolute inset-0 flex items-baseline justify-end"
           style={{
-            animation: `animated-price-out ${ANIMATED_PRICE_DURATION_MS}ms cubic-bezier(.4,0,.2,1) forwards`,
+            animation: `animated-price-out ${ANIMATED_PRICE_DURATION_MS}ms ${ANIMATED_PRICE_EASING} forwards`,
           }}
         >
           {outgoing}
@@ -190,7 +195,7 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
         style={
           flipKey === 0 || prefersReducedRef.current
             ? undefined
-            : { animation: `animated-price-in ${ANIMATED_PRICE_DURATION_MS}ms cubic-bezier(.4,0,.2,1) forwards` }
+            : { animation: `animated-price-in ${ANIMATED_PRICE_DURATION_MS}ms ${ANIMATED_PRICE_EASING} forwards` }
         }
       >
         {formatted}
