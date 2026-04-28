@@ -80,6 +80,60 @@ export function getStoredApiKey(provider: ImageProvider): string | null {
   catch { return null; }
 }
 
+// Placeholder values commonly pasted into the admin settings form when
+// an admin hasn't actually wired a real key yet — copied from a tutorial,
+// leftover from a screenshot, or stubbed in to "test the UI". If any of
+// these survive into localStorage, OpenAI/Replicate will reliably 401 —
+// but only after burning the full IMAGE_GEN_TIMEOUT_MS window and a real
+// network round-trip, leaving the AdminImageGen spinner blocked for ~60s
+// before surfacing a useless "Incorrect API key" upstream message.
+// Mirror the removeBg.ts isUsableApiKey guard so we short-circuit to a
+// configuration error on the next tick instead.
+// Kept lower-cased and trimmed so the comparison is invariant to the
+// usual copy-paste mishaps (whitespace, casing, surrounding quotes).
+const API_KEY_PLACEHOLDERS: ReadonlySet<string> = new Set([
+  'your_api_key_here',
+  'your-api-key',
+  'your_api_key',
+  'your-openai-api-key',
+  'your_openai_api_key',
+  'your-replicate-api-key',
+  'your_replicate_api_key',
+  'sk-...',
+  'sk-xxx',
+  'r8_...',
+  'r8_xxx',
+  'changeme',
+  'change-me',
+  'placeholder',
+  'todo',
+  'xxx',
+  'xxxxx',
+  'undefined',
+  'null',
+]);
+
+/**
+ * Returns true when the configured key is actually usable — non-empty after
+ * trimming surrounding whitespace/quotes, not a known placeholder, and free
+ * of template-syntax markers (`${...}`, `{{...}}`, angle brackets, internal
+ * whitespace) that signal an unfilled .env or settings copy-paste. Anything
+ * else is treated as "no key configured" so generateImage() throws the
+ * configuration-shaped ImageGenError immediately rather than after a 60s
+ * timeout against the upstream provider.
+ */
+function isUsableApiKey(raw: unknown): raw is string {
+  if (typeof raw !== 'string') return false;
+  const key = raw.trim().replace(/^['"]|['"]$/g, '');
+  if (key.length < 16) return false;
+  if (API_KEY_PLACEHOLDERS.has(key.toLowerCase())) return false;
+  // Real OpenAI (`sk-...`) and Replicate (`r8_...`) keys are ASCII alnum
+  // plus `-`/`_`. A value containing spaces, angle brackets, or template
+  // syntax is almost certainly an unfilled template, not a real credential.
+  if (/[\s<>${}]/.test(key)) return false;
+  return true;
+}
+
 /** Persists provider + API key to localStorage; swallows quota / private-mode errors. */
 export function saveProviderConfig(provider: ImageProvider, apiKey: string) {
   if (typeof window === 'undefined') return;
@@ -115,14 +169,19 @@ export function clearProviderConfig() {
  */
 export async function generateImage(params: GenerateImageParams): Promise<GeneratedImage> {
   const provider = getStoredProvider();
-  const key = getStoredApiKey(provider);
+  const rawKey = getStoredApiKey(provider);
 
-  if (provider === 'none' || !key) {
+  if (provider === 'none' || !isUsableApiKey(rawKey)) {
     throw new ImageGenError(
       'Aucun fournisseur d\'images configuré. Ajoute une clé API Replicate ou OpenAI dans les paramètres admin.',
       { provider },
     );
   }
+
+  // Normalize the same way isUsableApiKey validated — strip surrounding
+  // whitespace and quote chars before passing through to the upstream
+  // Authorization header so a `"sk-real-key"` paste still works.
+  const key = rawKey.trim().replace(/^['"]|['"]$/g, '');
 
   if (provider === 'openai') return callOpenAI(params, key);
   if (provider === 'replicate') return callReplicate(params, key);
