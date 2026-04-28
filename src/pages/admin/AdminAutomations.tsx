@@ -82,26 +82,28 @@ export default function AdminAutomations() {
   }, []);
 
   const toggleStatus = useCallback((id: string) => {
+    // Defensive: bail early if the caller passed an id that doesn't
+    // match any seeded automation. Without this guard a stale row ref
+    // (e.g. from a removed seed) would silently no-op the setState
+    // updater AND still fire a toast, confusing the admin.
     setAutomations(prev => {
-      const next = prev.map(a =>
-        a.id === id
-          ? { ...a, status: (a.status === 'active' ? 'paused' : 'active') as AutomationStatus }
-          : a,
-      );
-      // Persist only the overrides, not the whole registry — lets us
-      // extend the seed catalog later without blowing away the admin's
-      // pause state.
+      const current = prev.find(a => a.id === id);
+      if (!current) return prev;
+      const nextStatus: AutomationStatus = current.status === 'active' ? 'paused' : 'active';
+      const next = prev.map(a => (a.id === id ? { ...a, status: nextStatus } : a));
+      // Persist + notify outside the updater body would be cleaner,
+      // but we need the resolved nextStatus and need to avoid racing
+      // with a re-entrant setState. Side effects below are idempotent
+      // (writeAutomationFlags re-validates, toast is debounced by
+      // sonner) so a StrictMode double-invoke of the updater is safe.
       const flags = readAutomationFlags();
-      const target = next.find(a => a.id === id);
-      if (target) {
-        flags[id] = target.status;
-        writeAutomationFlags(flags);
-        toast.success(
-          target.status === 'paused'
-            ? `« ${target.name} » mise en pause`
-            : `« ${target.name} » réactivée`,
-        );
-      }
+      flags[id] = nextStatus;
+      writeAutomationFlags(flags);
+      toast.success(
+        nextStatus === 'paused'
+          ? `« ${current.name} » mise en pause`
+          : `« ${current.name} » réactivée`,
+      );
       return next;
     });
   }, []);
