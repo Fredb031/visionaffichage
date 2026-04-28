@@ -83,7 +83,7 @@ export function AIChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(() => readTranscript());
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
-  const [topics, setTopics] = useState<KBTopic[]>([]);
+  const [topics, setTopics] = useState<ReadonlyArray<KBTopic>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Focus target when the clear-conversation button is clicked. The
   // button unmounts immediately after (gated on `messages.length > 0`),

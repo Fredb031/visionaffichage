@@ -35,7 +35,20 @@ export type KBTopic = {
 };
 
 // ─── Knowledge base ────────────────────────────────────────────────────────
-export const KB_TOPICS: KBTopic[] = [
+/**
+ * Frozen at the table, per-topic, per-entry, and per-keyword-array level so
+ * a stray consumer (or a future bug anywhere in the SPA) cannot do
+ * `KB_TOPICS[0].entries.push(...)` or `entry.aFr = '...'` mid-session and
+ * silently corrupt the chat answers for every subsequent render. `as const`
+ * already enforces compile-time readonly, but a plain assignment with a
+ * `// @ts-expect-error` would still succeed at runtime — freezing makes that
+ * mutation throw in strict mode. Mirrors the freeze pattern in pricing.ts,
+ * caseStudies, industryProof, experiments, deliveryOptions, tax, orderLogos,
+ * shopifySnapshot, i18n, and productDescriptions. The `answerQuestion`
+ * matcher only does read-only ops (iteration, `.includes`, `.has`, indexing)
+ * so no consumer changes are required.
+ */
+const KB_RAW: KBTopic[] = [
   {
     id: 'pricing',
     icon: '💰',
@@ -453,6 +466,24 @@ export const KB_TOPICS: KBTopic[] = [
     ],
   },
 ];
+
+/** Deep-freeze the topic table: each topic, each entry, each keyword array.
+ *  Mirrors the pattern in src/data/orderLogos.ts (parent freeze + per-row
+ *  freeze + per-attachment freeze) and src/data/experiments.ts (per-key
+ *  freeze + nested array freeze). Cast through `Readonly<KBTopic[]>` so the
+ *  exported type still exposes the original shape to consumers. */
+export const KB_TOPICS: ReadonlyArray<Readonly<KBTopic>> = Object.freeze(
+  KB_RAW.map(topic =>
+    Object.freeze({
+      ...topic,
+      entries: Object.freeze(
+        topic.entries.map(entry =>
+          Object.freeze({ ...entry, keywords: Object.freeze([...entry.keywords]) })
+        )
+      ) as readonly KBEntry[],
+    })
+  )
+) as ReadonlyArray<Readonly<KBTopic>>;
 
 // ─── Answer matcher ────────────────────────────────────────────────────────
 
