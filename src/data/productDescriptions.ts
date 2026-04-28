@@ -1,19 +1,51 @@
 import type { Product } from './products';
 import type { Lang } from '@/lib/i18n';
 
+// Category copy fixture surfaced on every PDP via getDescription() —
+// tagline, paragraphs, feature bullets, and useCase. The arrays and
+// records are frozen on export so a stray consumer can't mutate
+// `CATEGORY_DESCRIPTIONS.tshirt.features.fr.push('...')` (or similar)
+// mid-render and silently corrupt every subsequent product page in the
+// SPA session: the same `features` / `paragraphs` reference is reused
+// across every PDP that shares a category, so a single mutation poisons
+// the cache for the rest of the session. Promoting each LangMap, each
+// inner string[], and the top-level Record to Readonly + readonly
+// surfaces the same guarantee at compile time, so a "let me just patch
+// this bullet" attempt fails the build instead of corrupting a live
+// product page. Mirrors the pricing.ts (ba33680), caseStudies (7df2683),
+// industryProof (d46762e), experiments (5492998), deliveryOptions
+// (c48c04d), tax (20d0b05), orderLogos (cf26d4b), shopifySnapshot
+// (ecc0fbf), and i18n (5948294) freezing pattern. Existing consumers
+// only call `.map()` and `.join()` on these arrays, so they stay
+// compatible with readonly arrays.
+
 type Category = Product['category'];
 
-type LangMap<T> = Record<Lang, T>;
+type LangMap<T> = Readonly<Record<Lang, T>>;
 
-interface Description {
+type Description = Readonly<{
   tagline: LangMap<string>;
-  paragraphs: LangMap<string[]>;
-  features: LangMap<string[]>;
+  paragraphs: LangMap<readonly string[]>;
+  features: LangMap<readonly string[]>;
   useCase: LangMap<string>;
-}
+}>;
 
-export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
-  tshirt: {
+const freezeDescription = (d: Description): Description =>
+  Object.freeze({
+    tagline: Object.freeze({ ...d.tagline }),
+    paragraphs: Object.freeze({
+      fr: Object.freeze([...d.paragraphs.fr]) as readonly string[],
+      en: Object.freeze([...d.paragraphs.en]) as readonly string[],
+    }),
+    features: Object.freeze({
+      fr: Object.freeze([...d.features.fr]) as readonly string[],
+      en: Object.freeze([...d.features.en]) as readonly string[],
+    }),
+    useCase: Object.freeze({ ...d.useCase }),
+  });
+
+export const CATEGORY_DESCRIPTIONS: Readonly<Record<Category, Description>> = Object.freeze({
+  tshirt: freezeDescription({
     tagline: {
       fr: "Le classique qui porte ta marque sans la cacher.",
       en: "The classic that carries your brand without hiding it.",
@@ -50,9 +82,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Parfait pour événements corporatifs, uniformes d'équipe, merch d'entreprise ou cadeaux clients.",
       en: "Perfect for corporate events, team uniforms, company merch or client gifts.",
     },
-  },
+  }),
 
-  hoodie: {
+  hoodie: freezeDescription({
     tagline: {
       fr: "Le hoodie qu'on garde pour les bonnes raisons.",
       en: "The hoodie people actually keep.",
@@ -89,9 +121,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Idéal pour équipes en télétravail, événements d'hiver, programmes de fidélité client ou kits d'accueil employés.",
       en: "Ideal for remote teams, winter events, client loyalty programs or employee onboarding kits.",
     },
-  },
+  }),
 
-  crewneck: {
+  crewneck: freezeDescription({
     tagline: {
       fr: "Le sweat intemporel, coupe nette, logo qui brille.",
       en: "The timeless sweat, clean cut, logo that stands out.",
@@ -126,9 +158,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Pour les équipes qui veulent du merch porté toute l'année, pas juste au party de Noël.",
       en: "For teams that want merch worn year-round, not just at the holiday party.",
     },
-  },
+  }),
 
-  polo: {
+  polo: freezeDescription({
     tagline: {
       fr: "Le polo sobre qui fait bien paraître ta marque.",
       en: "The understated polo that makes your brand look sharp.",
@@ -163,9 +195,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Uniformes de service, événements corporatifs, tournois de golf, équipes de direction.",
       en: "Service uniforms, corporate events, golf tournaments, leadership teams.",
     },
-  },
+  }),
 
-  longsleeve: {
+  longsleeve: freezeDescription({
     tagline: {
       fr: "Manches longues, logo affiché, couverture 3 saisons.",
       en: "Long sleeves, logo on display, 3-season coverage.",
@@ -198,9 +230,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Équipes extérieures, événements en demi-saison, uniformes légers, couche de base polyvalente.",
       en: "Outdoor teams, shoulder-season events, light uniforms, versatile base layer.",
     },
-  },
+  }),
 
-  sport: {
+  sport: freezeDescription({
     tagline: {
       fr: "Performance-grade. Fait pour bouger avec ta marque.",
       en: "Performance-grade. Made to move with your brand.",
@@ -233,9 +265,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Courses, tournois, équipes sportives corporatives, événements actifs.",
       en: "Races, tournaments, corporate sports teams, active events.",
     },
-  },
+  }),
 
-  cap: {
+  cap: freezeDescription({
     tagline: {
       fr: "La casquette qui devient le geste de ton équipe.",
       en: "The cap that becomes your team's signature.",
@@ -270,9 +302,9 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Événements plein air, équipes terrain, cadeaux clients, goodies de conférence.",
       en: "Outdoor events, field teams, client gifts, conference goodies.",
     },
-  },
+  }),
 
-  toque: {
+  toque: freezeDescription({
     tagline: {
       fr: "La tuque qui vit bien au Québec — et fait voyager ta marque.",
       en: "The beanie that handles Québec winters — and carries your brand anywhere.",
@@ -307,8 +339,8 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
       fr: "Événements hivernaux, staff extérieur, cadeaux clients pour le temps des fêtes.",
       en: "Winter events, outdoor staff, holiday client gifts.",
     },
-  },
-};
+  }),
+});
 
 export function getDescription(category: Category, lang: Lang = 'fr') {
   // Defensive lookup: if a future Category value (or a stringly-typed

@@ -2101,7 +2101,7 @@ function CollapsibleDescription({
   paragraphs,
   lang,
 }: {
-  paragraphs: string[];
+  paragraphs: readonly string[];
   lang: 'fr' | 'en';
 }) {
   const [expanded, setExpanded] = useState(false);
