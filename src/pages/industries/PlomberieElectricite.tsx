@@ -6,6 +6,8 @@ import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
  * plomberie", "vêtements travailleurs spécialisés". Recommended pieces
  * favour durable cotton tees + work hoodies + polos for client visits.
  */
+const PLOMBERIE_ELEC_PRODUCT_SKUS: string[] = ['ATC1000', 'S445', 'ATCF2500', 'ATC1015'];
+
 export default function PlomberieElectricite() {
   return (
     <IndustryPageShell
@@ -23,7 +25,7 @@ export default function PlomberieElectricite() {
       ctaLabel="Personnaliser pour mon équipe plomberie-électricité"
       productsHeading="Vêtements recommandés pour les métiers spécialisés"
       productsSubcopy="Notre sélection pour les plombiers, électriciens et techniciens — durables, faciles à entretenir, et professionnels en visite client."
-      productSkus={['ATC1000', 'S445', 'ATCF2500', 'ATC1015']}
+      productSkus={PLOMBERIE_ELEC_PRODUCT_SKUS}
       faqHeading="Questions fréquentes — Plomberie & Électricité"
       faq={[
         {
