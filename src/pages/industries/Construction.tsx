@@ -9,6 +9,13 @@ import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
  * crewneck, cap) which are the daily-driver garments construction
  * crews already buy in volume.
  */
+// Hoisted to module scope so the array reference is stable across
+// re-renders. The shell memoizes resolved products on `productSkus`
+// (d57851d); passing an inline literal would mint a new array each
+// render and defeat that memo. Module-scope const = same identity for
+// the lifetime of the page.
+const CONSTRUCTION_PRODUCT_SKUS: string[] = ['ATC1000', 'ATCF2500', 'ATCF2400', 'ATC6606'];
+
 export default function Construction() {
   return (
     <IndustryPageShell
@@ -26,7 +33,7 @@ export default function Construction() {
       ctaLabel="Personnaliser pour mon équipe construction"
       productsHeading="Vêtements recommandés pour le chantier"
       productsSubcopy="Notre sélection pour les entrepreneurs québécois — modèles éprouvés en chantier, faciles à broder ou imprimer en grande quantité."
-      productSkus={['ATC1000', 'ATCF2500', 'ATCF2400', 'ATC6606']}
+      productSkus={CONSTRUCTION_PRODUCT_SKUS}
       faqHeading="Questions fréquentes — Construction"
       faq={[
         {
