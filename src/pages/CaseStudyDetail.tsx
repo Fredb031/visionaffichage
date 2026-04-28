@@ -101,6 +101,16 @@ export default function CaseStudyDetail() {
     );
   }
 
+  // Defensive guard around productsUsed — the type pins it to a
+  // readonly string[] but we still narrow at the boundary in case a
+  // future dataset edit drops the field or stores a falsy entry.
+  // Section is only rendered when at least one valid handle survives.
+  const productHandles = Array.isArray(cs.productsUsed)
+    ? cs.productsUsed.filter(
+        (h): h is string => typeof h === 'string' && h.trim().length > 0,
+      )
+    : [];
+
   // Stats row — three tiles with brand iconography. Numbers are read
   // from the typed CaseStudy entry so updating the dataset cascades
   // through the page without touching JSX.
@@ -236,7 +246,9 @@ export default function CaseStudyDetail() {
             Handles are the data file's productsUsed strings; if the
             operator ships a real Shopify handle the link resolves;
             otherwise the PDP renders a not-found state and we keep
-            the wiring honest. */}
+            the wiring honest. Section is suppressed when the entry
+            has no valid handles so we don't render an empty grid. */}
+        {productHandles.length > 0 && (
         <section className="border-t border-border py-14 md:py-16 px-6 md:px-10 bg-background">
           <div className="max-w-[1160px] mx-auto">
             <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
@@ -248,7 +260,7 @@ export default function CaseStudyDetail() {
                 : 'Le matériel exact de cette histoire'}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              {cs.productsUsed.map(handle => (
+              {productHandles.map(handle => (
                 <Link
                   key={handle}
                   to={`/product/${handle}`}
@@ -267,6 +279,7 @@ export default function CaseStudyDetail() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Tail CTA — same pattern as the hub but framed as a direct
             invitation: same result, same playbook, start now. */}
