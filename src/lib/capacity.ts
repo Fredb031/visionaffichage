@@ -72,6 +72,17 @@ export function getCurrentCapacity(): WeeklyCapacity {
     typeof stored.weekStartIso === 'string' &&
     typeof stored.totalSlots === 'number' &&
     typeof stored.bookedSlots === 'number' &&
+    // Reject NaN / Infinity — `typeof NaN === 'number'` so the
+    // checks above are not enough to keep corrupted blobs out of
+    // consumer code. Symmetric with the defence in
+    // getRemainingSlots().
+    Number.isFinite(stored.totalSlots) &&
+    Number.isFinite(stored.bookedSlots) &&
+    // Reject negative slot counts — they have no real-world
+    // meaning and would render as "Plus que -3 créneaux..." or
+    // similar broken copy downstream.
+    stored.totalSlots >= 0 &&
+    stored.bookedSlots >= 0 &&
     stored.weekStartIso === thisMonday
   ) {
     return stored;
