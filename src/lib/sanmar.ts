@@ -142,11 +142,25 @@ async function call<T>(
     if (res.status === 404) {
       return null;
     }
-    const json = await res.json();
-    if (!res.ok || !json.ok) {
+    const json: unknown = await res.json();
+    // Defensive envelope validation: the edge function contract is
+    // `{ ok: boolean, data?: T, error?: string }`, but a misconfigured
+    // proxy, a Supabase outage, or a partial deploy can return a bare
+    // array, a string, `null`, or an object missing `ok`. Without this
+    // guard, `(json as any).ok` would coerce to falsy and silently
+    // return null for transient failures (good), but a `{ ok: true }`
+    // response with a malformed `data` field would propagate `undefined`
+    // typed as `T` straight into `summarizeStock` / React Query caches
+    // and surface as `Cannot read properties of undefined` deep in the
+    // render tree — far from the real cause.
+    if (!res.ok || typeof json !== 'object' || json === null) {
       return null;
     }
-    return json.data as T;
+    const envelope = json as { ok?: unknown; data?: unknown };
+    if (envelope.ok !== true || envelope.data === undefined) {
+      return null;
+    }
+    return envelope.data as T;
   } catch {
     // silent — caller handles null
     return null;
