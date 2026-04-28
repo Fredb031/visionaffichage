@@ -32,7 +32,12 @@ export type Role = 'president' | 'admin' | 'salesman' | 'vendor' | 'client';
 
 // Full catalogue in one place so the UI (permission matrix dialog) can
 // render checkboxes without duplicating the list and drifting.
-export const ALL_PERMISSIONS: Permission[] = [
+// Frozen at module load so a stray consumer can't mutate the catalogue
+// mid-session (mirrors the pricing-tier freeze in ba33680 and the
+// tax-rate freeze in 20d0b05). RBAC is the security source of truth —
+// any push/splice on this array would silently expand or shrink every
+// role's effective permission set.
+export const ALL_PERMISSIONS: readonly Permission[] = Object.freeze<Permission[]>([
   'orders:read', 'orders:write',
   'customers:read', 'customers:write',
   'products:read', 'products:write',
@@ -44,7 +49,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'automations:read', 'automations:write',
   'users:read', 'users:write',
   'billing:read', 'billing:write',
-];
+]);
 
 export const ROLE_LABEL: Record<Role, string> = {
   president: 'Président',
@@ -68,41 +73,51 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
 // Default permission catalogue per role.
 // Keep this table side-by-side with the product requirements so future
 // reviewers can verify each role's scope at a glance.
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  // President = everything. Don't hand-roll the list — reuse ALL_PERMISSIONS
-  // so adding a new permission type automatically grants it.
-  president: [...ALL_PERMISSIONS],
+//
+// Deep-frozen at module load: the outer Record AND each role's array are
+// immutable, so neither `ROLE_PERMISSIONS.admin = []` nor
+// `ROLE_PERMISSIONS.client.push('billing:write')` can corrupt the matrix
+// mid-session. RBAC is the security source-of-truth here — mutating the
+// table would silently grant or revoke permissions on every subsequent
+// hasPermission() call. Mirrors the freeze pattern from pricing.ts
+// (ba33680) and tax.ts (20d0b05); the readonly type tightening makes the
+// same guarantee a compile-time error rather than just a runtime no-op.
+export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> =
+  Object.freeze({
+    // President = everything. Don't hand-roll the list — reuse ALL_PERMISSIONS
+    // so adding a new permission type automatically grants it.
+    president: Object.freeze<Permission[]>([...ALL_PERMISSIONS]),
 
-  // Admin = everything EXCEPT billing. Rationale: billing routes to the
-  // company bank account / Stripe keys, which should stay with the
-  // owner even if the owner hires more admins.
-  admin: ALL_PERMISSIONS.filter(p => !p.startsWith('billing:')),
+    // Admin = everything EXCEPT billing. Rationale: billing routes to the
+    // company bank account / Stripe keys, which should stay with the
+    // owner even if the owner hires more admins.
+    admin: Object.freeze(ALL_PERMISSIONS.filter(p => !p.startsWith('billing:'))),
 
-  // Salesman = read/write customer-facing flow, read-only on the
-  // catalog, no access to platform plumbing (settings/users/emails
-  // composition/automations/billing).
-  salesman: [
-    'orders:read', 'orders:write',
-    'customers:read', 'customers:write',
-    'products:read',
-    'quotes:read', 'quotes:write',
-    'emails:read',
-    'images:read',
-    'automations:read',
-    'vendors:read',
-  ],
+    // Salesman = read/write customer-facing flow, read-only on the
+    // catalog, no access to platform plumbing (settings/users/emails
+    // composition/automations/billing).
+    salesman: Object.freeze<Permission[]>([
+      'orders:read', 'orders:write',
+      'customers:read', 'customers:write',
+      'products:read',
+      'quotes:read', 'quotes:write',
+      'emails:read',
+      'images:read',
+      'automations:read',
+      'vendors:read',
+    ]),
 
-  // Vendor = extremely limited; they only see their own quotes + the
-  // vendor dashboard. The "own only" scoping is enforced by the
-  // queries themselves (e.g. RLS, or the vendor dashboard filtering
-  // by vendor_id); this table only answers "can they hit the endpoint
-  // at all".
-  vendor: ['vendors:read', 'quotes:read'],
+    // Vendor = extremely limited; they only see their own quotes + the
+    // vendor dashboard. The "own only" scoping is enforced by the
+    // queries themselves (e.g. RLS, or the vendor dashboard filtering
+    // by vendor_id); this table only answers "can they hit the endpoint
+    // at all".
+    vendor: Object.freeze<Permission[]>(['vendors:read', 'quotes:read']),
 
-  // Client = public-storefront users with an account. They can read
-  // their own orders (track page). Everything else stays locked.
-  client: ['orders:read'],
-};
+    // Client = public-storefront users with an account. They can read
+    // their own orders (track page). Everything else stays locked.
+    client: Object.freeze<Permission[]>(['orders:read']),
+  });
 
 /**
  * Check whether a user with `userRole` is allowed to perform `perm`.
