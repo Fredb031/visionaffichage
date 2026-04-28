@@ -50,10 +50,21 @@ export function RequirePermission({ permission, children }: RequirePermissionPro
   // authStore tick) while the user role itself is unchanged.
   const role = useMemo(() => coerceToPermissionRole(userRole), [userRole]);
 
+  // Fail-closed: if anything in the permission lookup chain throws
+  // (corrupt localStorage JSON in getUserOverrides, an unexpected role
+  // shape reaching hasPermission, etc.) we MUST deny — never grant by
+  // default. A thrown error during render also unmounts the subtree
+  // entirely, which would expose the parent route's state instead of
+  // the access-denied screen, so we trap and explicitly return false.
   const allowed = useMemo(() => {
     if (!userId) return false;
-    const overrides = getUserOverrides(userId);
-    return hasPermission(role, permission, overrides);
+    try {
+      const overrides = getUserOverrides(userId);
+      const result = hasPermission(role, permission, overrides);
+      return result === true;
+    } catch {
+      return false;
+    }
   }, [userId, role, permission]);
 
   if (!user) return null;
