@@ -37,12 +37,36 @@ export type PlacementTransform = {
 // export; call sites inside this file continue to read as before.
 type Params = PlacementTransform;
 
+/** Defensive guard against malformed bboxes coming from upstream
+ * fabric.js objects. Degenerate selections (zero-width shapes, freshly
+ * rotated groups, transforms mid-update) can emit NaN/Infinity for any
+ * of cx/cy/w/h/x/y; if we let those flow through, every downstream
+ * helper returns NaN coordinates and the logo silently disappears
+ * (or renders at `translate(NaN, NaN)` and breaks the canvas).
+ *
+ * We also reject non-positive width/height — a w<=0 bbox means the
+ * detector failed and the "garment center" math collapses to a point,
+ * which produces a more confusing UX than falling back to the zone or
+ * canvas center. Returning null here means the helpers below take the
+ * `zone` / canvas-center branch instead, which is exactly the behaviour
+ * we want when the bbox is untrustworthy. */
+const isValidBbox = (b: Bbox | null | undefined): b is Bbox => {
+  if (!b) return false;
+  const { x, y, w, h, cx, cy } = b;
+  return (
+    Number.isFinite(x) && Number.isFinite(y) &&
+    Number.isFinite(w) && Number.isFinite(h) &&
+    Number.isFinite(cx) && Number.isFinite(cy) &&
+    w > 0 && h > 0
+  );
+};
+
 /** Logo width as a percent of the CANVAS. Slightly larger default than
  * before — user feedback: the auto-placed logo was too small to read.
  * Caps keep a slim-fit from ballooning and a wide garment from getting
  * a tiny mark. */
 const defaultWidth = (bbox?: Bbox | null) =>
-  bbox ? Math.min(bbox.w * 0.45, bbox.h * 1.2, 38) : 34;
+  isValidBbox(bbox) ? Math.min(bbox.w * 0.45, bbox.h * 1.2, 38) : 34;
 
 /** Clamp a user-supplied widthPct to a sane range. Callers occasionally
  * pass a stale slider value (negative after a reset) or a value in the
@@ -70,7 +94,7 @@ const clampWidth = (w: number | undefined, fallback: number): number => {
  * silhouette center, not the canvas center, for this exact reason. */
 export function centerOnGarment(p: Params) {
   const { bbox, zone } = p;
-  if (bbox) {
+  if (isValidBbox(bbox)) {
     return {
       x: bbox.cx,
       y: bbox.cy,
@@ -93,7 +117,7 @@ export function centerOnGarment(p: Params) {
  * perceives as "centered". */
 export function centerOnChest(p: Params) {
   const { bbox, zone } = p;
-  if (bbox) {
+  if (isValidBbox(bbox)) {
     return {
       x: bbox.cx,
       y: bbox.y + bbox.h * 0.25,
@@ -140,7 +164,7 @@ export function autoPlaceOnUpload(
 ) {
   if (kind === 'cap' || kind === 'beanie') {
     const { bbox, zone } = p;
-    if (bbox) {
+    if (isValidBbox(bbox)) {
       const capWidth = Math.min(bbox.w * 0.55, bbox.h * 0.9, 32);
       return centerOnGarment({
         bbox: { ...bbox, cy: bbox.y + bbox.h * 0.5 },
