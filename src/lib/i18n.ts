@@ -15,9 +15,19 @@ export type Lang = 'fr' | 'en';
  * {@link TranslationKey} union, and {@link t} falls back to French when an
  * English key is missing. Strings may contain `%d`/`%s` placeholders that are
  * substituted positionally by {@link t}.
+ *
+ * Wrapped in `Object.freeze` at the parent and per-locale level so a stray
+ * consumer (or a future bug anywhere in the SPA) cannot do
+ * `translations.fr.heroCta = 'gotcha'` mid-session and silently mutate copy
+ * for every subsequent render. `as const` already enforces compile-time
+ * readonly, but a plain assignment with a `// @ts-expect-error` would still
+ * succeed at runtime — freezing makes that mutation throw in strict mode.
+ * Mirrors the runtime-immutability pattern established in pricing.ts
+ * (ba33680), tax.ts (20d0b05), permissions (3f07f5a), and loyalty (d1c0331).
+ * No values, key shapes, or runtime behaviour change — `t()` only ever reads.
  */
-export const translations = {
-  fr: {
+export const translations = Object.freeze({
+  fr: Object.freeze({
     // Nav
     connexion: 'Connexion',
     panier: 'Panier',
@@ -103,8 +113,8 @@ export const translations = {
     // Cart recommendations
     produitsRecommandesAria: 'Produits recommandés',
     // MoleGame strings are inlined in MoleGame.tsx directly — no entries here
-  },
-  en: {
+  }),
+  en: Object.freeze({
     connexion: 'Login',
     panier: 'Cart',
     voirProduits: 'See products',
@@ -180,8 +190,8 @@ export const translations = {
     casquetteName: 'Trucker Cap',
     tuqueName: 'Cuffless Beanie',
     produitsRecommandesAria: 'Recommended products',
-  },
-} as const;
+  }),
+} as const);
 
 /**
  * Union of every valid translation key, derived from the French dictionary
