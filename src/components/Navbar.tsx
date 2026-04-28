@@ -258,6 +258,13 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           <button
             type="button"
             onClick={openLogin}
+            // Below the sm breakpoint the visible label span is hidden, leaving
+            // the button as an icon-only control. The <svg> is aria-hidden, so
+            // without an explicit aria-label, mobile screen-reader users hear
+            // an unlabeled "button" in the navbar. Mirror the visible text with
+            // a localized aria-label so the accessible name stays correct at
+            // every viewport width.
+            aria-label={t('connexion')}
             className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             <svg
