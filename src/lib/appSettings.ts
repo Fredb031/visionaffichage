@@ -37,20 +37,27 @@ export interface AppSettings {
   require2fa: boolean;
 }
 
-export const DEFAULT_APP_SETTINGS: AppSettings = {
+// Deep-frozen so a stray `DEFAULT_APP_SETTINGS.discountCodes.NEWCODE = 0.5`
+// from an admin component (or a mistakenly-shared reference inside this
+// file) can't poison every subsequent fallback for the lifetime of the
+// page. The Readonly type catches it at compile time; Object.freeze is
+// the runtime belt-and-braces in case a JS consumer or a `as any` cast
+// slips past tsc. All current readers spread/clone before mutating, so
+// this is a tightening — not a behaviour change.
+export const DEFAULT_APP_SETTINGS: Readonly<AppSettings> = Object.freeze({
   taxGst: 0.05,
   taxQst: 0.09975,
   bulkThreshold: 12,
   bulkRate: 0.15,
-  discountCodes: {
+  discountCodes: Object.freeze({
     VISION10: 0.10,
     VISION15: 0.15,
     VISION20: 0.20,
-  },
+  }) as Readonly<Record<string, number>>,
   commissionRate: 0.10,
   printPrice: 5.00,
   require2fa: false,
-};
+});
 
 // ───────────── 2FA per-user status (Task 9.20, UI stub) ─────────────
 //
