@@ -22,6 +22,15 @@ const LOADING_DWELL_MS = 350;
 // Success-tick hold — long enough to read "Envoyé", short enough that
 // a user who wants to subscribe another address doesn't feel locked out.
 const SUCCESS_DWELL_MS = 2000;
+// RFC 5321 §4.5.3.1.3 caps a path (local@domain) at 254 octets. We enforce
+// this at submit-time AND on the input's maxLength so a paste of multi-MB
+// junk can't (a) feed an unbounded string into the isValidEmail regex
+// (ReDoS-adjacent — the engine still runs the pattern even if it ultimately
+// rejects) or (b) bloat the localStorage ledger past the ~5 MB browser
+// budget with one malicious row. Belt-and-braces: maxLength is the soft
+// guard for typed/pasted input, the runtime check below is the hard guard
+// against programmatic state mutation (devtools, paste-then-edit, etc.).
+const MAX_EMAIL_LENGTH = 254;
 
 export function SiteFooter() {
   const { lang } = useLang();
@@ -59,7 +68,10 @@ export function SiteFooter() {
     // RAW pasted value in localStorage — the backend would bounce that
     // address when a real newsletter send fires.
     const normalized = normalizeInvisible(email).trim().toLowerCase();
-    if (!isValidEmail(normalized)) {
+    // Hard length guard BEFORE isValidEmail so an oversized paste never
+    // reaches the regex engine (and never lands in localStorage even if
+    // it somehow passed). RFC 5321 limits the full path to 254 octets.
+    if (normalized.length === 0 || normalized.length > MAX_EMAIL_LENGTH || !isValidEmail(normalized)) {
       setEmailErr(true);
       return;
     }
@@ -186,6 +198,7 @@ export function SiteFooter() {
                     emailErr ? 'border-rose-400 focus:border-rose-500' : 'border-white/30 focus:border-[#0052CC]'
                   }`}
                   autoComplete="email"
+                  maxLength={MAX_EMAIL_LENGTH}
                   required
                 />
               </div>
