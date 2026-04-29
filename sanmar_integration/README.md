@@ -681,88 +681,126 @@ LRU cache, so it scales horizontally behind a load balancer.
 ### Install
 
 ```bash
-pip install -e ".[ops]"
+pip install -e ".[dev]"
 ```
 
 `fastapi` and `uvicorn[standard]` are now in the main runtime
-dependencies — no extra needed beyond a working install.
+dependencies — no extra needed beyond a working install. The `[dev]`
+extra pulls in `httpx` so `pytest` can drive the API via FastAPI's
+`TestClient`.
 
 ### Run
 
 ```bash
-python -m sanmar serve-api --port 8080
-# or, equivalently:
-python -m sanmar.api
+python -m sanmar serve-api --port 8000
+# → API serving on http://0.0.0.0:8000 — docs at /docs
 ```
 
-`SANMAR_API_HOST` / `SANMAR_API_PORT` env vars override the CLI
-flags, which is what the systemd unit at
-`deploy/systemd/sanmar-api.service` relies on.
+`SANMAR_API_HOST` / `SANMAR_API_PORT` / `SANMAR_API_CORS_ORIGINS` env
+vars override the CLI flags + defaults — which is what the systemd
+unit at `deploy/systemd/sanmar-api.service` relies on.
+
+### Docs
+
+| URL | What it serves |
+|-----|----------------|
+| `/docs` | OpenAPI / Swagger UI |
+| `/redoc` | ReDoc |
+| `/openapi.json` | Raw OpenAPI 3 spec |
 
 ### Endpoints
 
 | Method | Path | Notes |
 |--------|------|-------|
-| `GET`  | `/health` | 200/503 + last_sync timestamps + warnings |
-| `GET`  | `/products` | List + filter (`brand`, `category`, `q`) + paginate (`page`, `page_size` ≤ 100) |
+| `GET`  | `/health` | 200/503 + `db` + `sync_freshness` + warnings |
+| `GET`  | `/products` | List + filter (`brand`, `category`, `active`, `q`) + paginate (`limit`/`offset` or `page`/`page_size` ≤ 100) |
+| `GET`  | `/products/search?q=…` | LIKE on name + style + description |
 | `GET`  | `/products/{style_number}` | Single product with color/size axes; 404 on miss |
 | `GET`  | `/products/{style_number}/variants` | Color × size matrix with the unique axis lists |
-| `GET`  | `/inventory/{style_number}` | Aggregated warehouse stock; `?max_age_hours=24` |
-| `GET`  | `/inventory/{style_number}/{color}/{size}` | Per-SKU snapshot |
-| `GET`  | `/pricing/{style_number}` | Cached price ladder; optional `?color=&size=` filter |
+| `GET`  | `/products/{style_number}/inventory` | Aggregated latest snapshot per warehouse |
+| `GET`  | `/products/{style_number}/pricing` | **CACHED** price ladder (CachedPricing); 404 hint when empty |
+| `GET`  | `/inventory/{style_number}` | Legacy — aggregated warehouse stock; `?max_age_hours=24` |
+| `GET`  | `/inventory/{style_number}/{color}/{size}` | Legacy — per-SKU snapshot |
+| `GET`  | `/pricing/{style_number}` | Legacy — pricing derived from `Variant.price_cad` |
+| `GET`  | `/metrics/freshness` | `{catalog_age_seconds, inventory_age_seconds, order_status_age_seconds}` |
 
 ### Examples
 
 ```bash
 # Health
-curl http://localhost:8080/health
+curl http://localhost:8000/health
 
-# List Port Authority polos, page 2
-curl "http://localhost:8080/products?brand=Port%20Authority&category=Polos&page=2&page_size=25"
+# List Port Authority polos, second page of 25
+curl "http://localhost:8000/products?brand=Port%20Authority&category=Polos&limit=25&offset=25"
 
 # Single product + variants
-curl http://localhost:8080/products/PC54
-curl http://localhost:8080/products/PC54/variants
+curl http://localhost:8000/products/PC54
+curl http://localhost:8000/products/PC54/variants
 
-# Inventory (full style + per-SKU)
-curl http://localhost:8080/inventory/PC54
-curl http://localhost:8080/inventory/PC54/Black/L
+# Inventory (nested under products)
+curl http://localhost:8000/products/PC54/inventory
 
-# Pricing
-curl "http://localhost:8080/pricing/PC54?color=Black"
+# Cached pricing (Phase 10)
+curl http://localhost:8000/products/PC54/pricing
+
+# Storefront debug widget
+curl http://localhost:8000/metrics/freshness
 ```
+
+### Storefront integration sketch
+
+Today the React storefront fetches `/api/sanmar/...` Edge Functions
+that proxy SOAP. Phase 10 lets us replace those with direct API calls:
+
+```ts
+// supabase/functions/_shared/sanmar/products.ts
+const SANMAR_API = Deno.env.get("SANMAR_API_URL") ?? "https://sanmar.internal";
+
+export async function fetchProduct(style: string) {
+  const res = await fetch(`${SANMAR_API}/products/${style}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`sanmar api ${res.status}`);
+  return res.json();
+}
+```
+
+The DTO is identical to what the SOAP client returned, so call sites
+swap with no rendering changes.
 
 ### CORS
 
-Out of the box, the API accepts `GET` requests from
+Origins are config-driven via `SANMAR_API_CORS_ORIGINS`
+(comma-separated). When the env var is unset the API falls back to
 `http://localhost:5173`, `https://visionaffichage.com`, and any
-`*.vercel.app` preview domain. Adjust `ALLOWED_ORIGINS` /
-`ALLOWED_ORIGIN_REGEX` in `sanmar/api/app.py` to broaden or pin.
-
-### Smoke test
-
-```bash
-python -m scripts.test_api_server
-```
-
-Spins the server up on port 8080, hits `/health` + `/products?page_size=5`,
-and tears down. Useful for ops verification on a fresh deploy.
+`*.vercel.app` preview subdomain. Set it to the storefront's origin
+in production for tighter scoping.
 
 ### What Phase 10 added
 
 - `sanmar/api/app.py` — FastAPI app + lifespan-managed engine + CORS / GZip
-- `sanmar/api/routes/{products,inventory,pricing,health}.py` — route modules
-- `sanmar/api/cache.py` — `@cache_response(ttl_seconds=30)` decorator (LRU + TTL)
-- `sanmar/api/models.py` — `ProductListResponse`, `VariantMatrixResponse`, `HealthResponse`
-- `sanmar/api/__main__.py` — `python -m sanmar.api` uvicorn entrypoint
+- `sanmar/api/routes/{products,inventory,pricing,health,metrics}.py` — route modules
+- `sanmar/api/cache_pricing.py` — `CachedPricing` ORM model
+- `sanmar/api/cache.py` — `@cache_response(ttl_seconds=30)` decorator
+- `sanmar/api/models.py` — `ProductListResponse`, `HealthResponse`, `FreshnessResponse`
+- `sanmar/api/run.py` — programmatic uvicorn entrypoint
 - `sanmar/cli.py` — new `serve-api` subcommand
 - `deploy/systemd/sanmar-api.service` — long-running unit
-- `scripts/test_api_server.py` — manual smoke CLI
+- `deploy/nginx/sanmar-api.conf` — reverse-proxy template (30s edge cache)
 - `fastapi>=0.110.0` + `uvicorn[standard]>=0.27.0` in main deps;
   `httpx>=0.27.0` in `[dev]` (powers `TestClient`)
-- 12 new tests (118 → 130) in `test_api.py`
+- 13 new tests in `tests/test_api.py`
 
-> **Future:** integrate this into `supabase/functions/_shared/sanmar/*.ts`
-> to replace per-request SOAP. Cache hit ratio + p95 latency are
-> already tracked via the Phase 8 Prometheus exporter — extending it
-> with HTTP-level metrics is the natural next milestone.
+### Phase 11 recommendation
+
+Two parallel tracks:
+
+1. **Cloudflare cache layer** in front of the API — proxy
+   `/products` + `/products/search` through a Worker with a 30 s edge
+   cache so a viral product page can absorb a burst without taxing
+   the origin. The nginx snippet at `deploy/nginx/sanmar-api.conf`
+   gives an on-prem variant.
+
+2. **Storefront migration** — flip
+   `supabase/functions/_shared/sanmar/*.ts` from SOAP to this API.
+   Track via a feature flag and roll out per-route so a regression in
+   one endpoint doesn't break the catalog.

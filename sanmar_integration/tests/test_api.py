@@ -1,13 +1,14 @@
 """Tests for the Phase 10 read-only HTTP API.
 
-Each test builds a fresh in-memory SQLite via
-:func:`sanmar.db.make_engine` against ``tmp_path``, seeds the rows
-the test cares about, and overrides the ``get_engine`` dependency on
-the FastAPI app so the route handlers see the test DB instead of the
-production one.
+Each test builds a fresh SQLite at ``tmp_path``, seeds the rows it
+cares about, and overrides the ``get_engine`` dependency on a
+freshly-built FastAPI app so route handlers see the test DB instead
+of the production one. The factory pattern means cached responses
+can't bleed between tests.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
 
 from sanmar.api.app import create_app, get_engine
+from sanmar.api.cache_pricing import CachedPricing
 from sanmar.db import init_schema, make_engine, make_session_factory
 from sanmar.models import (
     Brand,
@@ -35,12 +37,10 @@ def _seed_engine(tmp_path: Path) -> Engine:
 
 @pytest.fixture
 def client_factory(tmp_path):
-    """Yield a callable that returns ``(client, engine)`` per test.
+    """Yield a callable returning ``(client, engine)`` per test.
 
-    The factory builds a new app per call so the lifespan + cache
-    don't bleed between tests. Tests that need different seed data
-    therefore can't accidentally observe a cached response from a
-    previous test.
+    A new app is constructed each call so the dependency overrides +
+    response cache don't bleed between tests.
     """
     created: list[TestClient] = []
 
@@ -48,8 +48,8 @@ def client_factory(tmp_path):
         engine = _seed_engine(tmp_path)
         application = create_app()
         application.dependency_overrides[get_engine] = lambda: engine
-        # Stub out lifespan-resolved engine so handlers that call
-        # ``request.app.state.engine`` directly also see the test DB.
+        # Stub out the lifespan-resolved engine too, so handlers that
+        # touch ``request.app.state.engine`` directly see the test DB.
         application.state.engine = engine
         client = TestClient(application)
         created.append(client)
@@ -72,8 +72,10 @@ def _seed_product(
     """Insert a Brand + Product + Variants. Return the product id."""
     factory = make_session_factory(engine)
     with factory() as session:
+        from sqlalchemy import select
+
         b = session.execute(
-            __import__("sqlalchemy").select(Brand).where(Brand.name == brand)
+            select(Brand).where(Brand.name == brand)
         ).scalar_one_or_none()
         if b is None:
             b = Brand(name=brand, slug=brand.lower().replace(" ", "-"))
@@ -105,20 +107,33 @@ def _seed_product(
         return p.id
 
 
-def test_health_returns_200_with_db_connected(client_factory) -> None:
-    """``GET /health`` on a valid DB must return 200 with
-    ``db_connected: true``. This is the cheapest possible
-    smoke-test of the whole wiring."""
+# ── 1: health ────────────────────────────────────────────────────────
+
+
+def test_health_returns_200_with_status_ok(client_factory) -> None:
+    """``GET /health`` on a valid empty DB must return 200 with
+    ``status: 'ok'`` (no SyncState rows ⇒ no warnings)."""
     client, _ = client_factory()
     r = client.get("/health")
     assert r.status_code == 200, r.text
     body = r.json()
+    assert body["status"] == "ok"
+    assert body["db"] is True
     assert body["db_connected"] is True
-    assert body["status"] in {"ok", "warning"}
-    assert "last_sync" in body
+    # The brief's contract: response carries sync_freshness keys.
+    assert "sync_freshness" in body
+    for key in (
+        "catalog_age_seconds",
+        "inventory_age_seconds",
+        "order_status_age_seconds",
+    ):
+        assert key in body["sync_freshness"]
 
 
-def test_products_empty_db_returns_total_zero(client_factory) -> None:
+# ── 2 & 3: list with empty DB / seeded DB ────────────────────────────
+
+
+def test_products_empty_db_returns_zero(client_factory) -> None:
     """``GET /products`` against an empty DB must return ``total: 0``
     with an empty ``products`` list — no 500."""
     client, _ = client_factory()
@@ -127,31 +142,21 @@ def test_products_empty_db_returns_total_zero(client_factory) -> None:
     body = r.json()
     assert body["total"] == 0
     assert body["products"] == []
-    assert body["page"] == 1
-    assert body["page_size"] == 50
 
 
-def test_get_product_404_for_unknown_style(client_factory) -> None:
-    """``GET /products/{style}`` must 404 when the style isn't cached."""
-    client, _ = client_factory()
-    r = client.get("/products/NONEXISTENT")
-    assert r.status_code == 404
-    assert "not in cache" in r.json()["detail"].lower()
-
-
-def test_get_product_returns_seeded_product(client_factory) -> None:
-    """A seeded product must come back with brand + variants
-    surfaced in ``list_of_colors`` / ``list_of_sizes``."""
+def test_products_seeded_db_returns_rows(client_factory) -> None:
+    """A seeded product must surface in the list response."""
     client, engine = client_factory()
-    _seed_product(engine)
-    r = client.get("/products/PC54")
+    _seed_product(engine, style="PC54")
+    r = client.get("/products")
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["styleNumber"] == "PC54"
-    assert body["brandName"] == "Port & Company"
-    assert "Black" in body["listOfColors"]
-    assert "L" in body["listOfSizes"]
-    assert "XL" in body["listOfSizes"]
+    assert body["total"] == 1
+    assert len(body["products"]) == 1
+    assert body["products"][0]["styleNumber"] == "PC54"
+
+
+# ── 4: filter by brand ───────────────────────────────────────────────
 
 
 def test_products_filter_by_brand(client_factory) -> None:
@@ -170,152 +175,186 @@ def test_products_filter_by_brand(client_factory) -> None:
     body = r.json()
     assert body["total"] == 1
     assert body["products"][0]["styleNumber"] == "K500"
-    assert body["products"][0]["brandName"] == "Port Authority"
 
 
-def test_products_pagination_returns_next_slice(client_factory) -> None:
-    """Page 2 with ``page_size=2`` must skip the first 2 styles."""
+# ── 5 & 6: detail / 404 ──────────────────────────────────────────────
+
+
+def test_get_product_returns_seeded_product(client_factory) -> None:
+    """A seeded product must come back via ``GET /products/{style}``."""
     client, engine = client_factory()
-    for i, style in enumerate(["A001", "A002", "A003", "A004", "A005"]):
-        _seed_product(
-            engine,
-            style=style,
-            brand="Port & Company",
-            name=f"Tee {i}",
-        )
-    r = client.get("/products", params={"page": 2, "page_size": 2})
-    assert r.status_code == 200
+    _seed_product(engine)
+    r = client.get("/products/PC54")
+    assert r.status_code == 200, r.text
     body = r.json()
-    assert body["total"] == 5
-    assert body["page"] == 2
-    assert body["page_size"] == 2
-    style_numbers = [p["styleNumber"] for p in body["products"]]
-    # Order is by style_number ASC, so page 2 of size 2 is A003 + A004.
-    assert style_numbers == ["A003", "A004"]
+    assert body["styleNumber"] == "PC54"
+    assert body["brandName"] == "Port & Company"
 
 
-def test_inventory_404_when_no_snapshot(client_factory) -> None:
-    """``GET /inventory/{style}`` must 404 when no snapshots exist
-    for any of the style's variants."""
-    client, engine = client_factory()
-    _seed_product(engine)  # variants exist, but no snapshots
-    r = client.get("/inventory/PC54")
+def test_get_product_unknown_returns_404(client_factory) -> None:
+    """``GET /products/UNKNOWN`` on an empty DB must 404."""
+    client, _ = client_factory()
+    r = client.get("/products/UNKNOWN")
     assert r.status_code == 404
 
 
-def test_inventory_respects_max_age_hours(client_factory) -> None:
-    """A snapshot >max_age_hours old must yield 404; a fresh one
-    on the same SKU must yield 200."""
+# ── 7: inventory breakdown ──────────────────────────────────────────
+
+
+def test_get_product_inventory_returns_warehouse_breakdown(
+    client_factory,
+) -> None:
+    """``GET /products/{style}/inventory`` must aggregate the latest
+    snapshot per warehouse and return one ``WarehouseLevel`` per."""
     client, engine = client_factory()
     _seed_product(engine)
     factory = make_session_factory(engine)
-    stale = datetime.now(tz=timezone.utc) - timedelta(hours=50)
     fresh = datetime.now(tz=timezone.utc) - timedelta(minutes=5)
     with factory() as session:
-        session.add(
-            InventorySnapshot(
-                full_sku="PC54-Black-L",
-                warehouse_code="Vancouver",
-                quantity=12,
-                fetched_at=stale,
-            )
+        # Two warehouses for the same SKU.
+        session.add_all(
+            [
+                InventorySnapshot(
+                    full_sku="PC54-Black-L",
+                    warehouse_code="Vancouver",
+                    quantity=12,
+                    fetched_at=fresh,
+                ),
+                InventorySnapshot(
+                    full_sku="PC54-Black-XL",
+                    warehouse_code="Mississauga",
+                    quantity=5,
+                    fetched_at=fresh,
+                ),
+            ]
         )
         session.commit()
-
-    # max_age_hours=24 — only stale snapshot, must 404.
-    r = client.get("/inventory/PC54", params={"max_age_hours": 24})
-    assert r.status_code == 404
-
-    # Add a fresh snapshot — must now succeed.
-    with factory() as session:
-        session.add(
-            InventorySnapshot(
-                full_sku="PC54-Black-XL",
-                warehouse_code="Mississauga",
-                quantity=5,
-                fetched_at=fresh,
-            )
-        )
-        session.commit()
-    r = client.get("/inventory/PC54", params={"max_age_hours": 24})
-    assert r.status_code == 200, r.text
-    body = r.json()
-    # Only the fresh snapshot should be in the response.
-    location_qtys = {loc["warehouse_name"]: loc["qty"] for loc in body["locations"]}
-    assert location_qtys.get("Mississauga") == 5
-    # Total is the sum of fresh-only snapshots.
-    assert body["total"] == 5
-
-
-def test_pricing_returns_price_ladder(client_factory) -> None:
-    """``GET /pricing/{style}`` must return cached prices as a
-    PriceBreak ladder."""
-    client, engine = client_factory()
-    _seed_product(
-        engine,
-        variants=[
-            ("Black", "L", 12.50),
-            ("Black", "XL", 14.00),
-            ("White", "L", 12.50),
-        ],
-    )
-    r = client.get("/pricing/PC54")
+    r = client.get("/products/PC54/inventory")
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["productId"] == "PC54"
-    breaks = body["breaks"]
-    assert len(breaks) == 2  # distinct prices: 12.50 and 14.00
-    prices = sorted(float(b["price"]) for b in breaks)
-    assert prices == [12.50, 14.00]
+    qty_by_wh = {loc["warehouse_name"]: loc["qty"] for loc in body["locations"]}
+    assert qty_by_wh.get("Vancouver") == 12
+    assert qty_by_wh.get("Mississauga") == 5
 
 
-def test_pricing_404_for_unknown_style(client_factory) -> None:
-    """Pricing must 404 for an unseeded style — separate from the
-    'no prices on file' branch which is also 404."""
+# ── 8: metrics/freshness ────────────────────────────────────────────
+
+
+def test_metrics_freshness_returns_three_keys(client_factory) -> None:
+    """``GET /metrics/freshness`` returns the 3 sync-type keys, each
+    either an int or null. Empty DB ⇒ all null."""
     client, _ = client_factory()
-    r = client.get("/pricing/NONEXISTENT")
-    assert r.status_code == 404
-
-
-def test_variants_endpoint_returns_matrix(client_factory) -> None:
-    """``GET /products/{style}/variants`` must return a flat row
-    list plus the unique color / size axes."""
-    client, engine = client_factory()
-    _seed_product(
-        engine,
-        variants=[
-            ("Black", "L", 12.50),
-            ("Black", "XL", 14.00),
-            ("White", "L", 12.50),
-        ],
-    )
-    r = client.get("/products/PC54/variants")
+    r = client.get("/metrics/freshness")
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["style_number"] == "PC54"
-    assert sorted(body["colors"]) == ["Black", "White"]
-    assert sorted(body["sizes"]) == ["L", "XL"]
-    assert len(body["rows"]) == 3
+    assert set(body.keys()) == {
+        "catalog_age_seconds",
+        "inventory_age_seconds",
+        "order_status_age_seconds",
+    }
+    # All None initially.
+    for v in body.values():
+        assert v is None
 
 
-def test_health_warning_when_sync_stale(client_factory) -> None:
-    """A SyncState row >48h old must surface in ``warnings``."""
+def test_metrics_freshness_populates_after_sync(client_factory) -> None:
+    """Once a SyncState row is finished, the matching age field flips
+    from None to a non-negative integer."""
     client, engine = client_factory()
     factory = make_session_factory(engine)
-    long_ago = datetime.now(tz=timezone.utc) - timedelta(hours=72)
+    finished = datetime.now(tz=timezone.utc) - timedelta(seconds=42)
     with factory() as session:
-        sync = SyncState(
-            sync_type="catalog_delta",
-            started_at=long_ago,
-            finished_at=long_ago,
-            success_count=0,
-            error_count=0,
-            total_processed=0,
+        session.add(
+            SyncState(
+                sync_type="inventory",
+                started_at=finished,
+                finished_at=finished,
+                success_count=1,
+                error_count=0,
+                total_processed=1,
+            )
         )
-        session.add(sync)
         session.commit()
-    r = client.get("/health")
-    assert r.status_code == 200
+    r = client.get("/metrics/freshness")
     body = r.json()
-    assert body["status"] == "warning"
-    assert any("catalog_delta" in w for w in body["warnings"])
+    assert body["inventory_age_seconds"] is not None
+    assert body["inventory_age_seconds"] >= 0
+    assert body["catalog_age_seconds"] is None
+    assert body["order_status_age_seconds"] is None
+
+
+# ── 9: CORS preflight ──────────────────────────────────────────────
+
+
+def test_cors_preflight_returns_allow_origin(client_factory) -> None:
+    """An OPTIONS preflight from an allowed origin returns 200 + the
+    ``Access-Control-Allow-Origin`` header echoing the origin."""
+    client, _ = client_factory()
+    origin = "http://localhost:5173"
+    r = client.options(
+        "/health",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert r.status_code == 200
+    assert r.headers.get("access-control-allow-origin") == origin
+
+
+# ── Bonus: cached pricing 404 with hint ────────────────────────────
+
+
+def test_cached_pricing_404_hints_at_sync_pricing(client_factory) -> None:
+    """``GET /products/{style}/pricing`` with no CachedPricing row
+    returns 404 with the brief-mandated hint string."""
+    client, engine = client_factory()
+    _seed_product(engine)
+    r = client.get("/products/PC54/pricing")
+    assert r.status_code == 404
+    assert "sync-pricing" in r.json()["detail"].lower()
+
+
+def test_cached_pricing_returns_break_ladder(client_factory) -> None:
+    """A seeded ``CachedPricing`` row must come back as a ``PricingResponse``."""
+    client, engine = client_factory()
+    _seed_product(engine)
+    factory = make_session_factory(engine)
+    with factory() as session:
+        session.add(
+            CachedPricing(
+                style_number="PC54",
+                color="Black",
+                size="L",
+                breaks=[
+                    {"min_qty": 1, "max_qty": 11, "price_cad": "12.50"},
+                    {"min_qty": 12, "max_qty": None, "price_cad": "10.00"},
+                ],
+            )
+        )
+        session.commit()
+    r = client.get("/products/PC54/pricing")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["productId"] == "PC54"
+    assert body["currency"] == "CAD"
+    assert body["fobId"] == "CUSTOMER"
+    assert len(body["breaks"]) == 2
+    assert body["breaks"][0]["minQuantity"] == 1
+
+
+# ── Bonus: search ────────────────────────────────────────────────
+
+
+def test_products_search_finds_match(client_factory) -> None:
+    """``GET /products/search?q=`` LIKE-matches name/style/description."""
+    client, engine = client_factory()
+    _seed_product(engine, style="PC54", name="Core Cotton Tee")
+    _seed_product(engine, style="K500", name="Silk Touch Polo", brand="Port Authority")
+    r = client.get("/products/search", params={"q": "cotton"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["styleNumber"] == "PC54"

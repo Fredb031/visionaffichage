@@ -1,18 +1,19 @@
 """FastAPI application — read-only HTTP front door for the SQLite cache.
 
-Wires up routers (``products``, ``inventory``, ``pricing``, ``health``),
-permissive CORS for the Vision Affichage front-end + Vercel preview
-domains, GZip compression, and a lifespan hook that resolves
-:func:`sanmar.config.get_settings` once and opens a single SQLAlchemy
-engine for the lifetime of the process.
+Wires up routers (``products``, ``inventory``, ``pricing``, ``health``,
+``metrics``), CORS for the storefront origin (config-driven via the
+``SANMAR_API_CORS_ORIGINS`` env var), GZip compression, and a lifespan
+hook that resolves :func:`sanmar.config.get_settings` once and opens a
+single SQLAlchemy engine for the lifetime of the process.
 
 The engine is exposed via the :func:`get_engine` dependency so route
-handlers don't import :mod:`sanmar.db` directly — tests can override
-the dependency to point at an in-memory SQLite via FastAPI's
+handlers don't import :mod:`sanmar.db` directly — tests override the
+dependency to point at an in-memory SQLite via FastAPI's
 ``app.dependency_overrides``.
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -24,14 +25,29 @@ from sqlalchemy.engine import Engine
 from sanmar.config import get_settings
 from sanmar.db import init_schema, make_engine
 
-# Static CORS allowlist for Vision Affichage front-end + local dev.
-# Vercel preview deployments use ``*.vercel.app`` subdomains so we add
-# a regex matcher for those alongside the explicit list.
-ALLOWED_ORIGINS: list[str] = [
+# Static fallback CORS allowlist when ``SANMAR_API_CORS_ORIGINS`` isn't
+# set. Covers the Vision Affichage front-end + local Vite dev. Vercel
+# preview deployments are matched via the regex below.
+DEFAULT_ALLOWED_ORIGINS: list[str] = [
     "http://localhost:5173",
     "https://visionaffichage.com",
 ]
 ALLOWED_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"
+
+
+def _resolve_cors_origins() -> list[str]:
+    """Parse ``SANMAR_API_CORS_ORIGINS`` (comma-separated) → list.
+
+    A literal ``*`` in the env var is honoured; otherwise origins are
+    split on commas and stripped. Missing / empty env → fall back to
+    :data:`DEFAULT_ALLOWED_ORIGINS`.
+    """
+    raw = os.getenv("SANMAR_API_CORS_ORIGINS", "").strip()
+    if not raw:
+        return DEFAULT_ALLOWED_ORIGINS
+    if raw == "*":
+        return ["*"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 def _build_engine() -> Engine:
@@ -80,36 +96,43 @@ def create_app() -> FastAPI:
     :data:`app` singleton.
     """
     application = FastAPI(
-        title="SanMar Read-Only API",
+        title="SanMar Local Cache API",
         description=(
             "Read-only HTTP API serving product / inventory / pricing "
             "data from the local SanMar SQLite cache. Phase 10 of the "
             "SanMar Python integration."
         ),
-        version="0.10.0",
+        version="0.1.0",
         lifespan=lifespan,
     )
 
+    origins = _resolve_cors_origins()
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=ALLOWED_ORIGINS,
-        allow_origin_regex=ALLOWED_ORIGIN_REGEX,
-        allow_credentials=False,
-        allow_methods=["GET"],
+        allow_origins=origins,
+        # Only attach the Vercel-preview regex when we're not running
+        # in fully-permissive mode — combining ``*`` with a regex
+        # confuses Starlette's preflight handler.
+        allow_origin_regex=ALLOWED_ORIGIN_REGEX if origins != ["*"] else None,
+        allow_credentials=False,  # read-only — no cookies needed
+        allow_methods=["GET", "OPTIONS"],
         allow_headers=["*"],
     )
     application.add_middleware(GZipMiddleware, minimum_size=500)
 
-    # Routes are imported here (not at module top) so the linter can't
-    # detect the import order via static analysis and rearrange.
+    # Routes are imported here (not at module top) so the import graph
+    # forms inside the factory rather than at module load time — that
+    # keeps test apps insulated from the prod app.state.engine.
     from sanmar.api.routes import health as health_routes
     from sanmar.api.routes import inventory as inventory_routes
+    from sanmar.api.routes import metrics as metrics_routes
     from sanmar.api.routes import pricing as pricing_routes
     from sanmar.api.routes import products as products_routes
 
     application.include_router(products_routes.router)
     application.include_router(inventory_routes.router)
     application.include_router(pricing_routes.router)
+    application.include_router(metrics_routes.router)
     application.include_router(health_routes.router)
 
     return application

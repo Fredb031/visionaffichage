@@ -69,11 +69,20 @@ class _TTLCache:
 
 
 def _request_cache_key(request: Request) -> str:
-    """Build a stable cache key from path + sorted query string."""
+    """Build a stable cache key from path + sorted query string + app id.
+
+    The ``app id`` slice is what keeps tests isolated — each test
+    constructs a fresh FastAPI app via ``create_app()`` so the same
+    ``GET /products`` URL maps to a different cache entry per test.
+    Without this, the empty-DB response from test #2 would be served
+    back to test #3 on a different engine.
+    """
     path = request.url.path
     items = sorted(request.query_params.multi_items())
     qs = "&".join(f"{k}={v}" for k, v in items)
-    return f"{path}?{qs}" if qs else path
+    app_id = id(request.app)
+    base = f"{path}?{qs}" if qs else path
+    return f"{app_id}:{base}"
 
 
 def cache_response(
