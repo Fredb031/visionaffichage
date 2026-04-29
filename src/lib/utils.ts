@@ -116,7 +116,12 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   return debounced;
 }
 
-/** Clamp `n` to the inclusive [min, max] range. */
+/** Clamp `n` to the inclusive [min, max] range. NaN inputs collapse to
+ *  `min` so a corrupted upstream value (parseInt('') → NaN, division by
+ *  zero on a tier breakpoint, an empty input mid-edit) can't propagate
+ *  silently — Math.max(min, Math.min(max, NaN)) returns NaN, which
+ *  poisons every downstream `*` / `+` and surfaces as "NaN" in the UI. */
 export function clamp(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, n));
 }
