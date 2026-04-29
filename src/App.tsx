@@ -62,6 +62,13 @@ const AdminClients = lazy(() => import("./pages/admin/AdminClients"));
 const AdminPortals = lazy(() => import("./pages/admin/AdminPortals"));
 const AdminChatLogs = lazy(() => import("./pages/admin/AdminChatLogs"));
 const AdminLoyalty = lazy(() => import("./pages/admin/AdminLoyalty"));
+// SanMar Canada operator console (Step 4 of the SanMar integration).
+// Lazy because only `admin` / `president` reach it and the page pulls
+// the sanmarClient wrapper + sanmar_catalog/sanmar_sync_log Supabase
+// queries — no point bundling those into the home hot path. The page
+// gracefully renders a soft empty state when VITE_SANMAR_NEXT_GEN is
+// off so flipping the gate doesn't brick the route.
+const AdminSanMar = lazy(() => import("./pages/admin/AdminSanMar"));
 
 // Vendor (lazy)
 const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(m => ({ default: m.VendorLayout })));
@@ -272,6 +279,17 @@ const AnimatedRoutes = () => {
               }
             />
             <Route path="capacity" element={<AdminCapacity />} />
+            {/* SanMar Canada operator console (Step 4). Gated on
+                `sanmar:read`, which both `admin` and `president`
+                inherit via the spread in ROLE_PERMISSIONS. */}
+            <Route
+              path="sanmar"
+              element={
+                <RequirePermission permission="sanmar:read">
+                  <AdminSanMar />
+                </RequirePermission>
+              }
+            />
             <Route path="customers" element={<AdminCustomers />} />
             {/* Volume II §22 expansion routes. Sit inside the existing
                 AuthGuard requiredRole="admin" + AdminLayout shell so

@@ -26,7 +26,8 @@ export type Permission =
   | 'images:read' | 'images:write'
   | 'automations:read' | 'automations:write'
   | 'users:read' | 'users:write'
-  | 'billing:read' | 'billing:write';
+  | 'billing:read' | 'billing:write'
+  | 'sanmar:read' | 'sanmar:write';
 
 export type Role = 'president' | 'admin' | 'salesman' | 'vendor' | 'client';
 
@@ -49,6 +50,7 @@ export const ALL_PERMISSIONS: readonly Permission[] = Object.freeze<Permission[]
   'automations:read', 'automations:write',
   'users:read', 'users:write',
   'billing:read', 'billing:write',
+  'sanmar:read', 'sanmar:write',
 ]);
 
 export const ROLE_LABEL: Record<Role, string> = {

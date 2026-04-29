@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard, Sun, Moon, Monitor, Building2, MessageSquare, Trophy, UsersRound } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard, Sun, Moon, Monitor, Building2, MessageSquare, Trophy, UsersRound, Shirt } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -178,6 +178,11 @@ const NAV_ITEMS: Array<{
   { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag, badge: 'pendingFulfillment', roles: ['admin', 'salesman', 'president'] },
   { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart, roles: ['admin', 'salesman', 'president'] },
   { to: '/admin/products', label: 'Produits', icon: Package, roles: ['admin', 'president'] },
+  // SanMar Canada operator console (Step 4 of the SanMar integration).
+  // Gated to admin/president via the same RBAC the route check enforces;
+  // the lock-icon fallback in the sidebar render path covers users who
+  // bypass the role gate via direct URL.
+  { to: '/admin/sanmar', label: 'SanMar', icon: Shirt, roles: ['admin', 'president'] },
   { to: '/admin/customers', label: 'Clients', icon: UserCircle, roles: ['admin', 'salesman', 'president'] },
   // Volume II §22 — B2B-aware client roster (entreprise, LTV, niveau
   // de fidélité). Sits next to "Clients" so the operator can pivot
