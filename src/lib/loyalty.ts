@@ -66,8 +66,15 @@ function readAccount(): LoyaltyAccount {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT };
     const parsed = JSON.parse(raw) as Partial<LoyaltyAccount>;
-    const points = typeof parsed.points === 'number' && parsed.points >= 0 ? parsed.points : 0;
-    const lifetime = typeof parsed.lifetime === 'number' && parsed.lifetime >= 0 ? parsed.lifetime : 0;
+    // Number.isFinite rejects NaN AND ±Infinity. The bare `>= 0` guard
+    // accepted Infinity (since `Infinity >= 0` is true and typeof is
+    // 'number'), which would render as "Infinity pts" in LoyaltyCard
+    // and then poison every subsequent awardPoints since
+    // `Infinity + amount` stays Infinity. Force a finite bound here so
+    // a corrupted blob falls back to 0 instead of locking the account
+    // into an unfixable infinite balance.
+    const points = typeof parsed.points === 'number' && Number.isFinite(parsed.points) && parsed.points >= 0 ? parsed.points : 0;
+    const lifetime = typeof parsed.lifetime === 'number' && Number.isFinite(parsed.lifetime) && parsed.lifetime >= 0 ? parsed.lifetime : 0;
     // Tier is derived from lifetime; never trust a stale value on disk.
     return { points, lifetime, tier: tierOf(lifetime) };
   } catch {
