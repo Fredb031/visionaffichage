@@ -161,5 +161,11 @@ export function loadDeliverySpeed(): DeliverySpeedId {
 export function getDeliverySurcharge(speedId: DeliverySpeedId, subtotal: number): number {
   const opt = DELIVERY_OPTIONS.find(o => o.id === speedId);
   if (!opt) return 0;
-  return Math.max(0, subtotal) * opt.surcharge;
+  // Mirror the picker's inline `safeSubtotal` clamp so a non-finite
+  // subtotal (NaN/Infinity from a mid-edit empty qty input or a
+  // pricing tier divide-by-zero) doesn't propagate as Math.max(0, NaN)
+  // === NaN into the cart total — the displayed picker line and the
+  // computed cart surcharge would otherwise diverge silently.
+  const safe = Number.isFinite(subtotal) ? Math.max(0, subtotal) : 0;
+  return safe * opt.surcharge;
 }
