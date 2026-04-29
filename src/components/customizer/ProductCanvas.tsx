@@ -564,11 +564,11 @@ export function ProductCanvas({
       // creation. fabric.Object.prototype is global state, so setting
       // it inside this once-per-mount init effect is fine — repeated
       // canvasKey rebuilds re-assign identical values, no leak.
-      fabric.Object.prototype.cornerColor = '#0052CC';
+      fabric.Object.prototype.cornerColor = '#0047CC';
       fabric.Object.prototype.cornerStyle = 'circle';
       fabric.Object.prototype.cornerSize = 12;
       fabric.Object.prototype.transparentCorners = false;
-      fabric.Object.prototype.borderColor = '#0052CC';
+      fabric.Object.prototype.borderColor = '#0047CC';
       fabric.Object.prototype.borderDashArray = [4, 4];
 
       const W = containerRef.current!.clientWidth || 360;
@@ -724,7 +724,7 @@ export function ProductCanvas({
       // ── Photoshop-style alignment guides + snap-to-center ───────────────
       const SNAP_TOLERANCE = 8; // pixels
       const guideX = new fabric.Line([W / 2, 0, W / 2, H], {
-        stroke: '#0052CC',
+        stroke: '#0047CC',
         strokeWidth: 1,
         strokeDashArray: [4, 4],
         selectable: false,
@@ -733,7 +733,7 @@ export function ProductCanvas({
         excludeFromExport: true,
       });
       const guideY = new fabric.Line([0, H / 2, W, H / 2], {
-        stroke: '#0052CC',
+        stroke: '#0047CC',
         strokeWidth: 1,
         strokeDashArray: [4, 4],
         selectable: false,
@@ -924,7 +924,7 @@ export function ProductCanvas({
           hasControls: true,
           lockUniScaling: true,
           cornerStyle: 'circle', cornerSize: 10,
-          cornerColor: '#0052CC', borderColor: '#0052CC',
+          cornerColor: '#0047CC', borderColor: '#0047CC',
           cornerStrokeColor: '#FFFFFF',
           borderScaleFactor: 1.5,
           transparentCorners: false,
@@ -1017,7 +1017,7 @@ export function ProductCanvas({
             hasControls: showPlacementTools,
             hasBorders:  showPlacementTools,
             cornerStyle: 'circle', cornerSize: 10,
-            cornerColor: '#0052CC', borderColor: '#0052CC',
+            cornerColor: '#0047CC', borderColor: '#0047CC',
             cornerStrokeColor: '#FFFFFF',
             borderScaleFactor: 1.5, transparentCorners: false,
             // Expand the hit area by 8px on every side so small logos
@@ -1315,7 +1315,7 @@ export function ProductCanvas({
         hasControls: true,
         lockUniScaling: true,
         cornerStyle: 'circle', cornerSize: 10,
-        cornerColor: '#0052CC', borderColor: '#0052CC',
+        cornerColor: '#0047CC', borderColor: '#0047CC',
         cornerStrokeColor: '#FFFFFF',
         borderScaleFactor: 1.5,
         transparentCorners: false,
@@ -1658,10 +1658,10 @@ export function ProductCanvas({
             aria-hidden="true"
           >
             <div className="relative w-12 h-12">
-              <div className="absolute inset-0 rounded-full bg-[#0052CC]/20 animate-ping" />
-              <div className="absolute inset-[30%] rounded-full bg-[#0052CC] shadow-[0_0_0_3px_rgba(255,255,255,0.9)]" />
-              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[#0052CC]/60" />
-              <div className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-[#0052CC]/60" />
+              <div className="absolute inset-0 rounded-full bg-va-blue/20 animate-ping" />
+              <div className="absolute inset-[30%] rounded-full bg-va-blue shadow-[0_0_0_3px_rgba(255,255,255,0.9)]" />
+              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-va-blue/60" />
+              <div className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-va-blue/60" />
             </div>
           </div>
         )}

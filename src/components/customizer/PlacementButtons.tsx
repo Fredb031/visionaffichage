@@ -54,8 +54,8 @@ interface PlacementButtonProps {
 function PlacementButton({ preset, active, onClick }: PlacementButtonProps) {
   const Icon = ICON_MAP[preset.icon] ?? AlignCenter;
   const stateClass = active
-    ? 'border-[#0052CC] bg-[#EBF2FF] text-[#0052CC] ring-2 ring-[#0052CC]/30'
-    : 'border-[#E5E7EB] bg-white text-[#374151] hover:border-[#0052CC]/40';
+    ? 'border-va-blue bg-va-blue-tint text-va-blue ring-2 ring-va-blue/30'
+    : 'border-va-line bg-white text-va-dim hover:border-va-blue/40 hover:text-va-dim';
   // Compose a screen-reader label so the button announces the placement
   // name AND any surcharge in one breath (default aria-label fallback
   // would only read the button's text content, omitting state).
@@ -68,7 +68,7 @@ function PlacementButton({ preset, active, onClick }: PlacementButtonProps) {
       onClick={onClick}
       aria-pressed={active}
       aria-label={srLabel}
-      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${stateClass}`}
+      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1 ${stateClass}`}
     >
       <Icon className="w-5 h-5" aria-hidden="true" />
       <span className="text-xs font-medium leading-tight text-center">{preset.label}</span>
@@ -125,7 +125,7 @@ export function PlacementButtons({
 
       {front.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <div id={frontLabelId} className="text-[11px] font-semibold text-[#374151]">Devant</div>
+          <div id={frontLabelId} className="text-[11px] font-semibold text-va-dim">Devant</div>
           <div role="group" aria-labelledby={frontLabelId} className="grid grid-cols-2 gap-2">
             {front.map(preset => (
               <PlacementButton
@@ -141,10 +141,10 @@ export function PlacementButtons({
 
       {back.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <div id={backLabelId} className="text-[11px] font-semibold text-[#374151] flex items-center gap-1.5">
+          <div id={backLabelId} className="text-[11px] font-semibold text-va-dim flex items-center gap-1.5">
             <span>Dos</span>
             {backSurcharge > 0 ? (
-              <span className="text-[10px] font-bold text-[#0052CC] bg-[#EBF2FF] px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-va-blue bg-va-blue-tint px-1.5 py-0.5 rounded-full">
                 +{backSurcharge}$/pce
               </span>
             ) : null}
@@ -162,7 +162,7 @@ export function PlacementButtons({
         </div>
       ) : null}
 
-      <p className="text-brand-grey/60 text-[10px] text-center border-t border-[#E5E7EB] pt-2">
+      <p className="text-brand-grey/60 text-[10px] text-center border-t border-va-line pt-2">
         Tu peux aussi glisser le logo directement sur l'image
       </p>
     </div>

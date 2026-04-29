@@ -107,7 +107,7 @@ export function OrderSummary({
           type="button"
           onClick={onEdit}
           aria-label="Modifier le placement du logo"
-          className="mt-3 text-[#0052CC] text-sm font-semibold hover:text-[#003D99] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+          className="mt-3 text-va-blue text-sm font-semibold hover:text-va-blue-hover underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1 rounded"
         >
           Modifier le placement
         </button>
@@ -181,12 +181,12 @@ export function OrderSummary({
         </div>
         <div className="border-t border-[#E5E7EB] pt-2 flex justify-between items-baseline">
           <span className="text-sm font-semibold text-[#0A0A0A]">Total</span>
-          <span className="text-[#0052CC] text-xl font-bold">{formatCAD(totals.total)}</span>
+          <span className="text-va-blue text-xl font-bold">{formatCAD(totals.total)}</span>
         </div>
       </div>
 
       {/* Reassurance note ─────────────────────────────────────────────── */}
-      <div className="bg-[#EBF2FF] border border-[#0052CC]/30 rounded-xl p-4 text-xs text-[#0A0A0A] leading-relaxed">
+      <div className="bg-va-blue-tint border border-va-blue/30 rounded-xl p-4 text-xs text-va-ink leading-relaxed">
         Notre équipe va positionner ton logo selon les standards de l'industrie
         et te confirmer la maquette finale par courriel avant la production.
       </div>
@@ -201,8 +201,8 @@ export function OrderSummary({
         aria-label={isAdding ? (lang === 'en' ? 'Adding to cart' : 'Ajout au panier en cours') : ctaLabel}
         className={`w-full py-5 rounded-2xl font-semibold text-white transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
           disabled
-            ? 'bg-[#0052CC] opacity-40 cursor-not-allowed'
-            : 'bg-[#0052CC] hover:bg-[#003D99] shadow-md hover:shadow-lg'
+            ? 'bg-va-blue opacity-40 cursor-not-allowed'
+            : 'bg-va-blue hover:bg-va-blue-hover shadow-md hover:shadow-lg'
         }`}
       >
         {isAdding ? (

@@ -1492,7 +1492,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               aria-label={lang === 'en'
                 ? 'Real preview, what you see is what you get'
                 : 'Aperçu réaliste, ce que vous voyez est ce que vous recevez'}
-              className="pointer-events-none absolute top-3 left-3 sm:left-auto sm:right-3 z-10 rounded-full bg-white/92 backdrop-blur-sm px-3 py-1.5 text-[10px] font-medium text-[#374151] shadow-sm border border-[#E5E7EB] max-w-[60%] sm:max-w-none truncate"
+              className="pointer-events-none absolute top-3 left-3 sm:left-auto sm:right-3 z-10 rounded-full bg-white/92 backdrop-blur-sm px-3 py-1.5 text-[10px] font-medium text-va-dim shadow-sm border border-va-line max-w-[60%] sm:max-w-none truncate"
             >
               {lang === 'en'
                 ? 'Real preview · what you see = what you get'
@@ -1506,15 +1506,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 operator's voice telling them it's fine. flex-shrink-0
                 on the wrapper anchors a stable height so the banner
                 doesn't reflow when fonts swap on first paint. */}
-            <div className="bg-[#EBF2FF] border border-[#0052CC]/25 rounded-2xl p-4 flex items-start gap-3 mt-4 flex-shrink-0">
-              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5 leading-none" aria-hidden="true">✦</span>
+            <div className="bg-va-blue-tint border border-va-blue/25 rounded-2xl p-4 flex items-start gap-3 mt-4 flex-shrink-0">
+              <span className="text-va-blue text-xl flex-shrink-0 mt-0.5 leading-none" aria-hidden="true">✦</span>
               <div>
-                <p className="font-semibold text-[#0052CC] text-sm">
+                <p className="font-semibold text-va-blue text-sm">
                   {lang === 'en'
                     ? "No need to be perfect."
                     : "Pas besoin d'être parfait."}
                 </p>
-                <p className="text-[#0052CC]/70 text-xs mt-0.5 leading-relaxed">
+                <p className="text-va-blue/70 text-xs mt-0.5 leading-relaxed">
                   {lang === 'en'
                     ? 'Place your logo roughly — our team will reposition it to industry standards before printing. You can trust us.'
                     : "Place ton logo approximativement — notre équipe le repositionne selon les standards de l'industrie avant l'impression. Tu peux nous faire confiance."}
@@ -1804,7 +1804,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         onMouseLeave={() => setPreviewCenter(false)}
                         onFocus={() => setPreviewCenter(true)}
                         onBlur={() => setPreviewCenter(false)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-va-blue to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
                       >
                         <span aria-hidden="true">⊕</span>
                         {lang === 'en' ? 'Auto-center on garment' : 'Auto-centrer sur le vêtement'}
@@ -2281,7 +2281,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <button
                       type="button"
                       onClick={handleEnterReview}
-                      className="w-full mt-2 py-3.5 rounded-2xl bg-[#0052CC] text-white font-bold hover:bg-[#003D99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                      className="w-full mt-2 py-3.5 rounded-2xl bg-va-blue text-white font-bold hover:bg-va-blue-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                     >
                       {lang === 'en' ? 'Review my order →' : 'Revoir ma commande →'}
                     </button>
