@@ -239,3 +239,130 @@ multi-URL splitting, the media-password override, every forbidden-char
 field, both postal-code formats, carrier normalization, the
 `SendPOResponse` wrapper, the `SubmitPOOrderResponse` fallback,
 `queryType=3` rejection, and `Fault → SanmarApiError` mapping.
+
+## Phase 5 — Shipment + Invoice + Bulk Data + Orchestrator
+
+Phase 5 closes out the SanMar SOAP surface area and ships a
+high-level facade so cron jobs and the eventual Streamlit ops
+dashboard don't have to wire eight services together themselves.
+
+### Order Shipment Notification v2.0.0
+
+`sanmar/services/shipment.py` —
+`ShipmentService.get_shipment_notifications(po_number=..., customer_po=...,
+since=...)` returns a `list[ShipmentNotification]`. Two query modes:
+
+- `queryType=1` — by PO / customer PO (single-shipment lookup).
+- `queryType=2` — by date range (catch-up after an outage).
+
+`get_tracking_info(po_number)` is a convenience wrapper that filters
+the same response down to tracking-only fields (`po_number`, `carrier`,
+`tracking_number`, `ship_date`) — useful for shipping-confirmation
+emails where you don't want to leak line-item details. Empty responses
+yield an empty list, never a crash.
+
+### Invoice Service v1.0.0
+
+`sanmar/services/invoice.py` — `InvoiceService.get_invoice(
+invoice_number)` and `.get_open_invoices(since=...)`. Status is
+auto-derived (not trusting SanMar's `status` string, which is
+occasionally absent or stale):
+
+- `balance_due == 0`                              → `paid`
+- `balance_due > 0` and `due_date < today`        → `overdue`
+- `balance_due > 0` and `balance_due < total`     → `partial`
+- otherwise                                        → `open`
+
+Every monetary field is `Decimal` end-to-end. Tests assert
+`line_total == unit_price * quantity` for receipt-style invoices to
+catch any future float regression.
+
+### Bulk Data Service v1.0
+
+`sanmar/services/bulk_data.py` — for nightly catalog deltas. Walking
+`getProduct()` per active style across the SanMar Canada catalog
+(~16,630 styles) is wasteful when only a handful change per day; Bulk
+Data ships a delta endpoint that returns just the products / inventory
+snapshots that moved since the caller's checkpoint.
+
+- `get_product_data_delta(since)` →  `BulkDataResponse` (window +
+  `list[ProductResponse]`).
+- `get_inventory_delta(since)` → `BulkInventoryResponse` (window +
+  `list[InventoryResponse]`).
+
+Persist `window_end` as the next checkpoint so subsequent runs only
+ask SanMar for what changed since.
+
+### SanmarOrchestrator
+
+`sanmar/orchestrator.py` composes all eight SanMar services into one
+object plus four operator-facing workflows:
+
+- **`sync_catalog_full(session=None)`** — full walk via
+  `getAllActiveParts` + per-style `getProduct`. Slow (one HTTP per
+  style); use for cold starts or weekly reconciliation.
+- **`sync_catalog_delta(since, session=None)`** — fast incremental
+  refresh via `BulkDataService`. Returns the server-reported window
+  so the cron can persist the next checkpoint.
+- **`sync_inventory_for_active_skus(session)`** — pulls every distinct
+  style from the local `variants` table, fetches inventory once per
+  style (SanMar returns every warehouse / SKU permutation in one
+  call), and writes `InventorySnapshot` rows.
+- **`reconcile_open_orders(session, open_orders=[...])`** — for every
+  caller-supplied `{po_number, status_id}` row, calls
+  `getOrderStatus`; counts transitions and mutates the caller's dict
+  in-place so they can write back without re-querying.
+
+All four return small dataclasses with metrics (`success_count`,
+`error_count`, `duration_ms`, `errors: list[dict]`) — structured
+output for alerting and dashboards.
+
+### Nightly sync — recommended wiring
+
+```python
+from datetime import datetime, timezone
+
+from sanmar.config import get_settings
+from sanmar.db import make_engine, session_scope
+from sanmar.orchestrator import SanmarOrchestrator
+
+settings = get_settings()
+orch = SanmarOrchestrator(settings)
+engine = make_engine(settings.db_path)
+
+# Read last checkpoint; fall back to 24h ago.
+since = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0)
+
+with session_scope(engine) as session:
+    catalog = orch.sync_catalog_delta(since, session=session)
+    inventory = orch.sync_inventory_for_active_skus(session)
+    open_orders = [...]  # SELECT po_number, status_id FROM orders WHERE status_id < 80
+    recon = orch.reconcile_open_orders(session, open_orders=open_orders)
+
+# Persist `catalog.window_end` as the next checkpoint, ship metrics.
+```
+
+### Live smoke test
+
+```bash
+python -m scripts.test_shipment_invoice_bulk
+```
+
+Read-only — pulls last 30 days of shipment notifications, last 30
+days of open invoices, and yesterday's product delta (small window so
+the response stays manageable). Same placeholder-credentials safety
+as the earlier scripts.
+
+### Unit tests
+
+```bash
+pytest -q tests/test_shipment.py tests/test_invoice.py \
+        tests/test_bulk_data.py tests/test_orchestrator.py
+```
+
+Phase 5 adds 18 tests covering shipment parsing (single / multi /
+empty / Fault), invoice status derivation (paid / open / overdue /
+list), `Decimal` arithmetic preservation, bulk product + inventory
+delta parsing, the eight-service composition contract, the
+`sync_catalog_delta → persist_catalog` path, and order status
+transition detection (60 → 80).

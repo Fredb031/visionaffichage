@@ -6,7 +6,7 @@ them decoupled: a DTO change must not force a schema migration.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -297,3 +297,115 @@ class OrderStatusResponse(BaseModel):
     expected_ship_date: str = ""
     tracking_numbers: list[str] = Field(default_factory=list)
     raw_response: dict = Field(default_factory=dict)
+
+
+# ── Order Shipment Notification v2.0.0 ─────────────────────────────────
+
+
+class ShipmentNotification(BaseModel):
+    """Normalized projection of a ``getOrderShipmentNotification`` row.
+
+    SanMar emits one notification per shipment (a single PO can split
+    across multiple). ``packages`` defaults to 1 because SanMar
+    occasionally omits the count for single-carton shipments."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    shipment_id: str = ""
+    po_number: str = ""
+    customer_po: str = ""
+    ship_date: Optional[date] = None
+    carrier: str = ""
+    tracking_number: str = ""
+    ship_to_address: Optional[Address] = None
+    line_items: list[LineItem] = Field(default_factory=list)
+    weight_kg: Optional[Decimal] = None
+    packages: int = 1
+
+
+class TrackingInfo(BaseModel):
+    """Tracking-only projection — what an end-customer email needs."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    po_number: str = ""
+    tracking_number: str = ""
+    carrier: str = ""
+    ship_date: Optional[date] = None
+    expected_delivery_date: Optional[date] = None
+
+
+# ── Invoice Service v1.0.0 ─────────────────────────────────────────────
+
+
+class InvoiceLineItem(BaseModel):
+    """One product line on an invoice. ``line_total`` is *not* computed —
+    SanMar emits a discounted figure that may not equal
+    ``unit_price * quantity`` (volume break, promo). Tests assert the
+    arithmetic on receipts where the two should agree."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    style_number: str = ""
+    color: str = ""
+    size: str = ""
+    quantity: int = 0
+    unit_price: Decimal = Decimal("0")
+    line_total: Decimal = Decimal("0")
+
+
+class Invoice(BaseModel):
+    """Normalized projection of a ``getInvoice`` response.
+
+    Status is auto-derived in :class:`sanmar.services.invoice.
+    InvoiceService` from ``balance_due`` and ``due_date``:
+
+    - ``balance_due == 0`` → ``paid``
+    - ``balance_due > 0`` and ``due_date < today`` → ``overdue``
+    - ``balance_due > 0`` and ``balance_due < total`` → ``partial``
+    - otherwise → ``open``
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    invoice_number: str
+    po_number: str = ""
+    invoice_date: Optional[date] = None
+    due_date: Optional[date] = None
+    line_items: list[InvoiceLineItem] = Field(default_factory=list)
+    subtotal: Decimal = Decimal("0")
+    tax: Decimal = Decimal("0")
+    shipping: Decimal = Decimal("0")
+    total: Decimal = Decimal("0")
+    balance_due: Decimal = Decimal("0")
+    status: Literal["paid", "open", "overdue", "partial"] = "open"
+
+
+# ── Bulk Data Service v1.0 ─────────────────────────────────────────────
+
+
+class BulkDataResponse(BaseModel):
+    """Catalog delta over a window — every product changed since the
+    caller's checkpoint. ``window_end`` is the server-reported "as of"
+    time; persist it so the next nightly sync starts from there."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    window_start: datetime
+    window_end: datetime
+    total_changes: int = 0
+    products: list[ProductResponse] = Field(default_factory=list)
+
+
+class BulkInventoryResponse(BaseModel):
+    """Inventory snapshot for SKUs whose stock changed in the window.
+
+    Much faster than re-walking ``getInventoryLevels`` per active SKU
+    — SanMar returns only the SKUs whose stock moved."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    window_start: datetime
+    window_end: datetime
+    total_changes: int = 0
+    snapshots: list[InventoryResponse] = Field(default_factory=list)
