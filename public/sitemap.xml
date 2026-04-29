@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://visionaffichage.com/</loc>
     <lastmod>2026-04-29</lastmod>
@@ -113,120 +113,308 @@
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2500-Devant-Clean.jpg</image:loc>
+      <image:title>Hoodie — face avant / Hoodie — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2500-Dos-Clean.jpg</image:loc>
+      <image:title>Hoodie — face arrière / Hoodie — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atcy2500-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCY2500-Devant-Clean.jpg</image:loc>
+      <image:title>Hoodie Enfant — face avant / Hoodie Enfant — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCY2500-Dos-Clean.jpg</image:loc>
+      <image:title>Hoodie Enfant — face arrière / Hoodie Enfant — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atcf2600-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2600-Devant-Clean.jpg</image:loc>
+      <image:title>Hoodie Zip — face avant / Hoodie Zip — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2600-Dos-Clean.jpg</image:loc>
+      <image:title>Hoodie Zip — face arrière / Hoodie Zip — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atcf2400-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2400-Devant-Clean.jpg</image:loc>
+      <image:title>Crewneck — face avant / Crewneck — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATCF2400-Dos-Clean.jpg</image:loc>
+      <image:title>Crewneck — face arrière / Crewneck — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc1000</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-front-black.jpg</image:loc>
+      <image:title>T-Shirt — face avant / T-Shirt — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt — face arrière / T-Shirt — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc1000l</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000L-Devant-Clean.jpg</image:loc>
+      <image:title>T-Shirt Femme — face avant / T-Shirt Femme — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000L-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Femme — face arrière / T-Shirt Femme — back view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-front-black.jpg</image:loc>
+      <image:title>T-Shirt Femme Noir — face avant / T-Shirt Femme Black — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Femme Noir — face arrière / T-Shirt Femme Black — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc1000y-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCY1000-Devant.jpg?v=1770867607&amp;width=800</image:loc>
+      <image:title>T-Shirt Enfant — face avant / T-Shirt Enfant — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATCY1000-Dos.jpg?v=1770867606&amp;width=800</image:loc>
+      <image:title>T-Shirt Enfant — face arrière / T-Shirt Enfant — back view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-front-black.jpg</image:loc>
+      <image:title>T-Shirt Enfant Noir — face avant / T-Shirt Enfant Black — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Enfant Noir — face arrière / T-Shirt Enfant Black — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/werk250-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/WERK250-Devant-Clean.jpg</image:loc>
+      <image:title>T-Shirt Premium — face avant / T-Shirt Premium — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/WERK250-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Premium — face arrière / T-Shirt Premium — back view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-front-black.jpg</image:loc>
+      <image:title>T-Shirt Premium Noir — face avant / T-Shirt Premium Black — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Premium Noir — face arrière / T-Shirt Premium Black — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc1015</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1015-Devant-Clean.jpg</image:loc>
+      <image:title>Manches Longues — face avant / Manches Longues — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1015-Dos-Clean.jpg</image:loc>
+      <image:title>Manches Longues — face arrière / Manches Longues — back view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-front-black.jpg</image:loc>
+      <image:title>Manches Longues Noir — face avant / Manches Longues Black — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC1000-Dos-Clean.jpg</image:loc>
+      <image:title>Manches Longues Noir — face arrière / Manches Longues Black — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/s445-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S445-Devant-Clean.jpg</image:loc>
+      <image:title>Polo — face avant / Polo — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S445-Dos-Clean.jpg</image:loc>
+      <image:title>Polo — face arrière / Polo — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/l445-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/L445-Devant-Clean.jpg</image:loc>
+      <image:title>Polo Femme — face avant / Polo Femme — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/L445-Dos-Clean.jpg</image:loc>
+      <image:title>Polo Femme — face arrière / Polo Femme — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/s445ls-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S445LS-Devant-Clean.jpg</image:loc>
+      <image:title>Polo Manches Longues — face avant / Polo Manches Longues — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S445LS-Dos-Clean.jpg</image:loc>
+      <image:title>Polo Manches Longues — face arrière / Polo Manches Longues — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/s350-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S350-Devant-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport — face avant / T-Shirt Sport — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/S350-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport — face arrière / T-Shirt Sport — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/l350-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/L350-Devant-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport Femme — face avant / T-Shirt Sport Femme — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/L350-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport Femme — face arrière / T-Shirt Sport Femme — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/y350-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/Y350-Devant-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport Enfant — face avant / T-Shirt Sport Enfant — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/Y350-Dos-Clean.jpg</image:loc>
+      <image:title>T-Shirt Sport Enfant — face arrière / T-Shirt Sport Enfant — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc6606</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6606-Devant-Clean.jpg</image:loc>
+      <image:title>Casquette Trucker — face avant / Casquette Trucker — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6606-Dos-Clean.jpg</image:loc>
+      <image:title>Casquette Trucker — face arrière / Casquette Trucker — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/6245cm</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6245CM-Devant-Clean.jpg</image:loc>
+      <image:title>Casquette Baseball — face avant / Casquette Baseball — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6245CM-Dos-Clean.jpg</image:loc>
+      <image:title>Casquette Baseball — face arrière / Casquette Baseball — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/atc6277-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6277-Devant-Clean.jpg</image:loc>
+      <image:title>Casquette Classique — face avant / Casquette Classique — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/ATC6277-Dos-Clean.jpg</image:loc>
+      <image:title>Casquette Classique — face arrière / Casquette Classique — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/c100-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/C100-Devant-Clean.jpg</image:loc>
+      <image:title>Tuque — face avant / Tuque — front view</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://visionaffichage.com/products/C100-Dos-Clean.jpg</image:loc>
+      <image:title>Tuque — face arrière / Tuque — back view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/product/c105-1</loc>
     <lastmod>2026-04-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://cdn.shopify.com/s/files/1/0578/1038/7059/files/c105-2_c5d6b8c6-8c32-43f3-851d-f48dd2d35913.jpg?v=1763598172&amp;width=800</image:loc>
+      <image:title>Tuque Légère — face avant / Tuque Légère — front view</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://visionaffichage.com/histoires-de-succes/construction-rivard</loc>
