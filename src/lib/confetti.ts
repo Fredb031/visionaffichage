@@ -20,7 +20,13 @@
  * CSS transforms. Respects `prefers-reduced-motion` (no-op).
  */
 
-const COLORS = ['#E8A838', '#1B3A6B', '#F5F2E8'];
+// Frozen brand palette so a future bug somewhere in the SPA can't do
+// `COLORS[0] = '#ff0000'` and recolour every confetti burst that fires
+// after the mutation (checkout success, customizer threshold cross,
+// future imperative callers). Mirrors the runtime-immutability pattern
+// applied across the data/ tree (pricing, caseStudies, productLabels)
+// — same readonly guarantee the visual identity of the brand depends on.
+const COLORS: readonly string[] = Object.freeze(['#E8A838', '#1B3A6B', '#F5F2E8']);
 const KEYFRAMES_ID = 'va-confetti-keyframes';
 
 function injectKeyframesOnce() {
