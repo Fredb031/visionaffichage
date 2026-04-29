@@ -197,6 +197,19 @@ export function loadOverrides(): OverrideMap {
     // Reject empty/non-string keys — a bad userId would silently grant or
     // revoke the wrong account, far worse than dropping a malformed row.
     if (!userId || typeof userId !== 'string') continue;
+    // Reject prototype-chain keys. JSON.parse('{"__proto__": [...]}') creates
+    // an own enumerable `__proto__` property, and the value here is validated
+    // to be a Permission[] (an Array, an object) — assigning it to
+    // `cleaned.__proto__` passes the setter's "object or null" gate and
+    // re-parents `cleaned` to that array, so any subsequent
+    // `cleaned[someUserId]` lookup matching an array index ('0','1',…) or
+    // an Array.prototype member would silently return permissions the admin
+    // never granted. Sibling readers (commissions.readOverrides,
+    // automations.readAutomationFlags, appSettings.getUser2faMap) happen to
+    // be safe by accident — they assign strings/booleans the `__proto__`
+    // setter rejects — but this writer accepts arrays so the accidental
+    // safety net doesn't apply.
+    if (userId === '__proto__' || userId === 'constructor' || userId === 'prototype') continue;
     if (!Array.isArray(perms)) continue;
     // Validate each entry against the known permission catalogue (including
     // the `!`-prefixed revoke form). Previously we kept any string, which
