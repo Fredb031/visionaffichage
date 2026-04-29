@@ -125,5 +125,16 @@ function buildEntry(p: Product): SearchIndexEntry {
   };
 }
 
-/** Computed once at module load — see file header for rationale. */
-export const SEARCH_INDEX: SearchIndex = PRODUCTS.map(buildEntry);
+/**
+ * Computed once at module load — see file header for rationale.
+ *
+ * Defensive filter: products without a SKU would crash `buildEntry`
+ * (the haystack join calls `p.sku` and the result row sets
+ * `sku: p.sku.toLowerCase()`) and take the entire search bar down on
+ * first keystroke. The catalog gets edited by hand and a teammate
+ * forgetting the SKU column should silently drop that one row from
+ * search rather than break the whole feature for every visitor.
+ */
+export const SEARCH_INDEX: SearchIndex = PRODUCTS
+  .filter((p): p is Product => typeof p?.sku === 'string' && p.sku.length > 0)
+  .map(buildEntry);
