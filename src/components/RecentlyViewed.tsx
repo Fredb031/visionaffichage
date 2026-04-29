@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { History } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -33,16 +33,22 @@ export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
   // exactly the "near-empty clutter" the gate was meant to prevent.
   // Prune unresolved handles in an effect so the in-memory handles
   // list (and persisted storage) stays in sync with the live catalogue.
-  const stale = handles.filter(h => !PRODUCTS.some(p => p.shopifyHandle === h));
+  // Memoise so a parent re-render (lang toggle, scroll, hover propagating
+  // through the cart) doesn't rebuild the filter on every paint. The work
+  // is small but this component lives on the cart empty state where the
+  // PRODUCTS scan would otherwise fire alongside every cart store tick.
+  const stale = useMemo(
+    () => handles.filter(h => !PRODUCTS.some(p => p.shopifyHandle === h)),
+    [handles],
+  );
   useEffect(() => {
     if (stale.length === 0) return;
     for (const h of stale) remove(h);
-    // `stale` is recomputed each render from `handles`; depending on
-    // its joined identity keeps the effect quiet when nothing is stale
-    // and re-fires only when the set of unresolved handles changes
-    // (e.g. after a product is removed from the catalogue between
-    // navigations). `remove` is stable per useCallback([]) in the hook.
-  }, [stale.join('|'), remove]);
+    // `stale` is memoised on `handles` above so its identity only churns
+    // when the set of unresolved handles actually changes (e.g. after a
+    // product is removed from the catalogue between navigations).
+    // `remove` is stable per useCallback([]) in the hook.
+  }, [stale, remove]);
 
   const items = handles
     .map(h => PRODUCTS.find(p => p.shopifyHandle === h))
