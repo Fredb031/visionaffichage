@@ -32,25 +32,31 @@ export const useCompareStore = create<CompareStore>()(
     (set, get) => ({
       items: [],
       add: (sku) => {
-        // Match the rehydrate contract: ignore non-string / empty / whitespace SKUs
-        // so the live path can't poison the store with bad shape that the
-        // onRehydrateStorage filter would otherwise drop on next reload.
-        if (typeof sku !== 'string' || sku.trim().length === 0) return;
+        // Trim + reject empty: the rehydrate filter only strips empty
+        // strings, so a `' SKU '` slipping in via a non-CompareToggleButton
+        // caller would otherwise sit alongside a clean `'SKU'` as a
+        // duplicate (items.includes() compares by exact string), and
+        // has() would silently miss it. Normalise once at the boundary.
+        if (typeof sku !== 'string') return;
+        const clean = sku.trim();
+        if (clean.length === 0) return;
         const { items } = get();
-        if (items.includes(sku)) return;
+        if (items.includes(clean)) return;
         if (items.length >= COMPARE_MAX) return;
-        set({ items: [...items, sku] });
+        set({ items: [...items, clean] });
       },
       remove: (sku) => {
         set({ items: get().items.filter(s => s !== sku) });
       },
       toggle: (sku) => {
-        if (typeof sku !== 'string' || sku.trim().length === 0) return;
+        if (typeof sku !== 'string') return;
+        const clean = sku.trim();
+        if (clean.length === 0) return;
         const { items } = get();
-        if (items.includes(sku)) {
-          set({ items: items.filter(s => s !== sku) });
+        if (items.includes(clean)) {
+          set({ items: items.filter(s => s !== clean) });
         } else if (items.length < COMPARE_MAX) {
-          set({ items: [...items, sku] });
+          set({ items: [...items, clean] });
         }
       },
       clear: () => set({ items: [] }),
