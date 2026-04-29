@@ -195,7 +195,7 @@ export default function ThankYou() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to="/compte/commandes"
+              to="/account"
               className="bg-va-blue text-white px-6 py-3 rounded-xl font-semibold hover:bg-va-blue-h transition-colors"
             >
               {copy.primary}
