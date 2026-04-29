@@ -339,3 +339,34 @@
     transform: none !important;
   }
 }
+
+/* Master Prompt base layer — mobile/UX hardening + reusable
+   entrance keyframes. Appended last so it cannot fight earlier rules. */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* iOS Safari zooms the viewport when a focused form control reports a
+   computed font-size below 16px. Pinning to 16px prevents the zoom-in
+   without disturbing Tailwind text-* utilities (scoped via :where() so
+   specificity stays at 0 and any class-based override wins). */
+:where(input):not([class*="text-"]),
+:where(select):not([class*="text-"]),
+:where(textarea):not([class*="text-"]) {
+  font-size: 16px;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a[role="button"] {
+  min-height: 44px;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}

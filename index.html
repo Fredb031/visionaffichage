@@ -87,6 +87,17 @@
          font-display / font-sans / font-mono utilities pick up these
          families via theme.extend.fontFamily in tailwind.config.ts. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+    <!-- Master Prompt typography stack — Syne (display) + Inter (body)
+         + JetBrains Mono. Additive load: browser dedupes any
+         already-cached families so the duplicate Inter/JetBrains decls
+         are free, and Syne becomes available for new Master-Prompt
+         sections without disturbing the Outfit-driven blueprint pages. -->
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Preload the LCP hero image so it kicks off in the same wave as
+         the HTML parse instead of waiting for the React bundle to mount
+         the <img>, shaving ~300-600ms off Largest Contentful Paint on
+         3G/4G first-paint. -->
+    <link rel="preload" as="image" href="/hero-team.webp">
 
     <!-- Security headers (CSP) — Task 14.1.
          NOTE: this is a meta-level Content-Security-Policy. It's weaker
