@@ -173,12 +173,15 @@ Deno.serve(async (req) => {
     await logSyncRun(supabase, 'order_status', { totalProcessed, errors, durationMs });
 
     if (errors.length > 0) {
-      await notifySyncFailure({
-        sync_type: 'order_status',
-        error_count: errors.length,
-        errors,
-        duration_ms: durationMs,
-      });
+      await notifySyncFailure(
+        {
+          sync_type: 'order_status',
+          error_count: errors.length,
+          errors,
+          duration_ms: durationMs,
+        },
+        supabase,
+      );
     }
 
     return jsonResponse({
@@ -192,12 +195,15 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
     errors.push(summariseError({ phase: 'fatal' }, e));
     await logSyncRun(supabase, 'order_status', { totalProcessed: 0, errors, durationMs });
-    await notifySyncFailure({
-      sync_type: 'order_status',
-      error_count: errors.length,
-      errors,
-      duration_ms: durationMs,
-    });
+    await notifySyncFailure(
+      {
+        sync_type: 'order_status',
+        error_count: errors.length,
+        errors,
+        duration_ms: durationMs,
+      },
+      supabase,
+    );
     console.error('[sanmar-reconcile-orders] fatal error:', e);
     return jsonResponse(
       {

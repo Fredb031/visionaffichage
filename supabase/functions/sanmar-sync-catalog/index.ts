@@ -185,13 +185,18 @@ Deno.serve(async (req) => {
     });
 
     // ── Proactive alert when the run had errors (no-op if webhook unset).
+    // Pass the service-role client so notify can dedup against
+    // sanmar_alert_log and write an audit row for this attempt.
     if (errors.length > 0) {
-      await notifySyncFailure({
-        sync_type: 'catalog',
-        error_count: errors.length,
-        errors,
-        duration_ms: durationMs,
-      });
+      await notifySyncFailure(
+        {
+          sync_type: 'catalog',
+          error_count: errors.length,
+          errors,
+          duration_ms: durationMs,
+        },
+        supabase,
+      );
     }
 
     return jsonResponse({
@@ -211,12 +216,15 @@ Deno.serve(async (req) => {
       durationMs,
     });
     // Fatal path always has at least one error → always notify.
-    await notifySyncFailure({
-      sync_type: 'catalog',
-      error_count: errors.length,
-      errors,
-      duration_ms: durationMs,
-    });
+    await notifySyncFailure(
+      {
+        sync_type: 'catalog',
+        error_count: errors.length,
+        errors,
+        duration_ms: durationMs,
+      },
+      supabase,
+    );
     console.error('[sanmar-sync-catalog] fatal error:', e);
     return jsonResponse(
       {
