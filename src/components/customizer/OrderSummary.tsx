@@ -13,6 +13,7 @@
  * parent owns state and the component re-renders cheaply.
  */
 import type { PlacementPreset } from '@/data/productPlacements';
+import { useLang } from '@/lib/langContext';
 
 export interface OrderSummaryProduct {
   /** Title shown on the info card (e.g. "T-shirt ATC1000"). */
@@ -76,11 +77,14 @@ export function OrderSummary({
   onAddToCart,
   isAdding = false,
 }: OrderSummaryProps) {
+  const { lang } = useLang();
   const visibleSizes = sizeMatrix.filter(row => row.qty > 0);
   const disabled = totals.totalPieces === 0 || isAdding;
   const ctaLabel = totals.totalPieces === 0
-    ? 'Choisis au moins 1 pièce'
-    : `Ajouter au panier — ${formatCAD(totals.total)}`;
+    ? (lang === 'en' ? 'Choose at least 1 piece' : 'Choisis au moins 1 pièce')
+    : (lang === 'en'
+        ? `Add to cart — ${formatCAD(totals.total)}`
+        : `Ajouter au panier — ${formatCAD(totals.total)}`);
 
   return (
     <div className="flex flex-col gap-4">
@@ -194,7 +198,7 @@ export function OrderSummary({
         disabled={disabled}
         aria-busy={isAdding}
         aria-disabled={disabled}
-        aria-label={isAdding ? 'Ajout au panier en cours' : ctaLabel}
+        aria-label={isAdding ? (lang === 'en' ? 'Adding to cart' : 'Ajout au panier en cours') : ctaLabel}
         className={`w-full py-5 rounded-2xl font-semibold text-white transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
           disabled
             ? 'bg-[#0052CC] opacity-40 cursor-not-allowed'
@@ -207,12 +211,17 @@ export function OrderSummary({
               className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none"
               aria-hidden="true"
             />
-            <span>Ajout en cours…</span>
+            <span>{lang === 'en' ? 'Adding…' : 'Ajout en cours…'}</span>
           </>
         ) : (
           ctaLabel
         )}
       </button>
+      <p className="text-va-muted text-xs text-center mt-2">
+        {lang === 'en'
+          ? 'Our team positions your logo perfectly before printing.'
+          : "Notre équipe positionne ton logo parfaitement avant l'impression."}
+      </p>
     </div>
   );
 }

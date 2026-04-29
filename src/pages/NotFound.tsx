@@ -113,19 +113,27 @@ const NotFound = () => {
             <p className="text-[11px] font-mono tracking-[4px] text-[#E8A838] uppercase mb-2">
               404
             </p>
-            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">
-              {lang === 'en' ? 'Page not found' : 'Page introuvable'}
+            <h1 className="font-display font-black text-4xl md:text-5xl text-va-ink tracking-tight mb-4">
+              {lang === 'en' ? "This page doesn't exist..." : "Cette page n'existe pas..."}
             </h1>
-            <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-[560px] mx-auto">
+            <p className="text-xl text-va-dim leading-relaxed max-w-[560px] mx-auto">
               {lang === 'en'
-                ? "This page took an early lunch. Your team's logo doesn't have to — start here."
-                : "Cette page est partie dîner. Le logo de ton équipe n'est pas obligé — commence ici."}
+                ? '...but your uniform can.'
+                : '...mais ton uniforme, lui, peut exister.'}
             </p>
             {location.pathname && (
               <code className="block text-[11px] text-muted-foreground/60 font-mono mt-2">
                 {location.pathname}
               </code>
             )}
+            <div className="mt-8">
+              <Link
+                to="/boutique"
+                className="inline-flex items-center gap-2 bg-va-blue text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#003D99] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2"
+              >
+                {lang === 'en' ? 'Back to shop' : 'Retour à la boutique'}
+              </Link>
+            </div>
           </div>
 
           {/* Search — jumps to /products?q=<query> on submit */}

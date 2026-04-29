@@ -633,8 +633,8 @@ export default function Cart() {
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0A0A0A] mb-3">
               {lang === 'en'
-                ? "Your cart's waiting on your team."
-                : "Ton panier attend ton équipe."}
+                ? 'Your crew deserves better than blank shirts.'
+                : 'Ton équipe mérite mieux que des t-shirts sans logo.'}
             </h2>
             <p className="text-sm text-[#6B7280] mb-7 leading-relaxed">
               {lang === 'en'
@@ -642,7 +642,7 @@ export default function Cart() {
                 : "500+ équipes au Québec ont commencé avec 5 t-shirts. Choisis les tiens."}
             </p>
             <Link
-              to="/products"
+              to="/boutique"
               className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] hover:bg-[#003D99] px-8 py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Browse products' : 'Parcourir les produits'} →
