@@ -11,6 +11,7 @@
  * Hides itself on /comparer (the page already shows the same data
  * inline; no need to double up).
  */
+import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useCompareStore } from '@/lib/compareStore';
@@ -33,9 +34,17 @@ export function CompareBar() {
   // a sticky bar over it would be redundant chrome.
   if (location.pathname === '/comparer') return null;
 
-  const products = items
-    .map(sku => PRODUCTS.find(p => p.sku === sku))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  // Memoize the SKU → product resolution so a parent re-render (route
+  // change firing the location hook, language toggle, etc.) doesn't redo
+  // an O(items × PRODUCTS) find-walk. The compare store is stable per
+  // selection, so the dep is the items array reference itself.
+  const products = useMemo(
+    () =>
+      items
+        .map(sku => PRODUCTS.find(p => p.sku === sku))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p)),
+    [items],
+  );
 
   // Stale localStorage may hold SKUs no longer in PRODUCTS; if resolution
   // drops us below 2, the bar has nothing meaningful to compare.
