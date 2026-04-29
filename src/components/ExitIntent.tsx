@@ -91,6 +91,16 @@ export function ExitIntent() {
   useBodyScrollLock(open);
   const trapRef = useFocusTrap<HTMLDivElement>(open);
 
+  // If the visitor flips the language toggle while the modal is open,
+  // refresh the cached ETA so the date string matches the new locale —
+  // otherwise the FR copy would render alongside an "May 5" en-CA date
+  // (or vice versa) which reads as a translation bug. The dwell-armed
+  // eta captured at trigger-time stays accurate; only the locale-bound
+  // formatting needs to follow `lang`.
+  useEffect(() => {
+    if (open) setEta(getDeliveryDate({ lang }));
+  }, [lang, open]);
+
   const handleResume = () => {
     setOpen(false);
     navigate('/boutique');
