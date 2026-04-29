@@ -1,253 +1,175 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, MapPin, HeartHandshake, ArrowRight } from 'lucide-react';
-import { useReducedMotion } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useCountUp } from '@/hooks/useCountUp';
-import { useInView } from '@/hooks/useInView';
 
-// Task 11.9 — /about surface. A buyer vetting the brand before a
-// custom order needs a story page; the Shopify catalog alone doesn't
-// answer "who am I working with and where are they." Copy is kept
-// placeholder-friendly and bilingual so the shop owner can swap in a
-// real founder narrative without a devops roundtrip — the TODO below
-// marks the exact block to edit.
-//
-// Max content width is clamped to ~960px so the narrative reads at a
-// comfortable measure on ultrawide monitors. Stat tile values match
-// the hero strip math (547 clients, 3200+ items, 4.9 rating) so the
-// two surfaces can't drift apart silently.
+// /about — Master Prompt "Audi precision" rebuild.
+// The page is a confident, minimal narrative for a buyer vetting the
+// brand before placing a custom order. Five strips alternating
+// va-bg-1 / va-bg-2 / va-black, each one carrying a single idea so
+// the eye moves cleanly down the column instead of pinballing across
+// cards. Copy stays bilingual via the lang context.
 
 export default function About() {
   const { lang } = useLang();
-  // Task 8.12 — /about meta description. Shares the founding story
-  // framing (QC printer + merchandiser established in Saint-Hyacinthe)
-  // so buyers vetting the brand on Google land on this page instead of
-  // /. Bilingual copy tracks the language toggle.
   useDocumentTitle(
     lang === 'en' ? 'About — Vision Affichage' : 'À propos — Vision Affichage',
     lang === 'en'
-      ? 'The Vision Affichage story — printer and merchandiser established in Saint-Hyacinthe, Québec.'
-      : 'L\u2019histoire de Vision Affichage — imprimeur et marchandiseur établi à Saint-Hyacinthe, Québec.',
-    // Task 8.5 — OG overrides; /about uses the default branded image.
+      ? "Quebec's merch studio for serious crews. 33,000+ pieces delivered since 2021. 5 business days, no minimum, no mandatory call."
+      : "Le studio de merch des entrepreneurs québécois. 33 000+ pièces livrées depuis 2021. 5 jours ouvrables, sans minimum, sans appel obligatoire.",
     {},
   );
 
-  // Value cards — icons picked to echo Contact.tsx's iconography style
-  // (Award for craft quality, MapPin for locality, HeartHandshake for
-  // service). Rendered from data so ordering/swapping stays a one-line
-  // change instead of a JSX rewrite.
+  // Values — three pillars that map to the operational promises the
+  // shop is willing to be measured on. Rendered from data so swapping
+  // copy stays a one-line change.
   const values = [
     {
-      icon: Award,
-      titleFr: 'Qualité',
-      titleEn: 'Quality',
+      titleFr: 'Précision',
+      titleEn: 'Precision',
       bodyFr:
-        'Impression et broderie vérifiées à la main avant chaque envoi. Pas de lot envoyé sans contrôle visuel.',
+        "Notre équipe positionne ton logo selon les standards de l'industrie. Tu n'as pas besoin d'être graphiste.",
       bodyEn:
-        'Print and embroidery hand-checked before every shipment. No batch leaves without a visual pass.',
+        'Our team positions your logo to industry standards. You do not need to be a designer.',
     },
     {
-      icon: MapPin,
-      titleFr: 'Local',
-      titleEn: 'Local',
+      titleFr: 'Vitesse',
+      titleEn: 'Speed',
       bodyFr:
-        'Fabriqué à Saint-Hyacinthe, Québec. Les délais courts et le support en français sont le défaut, pas un extra.',
+        "5 jours ouvrables. En retard d'une journée = remboursé. Aucune exception.",
       bodyEn:
-        'Made in Saint-Hyacinthe, Québec. Short lead times and French support are the default, not an extra.',
+        'Five business days. One day late = refunded. No exceptions.',
     },
     {
-      icon: HeartHandshake,
-      titleFr: 'Service',
-      titleEn: 'Service',
+      titleFr: 'Présence',
+      titleEn: 'Presence',
       bodyFr:
-        'Réponse sous 24h en jours ouvrables. Soumissions gratuites, preuve numérique avant production.',
+        'Ton logo. Sur ton équipe. Visible chez chaque client. Chaque chantier.',
       bodyEn:
-        'Reply within 24h on business days. Free quotes, digital proof before production runs.',
-    },
-  ] as const;
-
-  // "By the numbers" tiles. The two integer counters (547 clients, 3200
-  // items printed) ramp from 0 to target on scroll-in via useCountUp;
-  // the rating tile stays static (4.9 is below the threshold where
-  // counting feels meaningful, and the ★ glyph isn't a numeric digit).
-  // duration falls to 0 under prefers-reduced-motion so the values land
-  // immediately for users who opt out of motion.
-  const reduceMotion = useReducedMotion();
-  const statsRef = useRef<HTMLElement>(null);
-  const statsInView = useInView(statsRef, { threshold: 0.5 });
-  const clientsCount = useCountUp(547, statsInView, reduceMotion ? 0 : 1500);
-  const itemsCount = useCountUp(3200, statsInView, reduceMotion ? 0 : 1500);
-
-  const stats = [
-    {
-      value: clientsCount.toLocaleString('fr-CA'),
-      labelFr: 'Clients servis',
-      labelEn: 'Clients served',
-    },
-    {
-      value: `${itemsCount.toLocaleString('fr-CA')}+`,
-      labelFr: 'Articles imprimés',
-      labelEn: 'Items printed',
-    },
-    {
-      value: '4,9\u2605',
-      labelFr: 'Note moyenne',
-      labelEn: 'Average rating',
+        'Your logo. On your crew. Visible at every client. Every jobsite.',
     },
   ] as const;
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="min-h-screen bg-va-bg-1 flex flex-col">
       <Navbar />
-      <main
-        id="main-content"
-        className="flex-1 max-w-[960px] w-full mx-auto px-6 md:px-10 py-16 md:py-24"
-      >
-        {/* Hero — eyebrow + H1 + short lede. The eyebrow echoes the
-            cream/gold brand accents used on the homepage feature
-            strips so a returning buyer recognizes the visual
-            language instantly. */}
-        <section className="mb-14 md:mb-16">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#0052CC] mb-3">
-            <MapPin size={12} aria-hidden="true" className="-mt-px" />
-            <span>Saint-Hyacinthe, Québec</span>
+      <main id="main-content" className="flex-1">
+        {/* 1. Hero strip — eyebrow + headline. No lede; the next strip
+            carries the explanation. The H1 is allowed to dominate. */}
+        <section className="bg-va-bg-1 py-24 md:py-36">
+          <div className="max-w-6xl mx-auto px-6 md:px-10">
+            <div className="text-va-muted text-xs uppercase tracking-[0.15em] font-semibold mb-4">
+              {lang === 'en' ? 'Vision Affichage' : 'Vision Affichage'}
+            </div>
+            <h1 className="font-display font-black text-va-ink text-5xl md:text-7xl tracking-[-0.03em] leading-[1.0] max-w-5xl">
+              {lang === 'en'
+                ? "Quebec's merch studio for serious crews."
+                : 'Le studio de merch des entrepreneurs québécois.'}
+            </h1>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-[#0A0A0A] tracking-tight mb-4">
-            {lang === 'en' ? 'Our story' : 'Notre histoire'}
-          </h1>
-          <p className="text-base md:text-lg text-zinc-700 max-w-[680px] leading-relaxed">
-            {lang === 'en'
-              ? 'Vision Affichage — printer and merchandiser based in Saint-Hyacinthe, Québec, helping small and mid-sized buyers turn an idea into a finished garment without the big-shop runaround.'
-              : 'Vision Affichage — imprimeur et marchandiseur de Saint-Hyacinthe, au Québec, qui aide les PME à transformer une idée en vêtement fini, sans le casse-tête des grosses boutiques.'}
-          </p>
         </section>
 
-        {/* TODO(about): replace placeholder narrative with real founder
-            story + founding year once the shop owner provides copy.
-            Keep bilingual pairing and the 2-3 paragraph rhythm. */}
-        <section
-          aria-labelledby="about-founded"
-          className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm mb-12"
-        >
-          <h2
-            id="about-founded"
-            className="text-2xl md:text-3xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-4"
-          >
-            {lang === 'en' ? 'Founded in Québec' : 'Fondé au Québec'}
-          </h2>
-          <div className="space-y-4 text-[15px] leading-relaxed text-zinc-700 max-w-[720px]">
-            <p>
+        {/* 2. Story strip — the elevator pitch in two paragraphs. */}
+        <section className="bg-va-bg-2 py-24">
+          <div className="max-w-6xl mx-auto px-6 md:px-10">
+            <p className="text-xl text-va-dim leading-relaxed max-w-3xl">
               {lang === 'en'
-                ? 'Founded by a passionate team in Saint-Hyacinthe, Vision Affichage was built around one stubborn idea: a small business ordering 20 hoodies deserves the same level of craft as a stadium tour ordering 20,000.'
-                : 'Fondée par une équipe passionnée de Saint-Hyacinthe, Vision Affichage repose sur une idée tenace : une PME qui commande 20 chandails mérite le même soin qu\u2019une tournée qui en commande 20 000.'}
+                ? "We are not the cheapest. We are the fastest. Five business days, starting at one piece, no minimum, no mandatory call. You send your logo, we deliver your uniform. That is it."
+                : "On n'est pas le moins cher. On est le plus rapide. 5 jours ouvrables, à partir d'une pièce, sans minimum, sans appel obligatoire. Tu envoies ton logo, on te livre ton uniforme. C'est tout."}
             </p>
-            <p>
+            <p className="text-xl text-va-dim leading-relaxed max-w-3xl mt-6">
               {lang === 'en'
-                ? 'We run small-batch print and embroidery in-house, which means a designer can walk in with a sketch on a Monday and leave with a printed sample on a Wednesday. No offshoring, no week-long proofing queues, no "minimum 500 units" conversations.'
-                : 'Nous produisons en petits lots, impression et broderie à l\u2019interne. Un designer peut entrer avec un croquis le lundi et repartir avec un échantillon imprimé le mercredi. Pas de sous-traitance à l\u2019étranger, pas de files d\u2019épreuves d\u2019une semaine, pas de « minimum 500 unités\u00a0».'}
-            </p>
-            <p>
-              {lang === 'en'
-                ? 'Most of our orders still come from small and mid-sized Québec buyers: local restaurants, youth sports leagues, trades crews, and one-person brands. That\u2019s the rhythm we built the shop around, and it\u2019s the rhythm we\u2019ve kept.'
-                : 'La majorité de nos commandes proviennent encore de PME québécoises\u00a0: restos locaux, ligues sportives jeunesse, équipes de métiers, marques solo. C\u2019est le rythme autour duquel l\u2019atelier a été conçu, et c\u2019est le rythme que nous gardons.'}
+                ? '33,000+ pieces delivered since 2021. 500+ companies served. 5 stars on Google, no exceptions.'
+                : '33 000+ pièces livrées depuis 2021. 500+ entreprises servies. 5 étoiles sur Google sans exception.'}
             </p>
           </div>
         </section>
 
-        {/* Block 2 — Values. Three cards mirroring the homepage pill
-            strip conceptually (Qualité / Local / Service) but with
-            body copy space for each. Grid collapses to a single
-            column under md: so the cards stack rather than shrink. */}
-        <section aria-labelledby="about-values" className="mb-12">
-          <h2
-            id="about-values"
-            className="text-2xl md:text-3xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-5"
-          >
-            {lang === 'en' ? 'Our values' : 'Nos valeurs'}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-            {values.map(v => {
-              const Icon = v.icon;
-              return (
-                <article
-                  key={v.titleEn}
-                  className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm flex flex-col"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#0052CC]/15 text-[#0052CC] mb-4"
-                  >
-                    <Icon size={20} />
-                  </span>
-                  <h3 className="text-lg font-extrabold text-[#0A0A0A] tracking-[-0.3px] mb-2">
+        {/* 3. Values grid — three pillars, three columns, no icons.
+            The labels carry the weight on their own. */}
+        <section aria-labelledby="about-values" className="bg-va-bg-1 py-24">
+          <div className="max-w-6xl mx-auto px-6 md:px-10">
+            <h2 id="about-values" className="sr-only">
+              {lang === 'en' ? 'Our values' : 'Nos valeurs'}
+            </h2>
+            <div className="grid md:grid-cols-3 gap-12 md:gap-16">
+              {values.map(v => (
+                <article key={v.titleEn}>
+                  <h3 className="font-display font-black text-va-ink text-3xl md:text-4xl tracking-[-0.02em] mb-4">
                     {lang === 'en' ? v.titleEn : v.titleFr}
                   </h3>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
+                  <p className="text-base text-va-dim leading-relaxed">
                     {lang === 'en' ? v.bodyEn : v.bodyFr}
                   </p>
                 </article>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Block 3 — By the numbers. Stat tiles reuse the hero-strip
-            figures so the two surfaces stay consistent. If those
-            numbers ever move, update both call sites at once. */}
-        <section ref={statsRef} aria-labelledby="about-stats" className="mb-12">
-          <h2
-            id="about-stats"
-            className="text-2xl md:text-3xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-5"
-          >
-            {lang === 'en' ? 'By the numbers' : 'En chiffres'}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
-            {stats.map(s => (
-              <div
-                key={s.labelEn}
-                className="bg-[#0A0A0A] text-white rounded-2xl p-6 shadow-sm text-center"
-              >
-                <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-[#0052CC]">
-                  {s.value}
-                </div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-white/70 mt-2">
-                  {lang === 'en' ? s.labelEn : s.labelFr}
-                </div>
-              </div>
-            ))}
+        {/* 4. Founder strip — black background, white type. The voice
+            shifts to first person here; everywhere else the copy
+            speaks for the shop. */}
+        <section
+          aria-labelledby="about-founder"
+          className="bg-va-black text-white py-24"
+        >
+          <div className="max-w-6xl mx-auto px-6 md:px-10">
+            <div className="text-white/60 text-xs uppercase tracking-[0.15em] font-semibold mb-4">
+              {lang === 'en'
+                ? 'Frederick Bouchard · Founder'
+                : 'Frederick Bouchard · Fondateur'}
+            </div>
+            <h2
+              id="about-founder"
+              className="font-display font-black text-4xl md:text-5xl tracking-[-0.03em] leading-[1.05] mb-8 max-w-3xl"
+            >
+              {lang === 'en'
+                ? 'Why Vision Affichage exists.'
+                : 'Pourquoi Vision Affichage existe.'}
+            </h2>
+            <div className="space-y-5 text-lg text-white/80 leading-relaxed max-w-3xl">
+              <p>
+                {lang === 'en'
+                  ? 'I started Vision Affichage because the others were taking three weeks to deliver a t-shirt. We do it in five days. That is it.'
+                  : "J'ai démarré Vision Affichage parce que les autres prenaient 3 semaines pour livrer un t-shirt. On le fait en 5 jours. C'est tout."}
+              </p>
+              <p>
+                {lang === 'en'
+                  ? 'A small business ordering 20 hoodies deserves the same care as a tour ordering 20,000. We run print and embroidery in-house, in Saint-Hyacinthe, so a sketch on Monday becomes a sample on Wednesday.'
+                  : "Une PME qui commande 20 chandails mérite le même soin qu'une tournée qui en commande 20 000. On fait l'impression et la broderie à l'interne, à Saint-Hyacinthe — un croquis le lundi devient un échantillon le mercredi."}
+              </p>
+              <p>
+                {lang === 'en'
+                  ? 'Restaurants, trades crews, youth leagues, solo brands. That is the rhythm we built the shop around, and that is the rhythm we keep.'
+                  : "Restos, équipes de métiers, ligues jeunesse, marques solo. C'est le rythme autour duquel l'atelier est conçu, et c'est le rythme qu'on garde."}
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Bottom CTA — sends the narrative toward the action that
-            pays the shop: a real conversation. /contact has the
-            phone, map, hours and a form fallback so whatever mode
-            the buyer prefers, it's one click from here. */}
+        {/* 5. Closing CTA — single button, single line. */}
         <section
           aria-labelledby="about-cta"
-          className="bg-[#EBF2FF] border border-[#0052CC]/20 rounded-2xl p-8 text-center"
+          className="bg-va-bg-1 py-24"
         >
-          <h2
-            id="about-cta"
-            className="text-2xl md:text-3xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-2"
-          >
-            {lang === 'en' ? 'Work with us' : 'Travailler avec nous'}
-          </h2>
-          <p className="text-sm md:text-base text-zinc-700 mb-6 max-w-[540px] mx-auto">
-            {lang === 'en'
-              ? 'Got an idea, a logo, or a half-baked napkin sketch? Send it over — quotes are free and we reply within 24h.'
-              : 'Une idée, un logo ou un croquis sur un coin de napperon\u00a0? Envoyez-le — les soumissions sont gratuites et nous répondons sous 24h.'}
-          </p>
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
-          >
-            {lang === 'en' ? 'Contact us' : 'Nous joindre'}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          <div className="max-w-6xl mx-auto px-6 md:px-10 text-center">
+            <h2
+              id="about-cta"
+              className="font-display font-black text-va-ink text-4xl md:text-6xl tracking-[-0.03em] leading-[1.05] mb-10"
+            >
+              {lang === 'en'
+                ? 'Ready to dress your crew?'
+                : 'Prêt à habiller ton équipe?'}
+            </h2>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 bg-va-blue text-white px-10 py-5 rounded-xl shadow-[0_0_40px_rgba(0,82,204,0.3)] font-semibold text-base hover:bg-va-blue/90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue/50 focus-visible:ring-offset-2"
+            >
+              {lang === 'en' ? 'Order now →' : 'Commander maintenant →'}
+            </Link>
+          </div>
         </section>
       </main>
       <SiteFooter />
