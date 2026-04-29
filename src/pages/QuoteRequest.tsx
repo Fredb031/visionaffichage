@@ -10,7 +10,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { sanitizeText } from '@/lib/sanitize';
 import { PRODUCTS } from '@/data/products';
-import { getPricePerUnit } from '@/data/pricing';
+import { getPricePerUnit, PRICING } from '@/data/pricing';
 
 // Mega Blueprint Section 02 — /devis quote-request page.
 //
@@ -24,10 +24,9 @@ import { getPricePerUnit } from '@/data/pricing';
 // quote_requests + Zapier notify, plus the jspdf+Resend edge function
 // for the PDF response per the Mega Blueprint Section 2.2.
 //
-// No real PDF generation here (TODO). The logo is read into a base64
-// data URL synchronously via FileReader so the queued payload can be
-// inspected (or shipped to Supabase later) without a separate file
-// store.
+// Visual layer follows the Master Prompt Audi tokens (va.* in
+// tailwind.config.ts c8c4171). All form fields, validation, aria
+// wiring, parseQty clamp (f66ffa8) and submit handler are unchanged.
 
 const QUEUE_KEY = 'va:quote-queue';
 const QUEUE_CAP = 20;
@@ -92,6 +91,27 @@ function isValidPhone(raw: string): boolean {
   return digits.length === 10;
 }
 
+// Compute a human-readable tier label for the qty preview pill.
+// Walks the SKU's frozen tier ladder, finds the active tier, and
+// formats "Tier 50-99 — 7.50$/pièce" (FR) or "Tier 50-99 — $7.50/unit"
+// (EN). Falls back to ATC1000 for unknown SKUs to mirror getPricePerUnit.
+function tierLabel(productSku: string, qty: number, lang: 'fr' | 'en'): string {
+  const tiers = PRICING[productSku] ?? PRICING.ATC1000;
+  if (!tiers || tiers.length === 0 || qty < 1) return '';
+  // Walk from highest to lowest — first tier whose minQty <= qty wins.
+  let activeIdx = 0;
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    if (qty >= tiers[i].minQty) { activeIdx = i; break; }
+  }
+  const t = tiers[activeIdx];
+  const next = tiers[activeIdx + 1];
+  const range = next ? `${t.minQty}-${next.minQty - 1}` : `${t.minQty}+`;
+  const price = t.pricePerUnit;
+  return lang === 'en'
+    ? `Tier ${range} — $${price.toFixed(2)}/unit`
+    : `Palier ${range} — ${price.toFixed(2)} $/pièce`;
+}
+
 export default function QuoteRequest() {
   const { lang } = useLang();
   useDocumentTitle(
@@ -130,7 +150,7 @@ export default function QuoteRequest() {
   // Live price estimate. getPricePerUnit walks the SKU's tier ladder
   // and falls back to ATC1000 for unknown SKUs, so this is safe even
   // before the user changes the default product.
-  const { unitPrice, totalPrice, productName } = useMemo(() => {
+  const { unitPrice, totalPrice, productName, tierPill } = useMemo(() => {
     const product = PRODUCTS.find(p => p.sku === productSku) ?? PRODUCTS[0];
     // Belt-and-braces: parseQty already clamps the source state, but
     // re-validate on the read-side so a stray useState write or a
@@ -143,8 +163,9 @@ export default function QuoteRequest() {
       unitPrice: unit,
       totalPrice: unit * safeQty,
       productName: product?.shortName ?? product?.name ?? productSku,
+      tierPill: tierLabel(productSku, safeQty, lang),
     };
-  }, [productSku, quantity]);
+  }, [productSku, quantity, lang]);
 
   const step1Valid =
     Number.isInteger(quantity) && quantity >= 1 && quantity <= QTY_MAX && !!productSku;
@@ -177,7 +198,7 @@ export default function QuoteRequest() {
       toast.error(
         lang === 'en'
           ? 'Logo too large — max 800 KB. Send the original by email after submitting.'
-          : 'Logo trop volumineux — max 800 Ko. Envoyez l\u2019original par courriel après la soumission.',
+          : 'Logo trop volumineux — max 800 Ko. Envoyez l’original par courriel après la soumission.',
       );
       return;
     }
@@ -264,7 +285,7 @@ export default function QuoteRequest() {
       // operator-grade safety net.
       toast.success(
         lang === 'en'
-          ? 'Message sent. We\u2019ll reply within 24h. Otherwise call us at 367-380-4808.'
+          ? 'Message sent. We’ll reply within 24h. Otherwise call us at 367-380-4808.'
           : 'Message envoyé. On te répond dans les 24h. Sinon appelle-nous au 367-380-4808.',
         { duration: 8000 },
       );
@@ -279,84 +300,114 @@ export default function QuoteRequest() {
     ? ['Project', 'Contact', 'Review']
     : ['Projet', 'Contact', 'Confirmation'];
 
+  // Master Prompt Audi field-group classes — single source of truth so
+  // every input/select/textarea on the form stays visually aligned.
+  const fieldBase =
+    'w-full bg-white border border-va-line rounded-xl px-4 py-3 text-va-ink focus:border-va-blue focus:ring-2 focus:ring-va-blue/20 focus:outline-none transition-all';
+  const fieldErr =
+    'w-full bg-white border border-va-err rounded-xl px-4 py-3 text-va-ink focus:border-va-err focus:ring-2 focus:ring-va-err/20 focus:outline-none transition-all';
+  const labelBase = 'font-medium text-va-dim text-sm mb-2 block';
+  const errText = 'text-va-err text-xs mt-1';
+
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="min-h-screen bg-va-bg-2 flex flex-col">
       <Navbar />
-      <main id="main-content" className="flex-1 max-w-[820px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
-          {lang === 'en' ? 'Bulk quote request' : 'Demande de soumission'}
-        </h1>
-        <p className="text-sm text-zinc-600 mb-8 max-w-[640px]">
-          {lang === 'en'
-            ? 'Three quick steps. We reply with a tailored quote within 2 business hours.'
-            : 'Trois étapes rapides. On répond avec une soumission personnalisée sous 2 heures ouvrables.'}
-        </p>
+      <main id="main-content" className="flex-1">
+        {/* Hero header — Master Prompt Audi */}
+        <header className="bg-va-bg-1 py-16 border-b border-va-line">
+          <div className="max-w-3xl mx-auto px-6">
+            <div className="text-va-muted text-xs uppercase tracking-[0.15em] mb-3">
+              {lang === 'en' ? 'Quick quote' : 'Devis express'}
+            </div>
+            <h1 className="font-display font-black text-va-ink text-4xl md:text-5xl tracking-[-0.03em] mb-4">
+              {lang === 'en' ? 'Reply within 24 hours.' : 'On te répond avant 24 heures.'}
+            </h1>
+            <p className="text-va-muted text-lg">
+              {lang === 'en'
+                ? 'The more specific, the faster we ship. No commitment.'
+                : 'Plus c’est précis, plus vite on te livre. Aucun engagement.'}
+            </p>
+          </div>
+        </header>
 
-        {/* Stepper */}
-        <ol className="flex items-center gap-2 mb-8" aria-label={lang === 'en' ? 'Form steps' : 'Étapes du formulaire'}>
-          {stepLabels.map((label, i) => {
-            const idx = (i + 1) as 1 | 2 | 3;
-            const active = step === idx;
-            const done = step > idx || submitted;
-            return (
-              <li key={label} className="flex items-center gap-2 flex-1">
-                <span
-                  aria-current={active ? 'step' : undefined}
-                  className={`flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-extrabold transition-colors ${
-                    done
-                      ? 'bg-[#0052CC] text-white'
-                      : active
-                        ? 'bg-[#0F2341] text-white'
-                        : 'bg-zinc-200 text-zinc-500'
-                  }`}
-                >
-                  {done ? <Check size={14} aria-hidden="true" /> : idx}
-                </span>
-                <span className={`text-[12px] font-bold uppercase tracking-wider ${active ? 'text-[#0F2341]' : 'text-zinc-500'}`}>
-                  {label}
-                </span>
-                {i < stepLabels.length - 1 && (
-                  <span aria-hidden="true" className={`flex-1 h-px ${done ? 'bg-[#0052CC]' : 'bg-zinc-200'}`} />
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <div className="px-6">
+          <section className="bg-white max-w-3xl mx-auto p-8 md:p-12 rounded-2xl border border-va-line shadow-[0_24px_60px_rgba(0,0,0,0.04)] my-12">
+          {/* Step indicator */}
+          {!submitted && (
+            <ol
+              className="flex items-center gap-3 mb-10"
+              aria-label={lang === 'en' ? 'Form steps' : 'Étapes du formulaire'}
+            >
+              {stepLabels.map((label, i) => {
+                const idx = (i + 1) as 1 | 2 | 3;
+                const active = step === idx;
+                const done = step > idx;
+                const circleCls = done
+                  ? 'bg-va-blue text-white'
+                  : active
+                    ? 'bg-va-ink text-white ring-2 ring-va-blue ring-offset-2'
+                    : 'bg-va-line text-va-muted';
+                return (
+                  <li key={label} className="flex items-center gap-3 flex-1 min-w-0">
+                    <span
+                      aria-current={active ? 'step' : undefined}
+                      className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all flex-shrink-0 ${circleCls}`}
+                    >
+                      {done ? <Check size={14} aria-hidden="true" /> : idx}
+                    </span>
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-wider truncate ${
+                        active ? 'text-va-ink' : done ? 'text-va-blue' : 'text-va-muted'
+                      }`}
+                    >
+                      {label}
+                    </span>
+                    {i < stepLabels.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className={`flex-1 h-px ${done ? 'bg-va-blue' : 'bg-va-line'}`}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
 
-        <section className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm">
           {submitted ? (
             // Success state — replaces the form. Same pattern as Contact.tsx
             // so the user sees a concrete end-state after submission.
             <div className="text-center py-6">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 mb-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-va-blue-l text-va-blue mb-4">
                 <Check size={28} aria-hidden="true" />
               </div>
-              <h2 className="text-2xl font-extrabold text-[#0F2341] mb-2">
+              <h2 className="font-display font-black text-va-ink text-3xl tracking-[-0.02em] mb-2">
                 {lang === 'en' ? 'Submission received' : 'Soumission envoyée'}
               </h2>
-              <p className="text-sm text-zinc-600 mb-6 max-w-[480px] mx-auto">
+              <p className="text-va-muted text-base mb-6 max-w-[480px] mx-auto">
                 {lang === 'en'
-                  ? `Thanks ${name || 'for reaching out'} — we\u2019ll reply with a tailored quote within 2 business hours. Check your inbox at ${email}.`
-                  : `Merci ${name || 'd\u2019avoir écrit'} — on revient avec une soumission personnalisée sous 2 heures ouvrables. Surveillez votre boîte\u00a0: ${email}.`}
+                  ? `Thanks ${name || 'for reaching out'} — we’ll reply with a tailored quote within 2 business hours. Check your inbox at ${email}.`
+                  : `Merci ${name || 'd’avoir écrit'} — on revient avec une soumission personnalisée sous 2 heures ouvrables. Surveillez votre boîte : ${email}.`}
               </p>
               <Link
                 to="/"
-                className="inline-block text-[14px] font-extrabold text-primary-foreground gradient-navy-dark px-6 py-3 rounded-full"
+                className="inline-block bg-va-blue hover:bg-va-blue-h text-white font-semibold px-6 py-3 rounded-xl transition-colors"
               >
-                {lang === 'en' ? 'Back to home' : 'Retour à l\u2019accueil'}
+                {lang === 'en' ? 'Back to home' : 'Retour à l’accueil'}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate>
               {step === 1 && (
                 <div className="grid gap-5">
-                  <h2 className="text-xl font-extrabold text-[#0F2341]">
+                  <h2 className="font-display font-black text-va-ink text-2xl tracking-[-0.02em]">
                     {lang === 'en' ? 'Project basics' : 'Détails du projet'}
                   </h2>
 
                   <div>
-                    <label htmlFor="qty" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                      {lang === 'en' ? 'Quantity' : 'Quantité'} *
+                    <label htmlFor="qty" className={labelBase}>
+                      {lang === 'en' ? 'Quantity' : 'Quantité'}
+                      <span className="text-va-err ml-1" aria-hidden="true">*</span>
                     </label>
                     <input
                       id="qty"
@@ -371,25 +422,35 @@ export default function QuoteRequest() {
                       aria-required="true"
                       aria-invalid={quantity < 1 || !Number.isInteger(quantity)}
                       aria-describedby="qty-hint"
-                      className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                      className={fieldBase}
                     />
-                    <p id="qty-hint" className="text-[11px] text-zinc-500 mt-1">
+                    {/* Inline qty preview pill — surfaces the active
+                        tier so the buyer sees the per-unit price drop
+                        the moment they cross a threshold. */}
+                    {quantity >= 1 && tierPill && (
+                      <div className="bg-va-blue-l text-va-blue rounded-full px-3 py-1 text-xs font-semibold mt-2 inline-block">
+                        {tierPill}
+                      </div>
+                    )}
+                    <p id="qty-hint" className="text-xs text-va-muted mt-2">
                       {lang === 'en'
                         ? 'Whole number, 1 to 50,000.'
-                        : 'Nombre entier, de 1 à 50 000.'}
+                        : 'Nombre entier, de 1 à 50 000.'}
                     </p>
                   </div>
 
                   <div>
-                    <label htmlFor="product" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                      {lang === 'en' ? 'Product' : 'Produit'} *
+                    <label htmlFor="product" className={labelBase}>
+                      {lang === 'en' ? 'Product' : 'Produit'}
+                      <span className="text-va-err ml-1" aria-hidden="true">*</span>
                     </label>
                     <select
                       id="product"
                       value={productSku}
                       onChange={e => setProductSku(e.target.value)}
                       required
-                      className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                      aria-required="true"
+                      className={fieldBase}
                     >
                       {PRODUCTS.map(p => (
                         <option key={p.sku} value={p.sku}>
@@ -401,7 +462,7 @@ export default function QuoteRequest() {
 
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="deadline" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+                      <label htmlFor="deadline" className={labelBase}>
                         {lang === 'en' ? 'Deadline' : 'Échéance'}
                       </label>
                       <input
@@ -409,11 +470,11 @@ export default function QuoteRequest() {
                         type="date"
                         value={deadline}
                         onChange={e => setDeadline(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                        className={fieldBase}
                       />
                     </div>
                     <div>
-                      <label htmlFor="colors" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+                      <label htmlFor="colors" className={labelBase}>
                         {lang === 'en' ? 'Colors / Pantone' : 'Couleurs / Pantone'}
                       </label>
                       <input
@@ -421,8 +482,8 @@ export default function QuoteRequest() {
                         type="text"
                         value={colors}
                         onChange={e => setColors(e.target.value)}
-                        placeholder={lang === 'en' ? 'e.g. PMS 2945 + white' : 'ex.\u00a0PMS 2945 + blanc'}
-                        className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                        placeholder={lang === 'en' ? 'e.g. PMS 2945 + white' : 'ex. PMS 2945 + blanc'}
+                        className={fieldBase}
                       />
                     </div>
                   </div>
@@ -432,7 +493,7 @@ export default function QuoteRequest() {
                       type="button"
                       onClick={goNext}
                       disabled={!step1Valid}
-                      className="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-primary-foreground gradient-navy-dark px-6 py-3 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 bg-va-blue hover:bg-va-blue-h text-white font-semibold px-6 py-3 rounded-xl transition-colors disabled:bg-va-line disabled:text-va-muted disabled:cursor-not-allowed"
                     >
                       {lang === 'en' ? 'Continue' : 'Continuer'}
                       <ArrowRight size={16} aria-hidden="true" />
@@ -443,14 +504,15 @@ export default function QuoteRequest() {
 
               {step === 2 && (
                 <div className="grid gap-5">
-                  <h2 className="text-xl font-extrabold text-[#0F2341]">
+                  <h2 className="font-display font-black text-va-ink text-2xl tracking-[-0.02em]">
                     {lang === 'en' ? 'Your contact info' : 'Vos coordonnées'}
                   </h2>
 
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="company" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                        {lang === 'en' ? 'Company' : 'Entreprise'} *
+                      <label htmlFor="company" className={labelBase}>
+                        {lang === 'en' ? 'Company' : 'Entreprise'}
+                        <span className="text-va-err ml-1" aria-hidden="true">*</span>
                       </label>
                       <input
                         id="company"
@@ -458,11 +520,12 @@ export default function QuoteRequest() {
                         value={company}
                         onChange={e => setCompany(e.target.value)}
                         required
-                        className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                        aria-required="true"
+                        className={fieldBase}
                       />
                     </div>
                     <div>
-                      <label htmlFor="name" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+                      <label htmlFor="name" className={labelBase}>
                         {lang === 'en' ? 'Your name' : 'Votre nom'}
                       </label>
                       <input
@@ -470,15 +533,16 @@ export default function QuoteRequest() {
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                        className={fieldBase}
                       />
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="email" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                        {lang === 'en' ? 'Email' : 'Courriel'} *
+                      <label htmlFor="email" className={labelBase}>
+                        {lang === 'en' ? 'Email' : 'Courriel'}
+                        <span className="text-va-err ml-1" aria-hidden="true">*</span>
                       </label>
                       <input
                         id="email"
@@ -486,22 +550,20 @@ export default function QuoteRequest() {
                         value={email}
                         onChange={e => { setEmail(e.target.value); setEmailErr(false); }}
                         aria-invalid={emailErr}
+                        aria-required="true"
                         required
-                        className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
-                          emailErr
-                            ? 'border-red-400 focus:ring-red-300/40 focus:border-red-400'
-                            : 'border-zinc-200 focus:ring-[#0052CC]/40 focus:border-[#0052CC]'
-                        }`}
+                        className={emailErr ? fieldErr : fieldBase}
                       />
                       {emailErr && (
-                        <p className="text-[11px] text-red-600 mt-1">
+                        <p className={errText}>
                           {lang === 'en' ? 'Please enter a valid email.' : 'Entrez un courriel valide.'}
                         </p>
                       )}
                     </div>
                     <div>
-                      <label htmlFor="phone" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                        {lang === 'en' ? 'Phone' : 'Téléphone'} *
+                      <label htmlFor="phone" className={labelBase}>
+                        {lang === 'en' ? 'Phone' : 'Téléphone'}
+                        <span className="text-va-err ml-1" aria-hidden="true">*</span>
                       </label>
                       <input
                         id="phone"
@@ -509,16 +571,13 @@ export default function QuoteRequest() {
                         value={phone}
                         onChange={e => { setPhone(e.target.value); setPhoneErr(false); }}
                         aria-invalid={phoneErr}
+                        aria-required="true"
                         required
-                        placeholder={lang === 'en' ? '514-555-1234' : '514-555-1234'}
-                        className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
-                          phoneErr
-                            ? 'border-red-400 focus:ring-red-300/40 focus:border-red-400'
-                            : 'border-zinc-200 focus:ring-[#0052CC]/40 focus:border-[#0052CC]'
-                        }`}
+                        placeholder="514-555-1234"
+                        className={phoneErr ? fieldErr : fieldBase}
                       />
                       {phoneErr && (
-                        <p className="text-[11px] text-red-600 mt-1">
+                        <p className={errText}>
                           {lang === 'en'
                             ? 'Use a 10-digit Canadian number or +country format.'
                             : 'Utilisez un numéro à 10 chiffres ou le format +indicatif.'}
@@ -528,13 +587,13 @@ export default function QuoteRequest() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+                    <label className={labelBase}>
                       {lang === 'en' ? 'Logo (optional)' : 'Logo (optionnel)'}
                     </label>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-zinc-300 rounded-lg text-sm text-zinc-600 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-va-line-h rounded-xl text-sm text-va-dim bg-va-bg-2 hover:bg-va-bg-3 hover:border-va-blue transition-all"
                     >
                       <Upload size={15} aria-hidden="true" />
                       {logoName
@@ -549,7 +608,7 @@ export default function QuoteRequest() {
                       onChange={e => handleFile(e.target.files?.[0] ?? null)}
                       className="sr-only"
                     />
-                    <p className="text-[11px] text-zinc-500 mt-1">
+                    <p className="text-xs text-va-muted mt-2">
                       {lang === 'en'
                         ? 'Max 800 KB. For larger files, send by email after submitting.'
                         : 'Max 800 Ko. Pour des fichiers plus gros, envoyez par courriel après la soumission.'}
@@ -557,7 +616,7 @@ export default function QuoteRequest() {
                   </div>
 
                   <div>
-                    <label htmlFor="notes" className="block text-[12px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+                    <label htmlFor="notes" className={labelBase}>
                       {lang === 'en' ? 'Notes' : 'Notes'}
                     </label>
                     <textarea
@@ -565,7 +624,7 @@ export default function QuoteRequest() {
                       value={notes}
                       onChange={e => setNotes(e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
+                      className={fieldBase}
                     />
                   </div>
 
@@ -573,7 +632,7 @@ export default function QuoteRequest() {
                     <button
                       type="button"
                       onClick={goBack}
-                      className="inline-flex items-center gap-1.5 text-[13px] font-bold text-zinc-600 px-4 py-2 rounded-full hover:text-[#0F2341]"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-va-muted hover:text-va-ink px-4 py-2 rounded-xl transition-colors"
                     >
                       <ArrowLeft size={15} aria-hidden="true" />
                       {lang === 'en' ? 'Back' : 'Retour'}
@@ -581,7 +640,7 @@ export default function QuoteRequest() {
                     <button
                       type="button"
                       onClick={goNext}
-                      className="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-primary-foreground gradient-navy-dark px-6 py-3 rounded-full"
+                      className="inline-flex items-center gap-2 bg-va-blue hover:bg-va-blue-h text-white font-semibold px-6 py-3 rounded-xl transition-colors"
                     >
                       {lang === 'en' ? 'Review' : 'Réviser'}
                       <ArrowRight size={16} aria-hidden="true" />
@@ -592,22 +651,22 @@ export default function QuoteRequest() {
 
               {step === 3 && (
                 <div className="grid gap-5">
-                  <h2 className="text-xl font-extrabold text-[#0F2341]">
+                  <h2 className="font-display font-black text-va-ink text-2xl tracking-[-0.02em]">
                     {lang === 'en' ? 'Review and submit' : 'Réviser et soumettre'}
                   </h2>
 
-                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-5">
-                    <div className="text-[12px] font-bold uppercase tracking-wider text-zinc-500 mb-1">
+                  <div className="rounded-xl bg-va-bg-2 border border-va-line p-6">
+                    <div className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-2">
                       {lang === 'en' ? 'Estimated price' : 'Prix estimé'}
                     </div>
-                    <div className="text-3xl font-extrabold text-[#0F2341]">
+                    <div className="font-display font-black text-va-ink text-4xl tracking-[-0.02em]">
                       {totalPrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
                         style: 'currency',
                         currency: 'CAD',
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <div className="text-[12px] text-zinc-600 mt-1">
+                    <div className="text-sm text-va-dim mt-2">
                       {quantity} × {productName} · {unitPrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
                         style: 'currency',
                         currency: 'CAD',
@@ -615,77 +674,79 @@ export default function QuoteRequest() {
                       {' '}
                       / {lang === 'en' ? 'unit' : 'unité'}
                     </div>
-                    <p className="text-[11px] text-zinc-500 mt-2">
+                    <p className="text-xs text-va-muted mt-3">
                       {lang === 'en'
                         ? 'Indicative only. Final pricing depends on art, locations and finishes — confirmed in our reply.'
                         : 'À titre indicatif. Le prix final dépend du visuel, des emplacements et des finitions — confirmé dans notre réponse.'}
                     </p>
                   </div>
 
-                  <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Company' : 'Entreprise'}</dt>
-                      <dd className="text-zinc-800">{company || '—'}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Company' : 'Entreprise'}</dt>
+                      <dd className="text-va-ink">{company || '—'}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Contact' : 'Contact'}</dt>
-                      <dd className="text-zinc-800">{name || '—'}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Contact' : 'Contact'}</dt>
+                      <dd className="text-va-ink">{name || '—'}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Email' : 'Courriel'}</dt>
-                      <dd className="text-zinc-800 break-all">{email}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Email' : 'Courriel'}</dt>
+                      <dd className="text-va-ink break-all">{email}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Phone' : 'Téléphone'}</dt>
-                      <dd className="text-zinc-800">{phone}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Phone' : 'Téléphone'}</dt>
+                      <dd className="text-va-ink">{phone}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Deadline' : 'Échéance'}</dt>
-                      <dd className="text-zinc-800">{deadline || '—'}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Deadline' : 'Échéance'}</dt>
+                      <dd className="text-va-ink">{deadline || '—'}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Colors' : 'Couleurs'}</dt>
-                      <dd className="text-zinc-800">{colors || '—'}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Colors' : 'Couleurs'}</dt>
+                      <dd className="text-va-ink">{colors || '—'}</dd>
                     </div>
                     <div className="sm:col-span-2">
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Logo' : 'Logo'}</dt>
-                      <dd className="text-zinc-800">{logoName ?? (lang === 'en' ? 'None attached' : 'Aucun')}</dd>
+                      <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Logo' : 'Logo'}</dt>
+                      <dd className="text-va-ink">{logoName ?? (lang === 'en' ? 'None attached' : 'Aucun')}</dd>
                     </div>
                     {notes && (
                       <div className="sm:col-span-2">
-                        <dt className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{lang === 'en' ? 'Notes' : 'Notes'}</dt>
-                        <dd className="text-zinc-800 whitespace-pre-wrap">{notes}</dd>
+                        <dt className="text-xs font-medium uppercase tracking-[0.15em] text-va-muted mb-1">{lang === 'en' ? 'Notes' : 'Notes'}</dt>
+                        <dd className="text-va-ink whitespace-pre-wrap">{notes}</dd>
                       </div>
                     )}
                   </dl>
 
-                  <div className="flex justify-between items-center pt-2">
-                    <button
-                      type="button"
-                      onClick={goBack}
-                      className="inline-flex items-center gap-1.5 text-[13px] font-bold text-zinc-600 px-4 py-2 rounded-full hover:text-[#0F2341]"
-                    >
-                      <ArrowLeft size={15} aria-hidden="true" />
-                      {lang === 'en' ? 'Back' : 'Retour'}
-                    </button>
+                  <div className="pt-2 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={goBack}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-va-muted hover:text-va-ink px-4 py-2 rounded-xl transition-colors"
+                      >
+                        <ArrowLeft size={15} aria-hidden="true" />
+                        {lang === 'en' ? 'Back' : 'Retour'}
+                      </button>
+                    </div>
                     <SubmitButton
                       state={submitState}
-                      className="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-primary-foreground gradient-navy-dark px-6 py-3 rounded-full"
+                      className="bg-va-blue hover:bg-va-blue-h text-white font-semibold w-full px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(0,82,204,0.25)] disabled:bg-va-line disabled:text-va-muted disabled:shadow-none transition-all"
                     >
-                      {lang === 'en' ? 'Submit request' : 'Envoyer la demande'}
+                      {lang === 'en' ? 'Send request' : 'Envoyer ma demande'}
                     </SubmitButton>
+                    <p className="text-va-muted text-xs text-center">
+                      {lang === 'en'
+                        ? '🔒 Your info stays private · No commitment · Reply within 24h'
+                        : '🔒 Tes infos restent privées · Aucun engagement · Réponse en 24h'}
+                    </p>
                   </div>
                 </div>
               )}
             </form>
           )}
-        </section>
-
-        <p className="text-[11px] text-zinc-500 mt-6 text-center">
-          {lang === 'en'
-            ? 'Submissions queue locally and our team is notified — response within 2 business hours.'
-            : 'Les soumissions sont mises en file localement et notre équipe est avisée — réponse sous 2 heures ouvrables.'}
-        </p>
+          </section>
+        </div>
       </main>
       <SiteFooter />
     </div>
