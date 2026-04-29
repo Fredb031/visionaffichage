@@ -10,12 +10,20 @@
 
 export const WA_NUMBER = '13673804808';
 
-export const WA_MESSAGES = {
+// Frozen at module load to align with the runtime-immutability pattern
+// used by pricing.ts, tax.ts, productLabels.ts, automations.ts, and
+// caseStudies.ts. WA_MESSAGES is the single source of truth for every
+// WhatsApp CTA prefill — a stray consumer doing
+// `WA_MESSAGES.default = '...'` mid-session would silently retarget
+// every floating button + PDP link in the SPA at the new copy until
+// the next reload. The freeze makes that mutation throw in strict
+// mode; the readonly templates remain callable as a function reference.
+export const WA_MESSAGES = Object.freeze({
   default: "Bonjour Vision Affichage! J'ai une question sur votre site.",
   product: (n: string) => `Bonjour! Je veux commander des ${n} avec mon logo.`,
   customizer: "Bonjour! J'ai besoin d'aide pour personnaliser un produit.",
   quote: "Bonjour! J'aimerais obtenir une soumission pour mon équipe.",
-};
+});
 
 /**
  * Build a wa.me deep link with the given pre-filled message.
