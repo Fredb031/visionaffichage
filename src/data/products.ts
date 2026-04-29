@@ -226,8 +226,8 @@ export const PRODUCTS: Product[] = [
     description: 'Hoodie unisexe en French Terry 13 oz à molleton 3 épaisseurs, offrant chaleur et durabilité exceptionnelles. Son traitement anti-boulochage et sa certification OEKO-TEX en font un choix fiable. Idéal pour les uniformes d\'équipe, événements corporatifs et vêtements promotionnels.',
     features: ['13 oz French Terry','Molleton 3 épaisseurs','Capuchon doublé avec cordon','Œillets métal argenté','Poche kangourou','Anti-boulochage','OEKO-TEX® Standard 100'],
     identityHook: {
-      fr: 'Le hoodie qu\'on voit sur les meilleures équipes de paysagement.',
-      en: 'The hoodie you see on Quebec\'s top landscaping crews.',
+      fr: 'Le hoodie 13 oz pour les matins frais sur le chantier — capuchon doublé, poche kangourou pour les gants, OEKO-TEX certifié.',
+      en: 'The 13 oz hoodie for cold-morning jobsites — lined hood, kangaroo pocket for gloves, OEKO-TEX certified.',
     },
   },
   {
@@ -273,8 +273,8 @@ export const PRODUCTS: Product[] = [
     description: 'Crewneck unisexe en French Terry 3 épaisseurs avec col rond côtelé et finitions en côte aux poignets et à la taille. Son look épuré sans capuche offre une silhouette professionnelle et polyvalente. Excellent choix pour les tenues corporatives et les cadeaux d\'entreprise.',
     features: ['French Terry 3 épaisseurs','Col rond côtelé','Poignets et taille en côte'],
     identityHook: {
-      fr: 'Le crewneck que les équipes portent par grand froid.',
-      en: 'The crewneck crews wear in deep cold.',
+      fr: 'Le crewneck québécois — chaud sans le poids du hoodie, parfait sous une veste haute-visibilité.',
+      en: 'The Quebec crewneck — warm without the bulk of a hoodie, layers cleanly under a hi-vis vest.',
     },
   },
 
@@ -294,8 +294,8 @@ export const PRODUCTS: Product[] = [
     description: 'T-shirt en coton ringspun 100 % de 9,1 oz avec coutures double aiguille et étiquette détachable pour un rebranding facile. Sa certification OEKO-TEX garantit un produit sûr et responsable. Le choix par excellence pour les équipes, événements et campagnes promotionnelles.',
     features: ['100% coton ringspun 9,1 oz','Col côtelé 1×1','Coutures double aiguille','Étiquette détachable','OEKO-TEX® Standard 100'],
     identityHook: {
-      fr: 'Le t-shirt de 200+ équipes de construction au Québec.',
-      en: 'The t-shirt of 200+ construction crews in Quebec.',
+      fr: 'Le t-shirt de référence des chantiers québécois — coton 9,1 oz, étiquette détachable pour rebranding rapide, prêt pour 200+ lavages.',
+      en: 'The go-to tee on Quebec jobsites — 9.1 oz cotton, tear-away label for quick rebranding, holds up past 200 washes.',
     },
   },
   {
@@ -350,8 +350,8 @@ export const PRODUCTS: Product[] = [
     description: 'T-shirt manches longues en coton ringspun avec col côtelé 1x1, offrant une protection supplémentaire pour les saisons fraîches. Sa coupe classique et ses coutures renforcées garantissent confort et longévité. Idéal pour les chantiers, événements extérieurs et tenues d\'équipe automne-hiver.',
     features: ['100% coton ringspun','Manches longues','Col côtelé 1×1','OEKO-TEX®'],
     identityHook: {
-      fr: 'Le t-shirt manches longues que les équipes portent en mi-saison.',
-      en: 'The long-sleeve tee teams wear through shoulder seasons.',
+      fr: 'Pour les chantiers froids : protection bras complets, manches roulables sur les outils, col côtelé qui garde la chaleur.',
+      en: 'For cold jobsites: full-arm coverage, roll-up sleeves over tools, ribbed collar that traps heat.',
     },
   },
 
@@ -390,8 +390,8 @@ export const PRODUCTS: Product[] = [
     description: 'Polo femme coupe ajustée à manches courtes avec col polo et placket 3 boutons, offrant une silhouette élégante et professionnelle. Son tissu léger et respirant garantit un confort toute la journée. Idéal pour les équipes mixtes, réceptions et uniformes corporatifs.',
     features: ['Coupe ajustée femme','Col polo','Placket 3 boutons'],
     identityHook: {
-      fr: 'Le polo classique des équipes corporate.',
-      en: 'The classic polo corporate teams pick.',
+      fr: 'Le polo coupe femme pour les équipes mixtes — placket 3 boutons, tissu respirant, broderie cœur prête pour le logo.',
+      en: 'The women\'s-cut polo for mixed teams — 3-button placket, breathable fabric, ready for left-chest embroidery.',
     },
   },
   {
@@ -411,8 +411,8 @@ export const PRODUCTS: Product[] = [
     description: 'Polo manches longues 4 saisons avec col polo et placket 3 boutons, combinant protection contre les éléments et allure professionnelle. Sa coupe structurée garde un look impeccable du matin au soir. Conçu pour les représentants terrain, événements extérieurs et environnements climatisés.',
     features: ['Manches longues','Col polo','Placket 3 boutons','Usage 4 saisons'],
     identityHook: {
-      fr: 'L\'uniforme complet pour toutes les saisons.',
-      en: 'The full-season uniform.',
+      fr: 'Le polo manches longues 4 saisons — pour les représentants terrain qui passent du chantier au bureau client sans changer de chemise.',
+      en: 'The 4-season long-sleeve polo — for field reps moving from jobsite to client meeting without changing shirts.',
     },
   },
 
@@ -471,8 +471,8 @@ export const PRODUCTS: Product[] = [
     description: 'Casquette trucker Yupoong 6606 avec panneau avant structuré en coton et 5 panneaux en maille filet respirante. Son snapback réglable assure un ajustement universel et confortable. Idéale pour la broderie de logos d\'entreprise, équipes sportives et cadeaux promotionnels.',
     features: ['Panneau avant structuré coton','5 panneaux maille filet','Snapback réglable','Zone broderie avant'],
     identityHook: {
-      fr: 'La casquette que les pros portent 5 jours sur 7.',
-      en: 'The cap pros wear 5 days a week.',
+      fr: 'La trucker que les pros portent 5 jours sur 7 — panneau avant structuré pour la broderie, mesh à l\'arrière pour les chantiers chauds, snapback ajustable taille unique.',
+      en: 'The trucker pros wear 5 days a week — structured front for embroidery, mesh back for hot jobsites, one-size snapback.',
     },
   },
   {
@@ -531,8 +531,8 @@ export const PRODUCTS: Product[] = [
     description: 'Tuque sans rebord en acrylique 100 % double épaisseur au style épuré et contemporain, offrant une excellente rétention de chaleur. Sa face avant lisse est optimale pour la broderie de logos et emblèmes. Idéale pour les équipes de travail extérieur, promotions hivernales et événements de fin d\'année.',
     features: ['100% acrylique','Double épaisseur','Sans rebord','Broderie face avant'],
     identityHook: {
-      fr: 'La tuque avec ton logo — visible sur chaque chantier.',
-      en: 'The beanie with your logo — visible on every jobsite.',
+      fr: 'La tuque double épaisseur sans rebord — face avant lisse pour ton logo brodé, visible de loin sur chaque chantier d\'hiver.',
+      en: 'The double-layer cuffless beanie — clean front face for your embroidered logo, visible across every winter jobsite.',
     },
   },
 ];
