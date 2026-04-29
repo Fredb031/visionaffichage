@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
-import { Home, Store, ShoppingCart } from 'lucide-react';
+import { Home, ShoppingBag, Edit3, ShoppingCart } from 'lucide-react';
 
 // Visual + animation constants kept out of JSX so they're easy to tune
 // without diff noise inside the render tree.
@@ -10,17 +10,29 @@ const BADGE_MAX = 99;            // anything beyond this renders as "99+"
 const PULSE_DURATION_MS = 240;   // matches the Tailwind duration-200 ease-out
 
 /**
- * BottomNav — mobile-only fixed bottom tab bar (Home / Shop / Cart) with
- * a live cart-count badge, route-aware active state, and an sr-only
- * live region that announces cart changes regardless of focus.
+ * BottomNav — mobile-only fixed bottom tab bar (Master Prompt spec).
+ *
+ *   fixed bottom-0 inset-x-0 bg-white border-t border-va-line z-40
+ *   pb-[env(safe-area-inset-bottom)]
+ *
+ * Four tabs in spec order:
+ *   1. Accueil  (Home,         /)
+ *   2. Boutique (ShoppingBag,  /boutique)
+ *   3. Créer    (Edit3,        /customizer)
+ *   4. Panier   (ShoppingCart, /panier) — with cart-count badge
+ *
+ * Active tab uses text-va-blue. Inactive uses text-va-muted. The cart
+ * pulse respects prefers-reduced-motion (commit 4183f34): users who
+ * opted out of motion get the live-region announcement only — no scale
+ * keyframe, no flash.
  */
 export function BottomNav() {
   const location = useLocation();
   const { lang, t } = useLang();
   const rawCount = useCartStore(s => s.getItemCount());
   // Defensive guard: even though localCartStore.getItemCount() already
-  // filters non-finite quantities, a downstream consumer rendering
-  // "NaN" inside a live region (announced to AT users) is a much worse
+  // filters non-finite quantities, a downstream consumer rendering "NaN"
+  // inside a live region (announced to AT users) is a much worse
   // failure mode than silently clamping to 0 here.
   const itemCount = Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 0;
 
@@ -42,12 +54,11 @@ export function BottomNav() {
     } else {
       setAnnouncement(`Panier : ${itemCount} ${itemCount === 1 ? 'article' : 'articles'}`);
     }
-    // Brief scale pulse so the badge "pops" when the count changes. Pure
-    // CSS via a timed class toggle — avoids pulling in framer-motion for
-    // a 200ms flourish. Respect prefers-reduced-motion (WCAG 2.3.3): users
-    // who've opted out of motion shouldn't get a scale animation, even
-    // a small one — the live-region announcement above already conveys
-    // the change non-visually.
+    // Pure-CSS scale pulse so the badge "pops" when the count changes.
+    // Respect prefers-reduced-motion (WCAG 2.3.3): users who've opted
+    // out of motion shouldn't get a scale animation, even a small one
+    // — the live-region announcement above already conveys the change
+    // non-visually. (Commit 4183f34.)
     if (itemCount > 0) {
       const prefersReducedMotion =
         typeof window !== 'undefined' &&
@@ -60,45 +71,45 @@ export function BottomNav() {
     }
   }, [itemCount, lang]);
 
-  // Memoised so the items array isn't recreated on every cart update —
-  // small win, but it also keeps Link prop identity stable for any
-  // downstream memoised children that compare by reference.
+  // Memoised so the items array isn't recreated on every cart update.
+  // Order is canonical per Master Prompt — do not reorder.
   const items = useMemo(() => ([
-    { id: 'home',   label: t('accueil'),  path: '/',         icon: Home },
-    { id: 'shop',   label: t('boutique'), path: '/products', icon: Store },
-    // The "Créer" tab was removed — it duplicated the per-product
-    // Personnaliser CTA on /products cards and PDPs (which is the
-    // canonical entry to the customizer). Three tabs only now.
-    { id: 'cart',   label: t('panier'),   path: '/cart',     icon: ShoppingCart },
+    { id: 'home', label: t('accueil'),       path: '/',           icon: Home },
+    { id: 'shop', label: t('boutique'),      path: '/boutique',   icon: ShoppingBag },
+    { id: 'make', label: t('creer'),         path: '/customizer', icon: Edit3 },
+    { id: 'cart', label: t('panier'),        path: '/panier',     icon: ShoppingCart },
   ] as const), [t]);
 
   return (
     <nav
-      // z-[440] sits one tier below the AIChat FAB (z-[450]) so the
-      // floating chat button always overlaps the nav instead of
-      // fighting it.
-      className="fixed bottom-0 left-0 right-0 z-[440] bg-white border-t border-zinc-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+      // z-40 per spec. Sits below the AIChat FAB which uses z-[450].
+      className="fixed bottom-0 inset-x-0 bg-white border-t border-va-line z-40"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       role="navigation"
       aria-label={lang === 'en' ? 'Bottom navigation' : 'Navigation du bas'}
     >
-      <div className="flex items-center justify-around h-[60px] max-w-md mx-auto">
+      <div className="flex items-stretch">
         {items.map(item => {
           const Icon = item.icon;
-          // Product detail lives at /product/<handle> (singular), but
-          // that's still 'Shop' in the nav — treat it as part of the
-          // /products tree so the tab actually lights up on PDPs.
-          // Use boundary checks (exact, or trailing "/") so a future
-          // route like "/products-export" wouldn't accidentally light
-          // up the Shop tab.
+          // Boundary checks (exact, or trailing "/") so a future route
+          // like "/boutique-export" wouldn't accidentally light up the
+          // Boutique tab.
           const path = location.pathname;
           const startsWithBoundary = (prefix: string) =>
             path === prefix || path.startsWith(`${prefix}/`);
           const active = item.id === 'home'
             ? path === '/'
             : item.id === 'shop'
-              ? startsWithBoundary('/products') || startsWithBoundary('/product')
-              : startsWithBoundary('/cart');
+              // Treat the existing /products tree (and singular /product
+              // PDPs) as part of Boutique too, until those routes are
+              // migrated to the spec /boutique path.
+              ? startsWithBoundary('/boutique')
+                || startsWithBoundary('/products')
+                || startsWithBoundary('/product')
+              : item.id === 'make'
+                ? startsWithBoundary('/customizer')
+                // Cart tab: spec /panier plus existing /cart route.
+                : startsWithBoundary('/panier') || startsWithBoundary('/cart');
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? lang === 'en'
               ? `${item.label}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`
@@ -111,7 +122,9 @@ export function BottomNav() {
             <Link
               key={item.id}
               to={item.path}
-              className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded-md no-underline"
+              className={`flex-1 flex flex-col items-center gap-1 py-2 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1 no-underline ${
+                active ? 'text-va-blue' : 'text-va-muted'
+              }`}
               aria-current={active ? 'page' : undefined}
               aria-label={ariaLabel}
             >
@@ -119,28 +132,20 @@ export function BottomNav() {
                 <Icon
                   size={20}
                   strokeWidth={active ? 2.2 : 1.5}
-                  className={`transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}
                   aria-hidden="true"
                 />
                 {item.id === 'cart' && itemCount > 0 && (
                   <span
-                    className={`absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5 transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
+                    className={`absolute -top-0.5 -right-1 bg-red-500 text-white rounded-full text-[10px] font-bold w-4 h-4 flex items-center justify-center transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
                     aria-hidden="true"
                   >
                     {itemCount > BADGE_MAX ? `${BADGE_MAX}+` : itemCount}
                   </span>
                 )}
               </span>
-              <span className={`text-[10px] font-semibold transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}>
+              <span className="font-medium">
                 {item.label}
               </span>
-              {/* 2px active indicator bar — sits under the label and only
-                 renders on the active tab. Matches the brand blue used
-                 elsewhere for primary active states. */}
-              <span
-                aria-hidden="true"
-                className={`mt-0.5 h-[2px] w-4 rounded-full transition-colors ${active ? 'bg-[#0052CC]' : 'bg-transparent'}`}
-              />
             </Link>
           );
         })}

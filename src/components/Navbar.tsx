@@ -1,11 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginModal } from '@/components/LoginModal';
-import { SearchBar } from '@/components/SearchBar';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface NavbarProps {
@@ -14,11 +13,28 @@ interface NavbarProps {
   onOpenLogin?: () => void;
 }
 
+/**
+ * Desktop primary navbar — Master Prompt spec.
+ *
+ *   sticky top-0 · bg-white/95 backdrop-blur-md · border-b border-va-line
+ *   z-50 h-16
+ *
+ * Layout:
+ *   [logo]   [Accueil · Boutique · Personnaliser]   [LangToggle · Connexion · Cart · Commander]
+ *
+ * Active route gets `text-va-ink` + `aria-current="page"`. Cart-add pulse
+ * collapses to a near-instant blip under prefers-reduced-motion via the
+ * global rule in index.css. Scroll listener kept (toggles a heavier
+ * shadow once the user scrolls past the hero) so the bar still feels
+ * connected to scroll position even though the base treatment is now
+ * always-opaque per spec.
+ */
 export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const [internalLoginOpen, setInternalLoginOpen] = useState(false);
   const openLogin = onOpenLogin ?? (() => setInternalLoginOpen(true));
   const itemCount = useCartStore((s) => s.getItemCount());
   const { lang, t } = useLang();
+  const location = useLocation();
 
   // Cart-badge pulse on increase. We replay a 400ms scale+gold-flash
   // keyframe whenever a new item lands in the cart — silent numeric
@@ -31,9 +47,6 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   //     increase so the very first add-to-cart of a session is loud.
   //   • prefers-reduced-motion collapses the keyframe to ~0ms via the
   //     global rule in index.css, so motion-sensitive users are spared.
-  // `pulseId` is a monotonic counter used as `key` on the badge span so
-  // each increase remounts the node and restarts the CSS animation from
-  // frame 0 — no manual setTimeout cleanup required.
   const prevCountRef = useRef(itemCount);
   const [pulseId, setPulseId] = useState(0);
   useEffect(() => {
@@ -53,12 +66,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   // without having to click outside.
   useEscapeKey(menuOpen, useCallback(() => setMenuOpen(false), []));
 
-  // Return focus to the avatar trigger when the menu closes (Escape,
-  // overlay click, menu-item selection). Without this, keyboard users
-  // are stranded on a vanished menu item and Tab resumes from the top
-  // of the document — breaking the WAI-ARIA menu pattern. Guard with
-  // wasMenuOpenRef so we only steal focus on the true->false edge,
-  // not on initial mount or unrelated re-renders.
+  // Return focus to the avatar trigger when the menu closes.
   useEffect(() => {
     if (wasMenuOpenRef.current && !menuOpen) {
       menuTriggerRef.current?.focus({ preventScroll: true });
@@ -69,16 +77,13 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   // Global Cmd/Ctrl+Shift+C opens the cart drawer from anywhere Navbar
   // is mounted (every page). Skip when focus is in a text input or
   // contentEditable so typing 'C' mid-form doesn't hijack the keystroke.
-  // Chosen over plain Cmd+K (owned by admin search) and Cmd+C (system
-  // copy). Shift+C is rarely bound and intentional enough to avoid
-  // stealing from browser defaults.
   useEffect(() => {
     if (!onOpenCart) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
       if (e.key.toLowerCase() !== 'c') return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       e.preventDefault();
       onOpenCart();
     };
@@ -87,42 +92,51 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   }, [onOpenCart]);
 
   // President is the highest admin tier — route it to the same admin
-  // dashboard as 'admin'. Before this, owners signed in as 'president'
-  // saw no Dashboard link in the navbar menu and had to type /admin
-  // into the URL bar to reach their own console.
+  // dashboard as 'admin'.
   const dashboardPath = user?.role === 'president' || user?.role === 'admin'
     ? '/admin'
     : user?.role === 'vendor' ? '/vendor' : null;
 
-  // Transparent at the very top, then blur + subtle navy-tinted border once
-  // the user scrolls past 100px. Gives the hero room to breathe while keeping
-  // the navbar legible over photography/content lower on the page. 100px
-  // threshold matches the typical hero "logo lockup" fade-out point so the
-  // transition lands where the eye is already adapting.
+  // Scroll listener kept (per spec: "KEEP scroll listener"). Adds a
+  // subtle drop shadow once we're past the hero so the bar still
+  // feels alive without competing with the spec's flat backdrop-blur
+  // treatment when at the very top.
   const [scrolled, setScrolled] = useState(() =>
-    typeof window !== 'undefined' ? window.scrollY > 100 : false
+    typeof window !== 'undefined' ? window.scrollY > 8 : false
   );
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 100);
-    // Re-sync on mount: browsers may restore scroll position AFTER the
-    // useState initializer ran (back/forward cache, hash navigation),
-    // leaving the navbar transparent over already-scrolled content.
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Boundary-aware active matcher so e.g. /products-export wouldn't
+  // spuriously light up the Boutique tab.
+  const path = location.pathname;
+  const startsWithBoundary = (prefix: string) =>
+    path === prefix || path.startsWith(`${prefix}/`);
+  const isHomeActive = path === '/';
+  // Boutique covers both the spec route /boutique and the existing
+  // /products tree (/product/:handle on PDPs).
+  const isShopActive = startsWithBoundary('/boutique')
+    || startsWithBoundary('/products')
+    || startsWithBoundary('/product');
+  // Personnaliser covers the spec /customizer route plus any PDP that
+  // currently mounts the customizer sheet inline.
+  const isCustomizerActive = startsWithBoundary('/customizer');
+
+  const links: Array<{ label: string; to: string; active: boolean }> = [
+    { label: t('accueil'),       to: '/',           active: isHomeActive },
+    { label: t('boutique'),      to: '/boutique',   active: isShopActive },
+    { label: t('personnaliser'), to: '/customizer', active: isCustomizerActive },
+  ];
+
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 transition-[background-color,backdrop-filter,border-color] duration-300 ease-out border-b ${
-        scrolled
-          ? 'bg-background/[0.93] backdrop-blur-xl border-[hsl(var(--navy))]/10'
-          : 'bg-transparent backdrop-blur-0 border-transparent'
+      className={`sticky top-0 bg-white/95 backdrop-blur-md border-b border-va-line z-50 h-16 flex items-center justify-between px-6 md:px-10 transition-shadow duration-200 ${
+        scrolled ? 'shadow-[0_2px_8px_rgba(10,10,10,0.04)]' : ''
       }`}
-      // Task 16.10 — env(safe-area-inset-top) keeps the logo + right-side
-      // pills off the iPhone notch. The 58px bar grows only on devices
-      // that actually report a non-zero inset (older iPhones and Android
-      // evaluate to 0px, so the bar looks unchanged there).
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       role="navigation"
       aria-label="Main navigation"
@@ -130,44 +144,40 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       <Link
         to="/"
         aria-label="Vision Affichage — Home"
-        className="flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        className="flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
       >
         <img
           src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
           alt="Vision Affichage"
           width={96}
-          height={24}
-          // Navbar logo sits above the fold on every route. Mark it
-          // eager + fetchpriority=high so Chrome treats it as an LCP
-          // candidate on text-dominant hero pages (Index, Contact, etc.)
-          // where no other <img> competes for viewport 1.
+          height={32}
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          // block + explicit h-6/w-auto strips the inline-image baseline gap
-          // so the logo's optical center lines up pixel-for-pixel with the
-          // text baseline of the cart/login pill buttons on the right.
-          className="block h-6 w-auto"
+          className="block max-h-8 w-auto"
           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
       </Link>
 
-      {/* Volume II §2 — desktop-only smart search. Sits in the navbar
-          center between the logo and the right-side nav cluster. Hidden
-          below the md breakpoint to keep the mobile bar uncluttered;
-          mobile shoppers reach product discovery through BottomNav and
-          /products. Max-width caps the bar so it doesn't crowd the
-          right-side pill cluster on mid-width laptops. */}
-      <div className="hidden md:flex flex-1 justify-center px-6 max-w-[420px] mx-auto">
-        <SearchBar className="w-full" />
+      {/* Center links — desktop only. Active route is text-va-ink with
+          aria-current="page"; inactive links are text-va-dim and
+          deepen to text-va-ink on hover. */}
+      <div className="hidden md:flex gap-6">
+        {links.map(link => (
+          <Link
+            key={link.to}
+            to={link.to}
+            aria-current={link.active ? 'page' : undefined}
+            className={`font-medium text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 rounded-sm ${
+              link.active ? 'text-va-ink' : 'text-va-dim hover:text-va-ink'
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Phase 8 — desktop-only nav cluster. v4 simplification:
-            the logo handles "Accueil"; "Cr\u00E9er" and "Boutique"
-            were both pulled to declutter the bar. Discovery happens
-            via search (center), the hero CTA, and the mobile
-            BottomNav. Right side is now LangToggle / cart / login. */}
         <LangToggle />
 
         {user ? (
@@ -176,14 +186,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
               type="button"
               ref={menuTriggerRef}
               onClick={() => setMenuOpen(o => !o)}
-              className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              className="flex items-center gap-2 text-[12px] font-bold border border-va-line pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-va-line-h focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-controls="navbar-user-menu"
               aria-label={lang === 'en' ? `Account menu for ${user.name}` : `Menu compte de ${user.name}`}
             >
-              <span className="hidden sm:inline text-muted-foreground" aria-hidden="true">{user.name.split(' ')[0]}</span>
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#003D99] text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
+              <span className="hidden sm:inline text-va-muted" aria-hidden="true">{user.name.split(' ')[0]}</span>
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-va-blue to-va-blue-h text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
                 {user.initials}
               </span>
             </button>
@@ -198,13 +208,13 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                 />
                 <div
                   id="navbar-user-menu"
-                  className="absolute right-0 mt-2 w-56 bg-background border border-border rounded-xl shadow-xl z-[420] overflow-hidden"
+                  className="absolute right-0 mt-2 w-56 bg-white border border-va-line rounded-xl shadow-xl z-[420] overflow-hidden"
                   role="menu"
                 >
-                  <div className="p-3 border-b border-border">
-                    <div className="text-sm font-bold truncate">{user.name}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{user.email}</div>
-                    <div className="text-[10px] text-[#0052CC] font-bold uppercase tracking-wider mt-1">
+                  <div className="p-3 border-b border-va-line">
+                    <div className="text-sm font-bold truncate text-va-ink">{user.name}</div>
+                    <div className="text-[11px] text-va-muted truncate">{user.email}</div>
+                    <div className="text-[10px] text-va-blue font-bold uppercase tracking-wider mt-1">
                       {user.role}
                     </div>
                   </div>
@@ -214,7 +224,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                       to={dashboardPath}
                       onClick={() => setMenuOpen(false)}
                       role="menuitem"
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors focus:outline-none focus-visible:bg-secondary"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-va-ink hover:bg-va-bg-2 transition-colors focus:outline-none focus-visible:bg-va-bg-2"
                     >
                       <LayoutDashboard size={15} aria-hidden="true" />
                       {lang === 'en'
@@ -226,7 +236,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     to="/account"
                     onClick={() => setMenuOpen(false)}
                     role="menuitem"
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors focus:outline-none focus-visible:bg-secondary"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-va-ink hover:bg-va-bg-2 transition-colors focus:outline-none focus-visible:bg-va-bg-2"
                   >
                     <User size={15} aria-hidden="true" />
                     {lang === 'en' ? 'My account' : 'Mon compte'}
@@ -236,16 +246,13 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     onClick={async () => {
                       // Close the menu immediately for perceived speed,
                       // then await signOut so its async in-memory store
-                      // clears (cart/customizer reset via dynamic imports)
-                      // finish BEFORE we navigate. Without the await, the
-                      // / home page rendered briefly with the ex-user's
-                      // cart badge still populated until the clears landed.
+                      // clears finish BEFORE we navigate.
                       setMenuOpen(false);
                       await signOut();
                       navigate('/');
                     }}
                     role="menuitem"
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors border-none bg-transparent cursor-pointer text-left text-destructive focus:outline-none focus-visible:bg-destructive/10"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-va-bg-2 transition-colors border-none bg-transparent cursor-pointer text-left text-va-err focus:outline-none focus-visible:bg-va-err/10"
                   >
                     <LogOut size={15} aria-hidden="true" />
                     {lang === 'en' ? 'Sign out' : 'Déconnexion'}
@@ -261,11 +268,9 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             // Below the sm breakpoint the visible label span is hidden, leaving
             // the button as an icon-only control. The <svg> is aria-hidden, so
             // without an explicit aria-label, mobile screen-reader users hear
-            // an unlabeled "button" in the navbar. Mirror the visible text with
-            // a localized aria-label so the accessible name stays correct at
-            // every viewport width.
+            // an unlabeled "button" in the navbar (commit f36d2e9 fix).
             aria-label={t('connexion')}
-            className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="flex items-center gap-1.5 text-[12px] font-bold text-va-ink border border-va-line px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-va-line-h focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
           >
             <svg
               className="w-[13px] h-[13px]"
@@ -288,7 +293,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
           aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
           title={`${t('panier')} (⇧⌘C)`}
-          className="flex items-center gap-[7px] text-[13px] text-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          className="flex items-center gap-[7px] text-[13px] text-va-ink border border-va-line px-4 py-[7px] rounded-full transition-all hover:border-va-line-h relative focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
         >
           <svg
             width="15"
@@ -305,19 +310,16 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           <span className="hidden sm:inline">{t('panier')}</span>
           {itemCount > 0 && (
             // key={pulseId} remounts the span each time the count INCREASES
-            // (not on every change) so the scale+gold-flash keyframe replays
-            // from frame 0. pulseId stays at 0 on first mount, which keeps
-            // the initial render of a persisted cart quiet. prefers-reduced-
-            // motion collapses the keyframe to ~0ms via the global rule in
-            // index.css, so motion-sensitive users get a near-instant
-            // color blip instead of a bouncing badge. The keyframes are
-            // defined inline below so the whole pulse lives in this file.
+            // so the keyframe replays from frame 0. pulseId stays at 0 on
+            // first mount, which keeps the initial render of a persisted
+            // cart quiet. prefers-reduced-motion collapses the keyframe to
+            // ~0ms via the global rule in index.css.
             <>
               <style>{`
                 @keyframes cartAddPulse {
-                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsla(217, 100%, 40%, 0.0); }
-                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px hsla(217, 100%, 40%, 0.55); background-color: hsl(217, 100%, 40%); }
-                  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsla(217, 100%, 40%, 0.0); }
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.0); }
+                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(0, 82, 204, 0.55); background-color: #0052CC; }
+                  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.0); }
                 }
               `}</style>
               <span
@@ -327,7 +329,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     ? 'cartAddPulse 400ms cubic-bezier(.34,1.56,.64,1)'
                     : undefined,
                 }}
-                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-accent rounded-full text-[9px] font-extrabold text-accent-foreground flex items-center justify-center"
+                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-va-blue rounded-full text-[9px] font-extrabold text-white flex items-center justify-center"
               >
                 {itemCount > 99 ? '99+' : itemCount}
               </span>
@@ -335,11 +337,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           )}
         </button>
 
+        {/* Primary "Commander" CTA — bg-va-blue, hover bg-va-blue-h.
+            Routes to /boutique per spec (the discovery surface where
+            the actual order flow begins). */}
         <Link
-          to="/products"
-          className="hidden sm:inline-block bg-[#0052CC] text-white font-bold px-5 py-2.5 rounded-xl hover:bg-[#003D99] transition-all"
+          to="/boutique"
+          className="hidden sm:inline-block bg-va-blue hover:bg-va-blue-h text-white font-semibold text-sm px-5 py-2 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
         >
-          {t('voirProduits')}
+          {t('commander')}
         </Link>
       </div>
 

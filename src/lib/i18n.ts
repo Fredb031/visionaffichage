@@ -35,6 +35,8 @@ export const translations = Object.freeze({
     boutique: 'Boutique',
     accueil: 'Accueil',
     creer: 'Créer',
+    personnaliser: 'Personnaliser',
+    commander: 'Commander',
     // Hero
     kicker: 'Tes clients te jugent avant que tu parles — habille ton équipe à la hauteur.',
     h1line1: 'Commande en',
@@ -121,6 +123,8 @@ export const translations = Object.freeze({
     boutique: 'Shop',
     accueil: 'Home',
     creer: 'Create',
+    personnaliser: 'Customize',
+    commander: 'Order now',
     kicker: 'Your clients judge you before you speak — dress your team to the level you deserve.',
     h1line1: 'Order in',
     h1line2: '3 minutes.',
