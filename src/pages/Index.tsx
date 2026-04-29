@@ -1,12 +1,18 @@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
-import { CartDrawer } from '@/components/CartDrawer';
 // MoleGame and IntroAnimation are one-off, first-visit chrome that
 // most returning visitors never see — keep them out of the initial
 // home-page bundle and fetch on demand.
 import { lazy, Suspense } from 'react';
 const MoleGame = lazy(() => import('@/components/MoleGame').then(m => ({ default: m.MoleGame })));
 const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m => ({ default: m.IntroAnimation })));
+// OP-9: CartDrawer pulls framer-motion (slide animation). It's only
+// mounted when the user opens the cart from Navbar/BottomNav, so lazy-
+// loading it keeps framer-motion out of the home-page eager graph
+// while preserving the slide-in UX once the user actually engages.
+const CartDrawer = lazy(() =>
+  import('@/components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
+);
 import { LoginModal } from '@/components/LoginModal';
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
@@ -392,7 +398,9 @@ export default function Index() {
       </Suspense>
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
-      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      <Suspense fallback={null}>
+        <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      </Suspense>
 
       {/* ================================================================
           HERO — Vol. III PDF spec. Dark va-ink canvas, blue glow on the

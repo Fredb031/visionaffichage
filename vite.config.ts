@@ -32,7 +32,12 @@ export default defineConfig(({ mode }) => ({
           'react':    ['react', 'react-dom', 'react-router-dom'],
           'fabric':   ['fabric'],
           'supabase': ['@supabase/supabase-js'],
-          'ui':       ['sonner', 'lucide-react', 'framer-motion'],
+          // OP-9: split framer-motion out of `ui` so the eager bundle
+          // doesn't ship motion code when only the customizer / cart
+          // drawer / exit-intent modal need it. Lazy-importing the
+          // consumers of framer pulls this chunk on demand.
+          'framer':   ['framer-motion'],
+          'ui':       ['sonner', 'lucide-react'],
           // Preserved from prior config
           'tanstack': ['@tanstack/react-query'],
         },

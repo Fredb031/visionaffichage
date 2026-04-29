@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { lazy, Suspense, useMemo } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { SkipLink } from "@/components/SkipLink";
 import { LangProvider, useLang } from "@/lib/langContext";
@@ -130,10 +129,16 @@ const Compare = lazy(() => import("./pages/Compare"));
 // race with the first card render.
 import { CompareBar } from "@/components/CompareBar";
 
-// Phase 4 §5 — desktop exit-intent recovery modal. Mounts at App root
-// so a single instance arms once per session across route changes;
-// internal route-prefix guard suppresses on /checkout, /merci, /admin.
-import { ExitIntent } from "@/components/ExitIntent";
+// Phase 4 §5 — desktop exit-intent recovery modal. OP-9: lazy-loaded
+// because it's the eager carrier for framer-motion (motion +
+// AnimatePresence + useReducedMotion). The modal only fires once per
+// session on a real exit-intent gesture, so deferring it until idle/
+// trigger keeps the framer-motion chunk out of the eager critical
+// path. Mounts at App root inside <Suspense> so the lazy import
+// resolves transparently.
+const ExitIntent = lazy(() =>
+  import("@/components/ExitIntent").then((m) => ({ default: m.ExitIntent }))
+);
 
 // Mega Blueprint §08.3 — industry-specific SEO landing pages. Each
 // targets a Quebec keyword cluster (uniformes construction Québec,
@@ -207,28 +212,24 @@ const VisitorTracker = () => {
   return null;
 };
 
-// AnimatePresence needs useLocation() to key routes, which requires being
-// inside <BrowserRouter>. This inner component renders the routed tree and
-// cross-fades between route elements on pathname change. useReducedMotion
-// collapses the transition to an instant swap for users who opt out of
-// motion, so we don't defy their OS setting.
+// OP-9: replaced framer-motion's AnimatePresence cross-fade with a
+// CSS-keyframe fade-in keyed on pathname. The previous implementation
+// pulled framer-motion into the eager bundle just to fade routes in
+// for 150ms. The static `fadeIn` keyframe in src/index.css produces the
+// same visual effect, respects `prefers-reduced-motion` via the global
+// reduce-motion override, and lets framer-motion be lazy-loaded by
+// only the routes/components that need real motion (customizer, cart
+// drawer, exit-intent, etc.). useLocation() keys the wrapper div on
+// pathname so React remounts it on each route change, retriggering the
+// CSS animation.
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const reduce = useReducedMotion();
-  const transition = useMemo(
-    () => (reduce ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' as const }),
-    [reduce]
-  );
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location.pathname}
-        initial={reduce ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={reduce ? { opacity: 1 } : { opacity: 0 }}
-        transition={transition}
-      >
-        <Routes location={location}>
+    <div
+      key={location.pathname}
+      style={{ animation: 'fadeIn 150ms ease-out' }}
+    >
+      <Routes location={location}>
           <Route path="/" element={<Index />} />
           <Route path="/products" element={<Products />} />
           {/* Master Prompt French aliases — /boutique mirrors /products
@@ -397,8 +398,7 @@ const AnimatedRoutes = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 
@@ -431,7 +431,12 @@ const App = () => (
               <AnimatedRoutes />
             </Suspense>
             <CompareBar />
-            <ExitIntent />
+            {/* OP-9: ExitIntent is lazy because it's the eager
+                framer-motion carrier. A null fallback is fine — the
+                modal doesn't render anything until exit-intent fires. */}
+            <Suspense fallback={null}>
+              <ExitIntent />
+            </Suspense>
           </BrowserRouter>
         </ErrorBoundary>
     </LangProvider>
