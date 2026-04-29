@@ -53,24 +53,34 @@ export const ALL_PERMISSIONS: readonly Permission[] = Object.freeze<Permission[]
   'sanmar:read', 'sanmar:write',
 ]);
 
-export const ROLE_LABEL: Record<Role, string> = {
+// Frozen to align with the freeze pattern applied to ROLE_PERMISSIONS
+// and ALL_PERMISSIONS above. The label/description tables feed into the
+// admin permission dialog and the role-picker chips; a stray mutation
+// would silently rename a role in every user-management surface for the
+// rest of the session. `Readonly<Record<...>>` makes the same guarantee
+// at compile time so a future "let me just patch this label" attempt
+// fails the build instead of corrupting the matrix.
+export const ROLE_LABEL: Readonly<Record<Role, string>> = Object.freeze({
   president: 'Président',
   admin: 'Admin',
   salesman: 'Vendeur interne',
   vendor: 'Fournisseur',
   client: 'Client',
-};
+});
 
 // Human-readable description used in the permission dialog header so
 // admins understand what each role gets by default before they start
-// toggling overrides.
-export const ROLE_DESCRIPTION: Record<Role, string> = {
+// toggling overrides. Frozen for the same reason as ROLE_LABEL above —
+// the description is the only signal in the dialog explaining what the
+// role's defaults mean, so a runtime mutation would mislead the admin
+// about whose permissions they're editing.
+export const ROLE_DESCRIPTION: Readonly<Record<Role, string>> = Object.freeze({
   president: 'Contrôle total, incluant la facturation.',
   admin: 'Tout sauf la facturation.',
   salesman: 'Commandes, clients, produits (lecture) et soumissions.',
   vendor: 'Ses propres soumissions et bons de commande uniquement.',
   client: 'Ses propres commandes uniquement.',
-};
+});
 
 // Default permission catalogue per role.
 // Keep this table side-by-side with the product requirements so future
