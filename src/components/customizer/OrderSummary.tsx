@@ -14,6 +14,7 @@
  */
 import type { PlacementPreset } from '@/data/productPlacements';
 import { useLang } from '@/lib/langContext';
+import { fmtMoney } from '@/lib/format';
 
 export interface OrderSummaryProduct {
   /** Title shown on the info card (e.g. "T-shirt ATC1000"). */
@@ -60,11 +61,16 @@ export interface OrderSummaryProps {
   isAdding?: boolean;
 }
 
-const formatCAD = (n: number) => {
-  // Defensive: protect against NaN / null / undefined / Infinity slipping
-  // through upstream pricing math — never render "NaN$" to a customer.
+// Local formatter routed through the canonical fmtMoney so the customizer
+// renders "27,54 $" in fr-CA and "$27.54" in en-CA — matching cart, PDP,
+// checkout, and the receipt. The previous hand-rolled `${toFixed(2)}$`
+// shipped dot-decimals to fr-CA shoppers, drifting from every other
+// money surface on the site. Coerces nullish/non-finite to 0 so a stray
+// upstream NaN never reaches the customer (fmtMoney's em-dash fallback
+// is reserved for genuinely-unknown prices like an unpriced variant).
+const formatCAD = (n: number, lang: 'fr' | 'en') => {
   const safe = Number.isFinite(n) ? n : 0;
-  return `${safe.toFixed(2).replace(/\.00$/, '')}$`;
+  return fmtMoney(safe, lang);
 };
 
 export function OrderSummary({
@@ -83,8 +89,8 @@ export function OrderSummary({
   const ctaLabel = totals.totalPieces === 0
     ? (lang === 'en' ? 'Choose at least 1 piece' : 'Choisis au moins 1 pièce')
     : (lang === 'en'
-        ? `Add to cart — ${formatCAD(totals.total)}`
-        : `Ajouter au panier — ${formatCAD(totals.total)}`);
+        ? `Add to cart — ${formatCAD(totals.total, lang)}`
+        : `Ajouter au panier — ${formatCAD(totals.total, lang)}`);
 
   return (
     <div className="flex flex-col gap-4">
@@ -169,19 +175,19 @@ export function OrderSummary({
         <div className="flex justify-between text-sm text-[#374151]">
           <span>
             {totals.totalPieces} pièce{totals.totalPieces > 1 ? 's' : ''} ×{' '}
-            {formatCAD(totals.unitPrice)}/pce
+            {formatCAD(totals.unitPrice, lang)}/pce
           </span>
-          <span>{formatCAD(totals.subtotal)}</span>
+          <span>{formatCAD(totals.subtotal, lang)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-[#374151]">Livraison</span>
           <span className={totals.shipping === 0 ? 'text-[#059669] font-semibold' : 'text-[#374151]'}>
-            {totals.shipping === 0 ? 'Gratuite' : formatCAD(totals.shipping)}
+            {totals.shipping === 0 ? 'Gratuite' : formatCAD(totals.shipping, lang)}
           </span>
         </div>
         <div className="border-t border-[#E5E7EB] pt-2 flex justify-between items-baseline">
           <span className="text-sm font-semibold text-[#0A0A0A]">Total</span>
-          <span className="text-va-blue text-xl font-bold">{formatCAD(totals.total)}</span>
+          <span className="text-va-blue text-xl font-bold">{formatCAD(totals.total, lang)}</span>
         </div>
       </div>
 
