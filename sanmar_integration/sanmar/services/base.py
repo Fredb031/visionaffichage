@@ -27,6 +27,7 @@ from tenacity import (
 )
 
 from sanmar.config import Settings
+from sanmar.exceptions import SanmarApiError  # re-exported
 
 # Lazy zeep import — tests run without zeep installed by mocking the
 # `client` cached_property entirely.
@@ -47,28 +48,13 @@ except ImportError:  # pragma: no cover - exercised only when zeep absent
 SOAP_TIMEOUT_S = 30
 
 
-class SanmarApiError(Exception):
-    """Typed error raised when SanMar returns a fault or the SOAP transport
-    surfaces an unrecoverable error.
-
-    Attributes mirror what the TS `SanmarApiError` carries so logs are
-    cross-readable between the two stacks.
-    """
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        code: Optional[str] = None,
-        operation: Optional[str] = None,
-    ) -> None:
-        super().__init__(message)
-        self.code: Optional[str] = code
-        self.message: str = message
-        self.operation: Optional[str] = operation
-
-    def __str__(self) -> str:  # pragma: no cover - trivial format
-        return f"[{self.code}] {self.message} (operation: {self.operation})"
+__all__ = [
+    "SanmarApiError",
+    "SanmarServiceBase",
+    "mask_password",
+    "SOAP_TIMEOUT_S",
+    "ZEEP_AVAILABLE",
+]
 
 
 def mask_password(d: dict[str, Any]) -> dict[str, Any]:

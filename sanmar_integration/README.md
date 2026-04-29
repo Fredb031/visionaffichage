@@ -155,3 +155,87 @@ pytest -q tests/test_inventory.py tests/test_pricing.py
 `Quantity.value` drill, future-stock parsing, the `total`
 computed_field, multi-tier price ladders, `Decimal` precision, and
 `Fault → SanmarApiError` mapping.
+
+## Phase 4 — Media Content + Purchase Order
+
+Phase 4 ships two more service wrappers and extracts the typed error
+hierarchy into its own module.
+
+### Media Content v1.1.0
+
+`sanmar/services/media.py` — `MediaContentService.get_product_images(
+style_number, color=None)` returns a `MediaResponse` whose `items`
+list carries one `MediaItem` per `MediaContent` node SanMar returned.
+
+Three SanMar quirks the parser handles:
+
+- **Separate password.** Media authenticates with
+  `SANMAR_MEDIA_PASSWORD`, *not* the regular EDI login. The wrapper
+  overrides `auth_dict()` so callers don't have to remember.
+- **Multi-URL `<url>`.** SanMar collapses every CDN URL for a given
+  node into one `<url>` separated by newlines. We split on `\n` and
+  surface the full list as `MediaItem.all_urls`.
+- **Bilingual descriptions.** SanMar Canada writes descriptions like
+  `"FR: Logo brodé / EN: Embroidered logo"`. The bilingual regex
+  extracts both halves; if it doesn't match (English-only assets)
+  both `description_fr` and `description_en` fall back to the raw.
+
+### Purchase Order v1.0.0
+
+`sanmar/services/purchase_order.py` — `PurchaseOrderService` exposes
+`submit_order(order)` and `get_order_status(po_number=..., query_type=1)`.
+
+Pre-flight validation runs before any SOAP call. All raise
+`SanmarApiError` subclasses so callers can branch on `code`:
+
+- **Forbidden chars** (`< > & " '`) in any address line, name,
+  company, etc. → `ForbiddenCharError(field, char)` with code `210`,
+  matching SanMar's "Invalid Character" rejection code.
+- **Postal codes** validated by country: Canadian `A1A 1A1` (with or
+  without space) or US `12345` / `12345-6789`. Mismatch raises
+  `InvalidPostalCodeError` (code `220`).
+- **Carrier allowlist**: `UPS`, `PUR` (Purolator), `FDX` (FedEx),
+  `CPC` (Canada Post). Lower-case input is normalized to upper.
+  Anything else raises `InvalidCarrierError` (code `230`).
+
+Response parsing handles SanMar's wrapper-name asymmetry: the
+request element is named `SubmitPOOrderRequest` but the response
+comes back wrapped in `<SendPOResponse>`. We read `SendPOResponse`
+first and fall back to `SubmitPOOrderResponse` so future
+PromoStandards alignment doesn't silently break us. `queryType=3` is
+explicitly rejected on `get_order_status` — SanMar Canada does not
+support it.
+
+### exceptions.py
+
+`sanmar/exceptions.py` extracts the error hierarchy from `base.py`:
+
+- `SanmarApiError` (base, re-exported by `services.base` for
+  backward compat)
+- `ForbiddenCharError` (code 210)
+- `InvalidPostalCodeError` (code 220)
+- `InvalidCarrierError` (code 230)
+
+### Live smoke test
+
+```bash
+python -m scripts.test_media_orders
+```
+
+Read-only by design — calls `get_product_images` and `get_order_status`
+but **does not** submit a real order. Instead it builds a fake
+`PurchaseOrderInput` and prints the SOAP envelope that *would* be sent
+via `preview_envelope()`. Submitting a bogus order to UAT pollutes
+SanMar's transaction log and triggers follow-up calls from EDI.
+
+### Unit tests
+
+```bash
+pytest -q tests/test_media.py tests/test_purchase_order.py
+```
+
+Phase 4 adds 28 tests: bilingual regex (both pattern and raw fallback),
+multi-URL splitting, the media-password override, every forbidden-char
+field, both postal-code formats, carrier normalization, the
+`SendPOResponse` wrapper, the `SubmitPOOrderResponse` fallback,
+`queryType=3` rejection, and `Fault → SanmarApiError` mapping.
