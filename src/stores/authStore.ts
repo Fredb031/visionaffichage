@@ -267,7 +267,12 @@ function buildUser(authUser: { id: string; email?: string }, profile: Awaited<Re
  * the owner's row exists and stays role='president' even if something
  * wiped it. RLS allows users to edit their own row (id = auth.uid()). */
 async function syncOwnerProfile(authUser: { id: string; email?: string }, fullName?: string) {
-  const email = (authUser.email ?? '').toLowerCase();
+  // Mirror buildUser: strip invisibles BEFORE lowercasing so a ZWSP that
+  // snuck in through a Slack/Notion paste doesn't bypass PRESIDENT_EMAILS
+  // here while buildUser correctly recognizes the owner — the previous
+  // bare toLowerCase left the upsert writing role='client' for what every
+  // other code path treats as the president.
+  const email = normalizeInvisible(authUser.email ?? '').trim().toLowerCase();
   if (!email) return;
   const isOwner = PRESIDENT_EMAILS.has(email);
   try {
