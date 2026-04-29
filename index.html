@@ -88,7 +88,14 @@
          families via theme.extend.fontFamily in tailwind.config.ts.
          Outfit / Lora / Plus Jakarta Sans were removed per PDF brief
          (zero trace) — Phase 7 sweep will purge any remaining call sites. -->
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Async font CSS: Google Fonts <link rel="stylesheet"> is render-blocking
+         (~800ms on mobile per Lighthouse). The `media="print"` + `onload` swap
+         pattern lets the browser parse this stylesheet at low priority then
+         flip it to `all` once it lands, so FCP/LCP paint with the system
+         fallback (`display=swap` already prevents FOIT) and the web fonts
+         swap in once they arrive. <noscript> covers the JS-disabled case. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
     <!-- Preload the LCP hero image so it kicks off in the same wave as
          the HTML parse instead of waiting for the React bundle to mount
          the <img>, shaving ~300-600ms off Largest Contentful Paint on

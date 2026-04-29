@@ -318,6 +318,12 @@ export function SiteFooter() {
               // filter inverts the navy mark so it reads on the navy footer.
               src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
               alt="Vision Affichage"
+              // Explicit intrinsic dimensions prevent CLS and clear the
+              // Lighthouse `unsized-images` audit. The mark is letter-only,
+              // so 4:1 aspect at h-5 (20px tall × 80px wide) matches what
+              // `h-5` yields after the Tailwind class scales it.
+              width={80}
+              height={20}
               // Footer is always below the fold — lazy + async so it
               // never competes with hero/product images for bandwidth.
               loading="lazy"
