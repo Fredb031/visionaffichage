@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -112,6 +112,14 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   useEscapeKey(isOpen, onClose);
   useBodyScrollLock(isOpen);
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+  // Gate the open/close motion under prefers-reduced-motion. Without
+  // this, users with vestibular sensitivity still see the y:30 + scale
+  // bounce that the rest of the site (ExitIntent, CountUp) already
+  // suppresses for them. Mirroring the ExitIntent pattern: under
+  // reduced motion we collapse to a plain opacity fade with no spatial
+  // movement, instead of disabling the animation entirely (a hard
+  // appear/disappear is more jarring than a 200ms cross-fade).
+  const reduceMotion = useReducedMotion();
 
   const unitLabel = unit === 'in' ? 'in' : 'cm';
 
@@ -120,6 +128,7 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
           className="fixed inset-0 z-[600] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
           role="dialog"
@@ -130,7 +139,10 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
           <motion.div
             ref={trapRef}
             tabIndex={-1}
-            initial={{ y: 30, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }}
+            initial={reduceMotion ? { opacity: 0 } : { y: 30, scale: 0.95, opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { y: 0, scale: 1, opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { y: 30, opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0.15 : 0.25, ease: 'easeOut' }}
             className="bg-background rounded-2xl border border-border shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden focus:outline-none"
           >
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
