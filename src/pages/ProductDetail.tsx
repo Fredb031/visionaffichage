@@ -2132,7 +2132,10 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
           key={`main-${current.url}`}
           loading="eager"
-          fetchPriority="high"
+          // React 18.3 emits a casing warning for `fetchPriority` on DOM
+          // elements; the lowercase HTML attribute is what the platform
+          // expects, so spread it to bypass React's prop name check.
+          {...({ fetchpriority: 'high' } as Record<string, string>)}
           decoding="async"
           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
@@ -2294,7 +2297,8 @@ function PhotoZoomOverlay({
         width={1200}
         height={1200}
         loading="eager"
-        fetchPriority="high"
+        // Lowercase HTML attribute via spread — see note above.
+        {...({ fetchpriority: 'high' } as Record<string, string>)}
         decoding="async"
         className="max-w-[95vw] max-h-[85vh] object-contain select-none"
         style={{ touchAction: 'pinch-zoom' }}

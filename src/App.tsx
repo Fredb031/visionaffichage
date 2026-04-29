@@ -386,7 +386,13 @@ const App = () => (
       <Sonner />
       <CookieConsent />
       <ErrorBoundary>
-          <BrowserRouter>
+          <BrowserRouter
+            // Opt-in to React Router v7 transition behavior so the dev
+            // console isn't spammed with "Future Flag Warning" on every
+            // route mount. Both flags are forward-compat with v6 and
+            // line up with v7's defaults.
+            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+          >
             <SkipLink />
             <ScrollToTop />
             <ChatTriggers />

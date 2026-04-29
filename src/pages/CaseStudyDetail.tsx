@@ -43,7 +43,9 @@ function HeroImage({ src, alt }: { src: string; alt: string }) {
       width={900}
       height={600}
       loading="eager"
-      fetchPriority="high"
+      // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`;
+      // spread the lowercase HTML attribute to silence the prop-name warning.
+      {...({ fetchpriority: 'high' } as Record<string, string>)}
       decoding="async"
       className="w-full h-full rounded-[22px] aspect-[3/2] object-cover"
       onError={() => setFailed(true)}
