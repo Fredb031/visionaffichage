@@ -87,6 +87,7 @@ export function LangToggle() {
   const switchLabel = lang === 'fr' ? 'Switch to English' : 'Passer en français';
   return (
     <button
+      type="button"
       onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
       className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground border border-border rounded-full px-3 py-1.5 hover:border-muted-foreground transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
       title={switchLabel}
