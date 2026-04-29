@@ -106,8 +106,13 @@ export function PlacementButtons({
 
   // Determine surcharge label for the back section heading. We use the max
   // of the back-zone surcharges so the user sees a single representative
-  // upcharge instead of a per-tile range.
-  const backSurcharge = back.reduce((max, p) => Math.max(max, p.surcharge), 0);
+  // upcharge instead of a per-tile range. Memoized on `back` so a parent
+  // re-render (active-id flip on every chip click) doesn't redo the
+  // reduce — the back list itself only changes when `placements` does.
+  const backSurcharge = useMemo(
+    () => back.reduce((max, p) => Math.max(max, p.surcharge), 0),
+    [back],
+  );
 
   // Stable ids so each chip group is programmatically labelled by its
   // visible "Devant"/"Dos" heading (and the back-zone surcharge badge).
