@@ -82,11 +82,20 @@ function quebecWeekdayFor(date: Date): number {
  * Pure helper — adds N business days to a starting weekday index.
  * Operates on weekday math first so it's testable without a Date and
  * trivially reversible.
+ *
+ * Defensive: the only call site computes `days` from the constant
+ * STANDARD_BUSINESS_DAYS (5 or 6), but a future caller passing NaN /
+ * Infinity / negative would freeze this loop — `added < NaN` is
+ * always false but `added < -1` is always true, so the wrapper either
+ * spins forever or returns the start date with no progress. Floor at 0
+ * so the function degrades to "return start" instead of hanging the
+ * render. Mirrors the same guard added to DeliveryBadge's local copy.
  */
 function addBusinessDays(start: Date, days: number): Date {
   const out = new Date(start);
+  const safeDays = Number.isFinite(days) && days > 0 ? Math.floor(days) : 0;
   let added = 0;
-  while (added < days) {
+  while (added < safeDays) {
     out.setUTCDate(out.getUTCDate() + 1);
     const d = quebecWeekdayFor(out);
     if (d !== 0 && d !== 6) added++;
