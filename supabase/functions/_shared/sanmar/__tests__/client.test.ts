@@ -189,4 +189,36 @@ describe("client.soapCall — envelope shape (no network)", () => {
     await expect(promise).rejects.toBeInstanceOf(SanmarApiError);
     await expect(promise).rejects.toMatchObject({ code: "network" });
   });
+
+  it("throws SanmarApiError(code='parse') when SanMar returns malformed XML", async () => {
+    // SanMar's edge gateway has been observed to occasionally return a
+    // truncated or corrupted XML body — usually under load or behind a
+    // misbehaving proxy. fast-xml-parser raises a structured exception in
+    // that case; the client must catch it and surface a typed error so
+    // upstream callers can distinguish a parse failure from a SanMar
+    // service error (which would carry a numeric code) or a network error
+    // (code='network').
+    const { soapCall, SanmarApiError } = await loadClient();
+    // Garbage that fast-xml-parser cannot handle. Verified locally that
+    // `new XMLParser().parse("<<<broken")` throws.
+    const malformed = "<<<broken";
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(malformed, { status: 200 }),
+    ) as unknown as typeof fetch;
+
+    try {
+      await soapCall({ endpoint: "x", body: "<X/>", parseResult: () => null });
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(SanmarApiError);
+      const err = e as InstanceType<typeof SanmarApiError>;
+      expect(err.code).toBe("parse");
+      expect(err.severity).toBe("Error");
+      // Message includes the underlying parser error for debugging.
+      expect(err.message).toMatch(/Failed to parse SanMar response/);
+      // raw body snippet preserved for triage (capped at 500 chars).
+      expect(typeof err.raw).toBe("string");
+      expect((err.raw as string).length).toBeLessThanOrEqual(500);
+    }
+  });
 });
