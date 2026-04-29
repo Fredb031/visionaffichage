@@ -57,6 +57,18 @@ export interface IndustryPageShellProps {
   faqLdMarker: string;
   /** Stable dataset marker for Service <script>, e.g. "data-service-construction-ld". */
   serviceLdMarker: string;
+  /** Optional override for the hero CTA href. Defaults to "/devis" for legacy
+   *  callers; new Master Prompt copy points the CTA to "/boutique" so the
+   *  shopper lands on product browsing instead of a lukewarm quote form. */
+  ctaHref?: string;
+  /** Optional Tailwind override for the hero + footer CTA pill. Defaults to
+   *  the legacy navy treatment. Master Prompt pages override with
+   *  `bg-va-blue hover:bg-va-blue-h text-white` to lean into brand blue. */
+  ctaClassName?: string;
+  /** Optional override for the final cream-callout section heading. */
+  finalHeading?: string;
+  /** Optional override for the final cream-callout section sub-copy. */
+  finalSubcopy?: string;
 }
 
 // Resolve an SKU to a Product. SKUs in the catalogue are uppercase
@@ -81,6 +93,10 @@ export function IndustryPageShell({
   serviceType,
   faqLdMarker,
   serviceLdMarker,
+  ctaHref = '/devis',
+  ctaClassName = 'bg-[#0F2341] hover:bg-[#1B3A6B] text-white',
+  finalHeading,
+  finalSubcopy,
 }: IndustryPageShellProps) {
   const { lang } = useLang();
   useDocumentTitle(title, metaDescription, {});
@@ -226,8 +242,8 @@ export function IndustryPageShell({
             </ul>
           )}
           <Link
-            to="/devis"
-            className="inline-flex items-center gap-2 bg-[#0F2341] hover:bg-[#1B3A6B] text-white font-extrabold text-sm md:text-base px-6 py-3.5 rounded-full shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2"
+            to={ctaHref}
+            className={`inline-flex items-center gap-2 font-extrabold text-sm md:text-base px-6 py-3.5 rounded-full shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 ${ctaClassName}`}
           >
             {ctaLabel}
             <ArrowRight size={16} aria-hidden="true" />
@@ -344,18 +360,20 @@ export function IndustryPageShell({
             id="industry-cta-final"
             className="text-xl md:text-2xl font-extrabold text-[#0F2341] tracking-[-0.3px] mb-3"
           >
-            {lang === 'en'
-              ? 'Ready to outfit your team?'
-              : 'Prêt à habiller votre équipe ?'}
+            {finalHeading ??
+              (lang === 'en'
+                ? 'Ready to outfit your team?'
+                : 'Prêt à habiller votre équipe ?')}
           </h2>
           <p className="text-sm md:text-base text-zinc-700 max-w-[560px] mx-auto mb-5">
-            {lang === 'en'
-              ? 'Free quotes within 24 business hours. Digital proof before any production run.'
-              : 'Soumissions gratuites en moins de 24h ouvrables. Preuve numérique avant toute production.'}
+            {finalSubcopy ??
+              (lang === 'en'
+                ? 'Free quotes within 24 business hours. Digital proof before any production run.'
+                : 'Soumissions gratuites en moins de 24h ouvrables. Preuve numérique avant toute production.')}
           </p>
           <Link
-            to="/devis"
-            className="inline-flex items-center gap-2 bg-[#0F2341] hover:bg-[#1B3A6B] text-white font-extrabold text-sm md:text-base px-6 py-3 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2"
+            to={ctaHref}
+            className={`inline-flex items-center gap-2 font-extrabold text-sm md:text-base px-6 py-3 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 ${ctaClassName}`}
           >
             {ctaLabel}
             <ArrowRight size={16} aria-hidden="true" />
