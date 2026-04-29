@@ -373,10 +373,18 @@ export default function TrackOrder() {
         {showSanmarBlock && (
           <section className="mb-8" aria-label={lang === 'en' ? 'Live SanMar status' : 'Statut SanMar en direct'}>
             {sanmarLoading ? (
-              <div className="bg-white border border-va-line rounded-2xl p-5 md:p-6 shadow-sm space-y-3">
-                <div className="h-5 w-40 bg-va-bg-2 rounded animate-pulse" />
-                <div className="h-3 w-3/4 bg-va-bg-2 rounded animate-pulse" />
-                <div className="h-3 w-1/2 bg-va-bg-2 rounded animate-pulse" />
+              <div
+                className="bg-white border border-va-line rounded-2xl p-5 md:p-6 shadow-sm space-y-3"
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+              >
+                <span className="sr-only">
+                  {lang === 'en' ? 'Checking your order status...' : 'Vérification de votre commande…'}
+                </span>
+                <div className="h-5 w-40 bg-va-bg-2 rounded animate-pulse" aria-hidden="true" />
+                <div className="h-3 w-3/4 bg-va-bg-2 rounded animate-pulse" aria-hidden="true" />
+                <div className="h-3 w-1/2 bg-va-bg-2 rounded animate-pulse" aria-hidden="true" />
               </div>
             ) : sanmarNotFound ? (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5" role="status">
@@ -721,15 +729,35 @@ export default function TrackOrder() {
               </p>
             </div>
           ) : !order ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-center" role="status">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-center" role="alert" aria-live="polite">
               <AlertCircle size={28} className="text-amber-500 mx-auto mb-2" aria-hidden="true" />
               <p className="font-bold text-amber-900 mb-1">
                 {lang === 'en' ? 'Order not found' : 'Commande introuvable'}
               </p>
+              <p className="text-xs text-amber-800 font-bold mb-1">
+                {lang === 'en' ? 'Double-check the number' : 'Vérifiez le numéro'}
+              </p>
               <p className="text-xs text-amber-700">
                 {lang === 'en'
-                  ? 'Check the number/email or call us at 367-380-4808'
-                  : 'Vérifie le numéro/courriel ou appelle-nous au 367-380-4808'}
+                  ? 'Confirm the order # and the email used at checkout, or call us at '
+                  : 'Confirme le numéro de commande et le courriel utilisé à la commande, ou appelle-nous au '}
+                <a
+                  href="tel:+13673804808"
+                  aria-label={lang === 'en'
+                    ? 'Call customer service at 3 6 7, 3 8 0, 4 8 0 8'
+                    : 'Appeler le service à la clientèle au 3 6 7, 3 8 0, 4 8 0 8'}
+                  className="font-bold text-amber-900 underline underline-offset-2 hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 rounded"
+                >
+                  367-380-4808
+                </a>
+                <span className="block mt-2">
+                  <a
+                    href="mailto:info@visionaffichage.com"
+                    className="font-bold text-amber-900 underline underline-offset-2 hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 rounded"
+                  >
+                    {lang === 'en' ? 'Contact us by email' : 'Contactez-nous par courriel'}
+                  </a>
+                </span>
               </p>
             </div>
           ) : (
@@ -887,7 +915,7 @@ export default function TrackOrder() {
               })()}
 
               {isStalePending && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3" role="status">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3" role="alert" aria-live="polite">
                   <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <div className="text-xs text-amber-900">
                     <div className="font-bold mb-0.5">
@@ -895,8 +923,18 @@ export default function TrackOrder() {
                     </div>
                     <div className="text-amber-800">
                       {lang === 'en'
-                        ? 'It has been pending for more than 14 days. Please call us at 367-380-4808 so we can look into it.'
-                        : 'Elle est en attente depuis plus de 14 jours. Appelle-nous au 367-380-4808 pour qu\u2019on la regarde.'}
+                        ? 'It has been pending for more than 14 days. Please call us at '
+                        : 'Elle est en attente depuis plus de 14 jours. Appelle-nous au '}
+                      <a
+                        href="tel:+13673804808"
+                        aria-label={lang === 'en'
+                          ? 'Call customer service at 3 6 7, 3 8 0, 4 8 0 8'
+                          : 'Appeler le service à la clientèle au 3 6 7, 3 8 0, 4 8 0 8'}
+                        className="font-bold underline underline-offset-2 hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 rounded"
+                      >
+                        367-380-4808
+                      </a>
+                      {lang === 'en' ? ' so we can look into it.' : ' pour qu\u2019on la regarde.'}
                     </div>
                   </div>
                 </div>
