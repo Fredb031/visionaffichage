@@ -46,6 +46,7 @@ import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInView } from '@/hooks/useInView';
+import { useMagnetic } from '@/hooks/useMagnetic';
 
 // FAQ Q&A pairs — lifted out of the JSX render path so they can be
 // reused by the FAQPage JSON-LD injection without duplicating the
@@ -205,6 +206,12 @@ export default function Index() {
   // quote" CTA. Re-entering hides it. Desktop never shows the bar — the
   // top-nav CTA handles desktop conversion.
   const heroSentinelRef = useRef<HTMLDivElement>(null);
+  // Vol III §07 — magnetic primary CTA. The hook owns the inline
+  // transform on the anchor while the cursor is within 80px of the
+  // button's center, drifting it ~6px towards the pointer. No-ops on
+  // touch devices and when prefers-reduced-motion is set, so the only
+  // observable cost on phones is the ref attach itself.
+  const heroPrimaryCtaRef = useMagnetic<HTMLAnchorElement>();
   const [showStickyCta, setShowStickyCta] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -521,12 +528,21 @@ export default function Index() {
                 className="flex flex-wrap items-center gap-3 mb-10"
                 style={{ animation: 'fadeSlideUp 0.5s 300ms forwards', opacity: 0 }}
               >
+                {/* Magnetic primary CTA — Vol III §07. The outer <Link>'s
+                    inline transform is owned by useMagnetic; the inner
+                    span keeps the hover/active scale feedback so click
+                    feedback still reads when the cursor is in-radius
+                    (otherwise the inline translate3d would clobber the
+                    Tailwind scale utility on the same element). */}
                 <Link
+                  ref={heroPrimaryCtaRef}
                   to="/boutique"
-                  className="group inline-flex items-center gap-2 bg-va-blue text-white font-semibold px-8 py-4 rounded-xl text-[15px] tracking-[0.02em] shadow-[0_0_36px_rgba(0,71,204,0.32)] hover:bg-va-blue-hover hover:shadow-[0_0_52px_rgba(0,71,204,0.55)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
+                  className="group inline-block rounded-xl shadow-[0_0_36px_rgba(0,71,204,0.32)] hover:shadow-[0_0_52px_rgba(0,71,204,0.55)] transition-shadow duration-200 will-change-transform"
                 >
-                  {lang === 'en' ? 'Order now' : 'Commander maintenant'}
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-2 bg-va-blue text-white font-semibold px-8 py-4 rounded-xl text-[15px] tracking-[0.02em] hover:bg-va-blue-hover group-hover:scale-[1.02] group-active:scale-[0.97] transition-[transform,background-color] duration-200">
+                    {lang === 'en' ? 'Order now' : 'Commander maintenant'}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                  </span>
                 </Link>
                 <Link
                   to="/customizer"
