@@ -35,9 +35,17 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   // Keep <html lang="..."> in sync so screen readers pronounce text in the
   // right language and Chrome's "translate this page" prompt behaves.
+  // We use the full BCP 47 tag with region (fr-CA / en-CA) instead of the
+  // bare 'fr' / 'en' to match index.html and to give screen readers a
+  // Quebec/Canada locale hint — VoiceOver, NVDA and TalkBack all pick
+  // region-appropriate phoneme tables when the region subtag is present
+  // (e.g. fr-CA voices Québécois 'icitte' / sentence intonation more
+  // accurately than the default fr-FR fallback). The internal `lang`
+  // state stays as the bare 'fr' | 'en' since the i18n dictionary is
+  // keyed on those literals.
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.documentElement.lang = lang;
+      document.documentElement.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
     }
   }, [lang]);
 
