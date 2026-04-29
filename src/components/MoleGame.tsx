@@ -470,7 +470,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
             </div>
 
             <div className="text-center pb-3 text-[12px] text-muted-foreground">
-              <button onClick={() => onClose(false)} className="text-foreground/50 underline cursor-pointer bg-transparent border-none text-[12px] hover:text-foreground/80 transition-colors">
+              <button type="button" onClick={() => onClose(false)} className="text-foreground/50 underline cursor-pointer bg-transparent border-none text-[12px] hover:text-foreground/80 transition-colors">
                 {lang === 'en' ? 'No time? Skip' : 'Pas le temps ? Passer'}
               </button>
             </div>
