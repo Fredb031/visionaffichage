@@ -95,3 +95,85 @@ Every entry point throws `SanmarApiError` from `client.ts` on:
 Wrap edge function handlers in try/catch and surface `error.code` to
 clients so they can branch on the failure shape (retry transient 600s,
 flag 100s for ops, etc.).
+
+## Step 6 — pg_cron schedules
+
+The `*_sanmar_pg_cron.sql` migration registers three recurring jobs that
+hit the Step 5 sync edge functions on a schedule via `pg_net.http_post`.
+
+### Schedules
+
+| Job name                  | Cron           | Cadence rationale                                                  |
+| ------------------------- | -------------- | ------------------------------------------------------------------ |
+| `sanmar-sync-catalog`     | `0 3 * * 0`    | Sunday 03:00 UTC — weekly full-catalog refresh in low-traffic hrs. |
+| `sanmar-sync-inventory`   | `15 5 * * *`   | Daily 05:15 UTC — runs after SanMar's overnight stocking updates.  |
+| `sanmar-reconcile-orders` | `*/30 * * * *` | Every 30 min — order statuses move fast (ship/track/cancel).       |
+
+### Required Supabase secrets / GUC vars
+
+The cron jobs read three GUC (per-database) settings to authenticate
+calls to the edge functions. The operator must set them once on the
+Supabase Postgres database:
+
+```sql
+ALTER DATABASE postgres
+  SET app.settings.supabase_url       = 'https://<project-ref>.supabase.co';
+ALTER DATABASE postgres
+  SET app.settings.service_role_key   = '<service-role JWT from Supabase dashboard>';
+ALTER DATABASE postgres
+  SET app.settings.cron_secret        = '<random 32-char string>';
+```
+
+After running these `ALTER DATABASE` statements, the Supabase dashboard
+will auto-reconnect the pg_cron worker so the new GUCs are visible.
+
+The `cron_secret` value must also be set as a Supabase function secret
+so the Step 5 edge functions can validate the inbound `x-cron-secret`
+header:
+
+```bash
+supabase secrets set CRON_SECRET=<same random 32-char string>
+```
+
+### Applying the migration
+
+```bash
+# from repo root, with Supabase CLI logged in to the right project
+supabase db push
+```
+
+Or, if managing migrations through Supabase dashboard, paste the contents
+of `supabase/migrations/<timestamp>_sanmar_pg_cron.sql` into the SQL
+editor and run.
+
+### Verifying schedules
+
+```sql
+-- list registered jobs (should show all three sanmar-* schedules)
+SELECT jobid, schedule, jobname, command, active
+FROM cron.job
+WHERE jobname LIKE 'sanmar-%';
+
+-- inspect the most recent runs (success / failure / payload)
+SELECT jobid, runid, job_pid, status, return_message, start_time, end_time
+FROM cron.job_run_details
+ORDER BY start_time DESC
+LIMIT 20;
+```
+
+### Manual trigger (smoke test)
+
+You can fire any of the jobs ad-hoc by calling the same `net.http_post`
+the schedule runs, e.g.:
+
+```sql
+SELECT net.http_post(
+  url := current_setting('app.settings.supabase_url') || '/functions/v1/sanmar-sync-inventory',
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key'),
+    'x-cron-secret', current_setting('app.settings.cron_secret')
+  ),
+  body := jsonb_build_object('triggered_by', 'manual')
+);
+```
