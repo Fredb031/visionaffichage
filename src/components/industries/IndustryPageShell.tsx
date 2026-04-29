@@ -276,6 +276,19 @@ export function IndustryPageShell({
               <img
                 src={heroImage}
                 alt=""
+                width={720}
+                height={900}
+                /* Desktop-only LCP element on each Industry page (`hidden
+                 * lg:block` parent + 45% column width). Mirrors the
+                 * Index hero pattern: eager + decoding=async +
+                 * fetchpriority=high so Chrome treats it as the LCP
+                 * candidate instead of waiting for the React mount tick.
+                 * Spread `fetchpriority` lowercase to dodge React 18's
+                 * camelCase warning. width/height reserve aspect-ratio
+                 * to prevent CLS on slow paints. */
+                loading="eager"
+                decoding="async"
+                {...({ fetchpriority: 'high' } as Record<string, string>)}
                 className="w-full h-full object-cover opacity-50 mix-blend-luminosity"
                 onError={() => setHeroImageOk(false)}
               />
