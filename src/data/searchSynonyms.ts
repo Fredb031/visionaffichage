@@ -127,5 +127,17 @@ if (import.meta.env.DEV) {
   }
 }
 
-/** Frozen so accidental runtime mutation can't corrupt the shared dictionary. */
+/**
+ * Deep-frozen so accidental runtime mutation can't corrupt the shared
+ * dictionary. The outer Object.freeze blocks key add/remove, but each
+ * value array stays mutable until we freeze it too — without that, a
+ * stray `SYNONYMS.noir.push('foo')` would silently teach search() to
+ * expand "noir" → "foo" for the rest of the SPA session. Same pattern
+ * applied in pricing.ts, productPlacements.ts, experiments.ts, and
+ * orderLogos.ts so search behaviour matches the rest of the data
+ * surface.
+ */
+for (const key of Object.keys(SYNONYMS_RAW)) {
+  Object.freeze(SYNONYMS_RAW[key]);
+}
 export const SYNONYMS: Readonly<Record<string, readonly string[]>> = Object.freeze(SYNONYMS_RAW);
