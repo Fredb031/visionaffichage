@@ -27,15 +27,23 @@ export const CHECKER_BG_STYLE: CSSProperties = {
 
 /** Human-readable byte size. fr-CA uses 'o' / 'ko' / 'Mo' (octet),
  * en uses 'B' / 'KB' / 'MB'. Kept local + tiny so we don't pull a
- * dependency for a 3-branch conditional. */
+ * dependency for a 3-branch conditional.
+ *
+ * Defensive: a non-finite / negative `bytes` (a stubbed File in tests, a
+ * future File-like wrapper that lazily computes .size, or upstream code
+ * that subtracts before passing in) would otherwise surface as the
+ * literal "NaN o" / "-Infinity Mo" inside the upload error toast — worse
+ * than just omitting the size. Coerce to 0 so the rendered string stays
+ * legible regardless of upstream weirdness. */
 const formatFileSize = (bytes: number, lang: 'fr' | 'en'): string => {
+  const safe = Number.isFinite(bytes) && bytes >= 0 ? bytes : 0;
   const fr = lang !== 'en';
   const b = fr ? 'o' : 'B';
   const k = fr ? 'ko' : 'KB';
   const m = fr ? 'Mo' : 'MB';
-  if (bytes < 1024) return `${bytes} ${b}`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ${k}`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} ${m}`;
+  if (safe < 1024) return `${safe} ${b}`;
+  if (safe < 1024 * 1024) return `${(safe / 1024).toFixed(1)} ${k}`;
+  return `${(safe / (1024 * 1024)).toFixed(1)} ${m}`;
 };
 
 /** Hard ceiling for logo uploads. Anything above this is almost certainly
