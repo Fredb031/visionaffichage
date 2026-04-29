@@ -104,10 +104,13 @@ export default function Contact() {
       at: Date.now(),
       lang,
     };
-    // console.error (not .log) so the payload survives any production
-    // log filter that drops verbose levels — operator-grade fallback
-    // observability while the form submits to a no-op endpoint.
-    console.error('[Contact] form submission (no backend wired):', payload);
+    // Dev-only happy-path log — operator-grade observability while the
+    // form submits to a no-op endpoint. Gated on import.meta.env.DEV so
+    // production never sees a console.error fire on a successful submit
+    // (the catch block below still logs failures unconditionally).
+    if (import.meta.env.DEV) {
+      console.error('[Contact] form submission (no backend wired):', payload);
+    }
 
     try {
       const raw = JSON.parse(localStorage.getItem(CONTACT_KEY) ?? '[]');

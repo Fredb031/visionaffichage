@@ -61,7 +61,7 @@ export function SaveDesignButton({ current, className }: Props) {
       // saveDesign() itself shouldn't throw — readLS/writeLS swallow
       // storage errors — but a future Supabase swap might surface a
       // network error here, so guard the whole path.
-      toast.error('Impossible de sauvegarder le design');
+      toast.error('Impossible de sauvegarder le design — vérifie l’espace de stockage du navigateur et réessaie.');
     } finally {
       setBusy(false);
     }

@@ -242,16 +242,19 @@ export default function QuoteRequest() {
       lang,
     };
 
-    // Operator-grade fallback observability — log the payload to
-    // console.error BEFORE attempting localStorage so a quota / private-
-    // mode failure can't also drop visibility on what was submitted.
-    // The logo data URL is intentionally trimmed in the log preview to
-    // keep the devtools row readable; the full base64 still lives on
-    // the queued row when localStorage succeeds.
-    console.error('[QuoteRequest] form submission (no backend wired):', {
-      ...row,
-      logoDataUrl: row.logoDataUrl ? `[base64 ${row.logoDataUrl.length} chars]` : null,
-    });
+    // Dev-only happy-path log — operator-grade observability while the
+    // form has no backend wired. Gated on import.meta.env.DEV so a
+    // successful submit doesn't fire console.error in production. The
+    // logo data URL is trimmed in the preview so devtools rows stay
+    // readable; the full base64 still lives on the queued row when
+    // localStorage succeeds. The catch block below logs failures
+    // unconditionally because those are real errors.
+    if (import.meta.env.DEV) {
+      console.error('[QuoteRequest] form submission (no backend wired):', {
+        ...row,
+        logoDataUrl: row.logoDataUrl ? `[base64 ${row.logoDataUrl.length} chars]` : null,
+      });
+    }
 
     try {
       const raw = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');

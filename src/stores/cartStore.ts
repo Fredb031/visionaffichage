@@ -399,7 +399,11 @@ export const useCartStore = create<CartStore>()(
             if (shopifyAddSucceeded) {
               try { useUiStore.getState().openCartDrawer(); } catch { /* non-fatal */ }
             } else {
-              try { toast.error('Erreur de panier — réessaie'); } catch { /* non-fatal */ }
+              try {
+                toast.error(
+                  'Impossible d’ajouter au panier — vérifie ta connexion et réessaie. Si le problème persiste, appelle le 367-380-4808.',
+                );
+              } catch { /* non-fatal */ }
             }
           }
         }

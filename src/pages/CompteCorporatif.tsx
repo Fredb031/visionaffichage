@@ -162,7 +162,13 @@ export default function CompteCorporatif() {
       at: Date.now(),
       lang,
     };
-    console.error('[CompteCorporatif] form submission (no backend wired):', payload);
+    // Dev-only happy-path log — gated on import.meta.env.DEV so a
+    // successful Net 30 application doesn't fire console.error in
+    // production. The catch block below logs localStorage failures
+    // unconditionally because those are real errors worth surfacing.
+    if (import.meta.env.DEV) {
+      console.error('[CompteCorporatif] form submission (no backend wired):', payload);
+    }
 
     try {
       const raw = JSON.parse(localStorage.getItem(CORP_KEY) ?? '[]');
