@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
 // AIChat is mounted on every page (Index, Products, ProductDetail, Cart,
 // Checkout, Account, TrackOrder, NotFound) but initially renders nothing
@@ -27,13 +27,26 @@ const AIChatPanel = lazy(() =>
 // between the lazy chunk fetch and the panel's effect mount.
 export function AIChat() {
   const [primed, setPrimed] = useState(false);
+  // Ref mirror of `primed` so the long-lived event handler reads the
+  // live value without forcing the effect to list `primed` in its deps.
+  // Listing it in deps used to tear the effect down — and run its
+  // cleanup, which clears every in-flight refire timer — the moment
+  // setPrimed(true) committed, killing the refire chain before the
+  // first dispatch could fire (~10 ms render commit << the 50 ms refire
+  // delay). The proactive prefill message was then silently lost on
+  // cold starts of the lazy AIChatPanel chunk. Mount-once + ref keeps
+  // the cleanup-on-unmount intent of c10303c without the premature
+  // teardown.
+  const primedRef = useRef(primed);
+  useEffect(() => { primedRef.current = primed; }, [primed]);
   useEffect(() => {
     const timers = new Set<number>();
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ message?: string }>;
       // Force-mount the panel if it isn't already loaded so the panel's
       // own listener attaches and sees the (re-)dispatched event.
-      if (!primed) {
+      if (!primedRef.current) {
+        primedRef.current = true;
         setPrimed(true);
         // Re-dispatch on the next animation frame so the lazy chunk
         // has time to resolve and the panel's effect attaches its
@@ -65,7 +78,7 @@ export function AIChat() {
       timers.forEach(id => window.clearTimeout(id));
       timers.clear();
     };
-  }, [primed]);
+  }, []);
 
   return (
     <Suspense fallback={null}>
