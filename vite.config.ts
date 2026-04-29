@@ -24,13 +24,17 @@ export default defineConfig(({ mode }) => ({
     // landing page can hydrate fast and only load them when the customizer opens.
     rollupOptions: {
       output: {
+        // Master Prompt performance config: split the bundle into named vendor
+        // chunks so the landing page hydrates fast and the customizer/3D libs
+        // load on-demand. Existing chunks preserved/merged.
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'fabric':       ['fabric'],
-          'framer':       ['framer-motion'],
-          'tanstack':     ['@tanstack/react-query'],
-          'supabase':     ['@supabase/supabase-js'],
-          'icons':        ['lucide-react'],
+          // Master Prompt named chunks
+          'react':    ['react', 'react-dom', 'react-router-dom'],
+          'fabric':   ['fabric'],
+          'supabase': ['@supabase/supabase-js'],
+          'ui':       ['sonner', 'lucide-react', 'framer-motion'],
+          // Preserved from prior config
+          'tanstack': ['@tanstack/react-query'],
         },
       },
     },
