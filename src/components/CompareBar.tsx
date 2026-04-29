@@ -17,6 +17,7 @@ import { useCompareStore } from '@/lib/compareStore';
 import { PRODUCTS } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
+import { toWebp } from '@/lib/toWebp';
 
 export function CompareBar() {
   const { lang } = useLang();
@@ -68,16 +69,19 @@ export function CompareBar() {
                 key={p.sku}
                 className="flex items-center gap-2 bg-secondary rounded-full pr-2 pl-1 py-1 border border-border"
               >
-                <img
-                  src={p.imageDevant}
-                  alt={p.shortName}
-                  width={32}
-                  height={32}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                  <img
+                    src={p.imageDevant}
+                    alt={p.shortName}
+                    width={32}
+                    height={32}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
                 <span className="text-[11px] font-bold text-foreground truncate max-w-[110px]">
                   {name}
                 </span>

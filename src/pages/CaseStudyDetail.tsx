@@ -6,6 +6,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CASE_STUDIES } from '@/data/caseStudies';
+import { toWebp } from '@/lib/toWebp';
 
 /**
  * Volume II Section 14.1 — /histoires-de-succes/:slug detail page.
@@ -37,19 +38,22 @@ function HeroImage({ src, alt }: { src: string; alt: string }) {
     );
   }
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={900}
-      height={600}
-      loading="eager"
-      // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`;
-      // spread the lowercase HTML attribute to silence the prop-name warning.
-      {...({ fetchpriority: 'high' } as Record<string, string>)}
-      decoding="async"
-      className="w-full h-full rounded-[22px] aspect-[3/2] object-cover"
-      onError={() => setFailed(true)}
-    />
+    <picture>
+      <source srcSet={toWebp(src)} type="image/webp" />
+      <img
+        src={src}
+        alt={alt}
+        width={900}
+        height={600}
+        loading="eager"
+        // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`;
+        // spread the lowercase HTML attribute to silence the prop-name warning.
+        {...({ fetchpriority: 'high' } as Record<string, string>)}
+        decoding="async"
+        className="w-full h-full rounded-[22px] aspect-[3/2] object-cover"
+        onError={() => setFailed(true)}
+      />
+    </picture>
   );
 }
 

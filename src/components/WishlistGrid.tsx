@@ -7,6 +7,7 @@ import { categoryLabel } from '@/lib/productLabels';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useCartStore } from '@/stores/localCartStore';
 import { plural } from '@/lib/plural';
+import { toWebp } from '@/lib/toWebp';
 import type { CartItemCustomization } from '@/types/customization';
 
 type SortKey = 'recent' | 'name' | 'price-asc' | 'price-desc';
@@ -285,16 +286,19 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
             >
               <div className="aspect-square bg-secondary">
                 {p.imageDevant && (
-                  <img
-                    src={p.imageDevant}
-                    alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
-                    width={300}
-                    height={300}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
-                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
+                  <picture>
+                    <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                    <img
+                      src={p.imageDevant}
+                      alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                      width={300}
+                      height={300}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                    />
+                  </picture>
                 )}
               </div>
               <div className="p-2.5">

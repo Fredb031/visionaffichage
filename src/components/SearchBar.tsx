@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { search } from '@/lib/search';
 import type { SearchIndexEntry } from '@/lib/searchIndex';
+import { toWebp } from '@/lib/toWebp';
 
 // Minimum trimmed query length before the dropdown opens. Single-character
 // searches against the merch index produce too much noise (every "t-shirt"
@@ -179,16 +180,19 @@ export function SearchBar({ className = '', autoFocus = false, onNavigate }: {
                         active ? 'bg-secondary' : 'bg-transparent hover:bg-secondary/60'
                       }`}
                     >
-                      <img
-                        src={r.image}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 rounded-lg object-cover bg-secondary shrink-0"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                      />
+                      <picture>
+                        <source srcSet={toWebp(r.image)} type="image/webp" />
+                        <img
+                          src={r.image}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-lg object-cover bg-secondary shrink-0"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                        />
+                      </picture>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-bold truncate">{r.typeName}</div>
                         <div className="text-[11px] text-muted-foreground truncate">

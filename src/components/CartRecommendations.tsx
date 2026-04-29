@@ -5,6 +5,7 @@ import { useLang } from '@/lib/langContext';
 import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useCartStore } from '@/stores/localCartStore';
+import { toWebp } from '@/lib/toWebp';
 
 // Master Prompt Vol. II — heading interpolates the FIRST cart item's
 // product name lowercased so the cross-sell reads as "Teams that order
@@ -129,16 +130,19 @@ export function CartRecommendations() {
           >
             <div className="aspect-square bg-secondary relative overflow-hidden">
               {p.imageDevant && (
-                <img
-                  src={p.imageDevant}
-                  alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
-                  width={300}
-                  height={300}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  loading="lazy"
-                  decoding="async"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                  <img
+                    src={p.imageDevant}
+                    alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                    width={300}
+                    height={300}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
               )}
               <span
                 aria-hidden="true"

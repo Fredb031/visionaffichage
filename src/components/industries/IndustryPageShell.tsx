@@ -7,6 +7,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { PRODUCTS, PRINT_PRICE, type Product } from '@/data/products';
 import { fmtMoney } from '@/lib/format';
 import { useLang } from '@/lib/langContext';
+import { toWebp } from '@/lib/toWebp';
 
 /**
  * Mega Blueprint §08.3 — shared shell for the five industry SEO landing
@@ -276,18 +277,21 @@ export function IndustryPageShell({
                       style={{ aspectRatio: '1' }}
                     >
                       {p.imageDevant ? (
-                        <img
-                          src={p.imageDevant}
-                          alt={p.shortName}
-                          width={400}
-                          height={400}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                          onError={e => {
-                            (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                          }}
-                        />
+                        <picture>
+                          <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                          <img
+                            src={p.imageDevant}
+                            alt={p.shortName}
+                            width={400}
+                            height={400}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                            onError={e => {
+                              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                            }}
+                          />
+                        </picture>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
                           {lang === 'en' ? 'No image' : "Pas d'image"}

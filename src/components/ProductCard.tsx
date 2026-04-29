@@ -17,6 +17,7 @@ import { filterRealColors } from '@/lib/colorFilter';
 import { fmtMoney } from '@/lib/format';
 import { plural } from '@/lib/plural';
 import { trackEvent } from '@/lib/analytics';
+import { toWebp } from '@/lib/toWebp';
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -157,45 +158,54 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
         <div className="relative overflow-hidden bg-secondary" style={{ aspectRatio: '1' }}>
           {image ? (
             <>
-              <img
-                src={image.url}
-                alt={image.altText || title}
-                width={400}
-                height={400}
-                // Subtle 1.03 zoom on both layers; back (if any) fades
-                // in over the front. The `[@media(hover:hover)]:`
-                // prefix gates the back-reveal to devices with a real
-                // pointer — touch users tap to navigate and would
-                // otherwise see a flash of the dos photo before the
-                // route change fires.
-                className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
-                loading={eager ? 'eager' : 'lazy'}
-                // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
-                // so spread the lowercase HTML attribute to silence the dev
-                // warning while keeping the LCP priority hint.
-                {...({ fetchpriority: eager ? 'high' : 'auto' } as Record<string, string>)}
-                decoding="async"
-                // Hide on load failure so the secondary-coloured
-                // aspect-ratio container shows through instead of the
-                // native broken-image glyph (tiny ⊘ icon in a gray box).
-                // A 404 on a Shopify CDN image or a yanked per-color
-                // Drive file used to render as that glyph across the
-                // whole grid — reads as "the site is broken".
-                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-              />
-              {backImage && (
+              {/* OP-2: <picture> with WebP source for ~46% bandwidth
+                  cut on local raster product photos. Browsers without
+                  WebP support fall through to the JPG <img>. */}
+              <picture>
+                <source srcSet={toWebp(image.url)} type="image/webp" />
                 <img
-                  src={backImage.url}
-                  alt={lang === 'en'
-                    ? `${local?.shortName ?? title} — back view`
-                    : `${local?.shortName ?? title} — vue arrière`}
+                  src={image.url}
+                  alt={image.altText || title}
                   width={400}
                   height={400}
-                  className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none [@media(hover:hover)]:group-hover:opacity-100"
-                  loading="lazy"
+                  // Subtle 1.03 zoom on both layers; back (if any) fades
+                  // in over the front. The `[@media(hover:hover)]:`
+                  // prefix gates the back-reveal to devices with a real
+                  // pointer — touch users tap to navigate and would
+                  // otherwise see a flash of the dos photo before the
+                  // route change fires.
+                  className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
+                  loading={eager ? 'eager' : 'lazy'}
+                  // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
+                  // so spread the lowercase HTML attribute to silence the dev
+                  // warning while keeping the LCP priority hint.
+                  {...({ fetchpriority: eager ? 'high' : 'auto' } as Record<string, string>)}
                   decoding="async"
+                  // Hide on load failure so the secondary-coloured
+                  // aspect-ratio container shows through instead of the
+                  // native broken-image glyph (tiny ⊘ icon in a gray box).
+                  // A 404 on a Shopify CDN image or a yanked per-color
+                  // Drive file used to render as that glyph across the
+                  // whole grid — reads as "the site is broken".
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
+              </picture>
+              {backImage && (
+                <picture>
+                  <source srcSet={toWebp(backImage.url)} type="image/webp" />
+                  <img
+                    src={backImage.url}
+                    alt={lang === 'en'
+                      ? `${local?.shortName ?? title} — back view`
+                      : `${local?.shortName ?? title} — vue arrière`}
+                    width={400}
+                    height={400}
+                    className="absolute inset-0 w-full h-full object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none [@media(hover:hover)]:group-hover:opacity-100"
+                    loading="lazy"
+                    decoding="async"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
               )}
             </>
           ) : (

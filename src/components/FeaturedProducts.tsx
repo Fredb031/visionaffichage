@@ -4,6 +4,7 @@ import { ArrowRight, Star } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { PRODUCTS, FEATURED_SKUS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
+import { toWebp } from '@/lib/toWebp';
 
 export function FeaturedProducts() {
   const { lang } = useLang();
@@ -87,21 +88,24 @@ export function FeaturedProducts() {
               className="group block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary border border-border transition-all hover:border-[#0052CC]/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.1)] hover:-translate-y-1">
-                <img
-                  src={p.imageDevant}
-                  alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
-                  width={400}
-                  height={400}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  /* First 2 cards above-the-fold on mobile → eager + high priority for faster LCP */
-                  loading={i < 2 ? 'eager' : 'lazy'}
-                  // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
-                  // so spread the lowercase HTML attribute to silence the dev
-                  // warning while still forwarding the LCP hint to the browser.
-                  {...({ fetchpriority: i === 0 ? 'high' : 'auto' } as Record<string, string>)}
-                  decoding="async"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                  <img
+                    src={p.imageDevant}
+                    alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                    width={400}
+                    height={400}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    /* First 2 cards above-the-fold on mobile → eager + high priority for faster LCP */
+                    loading={i < 2 ? 'eager' : 'lazy'}
+                    // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
+                    // so spread the lowercase HTML attribute to silence the dev
+                    // warning while still forwarding the LCP hint to the browser.
+                    {...({ fetchpriority: i === 0 ? 'high' : 'auto' } as Record<string, string>)}
+                    decoding="async"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
                 <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#0A0A0A] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
                   <Star size={9} className="fill-[#F59E0B] text-[#F59E0B]" aria-hidden="true" />
                   {lang === 'en' ? 'Top' : 'Top'}

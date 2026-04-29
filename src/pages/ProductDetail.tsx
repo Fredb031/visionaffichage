@@ -22,6 +22,7 @@ import { PRICING, getPricePerUnit } from '@/data/pricing';
 import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
+import { toWebp } from '@/lib/toWebp';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { CapacityWidget } from '@/components/CapacityWidget';
 import { AIChat } from '@/components/AIChat';
@@ -2134,21 +2135,24 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
         className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border relative w-full block cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         aria-live="polite"
       >
-        <img
-          src={current.url}
-          alt={current.alt}
-          width={800}
-          height={800}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-          key={`main-${current.url}`}
-          loading="eager"
-          // React 18.3 emits a casing warning for `fetchPriority` on DOM
-          // elements; the lowercase HTML attribute is what the platform
-          // expects, so spread it to bypass React's prop name check.
-          {...({ fetchpriority: 'high' } as Record<string, string>)}
-          decoding="async"
-          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-        />
+        <picture>
+          <source srcSet={toWebp(current.url)} type="image/webp" />
+          <img
+            src={current.url}
+            alt={current.alt}
+            width={800}
+            height={800}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+            key={`main-${current.url}`}
+            loading="eager"
+            // React 18.3 emits a casing warning for `fetchPriority` on DOM
+            // elements; the lowercase HTML attribute is what the platform
+            // expects, so spread it to bypass React's prop name check.
+            {...({ fetchpriority: 'high' } as Record<string, string>)}
+            decoding="async"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+          />
+        </picture>
         <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none">
           {lang === 'en' ? current.labelEn : current.labelFr}
         </div>
@@ -2190,17 +2194,20 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
                     : 'border-border hover:border-primary/60 opacity-80 hover:opacity-100'
                 }`}
               >
-                <img
-                  src={shot.url}
-                  alt=""
-                  aria-hidden="true"
-                  width={160}
-                  height={160}
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(shot.url)} type="image/webp" />
+                  <img
+                    src={shot.url}
+                    alt=""
+                    aria-hidden="true"
+                    width={160}
+                    height={160}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
               </button>
             );
           })}
@@ -2301,20 +2308,23 @@ function PhotoZoomOverlay({
         </button>
       )}
 
-      <img
-        src={current.url}
-        alt={current.alt}
-        width={1200}
-        height={1200}
-        loading="eager"
-        // Lowercase HTML attribute via spread — see note above.
-        {...({ fetchpriority: 'high' } as Record<string, string>)}
-        decoding="async"
-        className="max-w-[95vw] max-h-[85vh] object-contain select-none"
-        style={{ touchAction: 'pinch-zoom' }}
-        draggable={false}
-        key={`zoom-${current.url}`}
-      />
+      <picture>
+        <source srcSet={toWebp(current.url)} type="image/webp" />
+        <img
+          src={current.url}
+          alt={current.alt}
+          width={1200}
+          height={1200}
+          loading="eager"
+          // Lowercase HTML attribute via spread — see note above.
+          {...({ fetchpriority: 'high' } as Record<string, string>)}
+          decoding="async"
+          className="max-w-[95vw] max-h-[85vh] object-contain select-none"
+          style={{ touchAction: 'pinch-zoom' }}
+          draggable={false}
+          key={`zoom-${current.url}`}
+        />
+      </picture>
 
       {hasMultiple && (
         <button
@@ -2349,17 +2359,20 @@ function PhotoZoomOverlay({
                   isActive ? 'border-white' : 'border-white/30 hover:border-white/70 opacity-70 hover:opacity-100'
                 }`}
               >
-                <img
-                  src={shot.url}
-                  alt=""
-                  aria-hidden="true"
-                  width={48}
-                  height={48}
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(shot.url)} type="image/webp" />
+                  <img
+                    src={shot.url}
+                    alt=""
+                    aria-hidden="true"
+                    width={48}
+                    height={48}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
               </button>
             );
           })}
@@ -2807,16 +2820,19 @@ function DesktopStickyCTA({
     >
       <div className="bg-white border border-[#E5E7EB] shadow-lg rounded-2xl flex items-center gap-4 px-4 py-3">
         {thumbnail && (
-          <img
-            src={thumbnail}
-            alt=""
-            aria-hidden="true"
-            width={56}
-            height={56}
-            loading="lazy"
-            decoding="async"
-            className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0 border border-[#E5E7EB]"
-          />
+          <picture>
+            <source srcSet={toWebp(thumbnail)} type="image/webp" />
+            <img
+              src={thumbnail}
+              alt=""
+              aria-hidden="true"
+              width={56}
+              height={56}
+              loading="lazy"
+              decoding="async"
+              className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0 border border-[#E5E7EB]"
+            />
+          </picture>
         )}
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-va-ink truncate leading-tight">

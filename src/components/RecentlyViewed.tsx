@@ -5,6 +5,7 @@ import { useLang } from '@/lib/langContext';
 import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { toWebp } from '@/lib/toWebp';
 
 /**
  * Shows up to 8 of the user's most-recently-viewed products. Used on
@@ -93,16 +94,19 @@ export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
           >
             <div className="aspect-square bg-secondary">
               {p.imageDevant && (
-                <img
-                  src={p.imageDevant}
-                  alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
-                  width={300}
-                  height={300}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  loading="lazy"
-                  decoding="async"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
+                <picture>
+                  <source srcSet={toWebp(p.imageDevant)} type="image/webp" />
+                  <img
+                    src={p.imageDevant}
+                    alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                    width={300}
+                    height={300}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
+                </picture>
               )}
             </div>
             <div className="p-2">

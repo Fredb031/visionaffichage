@@ -16,6 +16,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { PRODUCTS } from '@/data/products';
 import { getSettings } from '@/lib/appSettings';
+import { toWebp } from '@/lib/toWebp';
 import type { CartItemCustomization } from '@/types/customization';
 
 // ── Cart item preview — shows front AND back when ordered with both sides ──
@@ -33,7 +34,12 @@ function SideThumb({
   const lw = placement?.width ?? 28;
   return (
     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-border bg-secondary flex-shrink-0">
-      {img && <img src={img} alt={alt} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />}
+      {img && (
+        <picture>
+          <source srcSet={toWebp(img)} type="image/webp" />
+          <img src={img} alt={alt} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+        </picture>
+      )}
       {color && color.hex !== '#F2F0EB' && (
         <div
           className="absolute inset-0"

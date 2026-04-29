@@ -4,6 +4,7 @@ import { useLang } from '@/lib/langContext';
 import { findColorImage, PRINT_PRICE } from '@/data/products';
 import { fmtMoney } from '@/lib/format';
 import { categoryLabel } from '@/lib/productLabels';
+import { toWebp } from '@/lib/toWebp';
 
 // Volume II — Section 01 — Sticky add-to-cart bar.
 // Baymard flags this as the single highest-ROI mobile-conversion lift
@@ -230,16 +231,19 @@ export function StickyProductCTA({
     >
       <div className="flex items-center gap-3 px-3 py-2">
         {thumbnail && (
-          <img
-            src={thumbnail}
-            alt=""
-            aria-hidden="true"
-            width={48}
-            height={48}
-            loading="lazy"
-            decoding="async"
-            className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0 border border-border"
-          />
+          <picture>
+            <source srcSet={toWebp(thumbnail)} type="image/webp" />
+            <img
+              src={thumbnail}
+              alt=""
+              aria-hidden="true"
+              width={48}
+              height={48}
+              loading="lazy"
+              decoding="async"
+              className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0 border border-border"
+            />
+          </picture>
         )}
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-bold text-foreground truncate leading-tight">
