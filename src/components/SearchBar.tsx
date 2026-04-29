@@ -197,7 +197,16 @@ export function SearchBar({ className = '', autoFocus = false, onNavigate }: {
                         <div className="text-[13px] font-bold truncate">{r.typeName}</div>
                         <div className="text-[11px] text-muted-foreground truncate">
                           {r.colorCount > 0 ? `${r.colorCount} couleur${r.colorCount > 1 ? 's' : ''} · ` : ''}
-                          À partir de {r.basePrice.toFixed(2)} $
+                          {/* fr-CA renders the comma decimal ("12,34 $") expected
+                              next to the French "À partir de" copy. Falling back
+                              to en-CA form ("12.34 $") read like a typo against
+                              every other money string on the page. Guarding
+                              against a non-finite basePrice (Shopify variant
+                              missing a price, mid-flight hydration) so the row
+                              never surfaces "NaN $" in the dropdown. */}
+                          À partir de {Number.isFinite(r.basePrice)
+                            ? r.basePrice.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : '—'} $
                         </div>
                       </div>
                     </button>
