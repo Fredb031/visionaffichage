@@ -332,8 +332,21 @@ export function SiteFooter() {
               onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
           </div>
-          <div className="text-[11px] text-white/40">
-            © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'Made in Québec' : 'Fabriqué au Québec'} · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
+          {/* Concrete B2B descriptor — replaces a generic "© year + Made in
+              Québec" tail with the three facts a buyer scanning the bottom
+              of the page actually wants confirmed (what we do, who for,
+              how fast, where we ship). Master Prompt Vol II tone: factual,
+              no marketing fluff. Mirrors the homepage stat tiles (33 000+
+              pièces / 500+ entreprises / 5 jours) so the message a visitor
+              encountered up top is restated at the very bottom — closure
+              rather than a fresh pitch. */}
+          <div className="text-[11px] text-white/55 leading-relaxed text-center md:text-right max-w-[480px]">
+            {lang === 'en'
+              ? 'Vision Affichage — embroidery and screen-printing for Quebec businesses since 2021. 5 business days. Shipping Québec & Ontario.'
+              : 'Vision Affichage — broderie et sérigraphie pour entreprises québécoises depuis 2021. 5 jours ouvrables. Livraison Québec et Ontario.'}
+            <span className="block text-white/35 mt-1">
+              © {new Date().getFullYear()} Vision Affichage · {lang === 'en' ? 'All rights reserved' : 'Tous droits réservés'}
+            </span>
           </div>
         </div>
 
