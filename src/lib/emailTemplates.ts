@@ -4,7 +4,14 @@
 // context object. Wire to your email sender (Resend, Postmark, Shopify Email,
 // or a Supabase edge function) when you're ready to send live.
 
-const BRAND = {
+// Frozen so the brand identity (colours, logo URL, contact phone/email,
+// site origin) referenced from every transactional template body stays
+// stable across the lifetime of the module. A stray mutation in any
+// caller would silently retarget every quote/order/payment email sent
+// for the rest of the session — including the contact phone, which is
+// the support escape hatch we cannot afford to corrupt. Mirrors the
+// freeze pattern applied to pricing.ts, tax.ts, automations.ts.
+const BRAND = Object.freeze({
   navy: '#1B3A6B',
   blue: '#0052CC',
   gold: '#E8A838',
@@ -12,7 +19,7 @@ const BRAND = {
   site: 'https://visionaffichage.com',
   phone: '367-380-4808',
   email: 'info@visionaffichage.com',
-};
+});
 
 type Lang = 'fr' | 'en';
 
