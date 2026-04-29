@@ -18,12 +18,18 @@ import { useEffect, useRef } from 'react';
  * isn't the visually first one (e.g. a search input sitting below a
  * close button).
  */
+// Each native-focusable selector excludes `[tabindex="-1"]` — the dedicated
+// `[tabindex]:not([tabindex="-1"])` line below only catches non-natively-
+// focusable elements (e.g. <div tabindex="0">). A natively-focusable node
+// that the author opted out of the tab order via `tabindex="-1"` (a close
+// button kept programmatic-focus-only, a hidden link removed from the
+// flow) would otherwise get pulled into the trap and Tab would land on it.
 const FOCUSABLE = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled]):not([type="hidden"])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  'a[href]:not([tabindex="-1"])',
+  'button:not([disabled]):not([tabindex="-1"])',
+  'input:not([disabled]):not([type="hidden"]):not([tabindex="-1"])',
+  'select:not([disabled]):not([tabindex="-1"])',
+  'textarea:not([disabled]):not([tabindex="-1"])',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
