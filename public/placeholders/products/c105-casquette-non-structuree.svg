@@ -1,9 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="C105 Vue avant">
-  <rect width="800" height="900" fill="#F0ECE4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="C105 avant">
+  <defs>
+    <radialGradient id="bg-C105-f" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-C105-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sh-C105-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-C105-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-C105-f)"/>
+  <!-- ground shadow -->
+  <ellipse cx="400" cy="670" rx="193.2" ry="18" fill="url(#gnd-C105-f)"/>
+  <!-- garment body -->
   <g>
-    <path d="M180 480 Q400 280 620 480 L640 540 L160 540 Z M180 540 L640 540 L640 600 L180 600 Z" fill="#101114" stroke="none" stroke-width="3"/>
+    <path d="M 170 540 Q 400 590 630 540 L 640 595 Q 400 640 160 595 Z" fill="#101114" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <path d="M 200 480 Q 220 300 400 280 Q 580 300 600 480 L 600 540 L 200 540 Z" fill="#101114" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <path d="M 400 295 m -10 0 a 10 10 0 1 0 20 0 a 10 10 0 1 0 -20 0" fill="#FFFFFF" fill-opacity="0.55"/>
+    <!-- shoulder highlight (clipped visually by being subtle) -->
+    <ellipse cx="400" cy="340" rx="207" ry="60" fill="url(#hl-C105-f)"/>
     
+    <!-- category-specific accents + stitching -->
+    <path d="M 400 295 L 400 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 300 320 Q 305 460 310 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 500 320 Q 495 460 490 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 180 555 Q 400 605 620 555" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1" stroke-dasharray="3 3"/>
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">C105 · Vue avant</text>
+  <!-- style code corner -->
+  <text x="760" y="868" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="500" fill="#2A2D33" fill-opacity="0.4" letter-spacing="1">C105</text>
 </svg>

@@ -1,9 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATC6606 Vue avant">
-  <rect width="800" height="900" fill="#F0ECE4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATC6606 avant">
+  <defs>
+    <radialGradient id="bg-ATC6606-f" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-ATC6606-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sh-ATC6606-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-ATC6606-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-ATC6606-f)"/>
+  <!-- ground shadow -->
+  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-ATC6606-f)"/>
+  <!-- garment body -->
   <g>
-    <path d="M140 220 L320 170 L400 220 L480 170 L660 220 L620 320 L560 300 L560 760 Q400 780 240 760 L240 300 L180 320 Z M400 220 L400 760" fill="#101114" stroke="none" stroke-width="3"/>
-    
+    <path d="M 240 230 L 320 200 L 400 215 L 480 200 L 560 230 L 670 290 Q 685 320 655 345 L 575 325 L 575 770 L 400 780 L 225 770 L 225 325 L 145 345 Q 115 320 130 290 Z" fill="#101114" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <!-- shoulder highlight (clipped visually by being subtle) -->
+    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-ATC6606-f)"/>
+    <ellipse cx="400" cy="700" rx="205.2" ry="100" fill="url(#sh-ATC6606-f)"/>
+    <!-- category-specific accents + stitching -->
+    <line x1="260" y1="775" x2="540" y2="775" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
+    <line x1="225" y1="340" x2="225" y2="763" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <line x1="575" y1="340" x2="575" y2="763" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <line x1="400" y1="218" x2="400" y2="775" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1.2"/>
+    <line x1="400" y1="218" x2="400" y2="775" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2.5" stroke-dasharray="2 4"/>
+    <rect x="270" y="370" width="110" height="90" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1.2" stroke-dasharray="3 3"/>
+    <line x1="270" y1="395" x2="380" y2="395" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1"/>
+    <rect x="420" y="370" width="110" height="90" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1.2" stroke-dasharray="3 3"/>
+    <line x1="420" y1="395" x2="530" y2="395" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1"/>
+    <path d="M 320 200 L 480 200" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1.5"/>
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">ATC6606 · Vue avant</text>
+  <!-- style code corner -->
+  <text x="760" y="868" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="500" fill="#2A2D33" fill-opacity="0.4" letter-spacing="1">ATC6606</text>
 </svg>

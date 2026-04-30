@@ -1,9 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATCF2500 Vue avant">
-  <rect width="800" height="900" fill="#F0ECE4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATCF2500 avant">
+  <defs>
+    <radialGradient id="bg-ATCF2500-f" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-ATCF2500-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sh-ATCF2500-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-ATCF2500-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-ATCF2500-f)"/>
+  <!-- ground shadow -->
+  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-ATCF2500-f)"/>
+  <!-- garment body -->
   <g>
-    <path d="M140 280 L320 180 Q360 140 400 140 Q440 140 480 180 L660 280 L620 420 L560 400 L560 760 Q400 780 240 760 L240 400 L180 420 Z M320 180 Q400 220 480 180 L460 260 Q400 280 340 260 Z" fill="#101114" stroke="none" stroke-width="3"/>
-    
+    <path d="M 270 235 Q 350 250 400 252 Q 450 250 470 235 L 560 240 L 670 300 Q 685 325 660 350 L 575 335 L 565 760 Q 545 780 480 782 Q 400 788 320 782 Q 255 780 235 760 L 225 335 L 140 350 Q 115 325 130 300 L 240 240 Z" fill="#101114" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <!-- shoulder highlight (clipped visually by being subtle) -->
+    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-ATCF2500-f)"/>
+    <ellipse cx="400" cy="700" rx="205.2" ry="100" fill="url(#sh-ATCF2500-f)"/>
+    <!-- category-specific accents + stitching -->
+    <line x1="260" y1="778" x2="540" y2="778" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
+    <line x1="235" y1="350" x2="235" y2="766" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <line x1="565" y1="350" x2="565" y2="766" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <path d="M 280 245 Q 400 270 520 245" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="2"/>
+    <path d="M 285 255 Q 400 285 515 255" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
+    <line x1="248" y1="755" x2="552" y2="755" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1.5"/>
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">ATCF2500 · Vue avant</text>
+  <!-- style code corner -->
+  <text x="760" y="868" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="500" fill="#2A2D33" fill-opacity="0.4" letter-spacing="1">ATCF2500</text>
 </svg>

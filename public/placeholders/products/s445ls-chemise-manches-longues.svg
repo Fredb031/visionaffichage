@@ -1,9 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="S445LS Vue avant">
-  <rect width="800" height="900" fill="#F0ECE4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="S445LS avant">
+  <defs>
+    <radialGradient id="bg-S445LS-f" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-S445LS-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sh-S445LS-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-S445LS-f" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-S445LS-f)"/>
+  <!-- ground shadow -->
+  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-S445LS-f)"/>
+  <!-- garment body -->
   <g>
-    <path d="M120 220 L320 160 Q400 220 480 160 L680 220 L660 420 L580 400 L580 740 Q400 760 220 740 L220 400 L140 420 Z" fill="#FFFFFF" stroke="#7A7368" stroke-width="3"/>
-    
+    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 660 290 L 700 660 Q 705 685 685 692 L 615 670 Q 590 540 580 380 L 555 365 L 555 745 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 745 L 245 365 L 220 380 Q 210 540 185 670 L 115 692 Q 95 685 100 660 L 140 290 Z" fill="#FFFFFF" stroke="#5C636B" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- shoulder highlight (clipped visually by being subtle) -->
+    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-S445LS-f)"/>
+    <ellipse cx="400" cy="700" rx="205.2" ry="100" fill="url(#sh-S445LS-f)"/>
+    <!-- category-specific accents + stitching -->
+    <line x1="270" y1="770" x2="530" y2="770" stroke="#5C636B" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3"/>
+    <line x1="245" y1="335" x2="245" y2="758" stroke="#5C636B" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="2 4"/>
+    <line x1="555" y1="335" x2="555" y2="758" stroke="#5C636B" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="2 4"/>
+    <line x1="120" y1="685" x2="190" y2="668" stroke="#5C636B" stroke-opacity="0.25" stroke-width="1" stroke-dasharray="2 3"/>
+    <line x1="610" y1="668" x2="680" y2="685" stroke="#5C636B" stroke-opacity="0.25" stroke-width="1" stroke-dasharray="2 3"/>
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">S445LS · Vue avant</text>
+  <!-- style code corner -->
+  <text x="760" y="868" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="500" fill="#2A2D33" fill-opacity="0.4" letter-spacing="1">S445LS</text>
 </svg>
