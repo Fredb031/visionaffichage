@@ -964,6 +964,46 @@
     "logo": "Logo approuvé avant impression",
     "production": "Production 5 jours ouvrables"
   },
+  "reviews": {
+    "breadcrumb": {
+      "label": "Avis clients"
+    },
+    "hero": {
+      "eyebrow": "Avis clients",
+      "headline": "Ce que disent les équipes québécoises",
+      "subhead": "Note moyenne {avg}/5 — {count} avis vérifiés"
+    },
+    "filters": {
+      "rating": "Filtrer par note",
+      "industry": "Filtrer par industrie",
+      "all": "Tous"
+    },
+    "ratings": {
+      "five": "5 étoiles",
+      "four": "4 étoiles",
+      "threeUp": "3 et plus",
+      "twoUp": "2 et plus"
+    },
+    "industries": {
+      "construction": "Construction",
+      "paysagement": "Paysagement",
+      "restauration": "Restauration",
+      "demenagement": "Déménagement",
+      "metiers": "Métiers spécialisés",
+      "bureau": "Bureau"
+    },
+    "submitCta": {
+      "title": "Tu es client ? Partage ton expérience",
+      "body": "Ton avis aide d'autres équipes québécoises à choisir le bon fournisseur d'uniformes. Écris-nous quelques lignes — on publie après vérification.",
+      "button": "Écris-nous"
+    },
+    "external": {
+      "heading": "Retrouve-nous ailleurs",
+      "google": "Google Business Profile",
+      "linkedin": "LinkedIn",
+      "instagram": "Instagram"
+    }
+  },
   "customizer": {
     "breadcrumb": {
       "home": "Accueil",

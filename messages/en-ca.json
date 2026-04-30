@@ -964,6 +964,46 @@
     "logo": "Logo approved before printing",
     "production": "5 business-day production"
   },
+  "reviews": {
+    "breadcrumb": {
+      "label": "Customer reviews"
+    },
+    "hero": {
+      "eyebrow": "Customer reviews",
+      "headline": "What Quebec teams are saying",
+      "subhead": "Average rating {avg}/5 — {count} verified reviews"
+    },
+    "filters": {
+      "rating": "Filter by rating",
+      "industry": "Filter by industry",
+      "all": "All"
+    },
+    "ratings": {
+      "five": "5 stars",
+      "four": "4 stars",
+      "threeUp": "3 and up",
+      "twoUp": "2 and up"
+    },
+    "industries": {
+      "construction": "Construction",
+      "paysagement": "Landscaping",
+      "restauration": "Restaurants",
+      "demenagement": "Moving",
+      "metiers": "Skilled trades",
+      "bureau": "Office"
+    },
+    "submitCta": {
+      "title": "Are you a client? Share your experience",
+      "body": "Your review helps other Quebec teams pick the right uniform supplier. Send us a few lines — we publish after verification.",
+      "button": "Write to us"
+    },
+    "external": {
+      "heading": "Find us elsewhere",
+      "google": "Google Business Profile",
+      "linkedin": "LinkedIn",
+      "instagram": "Instagram"
+    }
+  },
   "customizer": {
     "breadcrumb": {
       "home": "Home",
