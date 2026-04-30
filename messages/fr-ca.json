@@ -74,11 +74,21 @@
       "title": "Paiement · Vision Affichage"
     },
     "steps": {
-      "1": { "label": "Contact" },
-      "2": { "label": "Livraison" },
-      "3": { "label": "Facturation" },
-      "4": { "label": "Paiement" },
-      "5": { "label": "Révision" }
+      "1": {
+        "label": "Contact"
+      },
+      "2": {
+        "label": "Livraison"
+      },
+      "3": {
+        "label": "Facturation"
+      },
+      "4": {
+        "label": "Paiement"
+      },
+      "5": {
+        "label": "Révision"
+      }
     },
     "contactForm": {
       "heading": "Coordonnées",
@@ -588,5 +598,120 @@
     "google": "5,0 sur Google",
     "logo": "Logo approuvé avant impression",
     "production": "Production 5 jours ouvrables"
+  },
+  "customizer": {
+    "breadcrumb": {
+      "home": "Accueil",
+      "products": "Produits",
+      "current": "Personnaliser"
+    },
+    "heading": "Téléverse ton logo. On s'occupe du reste.",
+    "subhead": "Notre équipe vérifie chaque fichier avant production. Tu reçois une maquette en 24 h ouvrables avant qu'on lance quoi que ce soit.",
+    "productLabel": "Pour",
+    "step": {
+      "1": {
+        "label": "Téléverser ton fichier"
+      },
+      "2": {
+        "label": "Vérification automatique"
+      },
+      "3": {
+        "label": "Aperçu de placement"
+      },
+      "4": {
+        "label": "Contraste avec le vêtement"
+      },
+      "5": {
+        "label": "Notes pour notre équipe"
+      },
+      "6": {
+        "label": "Sauvegarder et continuer"
+      },
+      "7": {
+        "label": "Ce qui arrive ensuite"
+      }
+    },
+    "upload": {
+      "dropzoneTitle": "Glisse ton logo ici ou clique pour choisir",
+      "dropzoneSubtitle": "Formats acceptés : PDF, AI, SVG, PNG, JPG. Max 25 Mo.",
+      "replaceButton": "Remplacer",
+      "fileLabel": "Fichier téléversé",
+      "error": {
+        "tooLarge": "Le fichier dépasse 25 Mo. Compresse-le ou contacte-nous.",
+        "wrongFormat": "Format non supporté. Utilise PDF, AI, SVG, PNG ou JPG.",
+        "generic": "Impossible de lire le fichier. Réessaie ou contacte-nous."
+      }
+    },
+    "checks": {
+      "loading": "Analyse en cours…",
+      "vector": {
+        "pass": {
+          "label": "Vecteur",
+          "recommendation": "Format vectoriel — qualité optimale à toute taille."
+        }
+      },
+      "dpi": {
+        "pass": {
+          "label": "{dpi} DPI",
+          "recommendation": "Excellente résolution pour l'impression."
+        },
+        "warn": {
+          "label": "{dpi} DPI",
+          "recommendation": "Résolution acceptable. On pourrait demander une meilleure version pour les gros formats."
+        },
+        "fail": {
+          "label": "{dpi} DPI",
+          "recommendation": "Résolution faible. On va te recontacter pour un fichier plus net."
+        }
+      },
+      "colorCount": {
+        "pass": {
+          "label": "{count} couleurs",
+          "recommendation": "Idéal pour broderie ou sérigraphie."
+        },
+        "warn": {
+          "label": "{count} couleurs",
+          "recommendation": "Plus de 8 couleurs — on recommande la sérigraphie ou DTG plutôt que la broderie."
+        }
+      }
+    },
+    "placement": {
+      "legend": "Choisis le placement par défaut",
+      "heart": {
+        "label": "Cœur (gauche poitrine)",
+        "description": "Standard pour uniformes corporatifs."
+      },
+      "centerChest": {
+        "label": "Centre poitrine",
+        "description": "Pour logos plus larges ou identité forte."
+      },
+      "fullBack": {
+        "label": "Dos complet",
+        "description": "Maximum d'impact, idéal événements."
+      }
+    },
+    "contrast": {
+      "warning": "Faible contraste — voici comment ça paraîtra.",
+      "ok": "Bon contraste avec la couleur du vêtement choisie.",
+      "toggleInverted": "Voir avec couleur inversée"
+    },
+    "notes": {
+      "label": "Notes pour notre équipe (optionnel)",
+      "placeholder": "Spécifie ici toute exigence : couleurs Pantone, position exacte, contraintes de matériel.",
+      "charCount": "{used}/{max} caractères"
+    },
+    "cta": {
+      "save": "Sauvegarder et continuer",
+      "continue": "On vérifie tout, puis tu reçois une maquette avant production.",
+      "success": "Logo enregistré. Notre équipe vérifiera tout avant production."
+    },
+    "proofTimeline": {
+      "heading": "Ce qui arrive ensuite",
+      "1": "Tu reçois une maquette en 24 h ouvrables.",
+      "2": "Tu approuves (ou demandes des ajustements).",
+      "3": "Production démarre — 5 jours ouvrables.",
+      "4": "Livraison Québec / Ontario."
+    },
+    "noscript": "Cette étape nécessite JavaScript pour téléverser ton logo. Contacte-nous directement à hello@visionaffichage.ca si tu préfères."
   }
 }

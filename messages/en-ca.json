@@ -74,11 +74,21 @@
       "title": "Checkout · Vision Affichage"
     },
     "steps": {
-      "1": { "label": "Contact" },
-      "2": { "label": "Shipping" },
-      "3": { "label": "Billing" },
-      "4": { "label": "Payment" },
-      "5": { "label": "Review" }
+      "1": {
+        "label": "Contact"
+      },
+      "2": {
+        "label": "Shipping"
+      },
+      "3": {
+        "label": "Billing"
+      },
+      "4": {
+        "label": "Payment"
+      },
+      "5": {
+        "label": "Review"
+      }
     },
     "contactForm": {
       "heading": "Contact information",
@@ -588,5 +598,120 @@
     "google": "5.0 on Google",
     "logo": "Logo approved before printing",
     "production": "5 business-day production"
+  },
+  "customizer": {
+    "breadcrumb": {
+      "home": "Home",
+      "products": "Products",
+      "current": "Customize"
+    },
+    "heading": "Upload your logo. We handle the rest.",
+    "subhead": "Our team reviews every file before production. You get a proof within 24 business hours before anything runs.",
+    "productLabel": "For",
+    "step": {
+      "1": {
+        "label": "Upload your file"
+      },
+      "2": {
+        "label": "Automatic checks"
+      },
+      "3": {
+        "label": "Placement preview"
+      },
+      "4": {
+        "label": "Contrast with garment"
+      },
+      "5": {
+        "label": "Notes for our team"
+      },
+      "6": {
+        "label": "Save and continue"
+      },
+      "7": {
+        "label": "What happens next"
+      }
+    },
+    "upload": {
+      "dropzoneTitle": "Drag your logo here or click to choose",
+      "dropzoneSubtitle": "Accepted formats: PDF, AI, SVG, PNG, JPG. Max 25 MB.",
+      "replaceButton": "Replace",
+      "fileLabel": "Uploaded file",
+      "error": {
+        "tooLarge": "File exceeds 25 MB. Compress it or contact us.",
+        "wrongFormat": "Unsupported format. Use PDF, AI, SVG, PNG or JPG.",
+        "generic": "Couldn't read the file. Try again or contact us."
+      }
+    },
+    "checks": {
+      "loading": "Analyzing…",
+      "vector": {
+        "pass": {
+          "label": "Vector",
+          "recommendation": "Vector format — sharp at any size."
+        }
+      },
+      "dpi": {
+        "pass": {
+          "label": "{dpi} DPI",
+          "recommendation": "Excellent resolution for print."
+        },
+        "warn": {
+          "label": "{dpi} DPI",
+          "recommendation": "Resolution is acceptable. We may ask for a sharper version for large prints."
+        },
+        "fail": {
+          "label": "{dpi} DPI",
+          "recommendation": "Low resolution. We'll reach out for a higher-quality file."
+        }
+      },
+      "colorCount": {
+        "pass": {
+          "label": "{count} colors",
+          "recommendation": "Ideal for embroidery or screen printing."
+        },
+        "warn": {
+          "label": "{count} colors",
+          "recommendation": "More than 8 colors — we recommend screen print or DTG over embroidery."
+        }
+      }
+    },
+    "placement": {
+      "legend": "Choose the default placement",
+      "heart": {
+        "label": "Heart (left chest)",
+        "description": "Standard for corporate uniforms."
+      },
+      "centerChest": {
+        "label": "Center chest",
+        "description": "For wider logos or bolder identity."
+      },
+      "fullBack": {
+        "label": "Full back",
+        "description": "Maximum impact, ideal for events."
+      }
+    },
+    "contrast": {
+      "warning": "Low contrast — here's how it will look.",
+      "ok": "Good contrast with the selected garment color.",
+      "toggleInverted": "See with inverted color"
+    },
+    "notes": {
+      "label": "Notes for our team (optional)",
+      "placeholder": "Specify any requirement: Pantone colors, exact position, material constraints.",
+      "charCount": "{used}/{max} characters"
+    },
+    "cta": {
+      "save": "Save and continue",
+      "continue": "We check everything, then you get a proof before production.",
+      "success": "Logo saved. Our team will verify everything before production."
+    },
+    "proofTimeline": {
+      "heading": "What happens next",
+      "1": "You receive a proof within 24 business hours.",
+      "2": "You approve (or request adjustments).",
+      "3": "Production starts — 5 business days.",
+      "4": "Delivery to Quebec / Ontario."
+    },
+    "noscript": "This step requires JavaScript to upload your logo. Contact us directly at hello@visionaffichage.ca if you prefer."
   }
 }
