@@ -163,12 +163,14 @@ def create_app() -> FastAPI:
     from sanmar.api.routes import metrics as metrics_routes
     from sanmar.api.routes import pricing as pricing_routes
     from sanmar.api.routes import products as products_routes
+    from sanmar.api.routes import track as track_routes
 
     application.include_router(products_routes.router)
     application.include_router(inventory_routes.router)
     application.include_router(pricing_routes.router)
     application.include_router(metrics_routes.router)
     application.include_router(health_routes.router)
+    application.include_router(track_routes.router)
 
     return application
 

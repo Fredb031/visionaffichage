@@ -20,6 +20,52 @@ import type { SanmarOrderStatusDetail } from '@/lib/sanmar/types';
 // effect dep list stable.
 const SANMAR_GATE_ENABLED = import.meta.env.VITE_SANMAR_NEXT_GEN === 'true';
 
+// Phase 16 — when VITE_SANMAR_TRACK_API_URL is set we route the live
+// status fetch through the public /track endpoint on the FastAPI cache
+// layer instead of going to Supabase + SanMar SOAP. This unlocks the
+// Cloudflare-edge cache benefit (the cache layer is itself fronted by
+// a CF Worker) and lets us serve sub-100ms responses for repeat hits
+// on the same PO+email pair. Empty / unset → fall back to the legacy
+// edge-function path so the page never bricks during a partial deploy.
+const SANMAR_TRACK_API_URL = (
+  import.meta.env.VITE_SANMAR_TRACK_API_URL as string | undefined
+)?.trim();
+
+interface TrackApiPayload {
+  po_number: string;
+  status_id: number | null;
+  status_label: string;
+  current_step: number;
+  expected_ship_date: string | null;
+  tracking_number: string | null;
+  line_items: Array<{ style: string; qty: number }>;
+  shipping_address: { city?: string; postal_prefix?: string } | null;
+  lang: string;
+  cancelled?: boolean;
+  cancellation_note?: string;
+}
+
+/**
+ * Fetch the cache-API tracking payload, normalised onto the same shape
+ * as the legacy edge-function response so the rest of the page doesn't
+ * have to branch. Returns ``null`` on any non-OK response (404, 422,
+ * 429) so the caller falls through to the soft "not found" UI rather
+ * than throwing — same end-state as the legacy path.
+ */
+async function fetchTrackFromCacheApi(
+  baseUrl: string,
+  poNumber: string,
+  email: string,
+  lang: 'en' | 'fr',
+): Promise<TrackApiPayload | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/track/${encodeURIComponent(poNumber)}?email=${encodeURIComponent(email)}`;
+  const res = await fetch(url, {
+    headers: { 'Accept-Language': lang === 'en' ? 'en-CA' : 'fr-CA' },
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as TrackApiPayload;
+}
+
 /**
  * Map a SanMar PromoStandards statusId to the 5-step bilingual SanMar
  * timeline below. The mapping mirrors the brief in the rollout plan
@@ -137,6 +183,50 @@ export default function TrackOrder() {
   const [sanmarLoading, setSanmarLoading] = useState(false);
   const [sanmarNotFound, setSanmarNotFound] = useState(false);
   const [sanmarPoNumber, setSanmarPoNumber] = useState<string | null>(null);
+
+  // Phase 16 — cache-API payload, populated when VITE_SANMAR_TRACK_API_URL
+  // is set AND the user has typed an email. We fold this into the same
+  // ``sanmarStatus`` / ``sanmarTrackingNumber`` slots above by feeding
+  // through a shaped object the existing render code already understands,
+  // so the JSX below doesn't need to branch on which source served the
+  // payload. Stored separately for the cancelled-note callout, which the
+  // legacy SanMar payload doesn't carry.
+  const [cacheApiPayload, setCacheApiPayload] = useState<TrackApiPayload | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!SANMAR_TRACK_API_URL || !paramOrder) {
+      setCacheApiPayload(null);
+      return;
+    }
+    const emailQ = normalizeInvisible(emailInput).trim();
+    // The cache API requires a verified email; without one we can't
+    // fetch anything useful. Fall through to the legacy path — same
+    // soft empty state as if the env var were unset.
+    if (!emailQ || !isValidEmail(emailQ)) {
+      setCacheApiPayload(null);
+      return;
+    }
+    (async () => {
+      try {
+        const payload = await fetchTrackFromCacheApi(
+          SANMAR_TRACK_API_URL,
+          paramOrder,
+          emailQ,
+          lang,
+        );
+        if (!cancelled) setCacheApiPayload(payload);
+      } catch {
+        // Network blip / CORS issue / cache layer down — silently
+        // fall back to the legacy SanMar path so a misconfigured
+        // env var can't take down the route.
+        if (!cancelled) setCacheApiPayload(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [paramOrder, emailInput, lang]);
 
   // Sync input to the route param when it changes (e.g. if another link
   // navigates /track/1570 → /track/1580). Without this the stale useState

@@ -257,6 +257,23 @@ class OrderRow(Base):
         Numeric(10, 2), nullable=True
     )
 
+    # Phase 16 — public /track endpoint fields. Nullable so legacy
+    # rows seeded prior to the migration still load; the /track
+    # handler 404s when ``customer_email`` is missing rather than
+    # leaking that the order exists in the cache. ``line_items`` and
+    # ``shipping_address`` are JSON so the storefront-facing payload
+    # doesn't need a separate join when serving cache hits at the
+    # Cloudflare edge.
+    customer_email: Mapped[Optional[str]] = mapped_column(
+        String(254), nullable=True, index=True
+    )
+    line_items: Mapped[Optional[list]] = mapped_column(
+        JSON, nullable=True, default=list
+    )
+    shipping_address: Mapped[Optional[dict]] = mapped_column(
+        JSON, nullable=True
+    )
+
     __table_args__ = (
         Index("ix_orders_status_submitted", "status_id", "submitted_at"),
     )
