@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true",
     "dev": "vite",
     "build": "node --experimental-strip-types scripts/generate-sitemap.ts && vite build",
     "build:dev": "node --experimental-strip-types scripts/generate-sitemap.ts && vite build --mode development",
