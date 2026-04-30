@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, Search } from 'lucide-react';
 import { Container } from './Container';
 import { Button } from './Button';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { SearchDialog } from './search/SearchDialog';
 import type { Locale } from '@/i18n/routing';
 
 export function Header() {
@@ -14,7 +15,22 @@ export function Header() {
   const tNav = useTranslations('nav');
   const tHeader = useTranslations('header');
   const tCart = useTranslations('cart');
+  const tSearch = useTranslations('search');
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Cmd/Ctrl+K toggles the search dialog.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isK = e.key === 'k' || e.key === 'K';
+      if (isK && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const base = `/${locale}`;
   const nav = [
@@ -53,6 +69,15 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label={tSearch('trigger.label')}
+              aria-keyshortcuts="Control+K Meta+K"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-950 hover:bg-sand-100 transition-colors duration-base ease-standard"
+            >
+              <Search aria-hidden className="h-5 w-5" />
+            </button>
             <Suspense fallback={<span className="hidden sm:inline-flex h-9 w-[44px]" aria-hidden />}>
               <LanguageSwitcher className="hidden sm:inline-flex" />
             </Suspense>
@@ -148,6 +173,8 @@ export function Header() {
           </div>
         </div>
       )}
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }

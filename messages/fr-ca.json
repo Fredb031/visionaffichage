@@ -1717,5 +1717,26 @@
         "message": "Accusé de réception"
       }
     }
+  },
+  "search": {
+    "trigger": {
+      "label": "Rechercher (Ctrl + K)"
+    },
+    "dialog": {
+      "placeholder": "Rechercher des produits, industries ou pages…",
+      "close": "Fermer la recherche",
+      "empty": "Tape pour chercher des produits, industries ou pages…",
+      "noResults": "Aucun résultat. Essaie « hoodie », « broderie », ou « construction »."
+    },
+    "results": {
+      "heading": {
+        "products": "Produits",
+        "industries": "Industries",
+        "pages": "Pages"
+      }
+    },
+    "kbd": {
+      "shortcut": "Ctrl + K"
+    }
   }
 }

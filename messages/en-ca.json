@@ -1717,5 +1717,26 @@
         "message": "Message receipt"
       }
     }
+  },
+  "search": {
+    "trigger": {
+      "label": "Search (Ctrl + K)"
+    },
+    "dialog": {
+      "placeholder": "Search products, industries, or pages…",
+      "close": "Close search",
+      "empty": "Type to search products, industries, or pages…",
+      "noResults": "No results. Try \"hoodie\", \"embroidery\", or \"construction\"."
+    },
+    "results": {
+      "heading": {
+        "products": "Products",
+        "industries": "Industries",
+        "pages": "Pages"
+      }
+    },
+    "kbd": {
+      "shortcut": "Ctrl + K"
+    }
   }
 }
