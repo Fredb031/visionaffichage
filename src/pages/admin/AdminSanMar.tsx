@@ -10,6 +10,7 @@ import {
   ChevronUp,
   AlertCircle,
   CheckCircle2,
+  Download,
   History,
   XCircle,
   Clock,
@@ -25,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { sanmarClient } from '@/lib/sanmar/client';
 import type { SanmarOrderStatus, SanmarOrderInput } from '@/lib/sanmar/types';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { downloadCsv, csvFilename } from '@/lib/csv';
 
 /**
  * /admin/sanmar — operator console for the SanMar Canada PromoStandards
@@ -92,15 +94,21 @@ interface SanmarCronHealthRow {
 }
 
 /**
- * Aggregated AR snapshot derived client-side from a single
- * `sanmar_orders` query. We deliberately do the math in JS rather than
- * exposing a server-side view because (a) RLS already locks the table
- * to admins (commit 087b20a) so the row volume is operator-bounded,
- * (b) keeping the per-status breakdown live in the closure means
- * future widgets (pie chart, etc.) can be assembled without a second
- * round trip. Mirrors the digest convention in
+ * Aggregated AR snapshot. As of Wave 13 this comes from the
+ * `get_sanmar_ar_summary()` SECURITY DEFINER RPC (migration
+ * 20260429200000_sanmar_ar_summary_rpc.sql) which performs one
+ * server-side aggregate scan instead of shipping every "open" row
+ * to the browser. The RPC gates on public.is_admin() so non-admin
+ * callers get zero rows back; we render that as the empty-state
+ * tiles below.
+ *
+ * If the RPC isn't deployed yet (early environments) the loader
+ * falls back to the original client-side aggregation over
+ * `sanmar_orders`. Both paths populate the same shape.
+ *
+ * Mirrors the digest convention in
  * `supabase/functions/_shared/sanmar/digest.ts`: status_id < 80 = open
- * AR (10/11/41/44/60/75 typical), 80 = complete, 99 = cancelled.
+ * AR (10/11/41/44/60/75 typical), 80 = complete (paid), 99 = cancelled.
  * status_id IS NULL is also "open" — orders submitted but not yet
  * acknowledged by SanMar.
  */
@@ -116,9 +124,18 @@ interface ArSummary {
    *  doesn't carry a separate submission timestamp). null when the
    *  table is empty. */
   oldestDays: number | null;
-  /** Per-status_id breakdown (10/11/41/44/60/75/null) for future
-   *  tile drilldown / pie chart. Not surfaced in this widget yet but
-   *  the summarise loop is one-pass so the cost is zero. */
+  /** Count of orders that closed (status_id IN (80, 99)) in the
+   *  last 30 days. Sourced from the RPC. 0 when the table is empty
+   *  or the RPC fallback is in use and no rows match. */
+  closedCount30d: number;
+  /** Sum of order_data.totalAmount (CAD) for orders that paid
+   *  (status_id = 80) in the last 30 days. Cancelled orders (99)
+   *  do NOT contribute. */
+  paidBalance30d: number;
+  /** Per-status_id breakdown (10/11/41/44/60/75/null). Only populated
+   *  by the legacy client-side fallback path; the RPC doesn't return
+   *  it (we can add per-status if a drilldown lands later). Empty Map
+   *  on the RPC path so callers shouldn't rely on it for primary UI. */
   byStatus: Map<string, number>;
 }
 
@@ -141,6 +158,14 @@ const OLDEST_WARN_DAYS = 14;
 
 const PAGE_SIZE = 50;
 
+/** Cap for the "Download CSV" export from the Recent runs widget. The
+ *  on-screen table only shows the latest 5, but operators investigating
+ *  flakey jobs want history — 200 rows is small enough to fit in one
+ *  Supabase round-trip and big enough to cover ~6 weeks of daily syncs
+ *  plus inventory/order-status churn. Tune up if needed; the CSV builder
+ *  doesn't care. */
+const SYNC_LOG_EXPORT_LIMIT = 200;
+
 export default function AdminSanMar() {
   const { lang } = useLang();
   useDocumentTitle(lang === 'en' ? 'SanMar Canada · Admin · Vision Affichage' : 'SanMar Canada · Admin · Vision Affichage');
@@ -159,6 +184,10 @@ export default function AdminSanMar() {
   }>({ lastSync: null, totalParts: 0, loading: true });
   const [recentRuns, setRecentRuns] = useState<SanmarSyncLogRow[]>([]);
   const [recentRunsLoading, setRecentRunsLoading] = useState(true);
+  // Toggled while the Download-CSV button is fetching the wider history
+  // window (up to SYNC_LOG_EXPORT_LIMIT rows) — keeps the button from
+  // double-firing if the operator is impatient and re-clicks.
+  const [exportingSyncLog, setExportingSyncLog] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   // ── pg_cron health ─────────────────────────────────────────────────────
@@ -181,6 +210,8 @@ export default function AdminSanMar() {
     openBalance: 0,
     openCount: 0,
     oldestDays: null,
+    closedCount30d: 0,
+    paidBalance30d: 0,
     byStatus: new Map(),
   });
   const [arLoading, setArLoading] = useState(true);
@@ -282,6 +313,92 @@ export default function AdminSanMar() {
       cancelled = true;
     };
   }, [loadRecentRuns]);
+
+  /**
+   * Export the wider sync-log history to CSV for offline triage.
+   *
+   * The on-screen widget only shows the latest 5 rows (intentionally —
+   * it's a glance card, not a forensic tool). When something looks off
+   * — a string of inventory failures, a regression after a deploy — the
+   * operator wants the full picture without dropping into Supabase
+   * Studio. This pulls up to {@link SYNC_LOG_EXPORT_LIMIT} rows ordered
+   * newest-first and builds a CSV identical in spirit to the other
+   * /admin exporters: RFC 4180 quoting, UTF-8 BOM, CRLF line endings,
+   * formula-injection guard — all delegated to {@link downloadCsv}.
+   *
+   * Columns mirror the on-screen table plus the raw error count so the
+   * CSV stays self-explanatory in Excel/Sheets:
+   *   When | Type | Status | Duration (ms) | Processed | Errors
+   *
+   * No analytics implications — this is read-only export, doesn't touch
+   * the log table, doesn't trigger a sync. Errors fall through to a
+   * toast so the operator knows when the export is empty vs broken.
+   */
+  const handleExportSyncLogCsv = async () => {
+    if (!supabase) {
+      toast.error(
+        lang === 'en'
+          ? 'Supabase client not configured.'
+          : 'Client Supabase non configuré.',
+      );
+      return;
+    }
+    setExportingSyncLog(true);
+    try {
+      const { data, error } = await supabase
+        .from('sanmar_sync_log')
+        .select('id,sync_type,total_processed,errors,duration_ms,created_at')
+        .order('created_at', { ascending: false })
+        .limit(SYNC_LOG_EXPORT_LIMIT);
+      if (error) throw error;
+      const rows = (data ?? []) as SanmarSyncLogRow[];
+      if (rows.length === 0) {
+        toast.info(
+          lang === 'en'
+            ? 'No sync runs to export yet.'
+            : 'Aucune synchro à exporter pour le moment.',
+        );
+        return;
+      }
+      const header = [
+        lang === 'en' ? 'When' : 'Quand',
+        lang === 'en' ? 'Type' : 'Type',
+        lang === 'en' ? 'Status' : 'Statut',
+        lang === 'en' ? 'Duration (ms)' : 'Durée (ms)',
+        lang === 'en' ? 'Processed' : 'Traités',
+        lang === 'en' ? 'Errors' : 'Erreurs',
+      ];
+      const body = rows.map(row => {
+        const errCount = Array.isArray(row.errors) ? row.errors.length : 0;
+        return [
+          // Render the timestamp via the shared Date path so the CSV
+          // builder writes ISO-8601, which sorts lexically and round-trips
+          // cleanly into spreadsheets.
+          row.created_at ? new Date(row.created_at) : '',
+          row.sync_type ?? '',
+          isSyncOk(row) ? 'success' : 'fail',
+          row.duration_ms ?? '',
+          row.total_processed ?? 0,
+          errCount,
+        ];
+      });
+      downloadCsv([header, ...body], csvFilename('sanmar-sync-log'));
+      toast.success(
+        lang === 'en'
+          ? `Exported ${rows.length} run${rows.length === 1 ? '' : 's'}.`
+          : `${rows.length} synchro${rows.length === 1 ? '' : 's'} exportée${rows.length === 1 ? '' : 's'}.`,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(
+        lang === 'en'
+          ? `Export failed: ${msg}`
+          : `Échec de l’export : ${msg}`,
+      );
+    } finally {
+      setExportingSyncLog(false);
+    }
+  };
 
   /**
    * Pull live state of the sanmar-* pg_cron jobs from the
@@ -993,19 +1110,45 @@ export default function AdminSanMar() {
                   : 'Les 5 dernières entrées de sanmar_sync_log — type, quand, succès / échec, durée, items traités.'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => loadRecentRuns()}
-              disabled={recentRunsLoading}
-              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
-            >
-              <RefreshCw
-                size={14}
-                aria-hidden="true"
-                className={recentRunsLoading ? 'animate-spin' : ''}
-              />
-              {lang === 'en' ? 'Refresh' : 'Actualiser'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleExportSyncLogCsv}
+                disabled={exportingSyncLog}
+                title={
+                  lang === 'en'
+                    ? `Download up to ${SYNC_LOG_EXPORT_LIMIT} most recent runs as CSV`
+                    : `Télécharger jusqu’à ${SYNC_LOG_EXPORT_LIMIT} synchros récentes en CSV`
+                }
+                className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                <Download
+                  size={14}
+                  aria-hidden="true"
+                  className={exportingSyncLog ? 'animate-pulse' : ''}
+                />
+                {exportingSyncLog
+                  ? lang === 'en'
+                    ? 'Exporting…'
+                    : 'Export…'
+                  : lang === 'en'
+                    ? 'Download CSV'
+                    : 'Télécharger CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={() => loadRecentRuns()}
+                disabled={recentRunsLoading}
+                className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                <RefreshCw
+                  size={14}
+                  aria-hidden="true"
+                  className={recentRunsLoading ? 'animate-spin' : ''}
+                />
+                {lang === 'en' ? 'Refresh' : 'Actualiser'}
+              </button>
+            </div>
           </div>
           {recentRunsLoading && recentRuns.length === 0 ? (
             <p className="text-va-muted text-sm py-6 text-center">
