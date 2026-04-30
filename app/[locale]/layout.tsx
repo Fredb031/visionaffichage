@@ -10,6 +10,7 @@ function isLocale(value: string): value is Locale {
   return value === 'fr-ca' || value === 'en-ca';
 }
 import { siteConfig } from '@/lib/site';
+import { BASE_URL } from '@/lib/seo';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SkipLink } from '@/components/SkipLink';
@@ -63,11 +64,22 @@ export async function generateMetadata({
       description: t('ogDescription'),
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}`,
+      images: [
+        {
+          url: `${BASE_URL}/api/og?title=${encodeURIComponent(t('ogTitle'))}&subtitle=${encodeURIComponent(t('ogDescription'))}`,
+          width: 1200,
+          height: 630,
+          alt: t('ogTitle'),
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: t('ogTitle'),
       description: t('ogDescription'),
+      images: [
+        `${BASE_URL}/api/og?title=${encodeURIComponent(t('ogTitle'))}&subtitle=${encodeURIComponent(t('ogDescription'))}`,
+      ],
     },
     icons: {
       icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
