@@ -36,37 +36,44 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  // Key-based remount pattern: bumping `burstKey` swaps the absolute
+  // overlay with a fresh DOM node, which restarts the CSS keyframe
+  // animation. Only bumped on ADD (not remove) — removing is meant to
+  // feel like the heart quietly clearing, not a second celebration.
+  const [burstKey, setBurstKey] = useState(0);
+  const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
 
   // Defensive: a malformed Shopify payload (new product without full
   // data, or a partial response) can hand us `product` without a
-  // `node`. Bail out with null rather than crash the whole grid.
-  if (!product || !product.node) {
-    return null;
-  }
-  const { node } = product;
+  // `node`. Pre-compute everything needed for render against a possibly-
+  // missing payload, but DO NOT early-return before all hooks above
+  // have been called — Rules of Hooks require call order to stay
+  // identical across renders. The early-return moved below the
+  // useMemo call.
+  const node = product?.node ?? null;
 
   // Every nested access below is wrapped in optional-chaining +
   // defaults. Shopify Storefront can legally omit `images.edges` or
   // `variants.edges` for a brand-new product that hasn't been fully
   // populated yet, and a NEW product without a local data/products.ts
   // mapping used to crash this component outright.
-  const imageEdges = Array.isArray(node.images?.edges) ? node.images.edges : [];
+  const imageEdges = Array.isArray(node?.images?.edges) ? node!.images!.edges : [];
   const shopifyImage = imageEdges[0]?.node;
   const shopifyBackImage = imageEdges[1]?.node;
 
-  const variantEdges = Array.isArray(node.variants?.edges) ? node.variants.edges : [];
+  const variantEdges = Array.isArray(node?.variants?.edges) ? node!.variants!.edges : [];
   const firstVariant = variantEdges[0]?.node;
 
   // `price` is consumed below as `parseFloat(price.amount)`. A partial
   // response can omit priceRange entirely — fall through to the
   // first variant's price, then to "0.00" so the template never
   // sees undefined.
-  const price = node.priceRange?.minVariantPrice
+  const price = node?.priceRange?.minVariantPrice
     ?? firstVariant?.price
     ?? { amount: '0', currencyCode: 'CAD' };
 
-  const handle = node.handle ?? '';
-  const title = node.title ?? (lang === 'en' ? 'Product' : 'Produit');
+  const handle = node?.handle ?? '';
+  const title = node?.title ?? (lang === 'en' ? 'Product' : 'Produit');
 
   const local = (handle && findProductByHandle(handle))
     || (title && matchProductByTitle(title))
@@ -80,6 +87,13 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
     [local],
   );
 
+  // ALL hooks are above this line. Rules-of-hooks: early return must
+  // come AFTER every useState / useMemo / custom-hook call so the
+  // call order stays identical across renders.
+  if (!node) {
+    return null;
+  }
+
   // Use clean Drive images when available, fall back to Shopify CDN
   const image = local
     ? { url: local.imageDevant, altText: local.shortName }
@@ -88,13 +102,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
     ? (local.imageDos ? { url: local.imageDos, altText: `${local.shortName} dos` } : null)
     : shopifyBackImage;
 
-  const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = isWishlisted(handle);
-  // Key-based remount pattern: bumping `burstKey` swaps the absolute
-  // overlay with a fresh DOM node, which restarts the CSS keyframe
-  // animation. Only bumped on ADD (not remove) — removing is meant to
-  // feel like the heart quietly clearing, not a second celebration.
-  const [burstKey, setBurstKey] = useState(0);
   const handleWishlistClick = (e: React.MouseEvent) => {
     // Anchor wraps the whole card — preventDefault stops the Link
     // from navigating when the heart is clicked.

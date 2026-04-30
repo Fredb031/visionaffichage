@@ -187,22 +187,6 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
     return () => window.clearTimeout(id);
   }, [copied]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-2" role="status" aria-live="polite">
-        <Loader2 className="animate-spin text-muted-foreground" size={14} aria-hidden="true" />
-        <span className="text-xs text-muted-foreground">
-          {lang === 'en' ? 'Loading colors...' : 'Chargement des couleurs...'}
-        </span>
-      </div>
-    );
-  }
-
-  if (!colors.length) return null;
-
-  const hoveredColor = colors.find(c => c.colorName === hovered);
-  const displayColor = hoveredColor ?? selectedColor;
-
   // Only surface recents that map to a currently-available variant —
   // picking a hex that no longer corresponds to a live variant would be
   // a no-op and confuse users. Preserves order of the stored list.
@@ -234,6 +218,24 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
     () => colors.filter((c) => !recentVariantIds.has(c.variantId)),
     [colors, recentVariantIds],
   );
+
+  // Rules-of-hooks: every hook above this line. Early returns AFTER
+  // all hooks so the call order is identical across renders.
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-2" role="status" aria-live="polite">
+        <Loader2 className="animate-spin text-muted-foreground" size={14} aria-hidden="true" />
+        <span className="text-xs text-muted-foreground">
+          {lang === 'en' ? 'Loading colors...' : 'Chargement des couleurs...'}
+        </span>
+      </div>
+    );
+  }
+
+  if (!colors.length) return null;
+
+  const hoveredColor = colors.find(c => c.colorName === hovered);
+  const displayColor = hoveredColor ?? selectedColor;
 
   const copyHex = async () => {
     if (!selectedHex) return;

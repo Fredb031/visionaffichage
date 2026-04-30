@@ -2,6 +2,23 @@
 set -e
 echo "→ tsc --noEmit"
 npx tsc --noEmit || exit 1
-echo "→ eslint (warn-only, soft check)"
-npm run lint --silent 2>&1 | grep -E "^[0-9]+ (errors?|warnings?)" | tail -3 || true
-echo "✓ pre-commit OK (types clean, lint is advisory)"
+echo "→ eslint (rules-of-hooks BLOCKING; other rules advisory)"
+# Run ESLint and capture output. We BLOCK the commit when any
+# `react-hooks/rules-of-hooks` violation slips through (these are
+# real crash bugs — e.g. hooks placed after `if (...) return null`
+# guards). Other lint findings remain advisory so we don't bury
+# unrelated cleanup churn under a hook block.
+LINT_OUT=$(npm run lint --silent 2>&1 || true)
+echo "$LINT_OUT" | grep -E "^[0-9]+ (errors?|warnings?)" | tail -3 || true
+if echo "$LINT_OUT" | grep -q 'rules-of-hooks'; then
+  echo ""
+  echo "✗ Rules-of-hooks violation detected:"
+  echo "$LINT_OUT" | grep -B 1 'rules-of-hooks' | head -20
+  echo ""
+  echo "  React Hooks must be called in the exact same order every"
+  echo "  render — never after an early return / conditional. Fix"
+  echo "  before committing. (Bypass with --no-verify if you really"
+  echo "  must, but rules-of-hooks bugs crash the page in prod.)"
+  exit 1
+fi
+echo "✓ pre-commit OK (types clean, rules-of-hooks clean)"

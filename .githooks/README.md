@@ -27,9 +27,14 @@ Runs on every `git commit`, before the commit is recorded:
 
 1. **`npx tsc --noEmit`** — full TypeScript type check. **Blocks the commit**
    if there are type errors. Same check CI runs.
-2. **`npm run lint`** — ESLint summary. **Advisory only** — the hook prints
-   the error/warning count and always exits 0, even if lint fails. Use it as a
-   nudge to clean up warnings before pushing, not as a gate.
+2. **`npm run lint`** — ESLint. **Partially blocking**:
+   - `react-hooks/rules-of-hooks` violations **BLOCK the commit**. These
+     are real crash bugs (hooks placed after `if (...) return null`
+     guards crash with "Rendered fewer hooks than expected" once the
+     guard fires — see `docs/decisions/008-rules-of-hooks-regression.md`).
+   - Other lint findings (unused vars, console statements, type-import
+     hints, etc.) remain **advisory** — the hook prints the count and
+     exits 0 so unrelated cleanup churn doesn't bury hook violations.
 
 ## Why not husky?
 

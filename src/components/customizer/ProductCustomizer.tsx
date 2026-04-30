@@ -118,6 +118,59 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const placementSidesRef = useRef(store.placementSides);
   useEffect(() => { placementSidesRef.current = store.placementSides; }, [store.placementSides]);
 
+  // Task 17.5 — Stepper tick animation refs/state. Hoisted ABOVE the
+  // `if (!product) return null` early return below so the hook call
+  // order is identical between renders where product is missing and
+  // renders where it's present (rules-of-hooks). The matching useEffect
+  // that drives this state lives lower in the component (alongside
+  // STEPS) — that effect, too, runs on every render.
+  // When a step transitions false → true on `done` we remount its check
+  // icon via a bumped key so the CSS keyframe restarts cleanly. The
+  // previous-state ref guards against the first-render flash: steps that
+  // were already done when the modal mounts (rare after reset(), but
+  // possible during hot-reload) should NOT animate all at once. A
+  // null-initialised ref means "never seen" and we treat it as not-done
+  // on first paint so a user who completes Step 1 during this session
+  // still gets the reward animation.
+  const prevDoneRef = useRef<Record<number, boolean | undefined>>({});
+  const [tickAnimKeys, setTickAnimKeys] = useState<Record<number, number>>({});
+  // Task 6.13 — SR announcement string that mirrors the tick animation.
+  // Sighted users see the green check fade-scale in; screen-reader users
+  // hear "Step N complete" via the sr-only live region below. The string
+  // carries a trailing zero-width marker bumped per announce so even
+  // identical step transitions (theoretically possible during hot-reload)
+  // are seen as new content by assistive tech.
+  const [stepAnnouncement, setStepAnnouncement] = useState<string>('');
+  // STEPS isn't in scope at the top of the component (it depends on
+  // `anyLogoUploaded` etc, which are computed below the early return).
+  // Mirror the latest value into a ref each render so the hoisted
+  // tick-animation effect — which MUST live above the early return to
+  // satisfy rules-of-hooks — can read it without listing it in deps.
+  const stepsRef = useRef<Array<{ id: 1 | 2 | 3; done: boolean }>>([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const STEPS = stepsRef.current;
+    if (!STEPS.length) return;
+    let announceMsg: string | null = null;
+    setTickAnimKeys(prev => {
+      let next = prev;
+      for (const s of STEPS) {
+        const was = prevDoneRef.current[s.id];
+        if (was === false && s.done === true) {
+          if (next === prev) next = { ...prev };
+          next[s.id] = (next[s.id] ?? 0) + 1;
+          announceMsg =
+            lang === 'en' ? `Step ${s.id} complete` : `Étape ${s.id} complétée`;
+        }
+        prevDoneRef.current[s.id] = s.done;
+      }
+      return next;
+    });
+    if (announceMsg) {
+      setStepAnnouncement(prev => (prev === announceMsg ? `${announceMsg}\u200B` : announceMsg!));
+    }
+  });
+
   // RESET the customizer state every time the modal mounts. User
   // explicitly asked: 'when we go back on the customiser, it restarts
   // the process'. The persisted customizer store was designed to keep
@@ -686,50 +739,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     { id: 6, label: 'Résumé',   labelEn: 'Review'   },
   ];
 
-  // Task 17.5 — Stepper tick animation.
-  // When a step transitions false → true on `done` we remount its check
-  // icon via a bumped key so the CSS keyframe restarts cleanly. The
-  // previous-state ref guards against the first-render flash: steps that
-  // were already done when the modal mounts (rare after reset(), but
-  // possible during hot-reload) should NOT animate all at once. A
-  // null-initialised ref means "never seen" and we treat it as not-done
-  // on first paint so a user who completes Step 1 during this session
-  // still gets the reward animation.
-  const prevDoneRef = useRef<Record<number, boolean | undefined>>({});
-  const [tickAnimKeys, setTickAnimKeys] = useState<Record<number, number>>({});
-  // Task 6.13 — SR announcement string that mirrors the tick animation.
-  // Sighted users see the green check fade-scale in; screen-reader users
-  // hear "Step N complete" via the sr-only live region below. The string
-  // carries a trailing zero-width marker bumped per announce so even
-  // identical step transitions (theoretically possible during hot-reload)
-  // are seen as new content by assistive tech.
-  const [stepAnnouncement, setStepAnnouncement] = useState<string>('');
-  useEffect(() => {
-    let announceMsg: string | null = null;
-    setTickAnimKeys(prev => {
-      let next = prev;
-      for (const s of STEPS) {
-        const was = prevDoneRef.current[s.id];
-        if (was === false && s.done === true) {
-          // Transition: bump the key so React remounts the Check and
-          // the keyframe animation plays again.
-          if (next === prev) next = { ...prev };
-          next[s.id] = (next[s.id] ?? 0) + 1;
-          announceMsg =
-            lang === 'en' ? `Step ${s.id} complete` : `Étape ${s.id} complétée`;
-        }
-        prevDoneRef.current[s.id] = s.done;
-      }
-      return next;
-    });
-    if (announceMsg) {
-      // Zero-width suffix guarantees a new string on repeat announces so
-      // the live region re-fires even if the message text is identical.
-      setStepAnnouncement(prev => (prev === announceMsg ? `${announceMsg}\u200B` : announceMsg!));
-    }
-    // STEPS is rebuilt every render; track the done flags explicitly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [STEPS[0].done, STEPS[1].done, STEPS[2].done, lang]);
+  // Task 17.5 — Stepper tick animation. Mirror STEPS into a ref so the
+  // hoisted effect (declared near the top of the component, ABOVE the
+  // `if (!product) return null` early return so its hook call is part
+  // of the always-fired hook sequence — rules-of-hooks) can read the
+  // latest STEPS value without listing STEPS in its deps (STEPS isn't
+  // yet defined at the hoist position). Re-mirror on every render.
+  stepsRef.current = STEPS;
 
   const canNext = () => {
     if (store.step === 1) {
