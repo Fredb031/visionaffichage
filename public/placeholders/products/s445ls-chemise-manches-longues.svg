@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="S445LS">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="S445LS Vue avant">
   <rect width="800" height="900" fill="#F0ECE4"/>
   <g>
     <path d="M120 220 L320 160 Q400 220 480 160 L680 220 L660 420 L580 400 L580 740 Q400 760 220 740 L220 400 L140 420 Z" fill="#FFFFFF" stroke="#7A7368" stroke-width="3"/>
+    
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">S445LS</text>
+  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">S445LS · Vue avant</text>
 </svg>

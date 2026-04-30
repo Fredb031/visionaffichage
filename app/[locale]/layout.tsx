@@ -14,6 +14,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SkipLink } from '@/components/SkipLink';
 import { Hreflang } from '@/components/Hreflang';
+import { OrganizationJsonLd } from '@/components/seo/OrganizationJsonLd';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -89,33 +90,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
   const messages = await getMessages();
 
-  const orgJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: siteConfig.name,
-    legalName: siteConfig.legalName,
-    url: siteConfig.url,
-    logo: `${siteConfig.url}/favicon.svg`,
-    telephone: siteConfig.phone,
-    email: siteConfig.email,
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: siteConfig.addressLocality,
-      addressRegion: siteConfig.addressRegion,
-      addressCountry: siteConfig.addressCountry,
-    },
-    sameAs: [siteConfig.social.facebook, siteConfig.social.instagram, siteConfig.social.linkedin],
-  };
-
   return (
     <html lang={localeToHtmlLang[locale as Locale]} className={inter.variable}>
       <head>
         <Hreflang pathWithoutLocale="/" />
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-        />
+        <OrganizationJsonLd />
       </head>
       <body className="font-sans antialiased bg-canvas-000 text-ink-950">
         <NextIntlClientProvider locale={locale} messages={messages}>

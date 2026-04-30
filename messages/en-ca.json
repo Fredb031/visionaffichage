@@ -1,62 +1,190 @@
 {
-  "site": {
-    "name": "Vision Affichage",
-    "tagline": "Company apparel and signage in Quebec",
-    "description": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality."
+  "badges": {
+    "best-embroidery": "Best for embroidery",
+    "best-screen-print": "Best for screen print",
+    "heavyweight": "Heavyweight",
+    "kit-friendly": "Kit friendly",
+    "quick-ship": "Quick ship"
   },
-  "nav": {
-    "products": "Products",
+  "breadcrumbs": {
+    "home": "Home",
     "industries": "Industries",
-    "process": "Our process",
-    "portfolio": "Work",
-    "quote": "Request a quote",
-    "contact": "Contact",
-    "about": "About",
-    "menu": "Menu",
-    "close": "Close",
-    "openMenu": "Open menu",
-    "skipToContent": "Skip to main content"
+    "label": "Breadcrumb",
+    "products": "Products"
   },
   "cart": {
+    "addToCart": "Add to cart",
+    "checkout": "Checkout",
+    "continueShopping": "Continue shopping",
+    "emptyDescription": "Browse our uniforms or order a discovery kit.",
+    "emptyTitle": "Your cart is empty",
+    "empty": "Empty cart",
+    "freeShipping": "Free",
     "label": "Cart",
-    "empty": "Empty cart"
+    "remove": "Remove",
+    "shipping": "Shipping",
+    "subtotal": "Subtotal",
+    "tax": "Taxes (GST + QST)",
+    "total": "Total"
   },
-  "language": {
-    "switch": "Switch language",
-    "fr": "Français",
-    "en": "English"
+  "checkout": {
+    "billing": "Billing",
+    "contact": "Contact",
+    "logoApproved": "Logo approved",
+    "logoNeedsAction": "Logo action required",
+    "logoPending": "Logo pending approval",
+    "payment": "Payment",
+    "review": "Review",
+    "shipping": "Shipping",
+    "stepperLabel": "Checkout steps"
   },
-  "header": {
-    "ctaQuote": "Quote",
-    "ctaCatalog": "Catalog",
-    "ctaContact": "Contact"
+  "discoveryKit": {
+    "bullet1": "Three representative pieces",
+    "bullet2": "In the color of your choice",
+    "bullet3": "Free shipping, free return",
+    "body": "Three samples in your team color, shipped to your door. Feel the fabric, see the embroidery, decide with confidence.",
+    "cta": "Order a kit",
+    "eyebrow": "Not sure?",
+    "headline": "Order a discovery kit"
   },
-  "hero": {
-    "headline": "Company apparel that looks professional from day one.",
-    "subhead": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality.",
-    "ctaPrimary": "Request a quote",
-    "ctaSecondary": "View catalog"
+  "faq": {
+    "items": [
+      {
+        "q": "What is your production lead time?",
+        "a": "Five business days after logo approval for most items. Embroidered jackets can take up to ten days."
+      },
+      {
+        "q": "What is the minimum quantity?",
+        "a": "Six pieces for embroidery, twelve for screen print. Smaller? Talk to us, we'll work something out."
+      },
+      {
+        "q": "Do I see the logo before production?",
+        "a": "Always. You receive a digital proof and approve it before we touch any apparel."
+      }
+    ],
+    "title": "Frequently asked"
+  },
+  "filters": {
+    "category": "Category",
+    "clearAll": "Clear all",
+    "color": "Color",
+    "filters": "Filters",
+    "minQuantity": "Minimum quantity",
+    "remove": "Remove",
+    "sortBy": "Sort by",
+    "sortLeadTime": "Lead time",
+    "sortPriceAsc": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "sortRecommended": "Recommended",
+    "specialties": "Specialties"
   },
   "footer": {
-    "tagline": "Company apparel and signage. Made and embroidered in Quebec for over 20 years.",
-    "explore": "Explore",
-    "company": "Company",
-    "contact": "Contact",
-    "legal": "Legal",
-    "phone": "Phone",
-    "email": "Email",
     "address": "Address",
     "addressLine": "Greater Montreal, Quebec",
+    "company": "Company",
+    "contact": "Contact",
+    "email": "Email",
+    "explore": "Explore",
     "hours": "Hours",
     "hoursLine": "Mon–Fri, 8 a.m. to 5 p.m.",
-    "rights": "All rights reserved.",
+    "legal": "Legal",
+    "phone": "Phone",
     "privacy": "Privacy",
+    "rights": "All rights reserved.",
+    "tagline": "Company apparel and signage. Made and embroidered in Quebec for over 20 years.",
     "terms": "Terms"
   },
+  "header": {
+    "ctaCatalog": "Catalog",
+    "ctaContact": "Contact",
+    "ctaQuote": "Quote"
+  },
+  "hero": {
+    "ctaPrimary": "Request a quote",
+    "ctaSecondary": "View catalog",
+    "headline": "Company apparel that looks professional from day one.",
+    "subhead": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality."
+  },
+  "howItWorks": {
+    "step1Description": "Browse the catalog or order a discovery kit to touch three samples first.",
+    "step1Title": "Pick your apparel",
+    "step2Description": "We digitize and send a proof. You approve before we touch any apparel.",
+    "step2Title": "We approve your logo",
+    "step3Description": "Guaranteed five-day production after approval. Delivery anywhere in Quebec.",
+    "step3Title": "Get your order in 5 business days",
+    "title": "How it works"
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français",
+    "switch": "Switch language"
+  },
   "metadata": {
-    "title": "Vision Affichage — Embroidered company apparel in Quebec",
     "description": "Quebec SMBs: embroidered or printed polos, tees, and hoodies. Full-service, fast turnaround, durable quality.",
+    "ogDescription": "Embroidered company apparel from Quebec.",
     "ogTitle": "Vision Affichage",
-    "ogDescription": "Embroidered company apparel from Quebec."
+    "title": "Vision Affichage — Embroidered company apparel in Quebec"
+  },
+  "nav": {
+    "about": "About",
+    "close": "Close",
+    "industries": "Industries",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "portfolio": "Work",
+    "process": "Our process",
+    "products": "Products",
+    "quote": "Request a quote",
+    "contact": "Contact",
+    "skipToContent": "Skip to main content"
+  },
+  "pdp": {
+    "addToCart": "Customize and order",
+    "addToKit": "Add to kit",
+    "careInstructions": "Care",
+    "chooseColor": "Choose a color",
+    "chooseSize": "Choose a size",
+    "decorationOptions": "Decoration options",
+    "deliveryEstimate": "Estimated delivery",
+    "description": "Description",
+    "fitGuide": "Size guide",
+    "fromPrice": "From",
+    "moreViewsComing": "More views coming.",
+    "productionTime": "Production time",
+    "specifications": "Specifications",
+    "viewBack": "Back view",
+    "viewDetail": "Logo detail",
+    "viewFront": "Front view"
+  },
+  "product": {
+    "badgeCount": "+{count}",
+    "from": "From",
+    "min": "Min. {qty}",
+    "new": "New",
+    "production": "Production {min}-{max} days",
+    "reviews": "{count} reviews",
+    "viewDetails": "View details"
+  },
+  "routeCards": {
+    "kitCta": "Go",
+    "kitSubtitle": "Three samples to touch before you commit.",
+    "kitTitle": "Order a discovery kit",
+    "quoteCta": "Go",
+    "quoteSubtitle": "Response in under one business day.",
+    "quoteTitle": "Request a quote",
+    "shopCta": "Go",
+    "shopSubtitle": "Embroidered polos, tees, hoodies, jackets.",
+    "shopTitle": "Shop the uniforms"
+  },
+  "site": {
+    "description": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality.",
+    "name": "Vision Affichage",
+    "tagline": "Company apparel and signage in Quebec"
+  },
+  "trustStrip": {
+    "fr": "Service in French",
+    "google": "5.0 on Google",
+    "logo": "Logo approved before printing",
+    "production": "5 business-day production"
   }
 }

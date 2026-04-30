@@ -31,8 +31,13 @@ const products = [
   { code: 'ATC1000Y', slug: 'atc1000y-tshirt-jeunesse', category: 'tshirt', color: '#101114' },
 ];
 
+const VIEWS = [
+  { suffix: '', label: 'Vue avant', bg: '#F0ECE4', accent: null },
+  { suffix: '-back', label: 'Vue arrière', bg: '#E9E2D4', accent: 'back' },
+  { suffix: '-detail', label: 'Détail logo', bg: '#F8F7F3', accent: 'detail' },
+];
+
 function silhouettePath(category) {
-  // Simple silhouettes drawn within an 800x900 viewBox.
   switch (category) {
     case 'tshirt':
       return 'M180 220 L320 160 Q400 220 480 160 L620 220 L580 320 L520 290 L520 740 Q400 760 280 740 L280 290 L220 320 Z';
@@ -51,16 +56,30 @@ function silhouettePath(category) {
   }
 }
 
-function productSvg({ code, color, category }) {
+function viewAccent(viewSuffix, category) {
+  if (viewSuffix === '-back') {
+    // A horizontal seam line.
+    return '<line x1="220" y1="350" x2="580" y2="350" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>';
+  }
+  if (viewSuffix === '-detail') {
+    // A small "logo" rectangle on chest area.
+    return '<rect x="350" y="320" width="100" height="50" rx="4" ry="4" fill="#F8F7F3" stroke="#7A7368" stroke-width="2"/><text x="400" y="352" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600" fill="#101114">LOGO</text>';
+  }
+  return '';
+}
+
+function productSvg({ code, color, category }, view) {
   const fillIsLight = ['#FFFFFF', '#F8F7F3', '#F0ECE4'].includes(color.toUpperCase());
   const stroke = fillIsLight ? '#7A7368' : 'none';
+  const accent = viewAccent(view.suffix, category);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="${code}">
-  <rect width="800" height="900" fill="#F0ECE4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="${code} ${view.label}">
+  <rect width="800" height="900" fill="${view.bg}"/>
   <g>
     <path d="${silhouettePath(category)}" fill="${color}" stroke="${stroke}" stroke-width="3"/>
+    ${accent}
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">${code}</text>
+  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">${code} · ${view.label}</text>
 </svg>
 `;
 }
@@ -174,9 +193,12 @@ function main() {
   mkdir(path.join(OUT_DIR, 'industries'));
   mkdir(path.join(OUT_DIR, 'clients'));
 
-  console.log('Generating product silhouettes…');
+  console.log('Generating product silhouettes (3 views each)…');
   for (const p of products) {
-    write(path.join(OUT_DIR, 'products', `${p.slug}.svg`), productSvg(p));
+    for (const view of VIEWS) {
+      const filename = `${p.slug}${view.suffix}.svg`;
+      write(path.join(OUT_DIR, 'products', filename), productSvg(p, view));
+    }
   }
 
   console.log('Generating industry heroes…');

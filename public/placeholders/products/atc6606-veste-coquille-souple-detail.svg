@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATC6606 Détail logo">
+  <rect width="800" height="900" fill="#F8F7F3"/>
+  <g>
+    <path d="M140 220 L320 170 L400 220 L480 170 L660 220 L620 320 L560 300 L560 760 Q400 780 240 760 L240 300 L180 320 Z M400 220 L400 760" fill="#101114" stroke="none" stroke-width="3"/>
+    <rect x="350" y="320" width="100" height="50" rx="4" ry="4" fill="#F8F7F3" stroke="#7A7368" stroke-width="2"/><text x="400" y="352" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600" fill="#101114">LOGO</text>
+  </g>
+  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">ATC6606 · Détail logo</text>
+</svg>

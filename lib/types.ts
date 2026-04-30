@@ -13,6 +13,15 @@ export type ProductCategory =
   | 'jacket'
   | 'youth';
 
+export type BadgeKey =
+  | 'quick-ship'
+  | 'best-embroidery'
+  | 'best-screen-print'
+  | 'heavyweight'
+  | 'kit-friendly';
+
+export type DecorationOption = 'embroidery' | 'screenprint' | 'dtg';
+
 export type Product = {
   styleCode: string;
   slug: string;
@@ -22,10 +31,17 @@ export type Product = {
   description: Bilingual;
   bestFor: Bilingual;
   badges: Bilingual[];
-  colors: { name: Bilingual; hex: string }[];
+  badgeKeys?: BadgeKey[];
+  colors: { name: Bilingual; hex: string; available?: boolean }[];
   sizes: string[];
   brand: string;
   decorationDefault: 'embroidery' | 'print';
+  priceFromCents: number;
+  minQuantity: number;
+  leadTimeDays: { min: number; max: number };
+  gallery?: string[];
+  careInstructions?: Bilingual;
+  decorationOptions?: DecorationOption[];
 };
 
 export type Industry = {
@@ -33,17 +49,20 @@ export type Industry = {
   name: Bilingual;
   shortDescription: Bilingual;
   pitch: Bilingual;
+  hookLine?: Bilingual;
   keyProducts: string[];
 };
 
 export type Review = {
   id: string;
+  productId?: string;
   author: string;
   role: Bilingual;
   company: string;
   industry: string;
   quote: Bilingual;
   rating: 4 | 5;
+  date?: string;
 };
 
 export type ClientLogo = {

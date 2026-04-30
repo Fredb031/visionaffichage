@@ -14,6 +14,10 @@ export const industries: Industry[] = [
       'en-ca':
         'On Quebec job sites, your logo has to last five years, not five washes. We embroider on fabrics built for cold, dust, and sweat.',
     },
+    hookLine: {
+      'fr-ca': 'Logo qui tient cinq hivers.',
+      'en-ca': 'Logos that survive five winters.',
+    },
     keyProducts: ['ATCF2400', 'ATC6606', 'WERK250', 'C105'],
   },
   {
@@ -28,6 +32,10 @@ export const industries: Industry[] = [
         "Vos équipes de paysagement passent de 5°C à 28°C dans la même journée. On vous bâtit un système d'uniforme par couches qui suit la saison.",
       'en-ca':
         'Your landscaping crews go from 5°C to 28°C in a single day. We build a layered uniform system that follows the season.',
+    },
+    hookLine: {
+      'fr-ca': 'Système d\'uniforme par couches.',
+      'en-ca': 'Layered uniform system.',
     },
     keyProducts: ['ATC1000', 'ATCF2400', 'C105', 'L445'],
   },
@@ -44,6 +52,10 @@ export const industries: Industry[] = [
       'en-ca':
         'Embroidered polo for service, screen-printed tee for the kitchen, apron for the bar. A coherent look from counter to patio.',
     },
+    hookLine: {
+      'fr-ca': 'Du bar à la terrasse.',
+      'en-ca': 'From counter to patio.',
+    },
     keyProducts: ['L445', 'ATC1015', 'ATC1000', 'C105'],
   },
   {
@@ -58,6 +70,10 @@ export const industries: Industry[] = [
         "Vos déménageurs sont vos panneaux publicitaires mobiles. Logo dorsal grand format, polo identifiant le chef d'équipe, casquette pour terminer.",
       'en-ca':
         'Your movers are your rolling billboards. Large back logos, polo for the lead, cap to finish the look.',
+    },
+    hookLine: {
+      'fr-ca': 'Panneaux publicitaires mobiles.',
+      'en-ca': 'Rolling billboards.',
     },
     keyProducts: ['ATC1000', 'ATCF2500', 'L445', 'C105'],
   },
@@ -74,6 +90,10 @@ export const industries: Industry[] = [
       'en-ca':
         'Customers see you step out of the truck. A clean embroidered workshirt says "serious professional" before you speak.',
     },
+    hookLine: {
+      'fr-ca': 'Pro avant d\'avoir parlé.',
+      'en-ca': 'Pro before you speak.',
+    },
     keyProducts: ['WERK250', 'ATCF2400', 'C105', 'ATC6606'],
   },
   {
@@ -88,6 +108,10 @@ export const industries: Industry[] = [
         "Polo et chemise brodés, ton sobre, qualité durable. L'image cohérente d'une PME qui se prend au sérieux.",
       'en-ca':
         'Embroidered polos and shirts, restrained tones, durable quality. The consistent look of an SMB that takes itself seriously.',
+    },
+    hookLine: {
+      'fr-ca': 'Une PME qui se prend au sérieux.',
+      'en-ca': 'An SMB that means business.',
     },
     keyProducts: ['L445', 'S445LS', 'ATC6606', 'ATCF2500'],
   },

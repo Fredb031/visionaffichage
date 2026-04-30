@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATC1000Y">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="ATC1000Y Vue avant">
   <rect width="800" height="900" fill="#F0ECE4"/>
   <g>
     <path d="M180 220 L320 160 Q400 220 480 160 L620 220 L580 320 L520 290 L520 740 Q400 760 280 740 L280 290 L220 320 Z" fill="#101114" stroke="none" stroke-width="3"/>
+    
   </g>
-  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">ATC1000Y</text>
+  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">ATC1000Y · Vue avant</text>
 </svg>

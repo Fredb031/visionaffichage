@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="800" height="900" role="img" aria-label="L445 Vue arrière">
+  <rect width="800" height="900" fill="#E9E2D4"/>
+  <g>
+    <path d="M180 220 L320 160 L360 200 L400 230 L440 200 L480 160 L620 220 L580 320 L520 290 L520 740 Q400 760 280 740 L280 290 L220 320 Z M360 200 L360 320 L440 320 L440 200" fill="#1B2B4B" stroke="none" stroke-width="3"/>
+    <line x1="220" y1="350" x2="580" y2="350" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+  </g>
+  <text x="400" y="850" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="500" fill="#7A7368" letter-spacing="2">L445 · Vue arrière</text>
+</svg>

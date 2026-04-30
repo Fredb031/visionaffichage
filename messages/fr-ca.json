@@ -1,62 +1,190 @@
 {
-  "site": {
-    "name": "Vision Affichage",
-    "tagline": "Vêtements et signalétique d'entreprise au Québec",
-    "description": "Polos, t-shirts et chandails brodés ou imprimés pour PME québécoises. Service complet, livraison rapide, qualité durable."
+  "badges": {
+    "best-embroidery": "Meilleure broderie",
+    "best-screen-print": "Meilleure sérigraphie",
+    "heavyweight": "Tissu robuste",
+    "kit-friendly": "Idéal pour kit",
+    "quick-ship": "Expédition rapide"
   },
-  "nav": {
-    "products": "Produits",
+  "breadcrumbs": {
+    "home": "Accueil",
     "industries": "Industries",
-    "process": "Notre processus",
-    "portfolio": "Réalisations",
-    "quote": "Demander une soumission",
-    "contact": "Contact",
-    "about": "À propos",
-    "menu": "Menu",
-    "close": "Fermer",
-    "openMenu": "Ouvrir le menu",
-    "skipToContent": "Passer au contenu principal"
+    "label": "Fil d'Ariane",
+    "products": "Produits"
   },
   "cart": {
+    "addToCart": "Ajouter au panier",
+    "checkout": "Passer à la caisse",
+    "continueShopping": "Continuer le magasinage",
+    "emptyDescription": "Magasinez nos uniformes ou commandez un kit découverte.",
+    "emptyTitle": "Votre panier est vide",
+    "empty": "Panier vide",
+    "freeShipping": "Gratuite",
     "label": "Panier",
-    "empty": "Panier vide"
+    "remove": "Retirer",
+    "shipping": "Livraison",
+    "subtotal": "Sous-total",
+    "tax": "Taxes (TPS + TVQ)",
+    "total": "Total"
   },
-  "language": {
-    "switch": "Changer de langue",
-    "fr": "Français",
-    "en": "English"
+  "checkout": {
+    "billing": "Facturation",
+    "contact": "Contact",
+    "logoApproved": "Logo approuvé",
+    "logoNeedsAction": "Action requise sur le logo",
+    "logoPending": "Logo en attente d'approbation",
+    "payment": "Paiement",
+    "review": "Révision",
+    "shipping": "Livraison",
+    "stepperLabel": "Étapes de commande"
   },
-  "header": {
-    "ctaQuote": "Soumission",
-    "ctaCatalog": "Catalogue",
-    "ctaContact": "Nous joindre"
+  "discoveryKit": {
+    "bullet1": "Trois vêtements représentatifs",
+    "bullet2": "Dans la couleur de ton choix",
+    "bullet3": "Livraison gratuite, retour gratuit",
+    "body": "Trois échantillons, dans la couleur de ton équipe, livrés chez toi. Touche le tissu, vois la broderie, décide en toute confiance.",
+    "cta": "Commander un kit",
+    "eyebrow": "Pas sûr ?",
+    "headline": "Commande un kit découverte"
   },
-  "hero": {
-    "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
-    "subhead": "Polos, t-shirts et chandails brodés ou imprimés pour les PME québécoises. Service complet, livraison rapide, qualité durable.",
-    "ctaPrimary": "Demander une soumission",
-    "ctaSecondary": "Voir le catalogue"
+  "faq": {
+    "items": [
+      {
+        "q": "Quel est le délai de production ?",
+        "a": "Cinq jours ouvrables après l'approbation du logo pour la majorité des articles. Les vestes brodées peuvent prendre jusqu'à dix jours."
+      },
+      {
+        "q": "Quelle est la quantité minimum ?",
+        "a": "Six pièces pour la broderie, douze pour la sérigraphie. Plus petit ? Parlez-nous, on s'arrange."
+      },
+      {
+        "q": "Est-ce que je vois le logo avant la production ?",
+        "a": "Toujours. Vous recevez une épreuve numérique et vous l'approuvez avant qu'on touche aux vêtements."
+      }
+    ],
+    "title": "Questions fréquentes"
+  },
+  "filters": {
+    "category": "Catégorie",
+    "clearAll": "Effacer tout",
+    "color": "Couleur",
+    "filters": "Filtres",
+    "minQuantity": "Quantité minimum",
+    "remove": "Retirer",
+    "sortBy": "Trier par",
+    "sortLeadTime": "Délai de production",
+    "sortPriceAsc": "Prix croissant",
+    "sortPriceDesc": "Prix décroissant",
+    "sortRecommended": "Recommandés",
+    "specialties": "Spécialités"
   },
   "footer": {
-    "tagline": "Vêtements et signalétique d'entreprise. Fabriqué et brodé au Québec depuis plus de 20 ans.",
-    "explore": "Explorer",
-    "company": "Entreprise",
-    "contact": "Nous joindre",
-    "legal": "Légal",
-    "phone": "Téléphone",
-    "email": "Courriel",
     "address": "Adresse",
     "addressLine": "Région de Montréal, Québec",
+    "company": "Entreprise",
+    "contact": "Nous joindre",
+    "email": "Courriel",
+    "explore": "Explorer",
     "hours": "Heures",
     "hoursLine": "Lun–Ven, 8 h à 17 h",
-    "rights": "Tous droits réservés.",
+    "legal": "Légal",
+    "phone": "Téléphone",
     "privacy": "Confidentialité",
+    "rights": "Tous droits réservés.",
+    "tagline": "Vêtements et signalétique d'entreprise. Fabriqué et brodé au Québec depuis plus de 20 ans.",
     "terms": "Conditions"
   },
+  "header": {
+    "ctaCatalog": "Catalogue",
+    "ctaContact": "Nous joindre",
+    "ctaQuote": "Soumission"
+  },
+  "hero": {
+    "ctaPrimary": "Demander une soumission",
+    "ctaSecondary": "Voir le catalogue",
+    "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
+    "subhead": "Polos, t-shirts et chandails brodés ou imprimés pour les PME québécoises. Service complet, livraison rapide, qualité durable."
+  },
+  "howItWorks": {
+    "step1Description": "Magasine notre catalogue ou commande un kit découverte pour toucher trois échantillons.",
+    "step1Title": "Choisis tes vêtements",
+    "step2Description": "On numérise et on t'envoie une épreuve. Tu approuves avant qu'on touche aux vêtements.",
+    "step2Title": "On approuve ton logo",
+    "step3Description": "Production garantie en cinq jours après approbation. Livraison partout au Québec.",
+    "step3Title": "Reçois ta commande en 5 jours ouvrables",
+    "title": "Comment ça marche"
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français",
+    "switch": "Changer de langue"
+  },
   "metadata": {
-    "title": "Vision Affichage — Vêtements d'entreprise brodés au Québec",
     "description": "PME québécoises : polos, t-shirts et chandails brodés ou imprimés. Service complet, livraison rapide, qualité durable.",
+    "ogDescription": "Vêtements d'entreprise brodés au Québec.",
     "ogTitle": "Vision Affichage",
-    "ogDescription": "Vêtements d'entreprise brodés au Québec."
+    "title": "Vision Affichage — Vêtements d'entreprise brodés au Québec"
+  },
+  "nav": {
+    "about": "À propos",
+    "close": "Fermer",
+    "industries": "Industries",
+    "menu": "Menu",
+    "openMenu": "Ouvrir le menu",
+    "portfolio": "Réalisations",
+    "process": "Notre processus",
+    "products": "Produits",
+    "quote": "Demander une soumission",
+    "contact": "Contact",
+    "skipToContent": "Passer au contenu principal"
+  },
+  "pdp": {
+    "addToCart": "Personnaliser et commander",
+    "addToKit": "Ajouter au kit",
+    "careInstructions": "Entretien",
+    "chooseColor": "Choisir une couleur",
+    "chooseSize": "Choisir une taille",
+    "decorationOptions": "Options de décoration",
+    "deliveryEstimate": "Livraison estimée",
+    "description": "Description",
+    "fitGuide": "Guide des tailles",
+    "fromPrice": "À partir de",
+    "moreViewsComing": "Plus de vues à venir.",
+    "productionTime": "Délai de production",
+    "specifications": "Spécifications",
+    "viewBack": "Vue arrière",
+    "viewDetail": "Détail logo",
+    "viewFront": "Vue avant"
+  },
+  "product": {
+    "badgeCount": "+{count}",
+    "from": "À partir de",
+    "min": "Min. {qty}",
+    "new": "Nouveau",
+    "production": "Production {min}-{max} jours",
+    "reviews": "{count} avis",
+    "viewDetails": "Voir les détails"
+  },
+  "routeCards": {
+    "kitCta": "Aller",
+    "kitSubtitle": "Trois échantillons à toucher avant de commander.",
+    "kitTitle": "Commander un kit découverte",
+    "quoteCta": "Aller",
+    "quoteSubtitle": "Réponse en moins d'un jour ouvrable.",
+    "quoteTitle": "Demander une soumission",
+    "shopCta": "Aller",
+    "shopSubtitle": "Polos, t-shirts, ouates, vestes brodés.",
+    "shopTitle": "Magasiner les uniformes"
+  },
+  "site": {
+    "description": "Polos, t-shirts et chandails brodés ou imprimés pour PME québécoises. Service complet, livraison rapide, qualité durable.",
+    "name": "Vision Affichage",
+    "tagline": "Vêtements et signalétique d'entreprise au Québec"
+  },
+  "trustStrip": {
+    "fr": "Service en français",
+    "google": "5,0 sur Google",
+    "logo": "Logo approuvé avant impression",
+    "production": "Production 5 jours ouvrables"
   }
 }

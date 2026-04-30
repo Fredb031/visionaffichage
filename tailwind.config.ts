@@ -28,12 +28,18 @@ const config: Config = {
           500: '#7A7368',
         },
         success: {
+          50: '#ECFDF5',
+          200: '#A7F3D0',
           700: '#166534',
         },
         warning: {
+          50: '#FFFBEB',
+          200: '#FDE68A',
           700: '#9A6700',
         },
         error: {
+          50: '#FEF2F2',
+          200: '#FECACA',
           700: '#B42318',
         },
       },
@@ -76,6 +82,15 @@ const config: Config = {
         'container-lg': '1120px',
         'container-xl': '1240px',
         'container-2xl': '1360px',
+      },
+      keyframes: {
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        marquee: 'marquee 40s linear infinite',
       },
     },
   },
