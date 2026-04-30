@@ -7,7 +7,9 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { runSanmar, errorBody } from '../_shared/sanmar-http.ts';
-import { getPricing } from '../_shared/sanmar/pricing.ts';
+// Phase 11: cache-aware dispatcher. Falls back to SOAP when the FastAPI
+// cache is disabled or returns 404 / 5xx / timeout.
+import { getPricing } from '../_shared/sanmar/router.ts';
 
 interface RequestBody {
   productId: string;

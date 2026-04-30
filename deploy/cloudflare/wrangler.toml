@@ -1,0 +1,27 @@
+name = "sanmar-edge-cache"
+main = "sanmar-worker.ts"
+compatibility_date = "2026-04-29"
+
+# Edge cache lives in Cloudflare's `caches.default`, no KV / D1 / R2 needed.
+# Bind `UPSTREAM_URL` to the public hostname of the FastAPI sidecar
+# (`sanmar_integration/sanmar/api/`).
+
+[vars]
+UPSTREAM_URL = "https://your-sanmar-cache.example.com"
+EDGE_TTL_SECONDS = "30"
+
+# Optional: if the FastAPI sidecar is gated by a shared secret, set
+# `CACHE_API_SECRET` via `wrangler secret put CACHE_API_SECRET` (do NOT
+# commit the secret here).
+# [vars]
+# CACHE_API_SECRET = "set-via-wrangler-secret"
+
+# Route the worker at a CNAME you own. Example:
+# [[routes]]
+# pattern = "sanmar-cache.visionaffichage.com/*"
+# zone_name = "visionaffichage.com"
+
+# Observability — surface request counts + cache HIT/MISS in Cloudflare
+# Logs Push if/when you wire that up. For now `wrangler tail` is the way.
+[observability]
+enabled = true
