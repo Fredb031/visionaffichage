@@ -81,9 +81,25 @@ the cookie banner timing doesn't affect.
 
 - ATC6606 thumbnail responsive-image waste (138 kb saveable). Needs a
   product-grid wide srcset rollout — separate wave.
-- Render-blocking `index.css` (23.8 kb / 607 ms wasted). Could be split
+- ~~Render-blocking `index.css` (23.8 kb / 607 ms wasted). Could be split
   into critical-above-the-fold + deferred rest, but Tailwind's atomic
-  output makes this non-trivial; deferred until a real CSS budget audit.
+  output makes this non-trivial; deferred until a real CSS budget audit.~~
+  **Resolved (Wave 20, this commit).** Added a Vite plugin
+  (`deferNonCriticalCssPlugin`) in `vite.config.ts` that hooks
+  `transformIndexHtml` post-build and rewrites the bundle's injected
+  `<link rel="stylesheet">` into a preload-and-swap pattern
+  (`<link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">`)
+  with a `<noscript>` fallback for JS-disabled clients. Inlines a tiny
+  ~1.2 kB critical CSS block carrying the brand HSL tokens, body
+  bg/color, and font fallback so the page paints with brand colors
+  before the deferred sheet attaches (avoids FOUC on home + PDP first
+  paint). The 23.4 kB gzipped sheet still ships, but it no longer
+  blocks FCP/LCP — it loads at preload priority alongside the JS
+  bundle and attaches once it lands. Tailwind atomic output stays
+  intact (no purge changes), so visual regressions are bounded to
+  the brief window between FCP and stylesheet attach (mitigated by
+  the inline tokens). Estimated home mobile FCP improvement: ~400-600 ms
+  on 3G/4G first-paint. Lighthouse re-baseline pending next wave.
 - ~~Hero H1 fade-in animation (`fadeSlideUp`, 80ms delay + 500ms duration)
   pushes home LCP to 4.0s.~~ **Resolved (Wave 19, commit pending).** The
   H1 now renders at full opacity from frame 0 — no animation on the LCP
