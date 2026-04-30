@@ -1,0 +1,34 @@
+# Cloudflare Worker manifest for the SanMar edge cache.
+#
+# Phase 11: caches the read-only FastAPI endpoints at the edge with a
+# 5-minute TTL.
+# Phase 14: writes per-request telemetry to the `sanmar_edge_cache`
+# Analytics Engine dataset so `python -m sanmar edge-report` can render
+# a 24h hit ratio table.
+#
+# Deploy:
+#   cd sanmar_integration/deploy/cloudflare
+#   wrangler deploy
+
+name = "sanmar-edge-cache"
+main = "sanmar-worker.ts"
+compatibility_date = "2026-04-01"
+
+# Origin URL of the FastAPI app the worker proxies to. Override per
+# environment with `wrangler deploy --var ORIGIN_URL:https://...`.
+[vars]
+ORIGIN_URL = "https://sanmar-api.visionaffichage.ca"
+
+# Phase 14 — Workers Analytics Engine dataset. Records one data point
+# per request for hit/miss/bypass observability. The dataset is
+# auto-created on first write; queryable via Cloudflare GraphQL API.
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "sanmar_edge_cache"
+
+# Optional: limit who can hit the worker via Cloudflare Access.
+# Uncomment + adjust once the Access app is provisioned.
+# [env.production]
+# routes = [
+#   { pattern = "sanmar-edge.visionaffichage.ca/*", zone_name = "visionaffichage.ca" }
+# ]

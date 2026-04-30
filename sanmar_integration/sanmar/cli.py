@@ -568,5 +568,34 @@ def warm_cache_cmd(
     console.print(table)
 
 
+# ── Phase 14: edge cache report ────────────────────────────────────────
+
+
+@app.command("edge-report")
+def edge_report(
+    days: int = typer.Option(
+        1,
+        "--days",
+        help="Lookback window in days for the Cloudflare Analytics query.",
+    ),
+) -> None:
+    """Render a 24h Cloudflare Worker edge cache hit-ratio report.
+
+    Hits the Cloudflare GraphQL Analytics API, aggregates the
+    ``sanmar_edge_cache`` Workers Analytics Engine dataset by
+    ``(operation, outcome)``, and prints a Rich table. Exits non-zero
+    if any operation is below the healthy hit-ratio threshold so the
+    command can drop into a cron / systemd timer as a health check.
+
+    Requires ``CLOUDFLARE_ACCOUNT_ID`` and ``CLOUDFLARE_API_TOKEN`` in
+    the environment — see ``deploy/cloudflare/README.md``.
+    """
+    # Imported lazily so the rest of the CLI doesn't pay for the
+    # script's deps when it's never invoked.
+    from scripts.edge_cache_report import main as _edge_main
+
+    raise typer.Exit(code=_edge_main(["--days", str(days)]))
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()
