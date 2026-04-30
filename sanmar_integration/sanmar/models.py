@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -303,4 +304,67 @@ class OrderRow(Base):
         return (
             f"OrderRow(id={self.id!r}, po={self.po_number!r}, "
             f"status={self.status_id!r})"
+        )
+
+
+# Phase 18 — bound on persisted response bodies. The receiver side is
+# free to return anything (HTML error pages, multi-MB stack traces from
+# misconfigured frameworks); we cap to keep SQLite from bloating.
+WEBHOOK_RESPONSE_BODY_CAP_BYTES: int = 4 * 1024
+WEBHOOK_BODY_TRUNCATION_MARKER: str = "\n…[truncated]"
+
+
+class WebhookDelivery(Base):
+    """Audit row for one outbound customer-webhook attempt (Phase 18).
+
+    The orchestrator's :class:`sanmar.orchestrator.OrderWebhookClient`
+    persists exactly one row per :meth:`fire` invocation that actually
+    runs (success or final failure after retry). Two attempts that
+    chain via the 5xx-retry path collapse to a single row with
+    ``attempt_count=2`` so operators see one logical delivery.
+
+    Outcome semantics::
+
+        success  — receiver returned 2xx (possibly on retry)
+        retry    — first attempt failed and a retry is queued (rare;
+                   only persisted as an interim state if a future
+                   async retry path is added)
+        failed   — exhausted retries / 4xx / connection error
+        skipped  — URL not configured; row only inserted when the
+                   ``log_skipped_webhooks`` config flag is on
+
+    The row carries enough context (full payload + signature) for the
+    Phase 18 replay CLI to reconstruct an identical attempt without
+    needing the original :class:`OrderRow` to still exist.
+    """
+
+    __tablename__ = "webhook_deliveries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    po_number: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    event: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+    signature_hex: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    status_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    response_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    response_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False, default="failed")
+    event_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    signed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, index=True
+    )
+
+    __table_args__ = (
+        Index("ix_webhook_deliveries_po_event", "po_number", "event"),
+        Index("ix_webhook_deliveries_outcome", "outcome"),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"WebhookDelivery(id={self.id!r}, po={self.po_number!r}, "
+            f"event={self.event!r}, outcome={self.outcome!r})"
         )

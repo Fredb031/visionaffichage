@@ -75,6 +75,15 @@ class Settings(BaseSettings):
             "X-Sanmar-Signature header and mirrored into the body."
         ),
     )
+    log_skipped_webhooks: bool = Field(
+        default=False,
+        description=(
+            "Phase 18 — when True, OrderWebhookClient.fire() inserts a "
+            "WebhookDelivery row with outcome='skipped' even when no "
+            "URL is configured, so the dashboard shows 'would have "
+            "fired N events'. Off by default to avoid DB bloat."
+        ),
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

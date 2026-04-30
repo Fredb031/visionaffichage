@@ -629,5 +629,37 @@ def serve_edge_metrics(
     serve_forever(host=host, port=port)
 
 
+# ── Phase 18: webhook replay ───────────────────────────────────────────
+
+
+@app.command("replay-webhook")
+def replay_webhook(
+    delivery_id: Optional[int] = typer.Option(
+        None,
+        "--delivery-id",
+        help="Replay this WebhookDelivery row by primary key.",
+    ),
+    po: Optional[str] = typer.Option(
+        None,
+        "--po",
+        help="Replay the latest delivery for this PO + event.",
+    ),
+    event: Optional[str] = typer.Option(
+        None,
+        "--event",
+        help="Event name (e.g. order.shipped) — required when --po is used.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Print what would be sent without firing or writing a row.",
+    ),
+) -> None:
+    """Re-fire a persisted webhook delivery (Phase 18)."""
+    from scripts.replay_webhook import replay as _replay
+
+    raise typer.Exit(code=_replay(delivery_id, po, event, dry_run))
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

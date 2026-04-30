@@ -233,3 +233,119 @@ The orchestrator emits structured `warning` log lines on every
 non-2xx response, and a `warning` on `RequestException`. The
 webhook URL is **never** logged — only the failure reason and HTTP
 status — so log shipping is safe.
+
+---
+
+## Delivery log (Phase 18)
+
+Every call to `OrderWebhookClient.fire()` that runs against a configured
+URL writes one row into the `webhook_deliveries` table — success,
+exhausted retries, 4xx, and connection errors all get exactly one row
+each. Two attempts that chain through the 5xx-retry path collapse to a
+single row with `attempt_count=2`, so each row is one logical
+delivery.
+
+### Schema
+
+| Column            | Type             | Notes |
+| ----------------- | ---------------- | ----- |
+| `id`              | INTEGER PK       | Surrogate key. |
+| `po_number`       | VARCHAR(64)      | Indexed for filter-by-PO queries. |
+| `event`           | VARCHAR(64)      | `order.picked`, `order.shipped`, etc. |
+| `payload_json`    | TEXT             | Full body the producer sent (post-mirror, includes `hmac_signature`). |
+| `signature_hex`   | VARCHAR(128)     | The exact hex sent in `X-Sanmar-Signature`. |
+| `attempt_count`   | INTEGER          | 1 for first-shot success, 2 if a retry was performed. |
+| `status_code`     | INTEGER NULL     | HTTP status of the *last* attempt; NULL on connection error. |
+| `response_body`   | TEXT NULL        | Receiver's body, capped at 4 KB (truncation marker appended). |
+| `response_ms`     | INTEGER NULL     | Wall-clock duration of the entire fire (incl. retry sleep). |
+| `error`           | TEXT NULL        | Exception type name on connection error (URL is never embedded). |
+| `outcome`         | VARCHAR(32)      | `success` \| `failed` \| `retry` \| `skipped`. |
+| `event_id`        | VARCHAR(64) NULL | UUID minted at fire time; mirrored into the payload for receiver dedupe. |
+| `signed_at`       | TIMESTAMPTZ      | Indexed for time-range queries. |
+
+The optional config flag `SANMAR_LOG_SKIPPED_WEBHOOKS=true` enables
+auditing of the URL-unset no-op path: every transition that *would*
+have fired a webhook is persisted with `outcome='skipped'` and
+`status_code=NULL`. Off by default to avoid bloat.
+
+### Retention recipe
+
+A 30-day retention window keeps the table small while preserving
+enough history to diagnose customer disputes. Run weekly via cron
+or a systemd timer:
+
+```sql
+DELETE FROM webhook_deliveries
+WHERE signed_at < datetime('now', '-30 days');
+VACUUM;
+```
+
+If your operator dashboards need longer retention, ship the rows
+to a long-term store (e.g. archive to S3 / a warehouse) before the
+DELETE — but treat the local table as a 30-day rolling window.
+
+### Operator dashboard
+
+The Streamlit Ops dashboard (`streamlit/ops.py`) renders a "Webhook
+deliveries (last 50)" panel with outcome + event filters,
+expandable rows showing the full payload + response + signature,
+and a per-row Replay button that calls the same code path as the
+CLI replay tool. Use the "Live (30s)" toggle to keep the panel
+auto-refreshing.
+
+---
+
+## Replay flow (Phase 18)
+
+When a customer endpoint was down or a receiver-side bug ate a
+webhook, the operator can replay any persisted delivery against the
+currently configured URL:
+
+```bash
+# Replay one delivery by primary key
+python -m sanmar replay-webhook --delivery-id 42
+
+# Replay the latest delivery for a (po, event) pair
+python -m sanmar replay-webhook --po VA-12345 --event order.shipped
+
+# Print what would be sent without firing
+python -m sanmar replay-webhook --delivery-id 42 --dry-run
+```
+
+Or via the underlying script directly:
+
+```bash
+python -m scripts.replay_webhook --delivery-id 42
+```
+
+### When to use replay
+
+* The receiver was down during the original fire and didn't process.
+* You're debugging a signature-verification mismatch on the receiver
+  side and need to deliver the same logical event again.
+* A staging-environment receiver missed a state transition and you
+  want to back-fill it without re-processing the upstream order.
+
+### Safety notes
+
+Replay creates a **new** `WebhookDelivery` row with a fresh
+`signed_at` and a fresh HTTP attempt — it does **not** alter the
+original row, which remains immutable for audit purposes.
+
+> **Receivers must dedupe on `event_id`.** Phase 18 introduces an
+> additive `event_id` field (UUID v4) that is part of every payload
+> *and* part of the HMAC scope. The original delivery and any
+> replays carry **the same `event_id`** if the receiver wants
+> at-most-once semantics. (When you replay a row, the persisted
+> payload is re-sent verbatim, so the same `event_id` flows through.)
+>
+> This is a backwards-compatible additive change: receivers that
+> ignore the field still verify HMAC successfully because the
+> signature is computed over the canonical body bytes that include
+> `event_id`. If you want stricter dedupe, key on
+> `(po_number, event, event_id)` — that combination is stable
+> across the original fire and any number of replays.
+
+For a complete dry-run before hitting the network, use `--dry-run`:
+the CLI prints the original metadata + pretty-printed payload,
+fires no HTTP, and writes no row.

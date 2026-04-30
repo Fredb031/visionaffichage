@@ -16,6 +16,9 @@ Sections
 3. **Manual triggers** — buttons for catalog delta sync, inventory
    sync, order reconciliation. Each kicks the orchestrator on click
    with a progress spinner.
+4. **Webhook deliveries** (Phase 18) — last 50 WebhookDelivery rows
+   with outcome + event filters, expandable rows showing payload +
+   response + signature, and a per-row Replay button.
 """
 from __future__ import annotations
 
@@ -37,7 +40,7 @@ from sqlalchemy import desc, select
 
 from sanmar.config import get_settings
 from sanmar.db import init_schema, make_engine, session_scope
-from sanmar.models import OrderRow, SyncState
+from sanmar.models import OrderRow, SyncState, WebhookDelivery
 from sanmar.orchestrator import SanmarOrchestrator
 
 
@@ -47,6 +50,33 @@ def _fmt_dt(dt) -> str:
     if isinstance(dt, datetime):
         return dt.strftime("%Y-%m-%d %H:%M")
     return str(dt)
+
+
+def _relative_time(dt) -> str:
+    """Human-friendly relative timestamp (e.g. '5 min ago')."""
+    if not isinstance(dt, datetime):
+        return "—"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    delta = datetime.now(tz=timezone.utc) - dt
+    total = int(delta.total_seconds())
+    if total < 0:
+        return "just now"
+    if total < 60:
+        return f"{total}s ago"
+    if total < 3600:
+        return f"{total // 60} min ago"
+    if total < 86400:
+        return f"{total // 3600}h ago"
+    return f"{total // 86400}d ago"
+
+
+_OUTCOME_BADGE: dict[str, str] = {
+    "success": "🟢 success",
+    "failed": "🔴 failed",
+    "retry": "🟡 retry",
+    "skipped": "⚪ skipped",
+}
 
 
 def main() -> None:  # pragma: no cover - UI entry
@@ -168,6 +198,156 @@ def main() -> None:  # pragma: no cover - UI entry
             f"Reconcile done — transitions {result.transitions}, "
             f"errors {result.error_count}"
         )
+
+    # ── Section 4: webhook deliveries (Phase 18) ──────────────────
+    _render_webhook_panel(engine)
+
+
+def _render_webhook_panel(engine) -> None:  # pragma: no cover - UI glue
+    """Render the Phase-18 webhook deliveries panel.
+
+    Pulled into a helper so the main() function stays scannable. The
+    panel:
+
+    * Lists the most recent 50 ``WebhookDelivery`` rows.
+    * Filters by outcome (all / success / failed / retry / skipped)
+      and event type.
+    * Each row is expandable, showing pretty-printed payload +
+      response body + signature.
+    * "Replay" button on each row invokes the same code path as the
+      ``replay-webhook`` CLI.
+    * "Live" toggle re-runs the panel every 30 seconds via st.rerun().
+    """
+    st.subheader("Webhook deliveries")
+
+    fcol1, fcol2, fcol3 = st.columns([1, 1, 1])
+    outcome_filter = fcol1.selectbox(
+        "Outcome",
+        options=["all", "success", "failed", "retry", "skipped"],
+        index=0,
+        key="webhook_outcome_filter",
+    )
+    # Event filter pulled dynamically from existing rows so we don't
+    # bake a stale list into the UI.
+    with session_scope(engine) as session:
+        events_present = sorted(
+            {
+                r[0]
+                for r in session.query(WebhookDelivery.event).distinct().all()
+                if r[0]
+            }
+        )
+    event_filter = fcol2.selectbox(
+        "Event",
+        options=["all", *events_present],
+        index=0,
+        key="webhook_event_filter",
+    )
+    live = fcol3.toggle("Live (30s)", value=False, key="webhook_live_toggle")
+
+    with session_scope(engine) as session:
+        q = session.query(WebhookDelivery)
+        if outcome_filter != "all":
+            q = q.filter(WebhookDelivery.outcome == outcome_filter)
+        if event_filter != "all":
+            q = q.filter(WebhookDelivery.event == event_filter)
+        rows = (
+            q.order_by(WebhookDelivery.signed_at.desc()).limit(50).all()
+        )
+
+        # Eagerly snapshot fields — the session closes when this block
+        # exits and Streamlit may re-render before we'd use the rows.
+        snapshots = [
+            {
+                "id": r.id,
+                "po_number": r.po_number,
+                "event": r.event,
+                "status_code": r.status_code,
+                "response_ms": r.response_ms,
+                "outcome": r.outcome,
+                "attempts": r.attempt_count,
+                "signed_at": r.signed_at,
+                "payload_json": r.payload_json,
+                "response_body": r.response_body or "",
+                "signature_hex": r.signature_hex or "",
+                "error": r.error or "",
+                "event_id": r.event_id or "",
+            }
+            for r in rows
+        ]
+
+    if not snapshots:
+        st.info("No webhook deliveries yet.")
+    else:
+        table_df = pd.DataFrame(
+            [
+                {
+                    "id": s["id"],
+                    "when": _relative_time(s["signed_at"]),
+                    "po_number": s["po_number"],
+                    "event": s["event"],
+                    "status": s["status_code"] or "—",
+                    "ms": s["response_ms"] if s["response_ms"] is not None else "—",
+                    "outcome": _OUTCOME_BADGE.get(s["outcome"], s["outcome"]),
+                    "attempts": s["attempts"],
+                }
+                for s in snapshots
+            ]
+        )
+        st.dataframe(table_df, use_container_width=True, hide_index=True)
+
+        for s in snapshots:
+            label = (
+                f"#{s['id']} · {s['event']} · {s['po_number']} · "
+                f"{_OUTCOME_BADGE.get(s['outcome'], s['outcome'])}"
+            )
+            with st.expander(label):
+                import json as _json
+
+                try:
+                    payload_pretty = _json.dumps(
+                        _json.loads(s["payload_json"]),
+                        indent=2,
+                        sort_keys=True,
+                    )
+                except Exception:
+                    payload_pretty = s["payload_json"]
+                st.markdown("**payload**")
+                st.code(payload_pretty, language="json")
+                st.markdown("**response body**")
+                st.code(s["response_body"] or "—", language="text")
+                st.markdown(
+                    f"**signature** `{s['signature_hex'] or '—'}`"
+                )
+                if s["error"]:
+                    st.markdown(f"**error** `{s['error']}`")
+                if s["event_id"]:
+                    st.caption(f"event_id: `{s['event_id']}`")
+                if st.button(
+                    f"Replay #{s['id']}",
+                    key=f"replay_btn_{s['id']}",
+                ):
+                    from scripts.replay_webhook import replay as _replay
+
+                    code = _replay(
+                        delivery_id=s["id"],
+                        po=None,
+                        event=None,
+                        dry_run=False,
+                    )
+                    if code == 0:
+                        st.success(f"Replay of #{s['id']} succeeded.")
+                    else:
+                        st.error(
+                            f"Replay of #{s['id']} returned exit code {code}."
+                        )
+
+    if live:
+        # Auto-refresh after 30 seconds.
+        import time as _time
+
+        _time.sleep(30)
+        st.rerun()
 
 
 if __name__ == "__main__":  # pragma: no cover

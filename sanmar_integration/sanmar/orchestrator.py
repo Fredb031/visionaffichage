@@ -29,6 +29,7 @@ import hmac
 import json
 import logging
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
@@ -135,10 +136,17 @@ class OrderWebhookClient:
         url: Optional[str],
         secret: Optional[str] = None,
         timeout_s: float = WEBHOOK_TIMEOUT_SECONDS,
+        *,
+        log_skipped: bool = False,
     ) -> None:
         self.url = url or None
         self.secret = secret or None
         self.timeout_s = timeout_s
+        # Phase 18 — persistence-side knob. When True the no-op branch
+        # (URL not configured) still writes an audit row with
+        # outcome='skipped' so the dashboard can show "would have
+        # fired N events". Off by default to avoid DB bloat.
+        self.log_skipped = log_skipped
 
     @property
     def enabled(self) -> bool:
@@ -150,18 +158,42 @@ class OrderWebhookClient:
         order: "OrderRow",
         prev_status: int,
         new_status: int,
+        *,
+        session: Optional["Session"] = None,
+        event_id: Optional[str] = None,
     ) -> bool:
         """Build + send the webhook envelope.
 
         Returns ``True`` when the receiver returned 2xx (possibly
         after one retry); ``False`` for skipped, 4xx, exhausted
         retries, or any swallowed exception.
+
+        When ``session`` is supplied, persists exactly one
+        :class:`sanmar.models.WebhookDelivery` row capturing the
+        attempt — successful POSTs, exhausted retries, and (when
+        ``log_skipped`` is on) URL-unset no-ops alike. Failures inside
+        persistence are swallowed so reconcile never breaks because of
+        an audit-write hiccup.
         """
+        # No-op branch — URL not configured. Optionally persist a
+        # 'skipped' audit row so the operator still sees that this
+        # transition would have fired a webhook.
         if not self.enabled:
+            if session is not None and self.log_skipped:
+                self._persist_skipped(
+                    session,
+                    event,
+                    order,
+                    prev_status,
+                    new_status,
+                    event_id=event_id,
+                )
             return False
 
         try:
-            payload = self._build_payload(event, order, prev_status, new_status)
+            payload = self._build_payload(
+                event, order, prev_status, new_status, event_id=event_id
+            )
             body = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
             signature = self._sign(body)
 
@@ -182,16 +214,46 @@ class OrderWebhookClient:
             )
             return False
 
-        # First attempt.
-        ok, retryable = self._post(body, headers)
-        if ok:
-            return True
-        if not retryable:
-            return False
+        # First attempt — track wall-clock for response_ms.
+        start_ns = time.monotonic_ns()
+        ok, retryable, status_code, response_body, error = self._post(
+            body, headers
+        )
+        attempts = 1
 
-        # One retry on 5xx / network error.
-        time.sleep(WEBHOOK_RETRY_BACKOFF_SECONDS)
-        ok, _ = self._post(body, headers)
+        if not ok and retryable:
+            # One retry on 5xx / network error.
+            time.sleep(WEBHOOK_RETRY_BACKOFF_SECONDS)
+            attempts = 2
+            ok, _retryable2, status_code, response_body, error = self._post(
+                body, headers
+            )
+
+        elapsed_ms = max(0, (time.monotonic_ns() - start_ns) // 1_000_000)
+
+        # Decide outcome:
+        #   ok                  → 'success'
+        #   retried + still bad → 'failed'
+        #   single attempt fail → 'failed'
+        outcome = "success" if ok else "failed"
+
+        # Persist the audit row (best-effort).
+        if session is not None:
+            self._persist_delivery(
+                session=session,
+                event=event,
+                po_number=getattr(order, "po_number", None) or "",
+                payload_json=body.decode("utf-8", errors="replace"),
+                signature_hex=signature,
+                attempt_count=attempts,
+                status_code=status_code,
+                response_body=response_body,
+                response_ms=int(elapsed_ms),
+                error=error,
+                outcome=outcome,
+                event_id=payload.get("event_id"),
+            )
+
         return ok
 
     # ── helpers ───────────────────────────────────────────────────────
@@ -202,12 +264,22 @@ class OrderWebhookClient:
         order: "OrderRow",
         prev_status: int,
         new_status: int,
+        *,
+        event_id: Optional[str] = None,
     ) -> dict[str, Any]:
         tracking_numbers = list(getattr(order, "tracking_numbers", None) or [])
         tracking_number = tracking_numbers[0] if tracking_numbers else None
         expected_ship = getattr(order, "expected_ship_date", None)
+        # Phase 18 — backwards-compatible additive ``event_id`` so
+        # receivers can dedupe by uuid (even on replay, which mints a
+        # fresh signed_at). When ``event_id`` is provided (replay
+        # path), reuse it so receivers see the same UUID across the
+        # original fire and any number of replays. Receivers that
+        # ignore the field still verify HMAC successfully because the
+        # signature is computed over whatever bytes we send.
         return {
             "event": event,
+            "event_id": event_id or str(uuid.uuid4()),
             "po_number": getattr(order, "po_number", None),
             "customer_email": getattr(order, "customer_email", None),
             "previous_status_id": int(prev_status) if prev_status is not None else 0,
@@ -239,17 +311,24 @@ class OrderWebhookClient:
 
     def _post(
         self, body: bytes, headers: dict[str, str]
-    ) -> tuple[bool, bool]:
-        """Single POST attempt. Returns ``(ok, retryable)``.
+    ) -> tuple[bool, bool, Optional[int], Optional[str], Optional[str]]:
+        """Single POST attempt.
 
-        * ``ok=True`` — 2xx response.
+        Returns ``(ok, retryable, status_code, response_body, error)``:
+
+        * ``ok=True`` — 2xx response. ``error`` is ``None``.
         * ``ok=False, retryable=True`` — 5xx or network error → caller
           may retry.
         * ``ok=False, retryable=False`` — 4xx or other terminal
           condition → caller must not retry.
+
+        ``response_body`` is the receiver's body, capped at
+        :data:`sanmar.models.WEBHOOK_RESPONSE_BODY_CAP_BYTES` with a
+        truncation marker so a misbehaving receiver returning a
+        multi-MB stack trace can't bloat the audit table.
         """
         if not self.url:
-            return False, False
+            return False, False, None, None, None
         try:
             resp = requests.post(
                 self.url,
@@ -258,25 +337,150 @@ class OrderWebhookClient:
                 timeout=self.timeout_s,
             )
         except requests.RequestException as exc:
-            logger.warning(
-                "order webhook post failed: %s", type(exc).__name__
-            )
-            return False, True  # network errors are retryable
+            # Mask any URL / secret echoes that some libraries embed in
+            # exception messages (e.g. some custom adapters log the
+            # auth header). Type name + repr-of-args is enough to
+            # debug without leaking secrets to the audit table.
+            err_name = type(exc).__name__
+            logger.warning("order webhook post failed: %s", err_name)
+            return False, True, None, None, err_name
+
+        captured_body = self._capture_response_body(resp)
 
         if 200 <= resp.status_code < 300:
-            return True, False
+            return True, False, resp.status_code, captured_body, None
         if resp.status_code >= 500:
             logger.warning(
                 "order webhook returned 5xx status=%s — will retry",
                 resp.status_code,
             )
-            return False, True
+            return False, True, resp.status_code, captured_body, None
         # 4xx — receiver says payload is bad, no retry will help.
         logger.warning(
             "order webhook returned 4xx status=%s — giving up",
             resp.status_code,
         )
-        return False, False
+        return False, False, resp.status_code, captured_body, None
+
+    def _capture_response_body(self, resp: Any) -> Optional[str]:
+        """Best-effort response body capture, truncated for storage.
+
+        Defers the import of model-side constants so the orchestrator
+        module remains import-cheap. Hardened against MagicMock-style
+        ``resp.text`` returns by guarding the type — if anything other
+        than a real ``str`` comes back, we skip the capture rather
+        than crashing the whole webhook pipeline.
+        """
+        from sanmar.models import (
+            WEBHOOK_BODY_TRUNCATION_MARKER,
+            WEBHOOK_RESPONSE_BODY_CAP_BYTES,
+        )
+
+        try:
+            text = getattr(resp, "text", None)
+        except Exception:  # noqa: BLE001 - defensive against weird mocks
+            return None
+        if text is None:
+            return None
+        if not isinstance(text, str):
+            return None
+        if not text:
+            return ""
+        encoded = text.encode("utf-8", errors="replace")
+        if len(encoded) <= WEBHOOK_RESPONSE_BODY_CAP_BYTES:
+            return text
+        truncated = encoded[: WEBHOOK_RESPONSE_BODY_CAP_BYTES].decode(
+            "utf-8", errors="replace"
+        )
+        return truncated + WEBHOOK_BODY_TRUNCATION_MARKER
+
+    # ── persistence helpers ───────────────────────────────────────────
+
+    def _persist_delivery(
+        self,
+        *,
+        session: "Session",
+        event: str,
+        po_number: str,
+        payload_json: str,
+        signature_hex: str,
+        attempt_count: int,
+        status_code: Optional[int],
+        response_body: Optional[str],
+        response_ms: Optional[int],
+        error: Optional[str],
+        outcome: str,
+        event_id: Optional[str],
+    ) -> None:
+        """Insert one :class:`WebhookDelivery` row.
+
+        Best-effort — wraps in a try/except so a wonky session
+        (MagicMock in tests, locked SQLite, etc.) cannot break the
+        reconcile pipeline.
+        """
+        try:
+            from sanmar.models import WebhookDelivery
+
+            row = WebhookDelivery(
+                po_number=po_number or "",
+                event=event,
+                payload_json=payload_json,
+                signature_hex=signature_hex or "",
+                attempt_count=attempt_count,
+                status_code=status_code,
+                response_body=response_body,
+                response_ms=response_ms,
+                error=error,
+                outcome=outcome,
+                event_id=event_id,
+            )
+            session.add(row)
+            session.flush()
+        except Exception as exc:  # noqa: BLE001 - audit must never fail sync
+            logger.warning(
+                "webhook delivery persist failed: %s", type(exc).__name__
+            )
+
+    def _persist_skipped(
+        self,
+        session: "Session",
+        event: str,
+        order: "OrderRow",
+        prev_status: int,
+        new_status: int,
+        *,
+        event_id: Optional[str] = None,
+    ) -> None:
+        """Insert a 'skipped' WebhookDelivery row when the URL is unset.
+
+        Only invoked when ``log_skipped=True``. Builds the would-be
+        payload (including ``event_id``) without ever attempting to
+        sign or POST it, so secrets are not required for skipped
+        accounting.
+        """
+        try:
+            payload = self._build_payload(
+                event, order, prev_status, new_status, event_id=event_id
+            )
+            payload_str = json.dumps(payload, sort_keys=True, default=str)
+            self._persist_delivery(
+                session=session,
+                event=event,
+                po_number=getattr(order, "po_number", None) or "",
+                payload_json=payload_str,
+                signature_hex="",
+                attempt_count=0,
+                status_code=None,
+                response_body=None,
+                response_ms=None,
+                error=None,
+                outcome="skipped",
+                event_id=payload.get("event_id"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "webhook skipped-row persist failed: %s", type(exc).__name__
+            )
 
 
 @dataclass
@@ -357,12 +561,18 @@ class SanmarOrchestrator:
 
         # Phase 17 — outbound customer webhook. ``None`` URL = no-op
         # so callers and tests don't need to branch on availability.
+        # Phase 18 — propagate ``log_skipped_webhooks`` from settings
+        # so audit-row writing for the URL-unset case is operator-
+        # configurable without code changes.
         self.webhook_client: OrderWebhookClient = (
             webhook_client
             if webhook_client is not None
             else OrderWebhookClient(
                 url=getattr(settings, "customer_webhook_url", None),
                 secret=getattr(settings, "customer_webhook_secret", None),
+                log_skipped=bool(
+                    getattr(settings, "log_skipped_webhooks", False)
+                ),
             )
         )
 
@@ -782,11 +992,16 @@ class SanmarOrchestrator:
                         event_name = WEBHOOK_EVENTS.get(int(status.status_id))
                         if event_name is not None:
                             try:
+                                # Phase 18 — thread the live session so
+                                # the webhook client can persist a
+                                # WebhookDelivery audit row alongside
+                                # the OrderRow update.
                                 self.webhook_client.fire(
                                     event_name,
                                     row,
                                     prior_status,
                                     status.status_id,
+                                    session=session,
                                 )
                             except Exception:  # noqa: BLE001 - never fail
                                 pass
