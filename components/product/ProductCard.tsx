@@ -54,19 +54,19 @@ export function ProductCard({ product, locale, className = '' }: Props) {
           </Link>
         </h3>
 
-        <p className="text-body-sm text-stone-500">
+        <p className="text-body-sm text-stone-600">
           {locale === 'fr-ca' ? 'À partir de ' : 'From '}
           <span className="font-semibold text-ink-950">
             {formatCAD(product.priceFromCents, locale)}
           </span>
           {product.minQuantity > 1 ? (
-            <span className="ml-2 text-stone-500">
+            <span className="ml-2 text-stone-600">
               · {formatMinQty(product.minQuantity, locale)}
             </span>
           ) : null}
         </p>
 
-        <p className="text-body-sm text-stone-500">
+        <p className="text-body-sm text-stone-600">
           {formatProductionMicrocopy(product.leadTimeDays, locale)}
         </p>
 
@@ -79,7 +79,7 @@ export function ProductCard({ product, locale, className = '' }: Props) {
               size="sm"
             />
           ) : (
-            <span className="text-body-sm text-stone-500">
+            <span className="text-body-sm text-stone-600">
               {locale === 'fr-ca' ? 'Nouveau' : 'New'}
             </span>
           )}

@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: getAlternates('/'),
+    alternates: getAlternates('/', locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -145,7 +145,7 @@ export default async function HomePage({ params }: Props) {
               <h2 className="text-title-xl text-ink-950">
                 {t('featured.heading')}
               </h2>
-              <p className="mt-3 max-w-2xl text-body-lg text-stone-500">
+              <p className="mt-3 max-w-2xl text-body-lg text-stone-600">
                 {t('featured.subhead')}
               </p>
             </div>
@@ -206,7 +206,7 @@ export default async function HomePage({ params }: Props) {
             <h2 className="text-title-xl text-ink-950">
               {t('reviews.heading')}
             </h2>
-            <p className="mt-3 text-body-lg text-stone-500">{reviewSubhead}</p>
+            <p className="mt-3 text-body-lg text-stone-600">{reviewSubhead}</p>
           </div>
           <ReviewGrid
             reviews={featuredReviews}

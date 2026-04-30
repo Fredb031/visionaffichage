@@ -41,7 +41,7 @@ export function SortSelect({
 
   return (
     <div className={`flex items-center gap-2 ${className}`.trim()}>
-      <label htmlFor={id} className="text-body-sm text-stone-500">
+      <label htmlFor={id} className="text-body-sm text-stone-600">
         {labelText}
       </label>
       <select

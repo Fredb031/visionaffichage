@@ -20,8 +20,8 @@ export function Header() {
   const nav = [
     { href: `${base}/produits`, label: tNav('products') },
     { href: `${base}/industries`, label: tNav('industries') },
-    { href: `${base}/processus`, label: tNav('process') },
-    { href: `${base}/realisations`, label: tNav('portfolio') },
+    { href: `${base}/comment-ca-marche`, label: tNav('process') },
+    { href: `${base}/avis`, label: tNav('portfolio') },
   ];
 
   return (
@@ -64,7 +64,7 @@ export function Header() {
               <ShoppingCart aria-hidden className="h-5 w-5" />
             </button>
 
-            <Button href={`${base}/catalogue`} variant="tertiary" size="sm" className="hidden md:inline-flex">
+            <Button href={`${base}/produits`} variant="tertiary" size="sm" className="hidden md:inline-flex">
               {tHeader('ctaCatalog')}
             </Button>
             <Button href={`${base}/contact`} variant="secondary" size="sm" className="hidden md:inline-flex">
@@ -132,7 +132,7 @@ export function Header() {
                 <Button href={`${base}/soumission`} variant="primary" size="lg" onClick={() => setOpen(false)}>
                   {tHeader('ctaQuote')}
                 </Button>
-                <Button href={`${base}/catalogue`} variant="secondary" size="lg" onClick={() => setOpen(false)}>
+                <Button href={`${base}/produits`} variant="secondary" size="lg" onClick={() => setOpen(false)}>
                   {tHeader('ctaCatalog')}
                 </Button>
                 <Button href={`${base}/contact`} variant="tertiary" size="lg" onClick={() => setOpen(false)}>

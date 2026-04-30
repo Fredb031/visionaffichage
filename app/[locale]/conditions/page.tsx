@@ -19,39 +19,37 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata({
-  params,
-}: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const isFr = locale === 'fr-ca';
   const title = isFr
-    ? 'Demander une soumission · Vision Affichage'
-    : 'Request a quote · Vision Affichage';
+    ? 'Conditions d’utilisation · Vision Affichage'
+    : 'Terms of service · Vision Affichage';
   const description = isFr
-    ? 'Soumission pour commandes de 50 unités et plus. Réponse sous un jour ouvrable.'
-    : 'Quote requests for 50-unit orders and up. Response within one business day.';
+    ? 'Conditions générales applicables aux commandes passées avec Vision Affichage.'
+    : 'General terms applicable to orders placed with Vision Affichage.';
 
   return {
     title,
     description,
-    alternates: getAlternates('/soumission', locale),
+    alternates: getAlternates('/conditions', locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
       title,
       description,
       siteName: siteConfig.name,
-      url: `${siteConfig.url}/${locale}/soumission`,
+      url: `${siteConfig.url}/${locale}/conditions`,
     },
     robots: { index: false, follow: true },
   };
 }
 
-export default async function SoumissionPage({ params }: Props) {
+export default async function ConditionsPage({ params }: Props) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
 
-  return <PhaseTwoStub locale={locale} pageKey="soumission" />;
+  return <PhaseTwoStub locale={locale} pageKey="conditions" />;
 }

@@ -13,7 +13,6 @@ import { TrustStrip } from '@/components/sections/TrustStrip';
 import { FaqAccordion } from '@/components/sections/FaqAccordion';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
-import { Hreflang } from '@/components/Hreflang';
 
 import { industries } from '@/lib/industries';
 import { getProductByStyleCode } from '@/lib/products';
@@ -146,7 +145,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: getAlternates(`/industries/${industry.slug}`),
+    alternates: getAlternates(`/industries/${industry.slug}`, locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -193,7 +192,6 @@ export default async function IndustryPage({ params }: Props) {
 
   return (
     <>
-      <Hreflang pathWithoutLocale={`/industries/${industry.slug}`} />
       <FaqJsonLd items={faqJsonLdItems} />
 
       <Section tone="default" className="py-8 md:py-10">
@@ -214,13 +212,13 @@ export default async function IndustryPage({ params }: Props) {
         <Container size="2xl">
           <div className="grid items-center gap-10 py-16 md:grid-cols-12 md:py-24 lg:py-28">
             <div className="md:col-span-7 lg:col-span-6">
-              <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+              <p className="text-meta-xs uppercase tracking-wider text-stone-600">
                 {t('breadcrumb')}
               </p>
               <h1 className="mt-6 text-display-lg text-ink-950 md:text-display-xl">
                 {titleName}
               </h1>
-              <p className="mt-6 max-w-xl text-body-lg text-stone-500">
+              <p className="mt-6 max-w-xl text-body-lg text-stone-600">
                 {hookLine}
               </p>
               <div className="mt-10 flex flex-wrap gap-3">
@@ -252,10 +250,10 @@ export default async function IndustryPage({ params }: Props) {
       <Section tone="default">
         <Container size="2xl">
           <div className="max-w-[68ch] space-y-6">
-            <p className="text-body-lg text-stone-500">
+            <p className="text-body-lg text-stone-600">
               {industry.pitch[locale]}
             </p>
-            <p className="text-body-lg text-stone-500">
+            <p className="text-body-lg text-stone-600">
               {industry.shortDescription[locale]}
             </p>
           </div>
@@ -269,7 +267,7 @@ export default async function IndustryPage({ params }: Props) {
             <h2 className="text-title-xl text-ink-950">
               {t('recommendedFor', { title: titleName })}
             </h2>
-            <p className="mt-3 text-body-lg text-stone-500">
+            <p className="mt-3 text-body-lg text-stone-600">
               {t('recommendedSubhead')}
             </p>
           </div>
@@ -306,7 +304,7 @@ export default async function IndustryPage({ params }: Props) {
               <p className="text-body-lg text-ink-950">
                 « {caseStudy.quote[locale]} »
               </p>
-              <footer className="mt-4 not-italic text-body-sm text-stone-500">
+              <footer className="mt-4 not-italic text-body-sm text-stone-600">
                 — {caseStudy.attribution[locale]}
               </footer>
             </blockquote>
@@ -333,7 +331,7 @@ export default async function IndustryPage({ params }: Props) {
         <Container size="2xl">
           <div className="md:max-w-2xl">
             <h2 className="text-title-xl text-ink-950">{t('viewOthers')}</h2>
-            <p className="mt-3 text-body-lg text-stone-500">
+            <p className="mt-3 text-body-lg text-stone-600">
               {t('viewOthersBody')}
             </p>
           </div>

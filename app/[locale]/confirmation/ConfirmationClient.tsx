@@ -62,7 +62,7 @@ export function ConfirmationClient({ locale }: Props) {
         <h1 className="text-title-lg font-semibold text-ink-950">
           {t('missing.heading')}
         </h1>
-        <p className="mt-2 text-body-md text-stone-500">{t('missing.body')}</p>
+        <p className="mt-2 text-body-md text-stone-600">{t('missing.body')}</p>
         <div className="mt-6">
           <Button href={`/${locale}`} variant="primary" size="lg">
             {t('missing.cta')}
@@ -81,9 +81,9 @@ export function ConfirmationClient({ locale }: Props) {
         <h1 className="text-display-md font-semibold text-ink-950">
           {t('heading')}
         </h1>
-        <p className="text-body-md text-stone-500">{t('subhead')}</p>
+        <p className="text-body-md text-stone-600">{t('subhead')}</p>
         <p className="text-body-sm text-ink-950">
-          <span className="text-stone-500">{t('orderNumber')} :</span>{' '}
+          <span className="text-stone-600">{t('orderNumber')} :</span>{' '}
           <span className="font-semibold tabular-nums">{orderNumber}</span>
         </p>
       </header>
@@ -134,7 +134,7 @@ export function ConfirmationClient({ locale }: Props) {
                     <p className="text-body-md font-medium text-ink-950">
                       {locale === 'fr-ca' ? item.titleFr : item.titleEn}
                     </p>
-                    <p className="text-body-sm text-stone-500">
+                    <p className="text-body-sm text-stone-600">
                       {item.color} · {item.size} · ×{item.qty}
                     </p>
                   </div>
@@ -159,7 +159,7 @@ export function ConfirmationClient({ locale }: Props) {
               <RotateCcw aria-hidden className="h-5 w-5" />
               {t('reorder.heading')}
             </h2>
-            <p className="text-body-md text-stone-500">{t('reorder.body')}</p>
+            <p className="text-body-md text-stone-600">{t('reorder.body')}</p>
           </div>
           <Button href={`/${locale}/produits`} variant="secondary" size="lg">
             {t('reorder.cta')}
@@ -177,7 +177,7 @@ export function ConfirmationClient({ locale }: Props) {
         >
           {t('support.heading')}
         </h2>
-        <p className="mt-1 text-body-md text-stone-500">{t('support.body')}</p>
+        <p className="mt-1 text-body-md text-stone-600">{t('support.body')}</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           <li>
             <a
@@ -186,7 +186,7 @@ export function ConfirmationClient({ locale }: Props) {
             >
               <Phone aria-hidden className="h-5 w-5" />
               <span>
-                <span className="block text-meta-xs uppercase tracking-wider text-stone-500">
+                <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
                   {t('support.phoneLabel')}
                 </span>
                 <span className="font-medium">{t('support.phone')}</span>
@@ -200,7 +200,7 @@ export function ConfirmationClient({ locale }: Props) {
             >
               <Mail aria-hidden className="h-5 w-5" />
               <span>
-                <span className="block text-meta-xs uppercase tracking-wider text-stone-500">
+                <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
                   {t('support.emailLabel')}
                 </span>
                 <span className="font-medium">{t('support.email')}</span>
@@ -211,7 +211,7 @@ export function ConfirmationClient({ locale }: Props) {
       </section>
 
       <div className="flex flex-col items-start gap-3 border-t border-sand-300 pt-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="inline-flex items-center gap-2 text-body-sm text-stone-500">
+        <p className="inline-flex items-center gap-2 text-body-sm text-stone-600">
           <PackageCheck aria-hidden className="h-4 w-4 text-success-700" />
           {t('subhead')}
         </p>

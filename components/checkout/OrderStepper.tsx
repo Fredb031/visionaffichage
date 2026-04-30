@@ -50,7 +50,7 @@ export function OrderStepper({ currentStep, locale, className = '' }: Props) {
                     ? 'bg-ink-950 text-canvas-000'
                     : isComplete
                       ? 'bg-success-50 text-success-700'
-                      : 'bg-sand-100 text-stone-500'
+                      : 'bg-sand-100 text-stone-600'
                 }`}
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-pill bg-canvas-000/20 text-meta-xs">

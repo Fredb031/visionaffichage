@@ -40,11 +40,11 @@ export function DiscoveryKitTeaser({ locale, className = '' }: Props) {
       <Container size="xl">
         <div className="grid gap-10 rounded-lg bg-canvas-000 p-8 shadow-sm md:grid-cols-12 md:p-12">
           <div className="md:col-span-7">
-            <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+            <p className="text-meta-xs uppercase tracking-wider text-stone-600">
               {t.eyebrow}
             </p>
             <h2 className="mt-3 text-title-xl text-ink-950">{t.headline}</h2>
-            <p className="mt-4 text-body-lg text-stone-500">{t.body}</p>
+            <p className="mt-4 text-body-lg text-stone-600">{t.body}</p>
           </div>
           <div className="md:col-span-5">
             <ul className="space-y-3">

@@ -36,7 +36,7 @@ export function ColorSwatchRow({
         />
       ))}
       {remaining > 0 ? (
-        <span className="text-meta-xs text-stone-500" aria-label={`+${remaining}`}>
+        <span className="text-meta-xs text-stone-600" aria-label={`+${remaining}`}>
           +{remaining}
         </span>
       ) : null}

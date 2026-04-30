@@ -18,7 +18,7 @@ export function Breadcrumbs({ items, locale, className = '' }: Props) {
   const navLabel = locale === 'fr-ca' ? "Fil d'Ariane" : 'Breadcrumb';
   return (
     <nav aria-label={navLabel} className={className}>
-      <ol className="flex flex-wrap items-center gap-1.5 text-body-sm text-stone-500">
+      <ol className="flex flex-wrap items-center gap-1.5 text-body-sm text-stone-600">
         {items.map((item, idx) => {
           const isLast = idx === items.length - 1;
           return (

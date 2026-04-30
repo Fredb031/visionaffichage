@@ -87,7 +87,7 @@ export function PdpClient({ product, locale }: Props) {
     <>
       {/* 8. Color picker */}
       <div>
-        <span className="block text-meta-xs uppercase tracking-wider text-stone-500">
+        <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
           {colorLabel}
           {selectedColor ? (
             <span className="ml-2 normal-case text-ink-950">
@@ -134,7 +134,7 @@ export function PdpClient({ product, locale }: Props) {
 
       {/* 9. Size picker */}
       <div>
-        <span className="block text-meta-xs uppercase tracking-wider text-stone-500">
+        <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
           {sizeLabel}
           {selectedSize ? (
             <span className="ml-2 normal-case text-ink-950">
@@ -159,7 +159,7 @@ export function PdpClient({ product, locale }: Props) {
       <div>
         <label
           htmlFor="pdp-qty"
-          className="block text-meta-xs uppercase tracking-wider text-stone-500"
+          className="block text-meta-xs uppercase tracking-wider text-stone-600"
         >
           {qtyLabel}
         </label>
@@ -193,7 +193,7 @@ export function PdpClient({ product, locale }: Props) {
           >
             <Plus aria-hidden className="h-4 w-4" />
           </button>
-          <span className="ml-1 text-body-sm text-stone-500">{qtyUnit}</span>
+          <span className="ml-1 text-body-sm text-stone-600">{qtyUnit}</span>
         </div>
       </div>
 
@@ -225,7 +225,7 @@ export function PdpClient({ product, locale }: Props) {
         <Button href={`/${locale}/soumission`} variant="tertiary" size="md" className="px-0">
           {quoteLabel}
         </Button>
-        <p className="mt-1 text-body-sm text-stone-500">{quoteSubtext}</p>
+        <p className="mt-1 text-body-sm text-stone-600">{quoteSubtext}</p>
       </div>
 
       <StickyActionBar

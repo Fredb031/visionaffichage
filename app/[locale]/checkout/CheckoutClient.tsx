@@ -382,7 +382,7 @@ function EmptyCheckout({ locale }: { locale: Locale }) {
       <h2 className="text-title-md text-ink-950">
         {tCart('emptyState.title')}
       </h2>
-      <p className="mt-2 text-body-md text-stone-500">
+      <p className="mt-2 text-body-md text-stone-600">
         {tCart('emptyState.body')}
       </p>
       <div className="mt-6">
@@ -865,15 +865,15 @@ function PaymentStep({ register, errors, setValue, locale }: SimpleStepProps) {
       </div>
 
       <ul className="grid gap-3 rounded-md border border-sand-300 bg-canvas-050 p-4 sm:grid-cols-3">
-        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-500">
+        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-600">
           <ShieldCheck aria-hidden className="h-4 w-4" />
           {t('paymentForm.trust.ssl')}
         </li>
-        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-500">
+        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-600">
           <CheckCircle2 aria-hidden className="h-4 w-4" />
           {t('paymentForm.trust.cards')}
         </li>
-        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-500">
+        <li className="flex items-center gap-2 text-meta-xs uppercase tracking-wider text-stone-600">
           <MapPin aria-hidden className="h-4 w-4" />
           {t('paymentForm.trust.canada')}
         </li>
@@ -914,7 +914,7 @@ function ReviewStep({
         <p className="text-body-sm text-ink-950">
           {values.firstName} {values.lastName} · {values.company}
         </p>
-        <p className="text-body-sm text-stone-500">
+        <p className="text-body-sm text-stone-600">
           {values.email} · {values.phone}
         </p>
       </ReviewBlock>
@@ -928,7 +928,7 @@ function ReviewStep({
         {values.addressLine2 ? (
           <p className="text-body-sm text-ink-950">{values.addressLine2}</p>
         ) : null}
-        <p className="text-body-sm text-stone-500">
+        <p className="text-body-sm text-stone-600">
           {values.city}, {values.province} {values.postalCode}
         </p>
       </ReviewBlock>
@@ -1007,7 +1007,7 @@ function resolveError(
 }
 
 const inputClass =
-  'h-11 w-full rounded-md border border-sand-300 bg-canvas-000 px-3 text-body-md text-ink-950 placeholder:text-stone-500 focus:border-ink-950 focus:outline-none focus:ring-2 focus:ring-ink-950/30';
+  'h-11 w-full rounded-md border border-sand-300 bg-canvas-000 px-3 text-body-md text-ink-950 placeholder:text-stone-600 focus:border-ink-950 focus:outline-none focus:ring-2 focus:ring-ink-950/30';
 
 const selectClass =
   'h-11 w-full rounded-md border border-sand-300 bg-canvas-000 px-3 text-body-md text-ink-950 focus:border-ink-950 focus:outline-none focus:ring-2 focus:ring-ink-950/30';

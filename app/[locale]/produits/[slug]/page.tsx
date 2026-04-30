@@ -17,7 +17,6 @@ import { HeroBlock } from '@/components/sections/HeroBlock';
 import { ProductJsonLd } from '@/components/seo/ProductJsonLd';
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
-import { Hreflang } from '@/components/Hreflang';
 
 import { products, getProductBySlug } from '@/lib/products';
 import { getReviewsForProduct, getAverageRating } from '@/lib/reviews';
@@ -115,7 +114,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: getAlternates(path),
+    alternates: getAlternates(path, locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -197,7 +196,6 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      <Hreflang pathWithoutLocale={productPath} />
       <ProductJsonLd product={product} locale={locale} />
       <BreadcrumbJsonLd items={breadcrumbJsonLd} />
       <FaqJsonLd items={faqJsonLdItems} />
@@ -226,14 +224,14 @@ export default async function ProductPage({ params }: Props) {
               </h1>
 
               {/* 2. SKU subtitle */}
-              <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+              <p className="text-meta-xs uppercase tracking-wider text-stone-600">
                 {locale === 'fr-ca' ? 'Réf. ' : 'Ref. '}
                 {product.styleCode.toUpperCase()}
               </p>
 
               {/* 3. Identity hook */}
               <blockquote className="border-l-4 border-slate-700 bg-canvas-050 px-4 py-3">
-                <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs uppercase tracking-wider text-stone-600">
                   {t('identityHookLabel')}
                 </p>
                 <p className="mt-1 text-body-lg italic text-ink-950">
@@ -246,7 +244,6 @@ export default async function ProductPage({ params }: Props) {
                 <Link
                   href={ratingsAnchor}
                   className="inline-flex items-center gap-2 text-body-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 hover:underline"
-                  aria-label={t('ratingsLabel')}
                 >
                   <StarRating
                     rating={rating.average}
@@ -254,6 +251,7 @@ export default async function ProductPage({ params }: Props) {
                     locale={locale}
                     size="sm"
                   />
+                  <span className="sr-only">— {t('ratingsLabel')}</span>
                 </Link>
               ) : null}
 
@@ -269,7 +267,7 @@ export default async function ProductPage({ params }: Props) {
                     price: formatCAD(product.priceFromCents, locale),
                   })}
                 </p>
-                <p className="mt-1 text-body-sm text-stone-500">
+                <p className="mt-1 text-body-sm text-stone-600">
                   {product.decorationDefault === 'embroidery'
                     ? t('price.embroidered')
                     : t('price.perUnit')}
@@ -350,7 +348,7 @@ export default async function ProductPage({ params }: Props) {
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full border-collapse text-body-sm">
                 <thead>
-                  <tr className="border-b border-sand-300 text-left text-meta-xs uppercase tracking-wider text-stone-500">
+                  <tr className="border-b border-sand-300 text-left text-meta-xs uppercase tracking-wider text-stone-600">
                     <th scope="col" className="py-3 pr-4">
                       {t('sizeMatrix.size')}
                     </th>
@@ -388,7 +386,7 @@ export default async function ProductPage({ params }: Props) {
               {t('reviews.heading')}
             </h2>
             {rating ? (
-              <p className="mt-3 text-body-lg text-stone-500">
+              <p className="mt-3 text-body-lg text-stone-600">
                 <StarRating
                   rating={rating.average}
                   count={rating.count}
@@ -405,7 +403,7 @@ export default async function ProductPage({ params }: Props) {
               className="mt-10"
             />
           ) : (
-            <p className="mt-10 rounded-md border border-sand-300 bg-canvas-050 p-6 text-body-md text-stone-500">
+            <p className="mt-10 rounded-md border border-sand-300 bg-canvas-050 p-6 text-body-md text-stone-600">
               {t('reviews.empty')}
             </p>
           )}

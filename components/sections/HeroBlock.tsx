@@ -28,14 +28,14 @@ const toneClass: Record<Tone, string> = {
 
 const eyebrowClass: Record<Tone, string> = {
   ink: 'text-sand-300',
-  warm: 'text-stone-500',
-  sand: 'text-stone-500',
+  warm: 'text-stone-600',
+  sand: 'text-stone-600',
 };
 
 const subheadClass: Record<Tone, string> = {
   ink: 'text-sand-100',
-  warm: 'text-stone-500',
-  sand: 'text-stone-500',
+  warm: 'text-stone-600',
+  sand: 'text-stone-600',
 };
 
 export function HeroBlock({

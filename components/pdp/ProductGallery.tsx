@@ -43,7 +43,7 @@ export function ProductGallery({
       </div>
 
       {views.length > 1 ? (
-        <ul
+        <div
           role="tablist"
           aria-label={locale === 'fr-ca' ? 'Vues du produit' : 'Product views'}
           className="grid grid-cols-4 gap-3"
@@ -52,31 +52,31 @@ export function ProductGallery({
             const isActive = i === active;
             const label = viewLabels[i]?.[locale] ?? `${i + 1}`;
             return (
-              <li key={v}>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setActive(i)}
-                  className={`relative aspect-square w-full overflow-hidden rounded-sm bg-sand-100 transition-shadow duration-base ease-standard hover:shadow-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${
-                    isActive ? 'ring-2 ring-ink-950' : ''
-                  }`}
-                  aria-label={label}
-                >
-                  <Image
-                    src={`/placeholders/products/${v}.svg`}
-                    alt=""
-                    fill
-                    sizes="120px"
-                    className="object-contain p-2"
-                  />
-                </button>
-              </li>
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => setActive(i)}
+                className={`relative aspect-square w-full overflow-hidden rounded-sm bg-sand-100 transition-shadow duration-base ease-standard hover:shadow-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 ${
+                  isActive ? 'ring-2 ring-ink-950' : ''
+                }`}
+                aria-label={label}
+              >
+                <Image
+                  src={`/placeholders/products/${v}.svg`}
+                  alt=""
+                  fill
+                  sizes="120px"
+                  className="object-contain p-2"
+                />
+              </button>
             );
           })}
-        </ul>
+        </div>
       ) : (
-        <p className="text-body-sm text-stone-500">
+        <p className="text-body-sm text-stone-600">
           {locale === 'fr-ca' ? 'Plus de vues à venir.' : 'More views coming.'}
         </p>
       )}

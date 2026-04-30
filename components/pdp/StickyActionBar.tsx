@@ -46,7 +46,9 @@ export function StickyActionBar({
 
   return (
     <div
-      aria-hidden={!visible}
+      // `inert` removes the subtree from focus + a11y tree when not visible,
+      // avoiding the "aria-hidden contains focusable" axe violation.
+      inert={!visible}
       className={`fixed inset-x-0 bottom-0 z-40 border-t border-sand-300 bg-canvas-000 shadow-lg transition-transform duration-base ease-standard md:hidden ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
@@ -57,7 +59,7 @@ export function StickyActionBar({
             {locale === 'fr-ca' ? 'À partir de ' : 'From '}
             {formatCAD(priceFromCents, locale)}
           </span>
-          <span className="text-meta-xs text-stone-500">{sizeLabel}</span>
+          <span className="text-meta-xs text-stone-600">{sizeLabel}</span>
         </div>
         <Button href={ctaHref} variant="primary" size="md">
           {label}

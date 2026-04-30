@@ -73,11 +73,11 @@ export function HowItWorks({ locale, className = '' }: Props) {
                 key={step.number}
                 className="flex flex-col rounded-md border border-sand-300 bg-canvas-000 p-6"
               >
-                <span className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <span className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   {step.number}
                 </span>
                 <h3 className="mt-3 text-title-md text-ink-950">{step.title}</h3>
-                <p className="mt-2 text-body-md text-stone-500">
+                <p className="mt-2 text-body-md text-stone-600">
                   {step.description}
                 </p>
               </li>

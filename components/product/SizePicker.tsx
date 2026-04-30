@@ -64,7 +64,7 @@ export function SizePicker({
         })}
       </div>
       {showSizeGuide ? (
-        <details className="mt-3 text-body-sm text-stone-500">
+        <details className="mt-3 text-body-sm text-stone-600">
           <summary className="cursor-pointer select-none text-ink-950 underline-offset-2 hover:underline">
             {guideLabel}
           </summary>

@@ -22,6 +22,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
+    "@playwright/test": "^1.59.1",
     "@types/node": "20.16.11",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",

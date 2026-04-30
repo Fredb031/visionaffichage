@@ -62,7 +62,7 @@ export function StarRating({
       </span>
       <span className="font-medium text-ink-950">{rating.toFixed(1)}</span>
       {showCount && typeof count === 'number' ? (
-        <span className="text-stone-500">({count})</span>
+        <span className="text-stone-600">({count})</span>
       ) : null}
     </span>
   );

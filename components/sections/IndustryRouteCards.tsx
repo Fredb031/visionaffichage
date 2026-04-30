@@ -91,8 +91,8 @@ export function IndustryRouteCards({ locale }: Props) {
                     className="h-8 w-8 text-ink-950"
                     strokeWidth={1.6}
                   />
-                  <h3 className="mt-6 text-title-md text-ink-950">{c.title}</h3>
-                  <p className="mt-2 text-body-md text-stone-500">
+                  <h2 className="mt-6 text-title-md text-ink-950">{c.title}</h2>
+                  <p className="mt-2 text-body-md text-stone-600">
                     {c.subtitle}
                   </p>
                   <span className="mt-6 inline-flex items-center gap-1 text-body-md font-medium text-ink-950 transition-transform duration-base ease-standard group-hover:translate-x-0.5">

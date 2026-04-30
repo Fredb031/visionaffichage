@@ -23,13 +23,13 @@ export function EmptyState({
       {Icon ? (
         <Icon
           aria-hidden
-          className="h-10 w-10 text-stone-500"
+          className="h-10 w-10 text-stone-600"
           strokeWidth={1.4}
         />
       ) : null}
       <h2 className="mt-4 text-title-md text-ink-950">{title}</h2>
       {description ? (
-        <p className="mt-2 max-w-md text-body-md text-stone-500">{description}</p>
+        <p className="mt-2 max-w-md text-body-md text-stone-600">{description}</p>
       ) : null}
       {action ? <div className="mt-6">{action}</div> : null}
     </div>

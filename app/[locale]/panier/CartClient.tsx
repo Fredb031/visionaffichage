@@ -75,7 +75,7 @@ export function CartClient({ locale }: Props) {
         <h1 className="text-display-md font-semibold text-ink-950">
           {t('heading')}
         </h1>
-        <p className="mt-2 text-body-md text-stone-500">
+        <p className="mt-2 text-body-md text-stone-600">
           {t('count', { count })}
         </p>
       </header>
@@ -97,7 +97,7 @@ export function CartClient({ locale }: Props) {
 
         <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <OrderSummary items={items} locale={locale} showItems={false} />
-          <p className="rounded-md bg-canvas-050 px-4 py-3 text-meta-xs text-stone-500">
+          <p className="rounded-md bg-canvas-050 px-4 py-3 text-meta-xs text-stone-600">
             {t('summary.leadTime')}
           </p>
           <div className="space-y-3">
@@ -139,14 +139,14 @@ function CartLineItem({
 
   return (
     <li className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
-      <div className="flex h-24 w-24 flex-none items-center justify-center rounded-md bg-canvas-050 text-meta-xs uppercase tracking-wider text-stone-500 sm:h-28 sm:w-28">
+      <div className="flex h-24 w-24 flex-none items-center justify-center rounded-md bg-canvas-050 text-meta-xs uppercase tracking-wider text-stone-600 sm:h-28 sm:w-28">
         {(title[0] ?? '·').toUpperCase()}
       </div>
 
       <div className="flex flex-1 flex-col gap-2">
         <div className="flex flex-col gap-1">
           <h2 className="text-title-md font-medium text-ink-950">{title}</h2>
-          <p className="text-body-sm text-stone-500">
+          <p className="text-body-sm text-stone-600">
             {item.color} · {item.size}
           </p>
         </div>
@@ -194,7 +194,7 @@ function CartLineItem({
           <button
             type="button"
             onClick={onRemove}
-            className="inline-flex items-center gap-1.5 text-body-sm font-medium text-stone-500 hover:text-error-700"
+            className="inline-flex items-center gap-1.5 text-body-sm font-medium text-stone-600 hover:text-error-700"
           >
             <Trash2 aria-hidden className="h-4 w-4" />
             {t('remove')}
@@ -203,10 +203,10 @@ function CartLineItem({
       </div>
 
       <div className="flex flex-col items-start gap-1 sm:items-end">
-        <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+        <p className="text-meta-xs uppercase tracking-wider text-stone-600">
           {t('item.unitPrice')}
         </p>
-        <p className="text-body-sm text-stone-500 tabular-nums">
+        <p className="text-body-sm text-stone-600 tabular-nums">
           {formatCAD(item.unitPriceCents, locale)}
         </p>
         <p className="mt-1 text-title-md font-semibold text-ink-950 tabular-nums">

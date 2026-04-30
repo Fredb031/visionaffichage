@@ -11,7 +11,9 @@ export type PhaseTwoStubKey =
   | 'a-propos'
   | 'contact'
   | 'faq'
-  | 'comment-ca-marche';
+  | 'comment-ca-marche'
+  | 'confidentialite'
+  | 'conditions';
 
 type Cta = {
   label: string;
@@ -199,7 +201,7 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
             <p>Trois façons de nous joindre :</p>
             <ul className="mt-4 grid gap-4 sm:grid-cols-3">
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Téléphone
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">
@@ -207,10 +209,10 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
                     {PHONE_DISPLAY}
                   </a>
                 </p>
-                <p className="mt-1 text-body-sm text-stone-500">8h–17h ET</p>
+                <p className="mt-1 text-body-sm text-stone-600">8h–17h ET</p>
               </li>
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Courriel
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">
@@ -218,16 +220,16 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
                     {EMAIL}
                   </a>
                 </p>
-                <p className="mt-1 text-body-sm text-stone-500">
+                <p className="mt-1 text-body-sm text-stone-600">
                   Réponse en moins d&apos;un jour ouvrable.
                 </p>
               </li>
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Atelier
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">Blainville (Québec)</p>
-                <p className="mt-1 text-body-sm text-stone-500">Sur rendez-vous.</p>
+                <p className="mt-1 text-body-sm text-stone-600">Sur rendez-vous.</p>
               </li>
             </ul>
             <p className="mt-6">Formulaire interactif en Phase 2.</p>
@@ -237,7 +239,7 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
             <p>Three ways to reach us:</p>
             <ul className="mt-4 grid gap-4 sm:grid-cols-3">
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Phone
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">
@@ -245,10 +247,10 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
                     {PHONE_DISPLAY}
                   </a>
                 </p>
-                <p className="mt-1 text-body-sm text-stone-500">8 AM–5 PM ET</p>
+                <p className="mt-1 text-body-sm text-stone-600">8 AM–5 PM ET</p>
               </li>
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Email
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">
@@ -256,16 +258,16 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
                     {EMAIL}
                   </a>
                 </p>
-                <p className="mt-1 text-body-sm text-stone-500">
+                <p className="mt-1 text-body-sm text-stone-600">
                   Reply within one business day.
                 </p>
               </li>
               <li className="rounded-md border border-sand-300 bg-canvas-000 p-5">
-                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                   Shop
                 </p>
                 <p className="mt-2 text-body-md text-ink-950">Blainville, Quebec</p>
-                <p className="mt-1 text-body-sm text-stone-500">By appointment.</p>
+                <p className="mt-1 text-body-sm text-stone-600">By appointment.</p>
               </li>
             </ul>
             <p className="mt-6">Interactive form coming in Phase 2.</p>
@@ -345,7 +347,7 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
                   key={label}
                   className="flex gap-4 rounded-md border border-sand-300 bg-canvas-000 p-5"
                 >
-                  <span className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+                  <span className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
                     {String(idx + 1).padStart(2, '0')}
                   </span>
                   <span className="text-body-md text-ink-950">{label}</span>
@@ -361,6 +363,89 @@ function getCopy(locale: Locale, pageKey: PhaseTwoStubKey): StubCopy {
         secondary: phoneCta,
       };
     }
+    case 'confidentialite':
+      return {
+        eyebrow,
+        heading: isFr ? 'Politique de confidentialité' : 'Privacy policy',
+        body: isFr ? (
+          <>
+            <p>
+              Vision Affichage collecte les informations strictement nécessaires
+              au traitement de vos commandes : nom, courriel, téléphone,
+              entreprise, adresses de livraison et de facturation. Les données
+              de paiement transitent par notre processeur de paiement et ne sont
+              jamais stockées sur nos serveurs.
+            </p>
+            <p>
+              Nous ne revendons jamais vos informations. Politique complète et
+              gestion des consentements en Phase 2. Pour exercer vos droits
+              (accès, rectification, suppression), écrivez à{' '}
+              <a className="underline hover:text-ink-700" href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              Vision Affichage collects only the information needed to process
+              your orders: name, email, phone, company, shipping and billing
+              addresses. Payment data flows through our payment processor and is
+              never stored on our servers.
+            </p>
+            <p>
+              We never sell your data. Full policy and consent management coming
+              in Phase 2. To exercise your rights (access, correction, deletion),
+              email{' '}
+              <a className="underline hover:text-ink-700" href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+            </p>
+          </>
+        ),
+        primary: {
+          label: isFr ? 'Retour à l’accueil' : 'Back to home',
+          href: base,
+        },
+        secondary: phoneCta,
+      };
+    case 'conditions':
+      return {
+        eyebrow,
+        heading: isFr ? 'Conditions d’utilisation' : 'Terms of service',
+        body: isFr ? (
+          <>
+            <p>
+              Toute commande passée sur visionaffichage.ca est régie par les
+              conditions suivantes : approbation de la maquette avant
+              production, paiement complet à la commande, délais indicatifs de
+              5 à 7 jours ouvrables, garantie sur les défauts de production
+              uniquement.
+            </p>
+            <p>
+              Les textes complets (modalités de retour, juridiction, marques de
+              tiers) seront publiés en Phase 2. Pour toute question contractuelle,
+              écrivez à{' '}
+              <a className="underline hover:text-ink-700" href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              All orders placed at visionaffichage.ca are governed by these
+              terms: proof approval prior to production, full payment at order
+              time, indicative 5-to-7-business-day production lead times,
+              warranty against production defects only.
+            </p>
+            <p>
+              Full terms (returns, jurisdiction, third-party trademarks) will be
+              published in Phase 2. For any contractual question, email{' '}
+              <a className="underline hover:text-ink-700" href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+            </p>
+          </>
+        ),
+        primary: {
+          label: isFr ? 'Retour à l’accueil' : 'Back to home',
+          href: base,
+        },
+        secondary: phoneCta,
+      };
     default: {
       const exhaustive: never = pageKey;
       void exhaustive;
@@ -376,13 +461,13 @@ export function PhaseTwoStub({ locale, pageKey }: Props) {
     <Section tone="warm">
       <Container size="lg">
         <div className="max-w-3xl">
-          <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-500">
+          <p className="text-meta-xs font-semibold uppercase tracking-wider text-stone-600">
             {copy.eyebrow}
           </p>
           <h1 className="mt-4 text-display-lg text-ink-950 md:text-display-xl">
             {copy.heading}
           </h1>
-          <div className="mt-8 space-y-4 text-body-lg text-stone-500">
+          <div className="mt-8 space-y-4 text-body-lg text-stone-600">
             {copy.body}
           </div>
           <div className="mt-10 flex flex-wrap gap-4">

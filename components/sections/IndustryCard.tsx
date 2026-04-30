@@ -30,7 +30,7 @@ export function IndustryCard({ industry, locale, className = '' }: Props) {
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">
         <h3 className="text-title-md text-ink-950">{name}</h3>
-        <p className="text-body-md text-stone-500">{hookLine}</p>
+        <p className="text-body-md text-stone-600">{hookLine}</p>
         <span className="mt-auto inline-flex items-center gap-1 pt-3 text-body-md font-medium text-ink-950 transition-transform duration-base ease-standard group-hover:translate-x-0.5">
           {locale === 'fr-ca' ? 'Voir les uniformes' : 'See uniforms'}
           <ArrowRight aria-hidden className="h-4 w-4" />

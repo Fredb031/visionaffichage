@@ -11,3 +11,11 @@ out
 next-env.d.ts
 .eslintcache
 tsconfig.tsbuildinfo
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Lighthouse JSON reports (regenerate-able; keep PHASE_8_AUDIT.md as the durable record)
+lighthouse-*.json

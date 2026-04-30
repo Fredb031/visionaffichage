@@ -63,7 +63,7 @@ export function OrderSummary({
       {showItems ? (
         <ul className="mt-4 divide-y divide-sand-300">
           {items.length === 0 ? (
-            <li className="py-3 text-body-sm text-stone-500">{t.empty}</li>
+            <li className="py-3 text-body-sm text-stone-600">{t.empty}</li>
           ) : (
             items.map((item) => (
               <li
@@ -74,7 +74,7 @@ export function OrderSummary({
                   <p className="font-medium text-ink-950">
                     {locale === 'fr-ca' ? item.titleFr : item.titleEn}
                   </p>
-                  <p className="text-stone-500">
+                  <p className="text-stone-600">
                     {item.color} · {item.size} · ×{item.qty}
                   </p>
                 </div>
@@ -89,13 +89,13 @@ export function OrderSummary({
 
       <dl className="mt-4 space-y-2 border-t border-sand-300 pt-4 text-body-sm">
         <div className="flex justify-between">
-          <dt className="text-stone-500">{t.subtotal}</dt>
+          <dt className="text-stone-600">{t.subtotal}</dt>
           <dd className="font-medium text-ink-950">
             {formatCAD(subtotalCents, locale)}
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-stone-500">{t.shipping}</dt>
+          <dt className="text-stone-600">{t.shipping}</dt>
           <dd className="font-medium text-ink-950">
             {shippingCents === 0 && items.length > 0
               ? t.freeShipping
@@ -103,7 +103,7 @@ export function OrderSummary({
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-stone-500">{t.tax}</dt>
+          <dt className="text-stone-600">{t.tax}</dt>
           <dd className="font-medium text-ink-950">
             {formatCAD(taxCents, locale)}
           </dd>

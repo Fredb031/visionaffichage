@@ -26,6 +26,7 @@ const config: Config = {
         },
         stone: {
           500: '#7A7368',
+          600: '#5F594E',
         },
         success: {
           50: '#ECFDF5',

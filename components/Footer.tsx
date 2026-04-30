@@ -39,10 +39,10 @@ export function Footer() {
                 <Link href={`${base}/industries`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('industries')}</Link>
               </li>
               <li>
-                <Link href={`${base}/processus`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('process')}</Link>
+                <Link href={`${base}/comment-ca-marche`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('process')}</Link>
               </li>
               <li>
-                <Link href={`${base}/realisations`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('portfolio')}</Link>
+                <Link href={`${base}/avis`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('portfolio')}</Link>
               </li>
               <li>
                 <Link href={`${base}/a-propos`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tNav('about')}</Link>

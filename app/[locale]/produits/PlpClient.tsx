@@ -184,10 +184,10 @@ export function PlpClient({
 
       <div className="lg:col-span-9">
         <div className="flex flex-col gap-4 border-b border-sand-300 pb-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-body-sm text-stone-500" aria-live="polite">
+          <p className="text-body-sm text-stone-600" aria-live="polite">
             {tPlp('results.count', { count: resultsCount })}
             {showingFiltered ? (
-              <span className="ml-2 text-stone-500">
+              <span className="ml-2 text-stone-600">
                 {locale === 'fr-ca'
                   ? `(sur ${totalCount})`
                   : `(of ${totalCount})`}

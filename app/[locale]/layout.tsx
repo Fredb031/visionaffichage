@@ -13,7 +13,6 @@ import { siteConfig } from '@/lib/site';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SkipLink } from '@/components/SkipLink';
-import { Hreflang } from '@/components/Hreflang';
 import { OrganizationJsonLd } from '@/components/seo/OrganizationJsonLd';
 
 const inter = Inter({
@@ -93,7 +92,6 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={localeToHtmlLang[locale as Locale]} className={inter.variable}>
       <head>
-        <Hreflang pathWithoutLocale="/" />
         <OrganizationJsonLd />
       </head>
       <body className="font-sans antialiased bg-canvas-000 text-ink-950">

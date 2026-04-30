@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { Container } from '@/components/Container';
 import { Section } from '@/components/Section';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { Hreflang } from '@/components/Hreflang';
 
 import { products as allProducts } from '@/lib/products';
 import {
@@ -51,7 +50,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: getAlternates('/produits'),
+    alternates: getAlternates('/produits', locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -118,8 +117,6 @@ export default async function ProduitsPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <Hreflang pathWithoutLocale="/produits" />
-
       <Section tone="default" className="py-8 md:py-10">
         <Container size="2xl">
           <Breadcrumbs
@@ -138,7 +135,7 @@ export default async function ProduitsPage({ params, searchParams }: Props) {
             <h1 className="text-display-lg text-ink-950 md:text-display-xl">
               {t('heading')}
             </h1>
-            <p className="mt-6 text-body-lg text-stone-500">{t('subhead')}</p>
+            <p className="mt-6 text-body-lg text-stone-600">{t('subhead')}</p>
           </div>
         </Container>
       </Section>

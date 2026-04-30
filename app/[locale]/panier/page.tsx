@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: 'cart' });
   return {
     title: t('metadata.title'),
-    alternates: getAlternates('/panier'),
+    alternates: getAlternates('/panier', locale),
     robots: {
       index: false,
       follow: false,

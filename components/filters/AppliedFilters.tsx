@@ -44,7 +44,7 @@ export function AppliedFilters({
       <button
         type="button"
         onClick={onClearAll}
-        className="text-body-sm text-stone-500 underline-offset-2 hover:text-ink-950 hover:underline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
+        className="text-body-sm text-stone-600 underline-offset-2 hover:text-ink-950 hover:underline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
       >
         {clearLabel}
       </button>

@@ -31,7 +31,7 @@ export function FormField({
       </label>
       {children}
       {helper && !error ? (
-        <p id={`${id}-helper`} className="text-meta-xs text-stone-500">
+        <p id={`${id}-helper`} className="text-meta-xs text-stone-600">
           {helper}
         </p>
       ) : null}

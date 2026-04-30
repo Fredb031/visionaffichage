@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
-import { Hreflang } from '@/components/Hreflang';
 import { PhaseTwoStub } from '@/components/ui/PhaseTwoStub';
 import { getAlternates } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
@@ -36,7 +35,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: getAlternates('/a-propos'),
+    alternates: getAlternates('/a-propos', locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -54,10 +53,5 @@ export default async function AProposPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
 
-  return (
-    <>
-      <Hreflang pathWithoutLocale="/a-propos" />
-      <PhaseTwoStub locale={locale} pageKey="a-propos" />
-    </>
-  );
+  return <PhaseTwoStub locale={locale} pageKey="a-propos" />;
 }

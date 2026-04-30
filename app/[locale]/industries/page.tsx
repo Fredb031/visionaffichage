@@ -8,7 +8,6 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { HeroBlock } from '@/components/sections/HeroBlock';
 import { TrustStrip } from '@/components/sections/TrustStrip';
 import { IndustryGrid } from '@/components/sections/IndustryGrid';
-import { Hreflang } from '@/components/Hreflang';
 
 import { industries } from '@/lib/industries';
 import { getAlternates } from '@/lib/seo';
@@ -42,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: getAlternates('/industries'),
+    alternates: getAlternates('/industries', locale),
     openGraph: {
       type: 'website',
       locale: isFr ? 'fr_CA' : 'en_CA',
@@ -71,8 +70,6 @@ export default async function IndustriesIndexPage({ params }: Props) {
 
   return (
     <>
-      <Hreflang pathWithoutLocale="/industries" />
-
       <Section tone="default" className="py-8 md:py-10">
         <Container size="2xl">
           <Breadcrumbs
@@ -91,7 +88,7 @@ export default async function IndustriesIndexPage({ params }: Props) {
             <h1 className="text-display-lg text-ink-950 md:text-display-xl">
               {t('indexHeading')}
             </h1>
-            <p className="mt-6 text-body-lg text-stone-500">
+            <p className="mt-6 text-body-lg text-stone-600">
               {t('indexSubhead')}
             </p>
           </div>

@@ -29,11 +29,11 @@ export function ReviewCard({ review, locale, className = '' }: Props) {
       </blockquote>
       <footer className="mt-5 border-t border-sand-300 pt-4 text-body-sm">
         <p className="font-semibold text-ink-950">{review.author}</p>
-        <p className="text-stone-500">
+        <p className="text-stone-600">
           {review.role[locale]} · {review.company}
         </p>
         {formattedDate ? (
-          <p className="mt-1 text-meta-xs uppercase tracking-wider text-stone-500">
+          <p className="mt-1 text-meta-xs uppercase tracking-wider text-stone-600">
             {formattedDate}
           </p>
         ) : null}

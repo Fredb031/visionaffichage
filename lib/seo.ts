@@ -13,13 +13,17 @@ export function getCanonicalUrl(locale: Locale, path: string): string {
   return `${BASE_URL}/${locale}${normalizePath(path)}`;
 }
 
-export function getAlternates(path: string): {
+export function getAlternates(
+  path: string,
+  locale?: Locale,
+): {
   canonical: string;
   languages: Record<string, string>;
 } {
   const norm = normalizePath(path);
+  const canonicalLocale = locale ?? routing.defaultLocale;
   return {
-    canonical: `/${routing.defaultLocale}${norm}`,
+    canonical: `/${canonicalLocale}${norm}`,
     languages: {
       'fr-CA': `/fr-ca${norm}`,
       'en-CA': `/en-ca${norm}`,

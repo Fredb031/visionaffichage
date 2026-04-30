@@ -22,7 +22,7 @@ export function LeadTimeEstimator({ leadTimeDays, locale, className = '' }: Prop
       />
       <div>
         <p className="text-body-sm font-medium text-ink-950">{formatted}</p>
-        <p className="text-meta-xs uppercase tracking-wider text-stone-500">
+        <p className="text-meta-xs uppercase tracking-wider text-stone-600">
           {formatLeadTime(leadTimeDays, locale)}
         </p>
       </div>

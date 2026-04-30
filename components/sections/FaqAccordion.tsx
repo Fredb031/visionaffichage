@@ -27,10 +27,10 @@ export function FaqAccordion({ items, locale: _locale = 'fr-ca', className = '' 
             <span>{item.q}</span>
             <ChevronDown
               aria-hidden
-              className="mt-1 h-5 w-5 shrink-0 text-stone-500 transition-transform duration-base ease-standard group-open:rotate-180"
+              className="mt-1 h-5 w-5 shrink-0 text-stone-600 transition-transform duration-base ease-standard group-open:rotate-180"
             />
           </summary>
-          <p className="mt-3 text-body-md text-stone-500">{item.a}</p>
+          <p className="mt-3 text-body-md text-stone-600">{item.a}</p>
         </details>
       ))}
     </div>
