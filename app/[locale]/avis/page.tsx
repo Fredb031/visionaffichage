@@ -175,7 +175,7 @@ export default async function AvisPage({ params, searchParams }: Props) {
         })}
         primaryCta={{
           label: t('submitCta.button'),
-          href: 'mailto:contact@visionaffichage.com?subject=Avis',
+          href: `${base}/avis/soumettre`,
         }}
         secondaryCta={{
           label:
@@ -268,7 +268,7 @@ export default async function AvisPage({ params, searchParams }: Props) {
             </div>
             <div className="md:col-span-5 md:flex md:justify-end">
               <Button
-                href="mailto:contact@visionaffichage.com?subject=Avis"
+                href={`${base}/avis/soumettre`}
                 variant="primary"
                 size="lg"
               >

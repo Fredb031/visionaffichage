@@ -1423,14 +1423,64 @@
     },
     "submitCta": {
       "title": "Are you a client? Share your experience",
-      "body": "Your review helps other Quebec teams pick the right uniform supplier. Send us a few lines — we publish after verification.",
-      "button": "Write to us"
+      "body": "Your review helps other Quebec teams pick the right uniform supplier. Fill out the form — we publish after verification.",
+      "button": "Submit a review"
     },
     "external": {
       "heading": "Find us elsewhere",
       "google": "Google Business Profile",
       "linkedin": "LinkedIn",
       "instagram": "Instagram"
+    }
+  },
+  "reviewSubmit": {
+    "breadcrumb": "Submit a review",
+    "heading": "Share your experience",
+    "subhead": "Your review helps other Quebec businesses make the right choice.",
+    "form": {
+      "name": "Your name",
+      "namePlaceholder": "e.g., Sophie Lemay",
+      "email": "Email",
+      "emailHelper": "Your email — not published.",
+      "company": "Company (optional)",
+      "companyPlaceholder": "Construction Rivard",
+      "role": "Role (optional)",
+      "rolePlaceholder": "Director, HR…",
+      "product": {
+        "label": "Product reviewed",
+        "options": {
+          "none": "Not specific",
+          "multiple": "Several products"
+        }
+      },
+      "rating": {
+        "label": "Your rating",
+        "starsLabel": "{n} stars"
+      },
+      "title": "Title",
+      "titlePlaceholder": "One-line summary",
+      "titleHelper": "{used}/{max} characters",
+      "body": "Your review",
+      "bodyPlaceholder": "Describe your experience — quality, lead time, service…",
+      "bodyHelper": "{used}/{max} characters",
+      "consentPublish": "I authorize Vision Affichage to publish this review with my name + company.",
+      "emailMarketing": "Receive our monthly emails (optional).",
+      "submit": "Send my review",
+      "errors": {
+        "required": "Required field.",
+        "email": "Invalid email.",
+        "rating": "Pick a rating from 1 to 5.",
+        "titleMax": "Maximum 80 characters.",
+        "bodyMin": "Minimum 30 characters.",
+        "bodyMax": "Maximum 1000 characters.",
+        "consentRequired": "You must authorize publication."
+      }
+    },
+    "success": {
+      "heading": "Thank you!",
+      "body": "Your review will be published after verification (24-48h).",
+      "ref": "Reference: {ref}",
+      "returnTo": "Back to reviews"
     }
   },
   "customizer": {

@@ -1423,14 +1423,64 @@
     },
     "submitCta": {
       "title": "Tu es client ? Partage ton expérience",
-      "body": "Ton avis aide d'autres équipes québécoises à choisir le bon fournisseur d'uniformes. Écris-nous quelques lignes — on publie après vérification.",
-      "button": "Écris-nous"
+      "body": "Ton avis aide d'autres équipes québécoises à choisir le bon fournisseur d'uniformes. Remplis le formulaire — on publie après vérification.",
+      "button": "Soumettre un avis"
     },
     "external": {
       "heading": "Retrouve-nous ailleurs",
       "google": "Google Business Profile",
       "linkedin": "LinkedIn",
       "instagram": "Instagram"
+    }
+  },
+  "reviewSubmit": {
+    "breadcrumb": "Soumettre un avis",
+    "heading": "Partage ton expérience",
+    "subhead": "Ton avis aide d'autres entreprises québécoises à choisir.",
+    "form": {
+      "name": "Ton nom",
+      "namePlaceholder": "ex: Sophie Lemay",
+      "email": "Courriel",
+      "emailHelper": "Ton courriel — pas publié.",
+      "company": "Entreprise (optionnel)",
+      "companyPlaceholder": "Construction Rivard",
+      "role": "Rôle (optionnel)",
+      "rolePlaceholder": "Directeur, RH…",
+      "product": {
+        "label": "Produit concerné",
+        "options": {
+          "none": "Pas spécifique",
+          "multiple": "Plusieurs produits"
+        }
+      },
+      "rating": {
+        "label": "Ta note",
+        "starsLabel": "{n} étoiles"
+      },
+      "title": "Titre",
+      "titlePlaceholder": "Résumé en une ligne",
+      "titleHelper": "{used}/{max} caractères",
+      "body": "Ton avis",
+      "bodyPlaceholder": "Décris ton expérience avec qualité, délai, service…",
+      "bodyHelper": "{used}/{max} caractères",
+      "consentPublish": "J'autorise Vision Affichage à publier cet avis avec mon nom + entreprise.",
+      "emailMarketing": "Recevoir nos courriels mensuels (optionnel).",
+      "submit": "Envoyer mon avis",
+      "errors": {
+        "required": "Champ requis.",
+        "email": "Courriel invalide.",
+        "rating": "Choisis une note de 1 à 5.",
+        "titleMax": "Maximum 80 caractères.",
+        "bodyMin": "Minimum 30 caractères.",
+        "bodyMax": "Maximum 1000 caractères.",
+        "consentRequired": "Tu dois autoriser la publication."
+      }
+    },
+    "success": {
+      "heading": "Merci !",
+      "body": "Ton avis sera publié après vérification (24-48h).",
+      "ref": "Référence : {ref}",
+      "returnTo": "Retour aux avis"
     }
   },
   "customizer": {
