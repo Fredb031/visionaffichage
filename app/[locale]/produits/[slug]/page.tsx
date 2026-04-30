@@ -20,7 +20,7 @@ import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
 
 import { products, getProductBySlug } from '@/lib/products';
 import { getReviewsForProduct, getAverageRating } from '@/lib/reviews';
-import { getAlternates, BASE_URL } from '@/lib/seo';
+import { getAlternates, getOgImageUrl, BASE_URL } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { formatCAD } from '@/lib/format';
 import { routing, type Locale } from '@/i18n/routing';
@@ -114,7 +114,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const trail = isFr ? 'Production 5 jours ouvrables.' : '5-business-day production.';
   const description = `${product.identityHook[locale]} · ${trail}`.slice(0, 160);
   const path = `/produits/${product.slug}`;
-  const image = `${BASE_URL}/placeholders/products/${product.gallery?.[0] ?? product.slug}.svg`;
+  const productImage = `${BASE_URL}/placeholders/products/${product.gallery?.[0] ?? product.slug}.svg`;
+
+  const ogTitle = product.title[locale];
+  const ogSubtitle = product.identityHook[locale].slice(0, 80);
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
 
   return {
     title,
@@ -127,13 +131,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}${path}`,
-      images: [{ url: image, alt: product.title[locale] }],
+      images: [
+        { url: ogImage, width: 1200, height: 630, alt: ogTitle },
+        { url: productImage, alt: product.title[locale] },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [image],
+      images: [ogImage],
     },
   };
 }

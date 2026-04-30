@@ -12,7 +12,7 @@ import {
   parseSearchParams,
   sortProducts,
 } from '@/lib/filters';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 import type { BadgeKey, ProductCategory } from '@/lib/types';
@@ -47,6 +47,12 @@ export async function generateMetadata({
     ? "Catalogue complet d'uniformes brodés et imprimés : polos, t-shirts, ouates, vestes, casquettes. Production cinq jours ouvrables après l'approbation du logo."
     : 'Complete catalog of embroidered and printed uniforms: polos, tees, hoodies, jackets, caps. Five business-day production after logo approval.';
 
+  const ogTitle = isFr ? 'Tous les uniformes' : 'All uniforms';
+  const ogSubtitle = isFr
+    ? 'Polos · T-shirts · Ouates · Vestes · Casquettes — production 5 jours'
+    : 'Polos · Tees · Hoodies · Jackets · Caps — 5-business-day production';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -58,11 +64,13 @@ export async function generateMetadata({
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/produits`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [ogImage],
     },
   };
 }

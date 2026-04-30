@@ -16,7 +16,7 @@ import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
 
 import { industries } from '@/lib/industries';
 import { getProductByStyleCode } from '@/lib/products';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 import type { Industry, Product } from '@/lib/types';
@@ -144,6 +144,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     industry.shortDescription[locale];
   const description = `${heroLine} ${t('metaDescriptionSuffix')}`;
 
+  const ogTitle = `${t('metaTitlePrefix')} ${titleName.toLowerCase()}`;
+  const ogSubtitle = heroLine.slice(0, 80);
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -155,11 +159,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/industries/${industry.slug}`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [ogImage],
     },
   };
 }

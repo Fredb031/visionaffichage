@@ -9,7 +9,7 @@ import { Container } from '@/components/Container';
 import { FaqAccordion } from '@/components/sections/FaqAccordion';
 import { HeroBlock } from '@/components/sections/HeroBlock';
 import { Section } from '@/components/Section';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 import { KitClient } from './KitClient';
@@ -39,6 +39,12 @@ export async function generateMetadata({
     ? 'Trois échantillons à toucher avant de commander pour ton équipe.'
     : 'Three samples to feel before ordering for your team.';
 
+  const ogTitle = isFr ? 'Kit découverte' : 'Discovery kit';
+  const ogSubtitle = isFr
+    ? '3 vêtements à toucher avant de commander pour ton équipe'
+    : '3 garments to feel before ordering for your team';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -50,6 +56,13 @@ export async function generateMetadata({
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/kit`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
     },
   };
 }

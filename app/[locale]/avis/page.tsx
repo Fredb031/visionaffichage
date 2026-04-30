@@ -12,7 +12,7 @@ import { ReviewGrid } from '@/components/sections/ReviewGrid';
 
 import { reviews, getOverallAverage } from '@/lib/reviews';
 import { industries } from '@/lib/industries';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 
@@ -60,6 +60,12 @@ export async function generateMetadata({
     ? 'Évaluations Google et témoignages clients de partout au Québec.'
     : 'Google ratings and customer testimonials from across Quebec.';
 
+  const ogTitle = isFr ? 'Avis clients vérifiés' : 'Verified customer reviews';
+  const ogSubtitle = isFr
+    ? 'Témoignages Google · 500+ équipes québécoises servies depuis Blainville'
+    : 'Google testimonials · 500+ Québec teams served from Blainville';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -71,6 +77,13 @@ export async function generateMetadata({
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/avis`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
     },
   };
 }

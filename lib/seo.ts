@@ -31,3 +31,14 @@ export function getAlternates(
     },
   };
 }
+
+/**
+ * Build a URL to the dynamic OG image endpoint with route-specific
+ * title + optional subtitle. Used by per-page generateMetadata so social
+ * shares show the actual page context instead of brand defaults.
+ */
+export function getOgImageUrl(title: string, subtitle?: string): string {
+  const params = new URLSearchParams({ title });
+  if (subtitle) params.set('subtitle', subtitle);
+  return `${BASE_URL}/api/og?${params.toString()}`;
+}

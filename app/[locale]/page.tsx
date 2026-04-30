@@ -22,7 +22,7 @@ import { products } from '@/lib/products';
 import { industries } from '@/lib/industries';
 import { reviews, getOverallAverage } from '@/lib/reviews';
 import { clientLogos } from '@/lib/clients';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import type { Locale } from '@/i18n/routing';
 import type { Product } from '@/lib/types';
@@ -67,6 +67,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? "Broderie et sérigraphie pour t-shirts, polos, ouates et casquettes. Production en 5 jours ouvrables. Service en français au Québec."
     : 'Embroidery and screen printing for tees, polos, hoodies, and caps. 5-business-day production. French service across Québec.';
 
+  const ogTitle = isFr
+    ? "Vêtements d'entreprise au Québec"
+    : 'Company apparel in Québec';
+  const ogSubtitle = isFr
+    ? 'Broderie + sérigraphie · 5 jours ouvrables · 500+ équipes québécoises'
+    : 'Embroidery + screen print · 5 business days · 500+ Québec teams';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -78,11 +86,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [ogImage],
     },
   };
 }

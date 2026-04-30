@@ -6,7 +6,7 @@ import { Container } from '@/components/Container';
 import { Section } from '@/components/Section';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { products } from '@/lib/products';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 
@@ -36,6 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? 'Téléverse ton logo. On vérifie la qualité et on t\'envoie une maquette en 24 h.'
     : 'Upload your logo. We check quality and send you a proof within 24 hours.';
 
+  const ogTitle = isFr ? 'Personnalise ton uniforme' : 'Customize your uniform';
+  const ogSubtitle = isFr
+    ? 'Téléverse ton logo · Maquette en 24h · Production locale'
+    : 'Upload your logo · Proof in 24h · Local production';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -47,6 +53,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/customiser`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
     },
     robots: { index: false, follow: true },
   };

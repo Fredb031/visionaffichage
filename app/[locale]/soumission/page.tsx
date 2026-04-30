@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { Container } from '@/components/Container';
 import { Section } from '@/components/Section';
-import { getAlternates } from '@/lib/seo';
+import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
 import { SoumissionClient } from './SoumissionClient';
@@ -34,6 +34,12 @@ export async function generateMetadata({
     ? 'Soumission pour commandes de 50 unités et plus. Réponse sous un jour ouvrable.'
     : 'Quote requests for 50-unit orders and up. Response within one business day.';
 
+  const ogTitle = isFr ? 'Demander une soumission' : 'Request a quote';
+  const ogSubtitle = isFr
+    ? 'Réponse sous 24h · Volumes 50+ · Québec et Ontario'
+    : 'Reply within 24h · Volumes 50+ · Quebec and Ontario';
+  const ogImage = getOgImageUrl(ogTitle, ogSubtitle);
+
   return {
     title,
     description,
@@ -45,6 +51,13 @@ export async function generateMetadata({
       description,
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/soumission`,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
     },
     robots: { index: false, follow: true },
   };
