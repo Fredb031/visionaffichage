@@ -24,12 +24,17 @@ output for alerting.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
 import pandas as pd
+import requests
 
 from sanmar.config import Settings
 from sanmar.dto import (
@@ -51,6 +56,227 @@ from sanmar.services.shipment import ShipmentService
 
 if TYPE_CHECKING:  # pragma: no cover - import-time only
     from sqlalchemy.orm import Session
+
+    from sanmar.models import OrderRow
+
+logger = logging.getLogger(__name__)
+
+
+# Status codes that warrant a customer-facing webhook. Mirrors the
+# operator alerting set but with finer granularity:
+#
+# * 60 — Picked / awaiting ship → ``order.picked``
+# * 75 — Partial shipment → ``order.partially_shipped``
+# * 80 — Complete / Shipped → ``order.shipped``
+# * 99 — Cancelled → ``order.cancelled``
+#
+# Anything else (received, in production, on hold) is operator-only
+# noise and never gets sent to a customer system.
+WEBHOOK_EVENTS: dict[int, str] = {
+    60: "order.picked",
+    75: "order.partially_shipped",
+    80: "order.shipped",
+    99: "order.cancelled",
+}
+
+WEBHOOK_TIMEOUT_SECONDS = 5.0
+WEBHOOK_RETRY_BACKOFF_SECONDS = 3.0
+
+
+class OrderWebhookClient:
+    """Outbound HTTP poster for customer-facing order transitions.
+
+    Posts a signed JSON envelope to a single configured customer
+    endpoint (Vision's CRM, a Zapier hook, a partner's webhook
+    receiver) when ``reconcile_open_orders`` observes an order moving
+    into one of the codes in :data:`WEBHOOK_EVENTS`.
+
+    Wire format::
+
+        POST <url>
+        Content-Type: application/json
+        X-Sanmar-Signature: <hex-encoded HMAC-SHA256 of the body>
+
+        {
+          "event": "order.shipped",
+          "po_number": "VA-12345",
+          "customer_email": "ops@acme.ca",
+          "status_id": 80,
+          "status_label": "Complete / Shipped",
+          "previous_status_id": 60,
+          "expected_ship_date": "2026-04-30T00:00:00+00:00",
+          "tracking_number": "1Z999AA10123456784",
+          "tracking_numbers": ["1Z999AA10123456784"],
+          "timestamp": "2026-04-29T18:30:00+00:00",
+          "hmac_signature": "<same value as X-Sanmar-Signature>"
+        }
+
+    The signature is computed over the *exact bytes* of the POST body
+    using ``HMAC-SHA256(secret, body)`` so receivers don't need to
+    re-serialize JSON to verify (which would risk dict-order skew).
+    The same hex string is mirrored into the body as
+    ``hmac_signature`` for transports (e.g. Zapier UI) that hide
+    headers.
+
+    Failure policy
+    --------------
+    * ``url`` is ``None`` → every call is a no-op (no HTTP, no log).
+    * 2xx → returns ``True``.
+    * 5xx (or :class:`requests.RequestException`) → one retry after
+      ``WEBHOOK_RETRY_BACKOFF_SECONDS`` of sleep, then gives up.
+    * 4xx → no retry (the receiver said "your payload is malformed",
+      retrying won't help).
+    * All exceptions are caught and logged at ``warning``; reconcile
+      never aborts because a customer's webhook receiver is down.
+    """
+
+    def __init__(
+        self,
+        url: Optional[str],
+        secret: Optional[str] = None,
+        timeout_s: float = WEBHOOK_TIMEOUT_SECONDS,
+    ) -> None:
+        self.url = url or None
+        self.secret = secret or None
+        self.timeout_s = timeout_s
+
+    @property
+    def enabled(self) -> bool:
+        return self.url is not None
+
+    def fire(
+        self,
+        event: str,
+        order: "OrderRow",
+        prev_status: int,
+        new_status: int,
+    ) -> bool:
+        """Build + send the webhook envelope.
+
+        Returns ``True`` when the receiver returned 2xx (possibly
+        after one retry); ``False`` for skipped, 4xx, exhausted
+        retries, or any swallowed exception.
+        """
+        if not self.enabled:
+            return False
+
+        try:
+            payload = self._build_payload(event, order, prev_status, new_status)
+            body = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            signature = self._sign(body)
+
+            # Mirror the signature into the body for transports that
+            # don't surface custom headers.
+            payload["hmac_signature"] = signature
+            body = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            # The X-Sanmar-Signature header is always the authoritative
+            # value computed over the body-without-signature.
+            headers = {
+                "Content-Type": "application/json",
+                "X-Sanmar-Signature": signature,
+                "X-Sanmar-Event": event,
+            }
+        except Exception as exc:  # noqa: BLE001 - never fail reconcile
+            logger.warning(
+                "order webhook payload build failed: %s", type(exc).__name__
+            )
+            return False
+
+        # First attempt.
+        ok, retryable = self._post(body, headers)
+        if ok:
+            return True
+        if not retryable:
+            return False
+
+        # One retry on 5xx / network error.
+        time.sleep(WEBHOOK_RETRY_BACKOFF_SECONDS)
+        ok, _ = self._post(body, headers)
+        return ok
+
+    # ── helpers ───────────────────────────────────────────────────────
+
+    def _build_payload(
+        self,
+        event: str,
+        order: "OrderRow",
+        prev_status: int,
+        new_status: int,
+    ) -> dict[str, Any]:
+        tracking_numbers = list(getattr(order, "tracking_numbers", None) or [])
+        tracking_number = tracking_numbers[0] if tracking_numbers else None
+        expected_ship = getattr(order, "expected_ship_date", None)
+        return {
+            "event": event,
+            "po_number": getattr(order, "po_number", None),
+            "customer_email": getattr(order, "customer_email", None),
+            "previous_status_id": int(prev_status) if prev_status is not None else 0,
+            "status_id": int(new_status),
+            "status_label": ORDER_STATUS_DESCRIPTIONS.get(
+                int(new_status), "Unknown"
+            ),
+            "expected_ship_date": (
+                expected_ship.isoformat()
+                if isinstance(expected_ship, datetime)
+                else None
+            ),
+            "tracking_number": tracking_number,
+            "tracking_numbers": tracking_numbers,
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        }
+
+    def _sign(self, body: bytes) -> str:
+        """Compute the hex-encoded HMAC-SHA256 of ``body``.
+
+        Returns an empty string when no secret is configured; receivers
+        who care about authenticity should reject empty signatures.
+        """
+        if not self.secret:
+            return ""
+        return hmac.new(
+            self.secret.encode("utf-8"), body, hashlib.sha256
+        ).hexdigest()
+
+    def _post(
+        self, body: bytes, headers: dict[str, str]
+    ) -> tuple[bool, bool]:
+        """Single POST attempt. Returns ``(ok, retryable)``.
+
+        * ``ok=True`` — 2xx response.
+        * ``ok=False, retryable=True`` — 5xx or network error → caller
+          may retry.
+        * ``ok=False, retryable=False`` — 4xx or other terminal
+          condition → caller must not retry.
+        """
+        if not self.url:
+            return False, False
+        try:
+            resp = requests.post(
+                self.url,
+                data=body,
+                headers=headers,
+                timeout=self.timeout_s,
+            )
+        except requests.RequestException as exc:
+            logger.warning(
+                "order webhook post failed: %s", type(exc).__name__
+            )
+            return False, True  # network errors are retryable
+
+        if 200 <= resp.status_code < 300:
+            return True, False
+        if resp.status_code >= 500:
+            logger.warning(
+                "order webhook returned 5xx status=%s — will retry",
+                resp.status_code,
+            )
+            return False, True
+        # 4xx — receiver says payload is bad, no retry will help.
+        logger.warning(
+            "order webhook returned 4xx status=%s — giving up",
+            resp.status_code,
+        )
+        return False, False
 
 
 @dataclass
@@ -105,6 +331,7 @@ class SanmarOrchestrator:
         settings: Settings,
         *,
         notifier: Optional[SyncNotifier] = None,
+        webhook_client: Optional[OrderWebhookClient] = None,
     ) -> None:
         self.settings = settings
         # Eager-build all eight so the spec test ("instantiates all 8
@@ -126,6 +353,17 @@ class SanmarOrchestrator:
             notifier
             if notifier is not None
             else SyncNotifier(settings.alert_webhook_url)
+        )
+
+        # Phase 17 — outbound customer webhook. ``None`` URL = no-op
+        # so callers and tests don't need to branch on availability.
+        self.webhook_client: OrderWebhookClient = (
+            webhook_client
+            if webhook_client is not None
+            else OrderWebhookClient(
+                url=getattr(settings, "customer_webhook_url", None),
+                secret=getattr(settings, "customer_webhook_secret", None),
+            )
         )
 
     @property
@@ -534,6 +772,24 @@ class SanmarOrchestrator:
                             )
                         except Exception:  # noqa: BLE001 - never fail the sync
                             pass
+
+                        # Phase 17 — outbound customer webhook on
+                        # transitions to 60/75/80/99. The client itself
+                        # no-ops when no URL is configured, swallows
+                        # all exceptions, and retries once on 5xx so
+                        # reconcile is never blocked by a flaky
+                        # customer endpoint.
+                        event_name = WEBHOOK_EVENTS.get(int(status.status_id))
+                        if event_name is not None:
+                            try:
+                                self.webhook_client.fire(
+                                    event_name,
+                                    row,
+                                    prior_status,
+                                    status.status_id,
+                                )
+                            except Exception:  # noqa: BLE001 - never fail
+                                pass
                 except SanmarApiError as e:
                     result.error_count += 1
                     result.errors.append(

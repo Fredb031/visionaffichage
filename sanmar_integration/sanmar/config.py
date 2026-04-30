@@ -59,6 +59,22 @@ class Settings(BaseSettings):
             "and order transition alerts. Unset = no alerts (no-op)."
         ),
     )
+    customer_webhook_url: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional outbound HTTP endpoint for customer-facing order "
+            "transitions (status 60/75/80/99). Unset = no webhooks "
+            "fired. See docs/SANMAR_WEBHOOKS.md for the contract."
+        ),
+    )
+    customer_webhook_secret: Optional[str] = Field(
+        default=None,
+        description=(
+            "Shared secret used to sign outbound customer webhook "
+            "payloads (HMAC-SHA256, hex-encoded). Sent in the "
+            "X-Sanmar-Signature header and mirrored into the body."
+        ),
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
