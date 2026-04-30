@@ -28,6 +28,11 @@ import { sanmarClient } from '@/lib/sanmar/client';
 import type { SanmarOrderStatus, SanmarOrderInput } from '@/lib/sanmar/types';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { downloadCsv, csvFilename } from '@/lib/csv';
+import {
+  categorizeError,
+  severityClasses,
+  type SanmarErrorContext,
+} from '@/lib/sanmar/errorMessages';
 
 /**
  * /admin/sanmar — operator console for the SanMar Canada PromoStandards
@@ -385,6 +390,11 @@ export default function AdminSanMar() {
   }>({ lastSync: null, totalParts: 0, loading: true });
   const [recentRuns, setRecentRuns] = useState<SanmarSyncLogRow[]>([]);
   const [recentRunsLoading, setRecentRunsLoading] = useState(true);
+  // Sync card + sync log share one fetch; capturing the error here
+  // surfaces it in two places so the operator sees the diagnostic
+  // alongside whichever widget they were looking at first.
+  const [syncFetchError, setSyncFetchError] =
+    useState<SanmarErrorContext | null>(null);
   // Toggled while the Download-CSV button is fetching the wider history
   // window (up to SYNC_LOG_EXPORT_LIMIT rows) — keeps the button from
   // double-firing if the operator is impatient and re-clicks.
@@ -399,6 +409,8 @@ export default function AdminSanMar() {
   // present yet (early-deploy environments) or the operator lacks rights.
   const [cronHealth, setCronHealth] = useState<SanmarCronHealthRow[]>([]);
   const [cronHealthLoading, setCronHealthLoading] = useState(true);
+  const [cronHealthError, setCronHealthError] =
+    useState<SanmarErrorContext | null>(null);
 
   // ── AR Summary ─────────────────────────────────────────────────────────
   // Real-time mirror of what the daily digest computes (see
@@ -417,7 +429,7 @@ export default function AdminSanMar() {
   });
   const [arLoading, setArLoading] = useState(true);
   const [arUpdatedAt, setArUpdatedAt] = useState<Date | null>(null);
-  const [arError, setArError] = useState<string | null>(null);
+  const [arError, setArError] = useState<SanmarErrorContext | null>(null);
 
   // ── Cache hit ratio (24h) ──────────────────────────────────────────────
   // Per-operation cache health derived from `sanmar_cache_metrics` (Phase
@@ -445,12 +457,15 @@ export default function AdminSanMar() {
   const [catalogPage, setCatalogPage] = useState(0);
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] =
+    useState<SanmarErrorContext | null>(null);
 
   // ── Open orders ────────────────────────────────────────────────────────
   const [openOrders, setOpenOrders] = useState<SanmarOrderStatus[]>([]);
   const [openOrdersLoading, setOpenOrdersLoading] = useState(false);
   const [openOrdersLastPoll, setOpenOrdersLastPoll] = useState<Date | null>(null);
-  const [openOrdersError, setOpenOrdersError] = useState<string | null>(null);
+  const [openOrdersError, setOpenOrdersError] =
+    useState<SanmarErrorContext | null>(null);
   // Click-to-filter bridge between the AR tiles and the open-orders
   // table below. Pure UI state — when set to 'open' the table only
   // shows detail rows whose statusId < 80; when 'oldest' it sorts by
@@ -508,6 +523,7 @@ export default function AdminSanMar() {
         return;
       }
       setRecentRunsLoading(true);
+      setSyncFetchError(null);
       try {
         const [logRes, countRes] = await Promise.all([
           supabase
@@ -517,6 +533,14 @@ export default function AdminSanMar() {
             .limit(5),
           supabase.from('sanmar_catalog').select('*', { count: 'exact', head: true }),
         ]);
+        // Surface a structured error if either leg failed but we still
+        // have something to render — better than silently swallowing.
+        if (logRes.error) {
+          setSyncFetchError({
+            code: (logRes.error as { code?: string }).code,
+            message: logRes.error.message,
+          });
+        }
         const rows = ((logRes.data ?? []) as SanmarSyncLogRow[]) ?? [];
         const latest = rows[0] ?? null;
         setRecentRuns(rows);
@@ -525,9 +549,12 @@ export default function AdminSanMar() {
           totalParts: countRes.count ?? 0,
           loading: false,
         });
-      } catch {
+      } catch (e) {
         setRecentRuns([]);
         setSyncStatus(s => ({ ...s, loading: false }));
+        setSyncFetchError({
+          message: e instanceof Error ? e.message : String(e),
+        });
       } finally {
         setRecentRunsLoading(false);
       }
@@ -646,15 +673,32 @@ export default function AdminSanMar() {
         return;
       }
       setCronHealthLoading(true);
+      setCronHealthError(null);
       try {
         const { data, error } = await supabase.rpc('get_sanmar_cron_health');
         if (error) {
+          // Distinguish "function not deployed" (soft empty) from a real
+          // permission / network failure (structured panel). The former
+          // is expected in pre-Wave-7 envs and shouldn't alarm; the
+          // latter needs the operator to act.
+          const msg = (error.message ?? '').toLowerCase();
+          const code = (error as { code?: string }).code ?? '';
+          const isMissingFn =
+            code === 'PGRST202' ||
+            msg.includes('could not find the function') ||
+            msg.includes('does not exist');
+          if (!isMissingFn) {
+            setCronHealthError({ code, message: error.message });
+          }
           setCronHealth([]);
         } else {
           setCronHealth((data ?? []) as SanmarCronHealthRow[]);
         }
-      } catch {
+      } catch (e) {
         setCronHealth([]);
+        setCronHealthError({
+          message: e instanceof Error ? e.message : String(e),
+        });
       } finally {
         setCronHealthLoading(false);
       }
@@ -772,11 +816,11 @@ export default function AdminSanMar() {
         if (!isMissingFn) {
           // Real error; record but still try the fallback so the top
           // three tiles keep working under transient RPC errors.
-          setArError(error.message);
+          setArError({ code, message: error.message });
         }
       } catch (e) {
         // Network blip / parse failure / etc. Record and try fallback.
-        setArError(e instanceof Error ? e.message : String(e));
+        setArError({ message: e instanceof Error ? e.message : String(e) });
       }
 
       // ── Path B: legacy client-side aggregate (fallback) ───────────────
@@ -792,7 +836,10 @@ export default function AdminSanMar() {
           .select('status_id, created_at, order_data')
           .or(`status_id.is.null,status_id.lt.${OPEN_STATUS_CUTOFF}`);
         if (error) {
-          setArError(error.message);
+          setArError({
+            code: (error as { code?: string }).code,
+            message: error.message,
+          });
           setArStats({
             openBalance: 0,
             openCount: 0,
@@ -855,7 +902,7 @@ export default function AdminSanMar() {
       } catch (e) {
         // Network blips, JSON parse failures, etc. — never crash the
         // page; surface as an inline error caption instead.
-        setArError(e instanceof Error ? e.message : String(e));
+        setArError({ message: e instanceof Error ? e.message : String(e) });
         setArStats({
           openBalance: 0,
           openCount: 0,
@@ -982,6 +1029,7 @@ export default function AdminSanMar() {
     let cancelled = false;
     (async () => {
       setCatalogLoading(true);
+      setCatalogError(null);
       if (!supabase) {
         if (!cancelled) setCatalogLoading(false);
         return;
@@ -1001,17 +1049,33 @@ export default function AdminSanMar() {
           .range(from, to);
         if (cancelled) return;
         if (error) {
-          // Table missing in early-deploy environments — soft empty state.
+          // Distinguish missing-table (soft empty) from a permission /
+          // connectivity failure (structured panel). The 42P01 code is
+          // PostgreSQL's "undefined_table"; PGRST205 is the PostgREST
+          // equivalent.
+          const code = (error as { code?: string }).code ?? '';
+          const msg = (error.message ?? '').toLowerCase();
+          const isMissingTable =
+            code === '42P01' ||
+            code === 'PGRST205' ||
+            msg.includes('does not exist') ||
+            msg.includes('relation') && msg.includes('not exist');
+          if (!isMissingTable) {
+            setCatalogError({ code, message: error.message });
+          }
           setCatalogRows([]);
           setCatalogTotal(0);
         } else {
           setCatalogRows((data ?? []) as SanmarCatalogRow[]);
           setCatalogTotal(count ?? 0);
         }
-      } catch {
+      } catch (e) {
         if (!cancelled) {
           setCatalogRows([]);
           setCatalogTotal(0);
+          setCatalogError({
+            message: e instanceof Error ? e.message : String(e),
+          });
         }
       } finally {
         if (!cancelled) setCatalogLoading(false);
@@ -1038,7 +1102,13 @@ export default function AdminSanMar() {
         setOpenOrdersLastPoll(new Date());
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setOpenOrdersError(msg);
+        // Try to extract a status code if the SanMar client surfaced
+        // one; fall back to message-only categorization otherwise.
+        const status =
+          typeof (e as { status?: unknown })?.status === 'number'
+            ? (e as { status: number }).status
+            : undefined;
+        setOpenOrdersError({ status, message: msg });
       } finally {
         setOpenOrdersLoading(false);
       }
@@ -1490,6 +1560,13 @@ export default function AdminSanMar() {
                   : 'Synchroniser maintenant'}
             </button>
           </div>
+          {syncFetchError ? (
+            <SanmarErrorPanel
+              err={syncFetchError}
+              lang={lang}
+              className="mt-4"
+            />
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="bg-va-bg-2 rounded-xl px-5 py-4">
               <div className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
@@ -1588,7 +1665,9 @@ export default function AdminSanMar() {
               </button>
             </div>
           </div>
-          {recentRunsLoading && recentRuns.length === 0 ? (
+          {syncFetchError ? (
+            <SanmarErrorPanel err={syncFetchError} lang={lang} />
+          ) : recentRunsLoading && recentRuns.length === 0 ? (
             <p className="text-va-muted text-sm py-6 text-center">
               {lang === 'en' ? 'Loading…' : 'Chargement…'}
             </p>
@@ -1721,7 +1800,9 @@ export default function AdminSanMar() {
               {lang === 'en' ? 'Refresh' : 'Actualiser'}
             </button>
           </div>
-          {cronHealthLoading && cronHealth.length === 0 ? (
+          {cronHealthError ? (
+            <SanmarErrorPanel err={cronHealthError} lang={lang} />
+          ) : cronHealthLoading && cronHealth.length === 0 ? (
             <p className="text-va-muted text-sm py-6 text-center">
               {lang === 'en' ? 'Loading…' : 'Chargement…'}
             </p>
@@ -1879,6 +1960,9 @@ export default function AdminSanMar() {
               {lang === 'en' ? 'Refresh' : 'Actualiser'}
             </button>
           </div>
+          {arError ? (
+            <SanmarErrorPanel err={arError} lang={lang} className="mb-4" />
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Tile 1 — Open AR balance (CAD) */}
             <button
@@ -2202,6 +2286,13 @@ export default function AdminSanMar() {
             <Boxes size={20} aria-hidden="true" className="text-va-blue" />
             {lang === 'en' ? 'Inventory' : 'Inventaire'}
           </h2>
+          {catalogError ? (
+            <SanmarErrorPanel
+              err={catalogError}
+              lang={lang}
+              className="mb-4"
+            />
+          ) : null}
           <div className="overflow-x-auto -mx-6 px-6">
             <table className="min-w-full text-sm">
               <thead>
@@ -2389,19 +2480,7 @@ export default function AdminSanMar() {
             </button>
           </div>
           {openOrdersError ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-              <AlertCircle
-                size={18}
-                aria-hidden="true"
-                className="text-va-warn mt-0.5 flex-shrink-0"
-              />
-              <div className="text-sm text-amber-900">
-                <div className="font-bold mb-1">
-                  {lang === 'en' ? 'Could not load open orders' : 'Impossible de charger les commandes ouvertes'}
-                </div>
-                <div className="text-xs">{openOrdersError}</div>
-              </div>
-            </div>
+            <SanmarErrorPanel err={openOrdersError} lang={lang} />
           ) : openOrders.length === 0 ? (
             <div className="py-8 text-center space-y-1.5">
               {openOrdersLastPoll ? (
@@ -2689,5 +2768,60 @@ function Field({
         className="mt-1 w-full border border-va-line rounded-lg px-3 py-2 text-sm text-va-ink outline-none focus:border-va-blue focus-visible:ring-2 focus-visible:ring-va-blue/25 transition-shadow bg-va-white"
       />
     </label>
+  );
+}
+
+/**
+ * Structured error panel rendered above (or in place of) any /admin/sanmar
+ * widget that fails to load. Wraps {@link categorizeError} so each call
+ * site only has to pass the raw error context + lang — the panel handles
+ * title/action/severity/colour and the <details> disclosure for raw
+ * diagnostics.
+ *
+ * Pattern follows the empty-state boxes from Wave 14: same border-radius,
+ * same icon-left layout. The severity stripe (`border-l-4`) is the only
+ * visual difference, picked by {@link severityClasses}.
+ *
+ * Use as the sole content of a section when the widget can't render at
+ * all (cron health table couldn't fetch), or above the section's normal
+ * content when a partial render is still useful (AR tiles still show
+ * the last-known zeroes alongside the diagnostic).
+ */
+function SanmarErrorPanel({
+  err,
+  lang,
+  className,
+}: {
+  err: SanmarErrorContext;
+  lang: 'fr' | 'en';
+  className?: string;
+}) {
+  const { title, action, severity } = categorizeError(err, lang);
+  const cls = severityClasses(severity);
+  return (
+    <div
+      role="alert"
+      className={`rounded-xl border p-4 flex items-start gap-3 ${cls.panel} ${className ?? ''}`}
+    >
+      <AlertCircle
+        size={18}
+        aria-hidden="true"
+        className={`mt-0.5 flex-shrink-0 ${cls.iconColor}`}
+      />
+      <div className={`text-sm flex-1 min-w-0 ${cls.titleColor}`}>
+        <div className="font-bold mb-1">{title}</div>
+        <p className="text-xs opacity-90">{action}</p>
+        <details className="mt-2 group">
+          <summary className="text-xs font-semibold cursor-pointer opacity-70 hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue rounded">
+            {lang === 'en' ? 'Technical details' : 'Détails techniques'}
+          </summary>
+          <pre className="mt-2 text-[11px] font-mono opacity-80 whitespace-pre-wrap break-words bg-white/60 rounded p-2 border border-va-line">
+            {err.status != null ? `HTTP ${err.status}\n` : ''}
+            {err.code ? `${err.code}\n` : ''}
+            {err.message}
+          </pre>
+        </details>
+      </div>
+    </div>
   );
 }
