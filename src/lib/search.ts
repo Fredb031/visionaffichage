@@ -76,8 +76,19 @@ function expandTokens(tokens: string[]): string[] {
   const expanded = new Set<string>();
   for (const t of tokens) {
     expanded.add(t);
+    // Guard against prototype-chain lookups: SYNONYMS is a plain object,
+    // so a query token of "__proto__", "constructor", "toString", etc.
+    // resolves to Object.prototype values (objects/functions) instead of
+    // undefined. The truthy `if (syns)` check then passes and the
+    // `for ... of syns` iteration throws TypeError ("syns is not
+    // iterable"), which would crash the entire search() call and blank
+    // the dropdown for the rest of the keystroke. Restrict to own array
+    // values so prototype keys + accidental non-array entries both fall
+    // through cleanly. hasOwn check via Object.prototype.hasOwnProperty
+    // for ES2017 compatibility.
+    if (!Object.prototype.hasOwnProperty.call(SYNONYMS, t)) continue;
     const syns = SYNONYMS[t];
-    if (syns) {
+    if (Array.isArray(syns)) {
       for (const s of syns) expanded.add(normalise(s));
     }
   }
