@@ -152,6 +152,51 @@
       "cardCvc": "CVC invalide"
     }
   },
+  "contact": {
+    "heading": "Contact",
+    "subhead": "Une question, une soumission ou un suivi de commande ? Écris-nous et on revient sous 24 h ouvrables.",
+    "form": {
+      "name": "Nom complet",
+      "email": "Courriel",
+      "phone": "Téléphone (optionnel)",
+      "subject": "Sujet",
+      "subjectOptions": {
+        "product": "Question produit",
+        "quote": "Demande de soumission",
+        "tracking": "Suivi de commande",
+        "other": "Autre"
+      },
+      "message": "Message",
+      "messageHelper": "{used}/{max} caractères",
+      "language": "Langue préférée pour la réponse",
+      "languageFr": "Français",
+      "languageEn": "Anglais",
+      "marketingOptIn": "Je consens à recevoir occasionnellement des courriels marketing de Vision Affichage. Je peux me désabonner en tout temps (LCAP).",
+      "ctaSubmit": "Envoyer le message"
+    },
+    "errors": {
+      "required": "Ce champ est requis.",
+      "email": "Adresse courriel invalide.",
+      "messageMin": "Ton message doit contenir au moins 10 caractères.",
+      "messageMax": "Ton message doit contenir au plus 2000 caractères."
+    },
+    "success": {
+      "heading": "Message envoyé.",
+      "ref": "Référence : {ref}",
+      "body": "Merci. On a reçu ton message (réf. {ref}) et on revient sous 24 h ouvrables.",
+      "sendAnother": "Envoyer un autre message"
+    },
+    "alternatives": {
+      "heading": "Autres façons de nous joindre",
+      "phoneLabel": "Téléphone",
+      "phoneHours": "Lun-Ven 8 h - 17 h ET",
+      "emailLabel": "Courriel",
+      "emailReplyTime": "Réponse sous 24 h ouvrables",
+      "workshopLabel": "Atelier",
+      "workshopAddress": "Blainville, QC",
+      "workshopByAppointment": "Sur rendez-vous seulement"
+    }
+  },
   "confirmation": {
     "metadata": {
       "title": "Commande confirmée · Vision Affichage"

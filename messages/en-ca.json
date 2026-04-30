@@ -152,6 +152,51 @@
       "cardCvc": "Invalid CVC"
     }
   },
+  "contact": {
+    "heading": "Contact",
+    "subhead": "A question, a quote, or order tracking? Send us a message and we'll get back to you within 24 business hours.",
+    "form": {
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "subject": "Subject",
+      "subjectOptions": {
+        "product": "Product question",
+        "quote": "Quote request",
+        "tracking": "Order tracking",
+        "other": "Other"
+      },
+      "message": "Message",
+      "messageHelper": "{used}/{max} characters",
+      "language": "Preferred reply language",
+      "languageFr": "French",
+      "languageEn": "English",
+      "marketingOptIn": "I agree to receive occasional marketing emails from Vision Affichage. I can unsubscribe at any time (CASL).",
+      "ctaSubmit": "Send message"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "email": "Invalid email address.",
+      "messageMin": "Your message must be at least 10 characters.",
+      "messageMax": "Your message must be at most 2000 characters."
+    },
+    "success": {
+      "heading": "Message sent.",
+      "ref": "Reference: {ref}",
+      "body": "Thanks. We received your message (ref. {ref}) and will reply within 24 business hours.",
+      "sendAnother": "Send another message"
+    },
+    "alternatives": {
+      "heading": "Other ways to reach us",
+      "phoneLabel": "Phone",
+      "phoneHours": "Mon-Fri 8 a.m. - 5 p.m. ET",
+      "emailLabel": "Email",
+      "emailReplyTime": "Reply within 24 business hours",
+      "workshopLabel": "Workshop",
+      "workshopAddress": "Blainville, QC",
+      "workshopByAppointment": "By appointment only"
+    }
+  },
   "confirmation": {
     "metadata": {
       "title": "Order confirmed · Vision Affichage"

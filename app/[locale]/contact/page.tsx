@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
-import { PhaseTwoStub } from '@/components/ui/PhaseTwoStub';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { Container } from '@/components/Container';
+import { Section } from '@/components/Section';
 import { getAlternates } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
+import { ContactClient } from './ContactClient';
 
 function isLocale(value: string): value is Locale {
   return value === 'fr-ca' || value === 'en-ca';
@@ -44,7 +47,6 @@ export async function generateMetadata({
       siteName: siteConfig.name,
       url: `${siteConfig.url}/${locale}/contact`,
     },
-    robots: { index: false, follow: true },
   };
 }
 
@@ -53,5 +55,31 @@ export default async function ContactPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
 
-  return <PhaseTwoStub locale={locale} pageKey="contact" />;
+  const tBreadcrumbs = await getTranslations({
+    locale,
+    namespace: 'breadcrumbs',
+  });
+  const t = await getTranslations({ locale, namespace: 'contact' });
+
+  const breadcrumbItems = [
+    { label: tBreadcrumbs('home'), href: `/${locale}` },
+    { label: t('heading') },
+  ];
+
+  return (
+    <>
+      <div className="bg-canvas-050">
+        <Container size="2xl">
+          <div className="pt-6">
+            <Breadcrumbs items={breadcrumbItems} locale={locale} />
+          </div>
+        </Container>
+      </div>
+      <Section tone="default">
+        <Container size="2xl">
+          <ContactClient locale={locale} />
+        </Container>
+      </Section>
+    </>
+  );
 }
