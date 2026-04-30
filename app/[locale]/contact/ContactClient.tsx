@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, CheckCircle2, Mail, MapPin, Phone } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Mail, MapPin, Phone, Printer } from 'lucide-react';
 
 import { FormField } from '@/components/checkout/FormField';
 import {
@@ -113,6 +113,7 @@ export function ContactClient({ locale }: Props) {
           {submitted ? (
             <SuccessView
               ticketId={submitted.ticketId}
+              locale={locale}
               onSendAnother={handleSendAnother}
             />
           ) : (
@@ -336,13 +337,51 @@ function ContactCard({ icon, label, primary, detail }: ContactCardProps) {
 
 type SuccessViewProps = {
   ticketId: string;
+  locale: Locale;
   onSendAnother: () => void;
 };
 
-function SuccessView({ ticketId, onSendAnother }: SuccessViewProps) {
+function SuccessView({ ticketId, locale, onSendAnother }: SuccessViewProps) {
   const t = useTranslations('contact');
+  const tPrint = useTranslations('print');
+  const printDate = new Date().toLocaleDateString(locale);
   return (
-    <div className="space-y-6 rounded-lg border border-success-700/40 bg-canvas-050 p-6 md:p-8">
+    <div
+      data-print-region
+      className="space-y-6 rounded-lg border border-success-700/40 bg-canvas-050 p-6 md:p-8"
+    >
+      <header
+        data-print-header
+        className="border-b border-black pb-4 text-black"
+      >
+        <p className="text-xl font-bold tracking-wider">
+          {tPrint('header.wordmark')}
+        </p>
+        <p className="text-sm">{tPrint('header.address')}</p>
+        <div className="mt-3 flex justify-between text-sm">
+          <span className="font-semibold uppercase tracking-wider">
+            {tPrint('header.title.message')}
+          </span>
+          <span>
+            {tPrint('header.dateLabel')}: {printDate} ·{' '}
+            {tPrint('header.refLabel')}: {ticketId}
+          </span>
+        </div>
+      </header>
+
+      <div data-print-hide className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined') window.print();
+          }}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-sand-300 bg-canvas-000 px-4 text-body-sm font-medium text-ink-950 transition-colors duration-base hover:bg-sand-100"
+        >
+          <Printer aria-hidden className="h-4 w-4" />
+          {tPrint('button.label')}
+        </button>
+      </div>
+
       <div className="flex items-start gap-3">
         <CheckCircle2
           aria-hidden
@@ -360,7 +399,7 @@ function SuccessView({ ticketId, onSendAnother }: SuccessViewProps) {
           </p>
         </div>
       </div>
-      <div className="flex justify-start border-t border-sand-300 pt-6">
+      <div data-print-hide className="flex justify-start border-t border-sand-300 pt-6">
         <button
           type="button"
           onClick={onSendAnother}

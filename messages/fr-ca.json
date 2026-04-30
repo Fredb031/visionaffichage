@@ -1637,5 +1637,28 @@
     "mailto": {
       "cta": "Écris-nous"
     }
+  },
+  "print": {
+    "button": {
+      "label": "Imprimer"
+    },
+    "header": {
+      "wordmark": "VISION AFFICHAGE",
+      "address": "Atelier Blainville, QC · contact@visionaffichage.com · (367) 380-4808",
+      "dateLabel": "Date",
+      "refLabel": "Référence",
+      "title": {
+        "order": "REÇU DE COMMANDE",
+        "quote": "SOUMISSION",
+        "kit": "REÇU DE KIT DÉCOUVERTE",
+        "message": "ACCUSÉ DE RÉCEPTION"
+      },
+      "docTypes": {
+        "order": "Reçu de commande",
+        "quote": "Soumission",
+        "kit": "Reçu de kit découverte",
+        "message": "Accusé de réception"
+      }
+    }
   }
 }

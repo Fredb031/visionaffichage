@@ -1637,5 +1637,28 @@
     "mailto": {
       "cta": "Email us"
     }
+  },
+  "print": {
+    "button": {
+      "label": "Print"
+    },
+    "header": {
+      "wordmark": "VISION AFFICHAGE",
+      "address": "Workshop Blainville, QC · contact@visionaffichage.com · (367) 380-4808",
+      "dateLabel": "Date",
+      "refLabel": "Reference",
+      "title": {
+        "order": "ORDER RECEIPT",
+        "quote": "QUOTE",
+        "kit": "DISCOVERY KIT RECEIPT",
+        "message": "MESSAGE RECEIPT"
+      },
+      "docTypes": {
+        "order": "Order receipt",
+        "quote": "Quote",
+        "kit": "Discovery kit receipt",
+        "message": "Message receipt"
+      }
+    }
   }
 }

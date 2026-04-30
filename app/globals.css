@@ -57,3 +57,82 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Print-only header: hidden on screen, shown only when printing */
+[data-print-header] {
+  display: none;
+}
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Reveal only the print region and its descendants */
+  [data-print-region],
+  [data-print-region] * {
+    visibility: visible;
+  }
+
+  /* Position the print region from the top of the page */
+  [data-print-region] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Show the print-only header when printing */
+  [data-print-header] {
+    display: block !important;
+  }
+
+  /* Reset background colors for ink savings */
+  html,
+  body,
+  [data-print-region],
+  [data-print-region] * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide interactive / chrome elements */
+  button,
+  a[role="button"],
+  [data-print-hide],
+  [data-print-hide] * {
+    display: none !important;
+  }
+
+  /* Keep links readable in print: black with underline */
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+
+  /* Page break controls */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  table, ul, ol {
+    page-break-inside: avoid;
+  }
+
+  /* Hide cookie banner / regions explicitly */
+  [role="region"][aria-label*="témoins"],
+  [role="region"][aria-label*="cookies"],
+  [role="region"][aria-label*="Témoins"],
+  [role="region"][aria-label*="Cookies"] {
+    display: none !important;
+  }
+
+  /* Sensible page margins */
+  @page {
+    margin: 16mm 14mm;
+  }
+}
