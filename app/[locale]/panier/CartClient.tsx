@@ -110,7 +110,7 @@ export function CartClient({ locale }: Props) {
               {t('cta.checkout')}
             </Button>
             <Link
-              href={`/${locale}/devis`}
+              href={`/${locale}/soumission`}
               className="block text-center text-body-sm font-medium text-ink-950 underline underline-offset-2 hover:text-ink-800"
             >
               {t('cta.quote')}

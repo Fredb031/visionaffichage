@@ -227,7 +227,7 @@ export default async function IndustryPage({ params }: Props) {
                 <Button href="#recommended" variant="primary" size="lg">
                   {t('ctaPrimary')}
                 </Button>
-                <Button href={`${base}/devis`} variant="secondary" size="lg">
+                <Button href={`${base}/soumission`} variant="secondary" size="lg">
                   {t('ctaSecondary')}
                 </Button>
               </div>
@@ -350,7 +350,7 @@ export default async function IndustryPage({ params }: Props) {
             ))}
           </ul>
           <div className="mt-10">
-            <Button href={`${base}/devis`} variant="primary" size="lg">
+            <Button href={`${base}/soumission`} variant="primary" size="lg">
               {t('fallbackCta')}
             </Button>
           </div>

@@ -112,7 +112,7 @@ export default async function IndustriesIndexPage({ params }: Props) {
         subhead={t('indexFallbackBody')}
         primaryCta={{
           label: t('indexFallbackCta'),
-          href: `${base}/devis`,
+          href: `${base}/soumission`,
         }}
         secondaryCta={{
           label: locale === 'fr-ca' ? 'Voir les produits' : 'View products',

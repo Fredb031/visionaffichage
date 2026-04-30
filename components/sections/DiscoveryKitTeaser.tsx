@@ -62,7 +62,7 @@ export function DiscoveryKitTeaser({ locale, className = '' }: Props) {
             </ul>
             <div className="mt-8">
               <Button
-                href={`${base}/kit-decouverte`}
+                href={`${base}/kit`}
                 variant="primary"
                 size="lg"
               >

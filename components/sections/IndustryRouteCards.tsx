@@ -36,7 +36,7 @@ export function IndustryRouteCards({ locale }: Props) {
             title: 'Commander un kit découverte',
             subtitle: 'Trois échantillons à toucher avant de commander.',
             cta: 'Aller',
-            href: `${base}/kit-decouverte`,
+            href: `${base}/kit`,
           },
           {
             id: 'quote',
@@ -62,7 +62,7 @@ export function IndustryRouteCards({ locale }: Props) {
             title: 'Order a discovery kit',
             subtitle: 'Three samples to touch before you commit.',
             cta: 'Go',
-            href: `${base}/kit-decouverte`,
+            href: `${base}/kit`,
           },
           {
             id: 'quote',

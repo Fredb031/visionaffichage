@@ -459,7 +459,7 @@ export default async function ProductPage({ params }: Props) {
         }}
         secondaryCta={{
           label: t('cta.quote.label'),
-          href: `${base}/devis`,
+          href: `${base}/soumission`,
         }}
       />
     </>

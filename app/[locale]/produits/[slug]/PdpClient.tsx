@@ -222,7 +222,7 @@ export function PdpClient({ product, locale }: Props) {
 
       {/* 13. Secondary CTA */}
       <div>
-        <Button href={`/${locale}/devis`} variant="tertiary" size="md" className="px-0">
+        <Button href={`/${locale}/soumission`} variant="tertiary" size="md" className="px-0">
           {quoteLabel}
         </Button>
         <p className="mt-1 text-body-sm text-stone-500">{quoteSubtext}</p>
