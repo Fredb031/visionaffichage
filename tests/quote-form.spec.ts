@@ -47,6 +47,13 @@ test('quote form: 6-step submission generates Q-XXXX ref', async ({ page }) => {
   // Step 6 — review + submit.
   await page.getByRole('button', { name: /Envoyer|Submit/i }).click();
 
-  // Success view: a Q-XXXX reference must surface.
-  await expect(page.getByText(/Q-/).first()).toBeVisible({ timeout: 5000 });
+  // Success view: a Q-XXXX reference must surface in the visible body
+  // (Wave 7 added a `data-print-header` block hidden on screen).
+  await expect(
+    page
+      .locator('p, span')
+      .filter({ hasText: /Q-[A-Z0-9]+/ })
+      .filter({ visible: true })
+      .first(),
+  ).toBeVisible({ timeout: 5000 });
 });

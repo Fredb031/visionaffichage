@@ -13,6 +13,14 @@ test('contact form: submit generates T-XXXX ref', async ({ page }) => {
 
   await page.getByRole('button', { name: /Envoyer|Send/i }).click();
 
-  // Success view shows a T-XXXX ticket reference.
-  await expect(page.getByText(/T-/).first()).toBeVisible({ timeout: 5000 });
+  // Success view shows a T-XXXX ticket reference. Wave 7 added a
+  // `data-print-header` block hidden on screen via CSS (display:none) but
+  // still in the DOM, so we filter the T- match to visible nodes only.
+  await expect(
+    page
+      .locator('p, span')
+      .filter({ hasText: /T-[A-Z0-9]+/ })
+      .filter({ visible: true })
+      .first(),
+  ).toBeVisible({ timeout: 5000 });
 });

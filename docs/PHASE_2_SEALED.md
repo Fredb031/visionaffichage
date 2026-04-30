@@ -1,10 +1,9 @@
 # Phase 2 — SEALED
 
-**Date:** 2026-04-29 (Wave 5) · 2026-04-30 (Wave 6 — final-2.5)
-**Tag:** `v2-phase2-sealed` (Wave 5) · `v2-phase2-final-2.5` (Wave 6)
+**Date:** 2026-04-29 (Wave 5) · 2026-04-30 (Wave 6 — final-2.5) · 2026-04-29 (Wave 7)
+**Tag:** `v2-phase2-sealed` (Wave 5) · `v2-phase2-final-2.5` (Wave 6) · `v2-phase2-w7` (Wave 7)
 **Branch:** `v2/rebrand`
-**Final SSG count:** 78 pages (75 from Wave 5 + 3 metadata routes:
-manifest.webmanifest, icon, apple-icon)
+**Final SSG count:** 80 pages (78 from Wave 6 + 2 from `/{locale}/infolettre`)
 **Final commit (sealer):** see `git log` after this doc lands
 
 ---
@@ -172,15 +171,106 @@ zero `fixme`.
 | HTML source: `<meta name="theme-color" content="#101114">` | present |
 | Plausible script when no env var set | not loaded (default state) |
 
+## Wave 7 additions (`v2-phase2-w7`)
+
+Wave 7 layered on four discovery / retention surfaces. All four landed
+in parallel as separate feature commits on top of `v2-phase2-final-2.5`;
+this doc revision is the sealer. Brings totals to **80 SSG** and **26 / 26**
+Playwright tests (zero fixme).
+
+### 1. Global search dialog (Cmd+K)
+
+- `components/search/SearchDialog.tsx` (the search agent landed in
+  `feat(v2/search)`). Header now mounts a `Search`-icon trigger button
+  with `aria-keyshortcuts="Control+K Meta+K"`. Cmd+K / Ctrl+K from
+  anywhere toggles the combobox dialog. The trigger is named via
+  `nav.search.trigger.label` / `search.*` keys.
+- Index: products, industries, and curated static pages, grouped in
+  the dialog with keyboard navigation and click-to-route.
+
+### 2. `/infolettre` newsletter signup (CASL Bill C-28 compliant)
+
+- New SSG pages under `app/[locale]/infolettre/` (FR + EN) plus an
+  inline `<NewsletterSignup variant="inline">` block in the footer.
+  Form collects optional first name, mandatory email, and an explicit
+  consent checkbox; CASL line surfaces under the form; consent
+  timestamp + locale captured in the stored payload (sessionStorage stub
+  until Phase 3 wires a real ESP).
+- Newsletter agent `feat(v2/newsletter)` shipped a double-opt-in
+  scaffold (`newsletter.success.heading` "Confirmation envoyée à ton
+  courriel") so Phase 3 just needs to wire the confirmation email.
+- Sitemap entry added at priority 0.4 (this sealer adds the entry to
+  `STATIC_PATHS` — agent's PR didn't touch sitemap).
+
+### 3. Print stylesheet for receipts
+
+- `@media print` block in `app/globals.css`:
+  - `[data-print-region]` reveals only the receipt subtree (everything
+    else is `visibility: hidden`).
+  - `[data-print-header]` is `display: none` on screen and
+    `display: block` when printing — surfaces the wordmark, address,
+    document type, date, and ref. Keys live under `print.header.*`.
+  - `[data-print-hide]` and `button` are stripped from the printout.
+  - `@page { margin: 16mm 14mm }` for a sensible paper layout.
+- Wired into all four success / confirmation views:
+  1. `/[locale]/confirmation` — `ConfirmationClient` (`title.order`)
+  2. `/[locale]/soumission` — `QuoteSubmittedClient` (`title.quote`)
+  3. `/[locale]/kit` — `KitSubmittedClient` (`title.kit`)
+  4. `/[locale]/contact` — `ContactClient` success view (`title.message`)
+
+### 4. PDP related products + cart upsell
+
+- **PDP — related products**: new `<RelatedProducts>` component sourced
+  from a dedicated `lib/recommendations.ts` (`getRelatedProducts`)
+  cross-category recommender. Replaces the previous in-line
+  same-category slice.
+- **Cart upsell**: new `<CartUpsell>` component mounted in
+  `panier/CartClient`. Heuristic surfaces up to 3 products from
+  categories the cart doesn't already cover, deep-linked to PDP and
+  copy-driven by `cart.upsell.*` keys.
+
+### Wave 7 verification gates
+
+| Gate | Result |
+|---|---|
+| `pnpm exec tsc --noEmit` | clean (exit 0) |
+| `pnpm lint` | clean (exit 0) |
+| `pnpm build` | **80 / 80** SSG (exit 0) |
+| `pnpm exec playwright test tests/` | **26 / 26** passed, **0 fixme** |
+| Smoke: 17 wave-6 routes | all 200 |
+| Smoke: `/fr-ca/infolettre`, `/en-ca/infolettre` | 200 |
+| Smoke: header search trigger (`aria-keyshortcuts="Control+K Meta+K"`) | present |
+| Smoke: PDP related products section | rendered |
+| Smoke: footer newsletter inline form | rendered |
+| Smoke: `@media print` rules in shipped CSS | present |
+| Smoke: `data-print-region` on all 4 success views | present |
+| Sitemap: `/infolettre` entries | both locales present |
+
+### Wave 7 surgical fix at the seal
+
+Three E2E specs (`contact-form`, `quote-form`, `kit-order`) used
+`getByText(/T-/).first()` etc. The Wave-7 print agent introduced a
+`[data-print-header]` block that's `display: none` on screen but still
+in the DOM and contains the same reference text (`Référence: T-…`).
+`getByText` returns hidden nodes too, so `.first()` was hitting the
+hidden header instead of the visible body line. Fixed by filtering to
+visible-only DOM nodes in the three specs (no source-code change to
+the agents' work).
+
 ## Phase 3 queue
 
 1. **Real backend** — Stripe Checkout Session + webhook (real PSP); persistent
-   DB for quotes/kits/orders (Drizzle + Postgres / Supabase); auth.
+   DB for quotes/kits/orders/newsletter (Drizzle + Postgres / Supabase); auth.
 2. **Real photography** — replace abstract industry SVGs and product mocks.
 3. **GA-style custom event mapping** — wire `lib/analytics.ts` calls into the
    key journey points (`page_view`, `add_to_cart`, `quote_submit`,
-   `kit_submit`, `contact_submit`). Provider switch already abstracted.
-4. **Transactional email** — Resend or Postmark for quote/order/kit
-   acknowledgments.
-5. Optional: marketing-consent-gated remarketing pixels (Meta / Google),
+   `kit_submit`, `contact_submit`, `newsletter_subscribe`, `search_query`).
+   Provider switch already abstracted.
+4. **Transactional email + ESP integration** — Resend or Postmark for
+   quote/order/kit acknowledgments; wire `/infolettre` signup to
+   Mailchimp / Brevo / Klaviyo with double-opt-in confirmation email.
+5. **Recommender upgrade** — swap the hand-tuned cross-category
+   recommender (`lib/recommendations.ts`) and `<CartUpsell>` heuristic
+   for a real co-purchase model once order volume justifies it.
+6. Optional: marketing-consent-gated remarketing pixels (Meta / Google),
    reusing the same `va:consent-changed` event infrastructure.

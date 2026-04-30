@@ -28,6 +28,13 @@ test('kit order: select Starter kit + submit form generates K-XXXX', async ({
     .getByRole('button', { name: /Commander mon kit|Order my kit/i })
     .click();
 
-  // Success view shows a K-XXXX reference.
-  await expect(page.getByText(/K-/).first()).toBeVisible({ timeout: 5000 });
+  // Success view shows a K-XXXX reference. Wave 7 added a hidden
+  // `data-print-header` block, so we filter to the visible body match.
+  await expect(
+    page
+      .locator('p, span')
+      .filter({ hasText: /K-[A-Z0-9]+/ })
+      .filter({ visible: true })
+      .first(),
+  ).toBeVisible({ timeout: 5000 });
 });

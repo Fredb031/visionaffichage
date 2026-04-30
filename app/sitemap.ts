@@ -20,6 +20,7 @@ const STATIC_PATHS: StaticPath[] = [
   { path: '/contact', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/kit', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/soumission', priority: 0.5, changeFrequency: 'monthly' },
+  { path: '/infolettre', priority: 0.4, changeFrequency: 'monthly' },
 ];
 
 function altLanguages(path: string): Record<string, string> {

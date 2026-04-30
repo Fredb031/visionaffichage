@@ -1,17 +1,19 @@
 # Vision Affichage — v2
 
-> **Phase 2 SEALED — final tag `v2-phase2-final-2.5`.** Six waves of feature
-> work, **78 SSG pages**, **26 / 26 Playwright tests** (zero `fixme`). Loi 25
+> **Phase 2 SEALED — final tag `v2-phase2-w7`.** Seven waves of feature
+> work, **80 SSG pages**, **26 / 26 Playwright tests** (zero `fixme`). Loi 25
 > cookie consent + Plausible analytics gated behind it, branded 404, route
 > loading skeletons, PWA manifest with dynamic VA-monogram icons, per-page OG
 > overrides, abstract industry hero SVGs, sitemap + robots + dynamic OG image
-> generation.
+> generation, **global search dialog (Cmd+K)**, **CASL-compliant
+> `/infolettre` newsletter signup**, **print stylesheet for the four
+> success / confirmation views**, **PDP related-products + cart upsell**.
 
 Bilingual (fr-CA / en-CA) marketing + catalogue site for Vision Affichage, a Quebec embroidery and screen-print shop. Built with Next.js 15 App Router, statically rendered, with a guest checkout that simulates payment so the operator can demo the full shopper experience before Phase 3 wires a real PSP.
 
 ## Phase 2 — what shipped
 
-Six waves of feature work, sealed at 78 SSG pages and 26 passing E2E tests:
+Seven waves of feature work, sealed at 80 SSG pages and 26 passing E2E tests:
 
 - **Wave 1** — Vol-III v2 rebrand (logo split CTA, real `/a-propos`, `/faq`, `/comment-ca-marche`)
 - **Wave 2** — interactive `/contact`, `/avis`, photo-realistic product mockups
@@ -19,14 +21,16 @@ Six waves of feature work, sealed at 78 SSG pages and 26 passing E2E tests:
 - **Wave 4** — sitemap.xml, robots.txt, dynamic `/api/og`, industry copy + case studies
 - **Wave 5** — **Loi 25 cookie consent + `/legal/{confidentialite,cookies}` legal stubs (production blocker closed)**, per-page OG overrides on 8 social-shareable routes, industry SVG heroes upgraded to abstract scenes, 4 fixme tests un-fixme'd
 - **Wave 6** — **Plausible analytics gated on Loi 25 consent**, branded 404 + 6 route-specific loading skeletons, **PWA manifest + dynamic VA-monogram icons** (64×64 + 180×180), customizer E2E un-fixme'd with real PNG fixture (now **26 / 26**)
+- **Wave 7** — **global search dialog (Cmd+K)**, **`/infolettre` CASL-compliant newsletter signup** (FR + EN, footer inline + dedicated landing) + double-opt-in scaffold, **print stylesheet** wired into all four success / confirmation views (`order` / `quote` / `kit` / `message`) via `data-print-region` + `data-print-header`, **PDP related products** (cross-category recommender) + **cart upsell** (`<CartUpsell>` heuristic). Now **80 SSG**.
 
 ### Phase 3 queue (operator follow-ups)
 
 1. **Real payment gateway** — wire Stripe Checkout Session + webhook (replace mock card flow in `/checkout`)
-2. **Persistent backend** — move quote/kit/order from sessionStorage to a DB (Postgres + Drizzle, or Supabase)
+2. **Persistent backend** — move quote/kit/order/newsletter from sessionStorage to a DB (Postgres + Drizzle, or Supabase) + auth
 3. **Real photography** — replace abstract industry SVGs and product mocks with shoots
-4. **Custom analytics events** — GA-style event mapping (page_view, add_to_cart, quote_submit, kit_submit, contact_submit) wired into the consent-gated Plausible script. Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable.
-5. **Transactional email** — Resend or Postmark for quote/order/kit acknowledgments
+4. **Custom analytics events** — GA-style event mapping (page_view, add_to_cart, quote_submit, kit_submit, contact_submit, newsletter_subscribe, search_query) wired into the consent-gated Plausible script. Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable.
+5. **Transactional email + ESP** — Resend or Postmark for quote/order/kit acknowledgments; wire `/infolettre` signup to Mailchimp / Brevo / Klaviyo with double-opt-in delivery.
+6. **Recommender upgrade** — replace the hand-tuned cross-category recommender + `<CartUpsell>` heuristic with a real co-purchase model once order volume justifies it.
 
 ## Tech stack
 
