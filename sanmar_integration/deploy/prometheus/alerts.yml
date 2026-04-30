@@ -70,3 +70,23 @@ groups:
         annotations:
           summary: "SanMar Prometheus exporter is down"
           description: "Health metrics not available — check sanmar-exporter.service"
+
+      - alert: SanmarEdgeCacheLowHitRatio
+        expr: sanmar:edge_hit_ratio_5m < 0.5
+        for: 30m
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "Edge cache hit ratio below 50% for {{ $labels.operation }}"
+          description: "Cloudflare Worker cache hit ratio is {{ $value | humanizePercentage }} for op {{ $labels.operation }} — investigate cache TTL / invalidation churn"
+
+      - alert: SanmarEdgeExporterStale
+        expr: sanmar_edge_last_poll_age_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "Edge exporter hasn't polled Cloudflare in 5+ minutes"
+          description: "Last successful Cloudflare GraphQL poll was {{ $value | humanizeDuration }} ago — check sanmar-edge-exporter.service and Cloudflare API health"

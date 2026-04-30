@@ -12,3 +12,8 @@ groups:
         expr: increase(sanmar_sync_success_total[24h]) + increase(sanmar_sync_errors_total[24h])
       - record: sanmar:open_orders_change_1h
         expr: deriv(sanmar_orders_open[1h])
+      - record: sanmar:edge_hit_ratio_5m
+        expr: |
+          sum by (operation) (rate(sanmar_edge_requests_total{outcome="hit"}[5m])) /
+          (sum by (operation) (rate(sanmar_edge_requests_total{outcome="hit"}[5m])) +
+           sum by (operation) (rate(sanmar_edge_requests_total{outcome="miss"}[5m])))

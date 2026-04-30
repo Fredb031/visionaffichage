@@ -597,5 +597,37 @@ def edge_report(
     raise typer.Exit(code=_edge_main(["--days", str(days)]))
 
 
+# ── Phase 15: long-running edge metrics exporter ───────────────────────
+
+
+@app.command("serve-edge-metrics")
+def serve_edge_metrics(
+    host: Optional[str] = typer.Option(
+        None,
+        "--host",
+        help="Bind host (default 0.0.0.0, overridable via EDGE_EXPORTER_HOST).",
+    ),
+    port: Optional[int] = typer.Option(
+        None,
+        "--port",
+        help="Bind port (default 9101, overridable via EDGE_EXPORTER_PORT).",
+    ),
+) -> None:
+    """Start the Cloudflare edge metrics Prometheus exporter (Phase 15).
+
+    Long-running — designed to live under
+    ``sanmar-edge-exporter.service`` on the production box. Polls the
+    Cloudflare GraphQL Analytics API every 60s and exposes
+    ``sanmar_edge_*`` metrics on the configured port. Ctrl-C / SIGTERM
+    stops it cleanly.
+
+    Requires ``CLOUDFLARE_ACCOUNT_ID`` and ``CLOUDFLARE_API_TOKEN`` in
+    the environment — see ``deploy/cloudflare/README.md``.
+    """
+    from sanmar.edge_exporter import serve_forever
+
+    serve_forever(host=host, port=port)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

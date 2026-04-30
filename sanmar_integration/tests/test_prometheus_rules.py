@@ -60,10 +60,11 @@ def test_recording_rules_yaml_valid():
     assert group["name"] == "sanmar_recording_rules"
 
 
-def test_recording_rules_has_exactly_5_rules():
+def test_recording_rules_has_exactly_6_rules():
     data = _load(RECORDING_RULES)
     rules = data["groups"][0]["rules"]
-    assert len(rules) == 5, f"expected 5 recording rules, got {len(rules)}"
+    # Phase 15 added ``sanmar:edge_hit_ratio_5m`` to the original 5.
+    assert len(rules) == 6, f"expected 6 recording rules, got {len(rules)}"
 
 
 def test_recording_rules_each_have_record_and_expr():
@@ -75,6 +76,7 @@ def test_recording_rules_each_have_record_and_expr():
         "sanmar:sync_success_rate_5m",
         "sanmar:sync_total_runs_24h",
         "sanmar:open_orders_change_1h",
+        "sanmar:edge_hit_ratio_5m",
     }
     seen = set()
     for rule in rules:
@@ -98,10 +100,12 @@ def test_alerts_yaml_valid():
     assert group["name"] == "sanmar_slo_alerts"
 
 
-def test_alerts_has_exactly_7_alerts():
+def test_alerts_has_exactly_9_alerts():
     data = _load(ALERTS)
     rules = data["groups"][0]["rules"]
-    assert len(rules) == 7, f"expected 7 alerts, got {len(rules)}"
+    # Phase 15 added ``SanmarEdgeCacheLowHitRatio`` and
+    # ``SanmarEdgeExporterStale`` to the original 7.
+    assert len(rules) == 9, f"expected 9 alerts, got {len(rules)}"
 
 
 def test_each_alert_has_summary_and_description():
@@ -143,6 +147,8 @@ def test_each_alert_has_expected_name():
         "SanmarOpenOrdersHigh",
         "SanmarOrderStuck",
         "SanmarExporterDown",
+        "SanmarEdgeCacheLowHitRatio",
+        "SanmarEdgeExporterStale",
     }
     seen = {r["alert"] for r in rules}
     assert seen == expected, f"alert name drift: {seen ^ expected}"

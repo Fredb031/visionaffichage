@@ -5,3 +5,11 @@ scrape_configs:
       - targets: ['localhost:9100']
         labels:
           service: sanmar
+
+  - job_name: sanmar_edge
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['localhost:9101']
+        labels:
+          service: sanmar
+          layer: edge

@@ -1,0 +1,18 @@
+[Unit]
+Description=SanMar Cloudflare edge metrics Prometheus exporter (Phase 15)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sanmar
+WorkingDirectory=/opt/sanmar
+EnvironmentFile=/opt/sanmar/.env
+ExecStart=/opt/sanmar/.venv/bin/python -m sanmar serve-edge-metrics --port 9101
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
