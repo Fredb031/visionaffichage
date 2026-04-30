@@ -28,16 +28,18 @@ export function CompareBar() {
   const remove = useCompareStore(s => s.remove);
   const clear = useCompareStore(s => s.clear);
 
-  // Only render once 2+ items so we never show a useless one-item bar.
-  if (items.length < 2) return null;
-  // Already on /comparer — the page itself is the comparator surface,
-  // a sticky bar over it would be redundant chrome.
-  if (location.pathname === '/comparer') return null;
-
   // Memoize the SKU → product resolution so a parent re-render (route
   // change firing the location hook, language toggle, etc.) doesn't redo
   // an O(items × PRODUCTS) find-walk. The compare store is stable per
   // selection, so the dep is the items array reference itself.
+  //
+  // CRITICAL: this hook MUST run before any early-return below. Calling
+  // useMemo after `if (items.length < 2) return null` made the number of
+  // hooks invoked depend on the items count — when the store flipped from
+  // 2 items back to 1 (user removing the last comparison), React would
+  // see "rendered fewer hooks than previous render" and crash the entire
+  // app shell since CompareBar is mounted at App root. Same hooks-after-
+  // early-return class as CapacityWidget + CartRecommendations.
   const products = useMemo(
     () =>
       items
@@ -45,6 +47,12 @@ export function CompareBar() {
         .filter((p): p is NonNullable<typeof p> => Boolean(p)),
     [items],
   );
+
+  // Only render once 2+ items so we never show a useless one-item bar.
+  if (items.length < 2) return null;
+  // Already on /comparer — the page itself is the comparator surface,
+  // a sticky bar over it would be redundant chrome.
+  if (location.pathname === '/comparer') return null;
 
   // Stale localStorage may hold SKUs no longer in PRODUCTS; if resolution
   // drops us below 2, the bar has nothing meaningful to compare.
