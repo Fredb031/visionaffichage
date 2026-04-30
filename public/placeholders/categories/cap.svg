@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="600" height="600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="cap">
+  <defs>
+    <radialGradient id="bg-cat-cap" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-cat-cap" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-cat-cap" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-cat-cap)"/>
+  <ellipse cx="400" cy="670" rx="193.2" ry="18" fill="url(#gnd-cat-cap)"/>
+  <g>
+    <path d="M 170 540 Q 400 590 630 540 L 640 595 Q 400 640 160 595 Z" fill="#35556D" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <path d="M 200 480 Q 220 300 400 280 Q 580 300 600 480 L 600 540 L 200 540 Z" fill="#35556D" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <path d="M 400 295 m -10 0 a 10 10 0 1 0 20 0 a 10 10 0 1 0 -20 0" fill="#FFFFFF" fill-opacity="0.55"/>
+    <ellipse cx="400" cy="340" rx="207" ry="60" fill="url(#hl-cat-cap)"/>
+    <path d="M 400 295 L 400 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 300 320 Q 305 460 310 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 500 320 Q 495 460 490 540" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 180 555 Q 400 605 620 555" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1" stroke-dasharray="3 3"/>
+  </g>
+</svg>

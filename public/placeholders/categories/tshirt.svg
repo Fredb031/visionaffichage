@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="600" height="600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="tshirt">
+  <defs>
+    <radialGradient id="bg-cat-tshirt" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
+    <radialGradient id="hl-cat-tshirt" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-cat-tshirt" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-cat-tshirt)"/>
+  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-cat-tshirt)"/>
+  <g>
+    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 640 280 Q 660 310 635 345 L 560 330 L 555 740 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 740 L 240 330 L 165 345 Q 140 310 160 280 Z" fill="#35556D" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-cat-tshirt)"/>
+    <line x1="270" y1="770" x2="530" y2="770" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
+    <line x1="245" y1="335" x2="245" y2="758" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <line x1="555" y1="335" x2="555" y2="758" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
+    <path d="M 280 230 Q 330 210 360 215" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 440 215 Q 470 210 520 230" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 165 340 Q 180 350 235 335" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+    <path d="M 565 335 Q 620 350 635 340" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+  </g>
+</svg>

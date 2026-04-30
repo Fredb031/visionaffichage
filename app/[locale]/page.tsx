@@ -6,26 +6,27 @@ import { ArrowRight } from 'lucide-react';
 
 import { Container } from '@/components/Container';
 import { Section } from '@/components/Section';
-import { HeroBlock } from '@/components/sections/HeroBlock';
-import { TrustStrip } from '@/components/sections/TrustStrip';
+import { HeroSplit } from '@/components/sections/HeroSplit';
+import { IndustryPills } from '@/components/sections/IndustryPills';
 import { IndustryRouteCards } from '@/components/sections/IndustryRouteCards';
-import { IndustryGrid } from '@/components/sections/IndustryGrid';
+import { BestCategories } from '@/components/sections/BestCategories';
 import { HowItWorks } from '@/components/sections/HowItWorks';
 import { ClientLogoMarquee } from '@/components/sections/ClientLogoMarquee';
 import { ReviewGrid } from '@/components/sections/ReviewGrid';
 import { DiscoveryKitTeaser } from '@/components/sections/DiscoveryKitTeaser';
 import { FaqAccordion } from '@/components/sections/FaqAccordion';
-import { ProductGrid } from '@/components/product/ProductGrid';
+import { HeroBlock } from '@/components/sections/HeroBlock';
 import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
 
-import { products } from '@/lib/products';
 import { industries } from '@/lib/industries';
+import { homeCategories } from '@/lib/categories';
 import { reviews, getOverallAverage } from '@/lib/reviews';
 import { clientLogos } from '@/lib/clients';
 import { getAlternates, getOgImageUrl } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import type { Locale } from '@/i18n/routing';
-import type { Product } from '@/lib/types';
+import type { TrustBulletItem } from '@/components/sections/TrustBullets';
+import type { HeroSplitCollagePanel } from '@/components/sections/HeroSplit';
 
 function isLocale(value: string): value is Locale {
   return value === 'fr-ca' || value === 'en-ca';
@@ -35,25 +36,29 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-const FEATURED_STYLE_CODES = [
-  'ATC1000',
-  'ATC1015',
-  'ATCF2400',
-  'ATCF2500',
-  'L445',
-  'ATC6606',
-] as const;
+const FAQ_KEYS = ['1', '2', '3', '4', '5'] as const;
+const HERO_TRUST_KEYS = ['1', '2', '3', '4'] as const;
+const HERO_COLLAGE_IDS = ['1', '2', '3', '4'] as const;
 
-function getFeaturedProducts(): Product[] {
-  const out: Product[] = [];
-  for (const code of FEATURED_STYLE_CODES) {
-    const found = products.find((p) => p.styleCode === code);
-    if (found) out.push(found);
-  }
-  return out;
-}
+const HERO_TRUST_ICONS: Record<
+  (typeof HERO_TRUST_KEYS)[number],
+  TrustBulletItem['icon']
+> = {
+  '1': 'Clock',
+  '2': 'ShieldCheck',
+  '3': 'MessageCircle',
+  '4': 'Star',
+};
 
-const FAQ_KEYS = ['1', '2', '3', '4', '5', '6'] as const;
+const HERO_COLLAGE_ROTATIONS: Record<
+  (typeof HERO_COLLAGE_IDS)[number],
+  number
+> = {
+  '1': -3,
+  '2': 5,
+  '3': 2,
+  '4': -4,
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -105,9 +110,12 @@ export default async function HomePage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: 'home' });
 
   const base = `/${locale}`;
-  const featured = getFeaturedProducts();
   const featuredReviews = reviews.slice(0, 3);
   const overall = getOverallAverage();
+  const overallAvgFormatted =
+    locale === 'fr-ca'
+      ? overall.average.toString().replace('.', ',')
+      : overall.average.toString();
 
   const faqItems = FAQ_KEYS.map((key) => ({
     q: t(`faq.items.${key}.q`),
@@ -119,83 +127,67 @@ export default async function HomePage({ params }: Props) {
     answer: item.a,
   }));
 
-  const reviewSubhead =
-    locale === 'fr-ca'
-      ? `${overall.average.toString().replace('.', ',')} sur 5 — ${overall.count} avis vérifiés`
-      : `${overall.average} out of 5 — ${overall.count} verified reviews`;
+  const heroTrustItems: TrustBulletItem[] = HERO_TRUST_KEYS.map((key) => ({
+    icon: HERO_TRUST_ICONS[key],
+    label: t(`hero.trust.items.${key}`),
+  }));
+
+  const heroCollage: HeroSplitCollagePanel[] = HERO_COLLAGE_IDS.map((id) => ({
+    id,
+    imageSrc: `/placeholders/hero/${id}.svg`,
+    alt: t(`hero.collage.alt.${id}`),
+    rotation: HERO_COLLAGE_ROTATIONS[id],
+  }));
+
+  const priceFromLabel = (formatted: string): string =>
+    t('categories.priceFromLabel', { price: formatted });
 
   return (
     <>
       <FaqJsonLd items={faqJsonLdItems} />
 
-      {/* 1. Hero */}
-      <HeroBlock
-        tone="ink"
+      {/* 1. Hero split (ink) */}
+      <HeroSplit
         eyebrow={t('hero.eyebrow')}
         headline={t('hero.headline')}
         subhead={t('hero.subhead')}
-        primaryCta={{ label: t('hero.cta.primary'), href: `${base}/produits` }}
+        primaryCta={{
+          label: t('hero.ctaPrimary'),
+          href: `${base}/produits`,
+        }}
         secondaryCta={{
-          label: t('hero.cta.secondary'),
+          label: t('hero.ctaSecondary'),
           href: `${base}/soumission`,
         }}
+        trustItems={heroTrustItems}
+        collagePanels={heroCollage}
       />
 
-      {/* 2. Trust strip */}
-      <TrustStrip locale={locale} variant="warm" />
+      {/* 2. Industry pills (canvas-050) */}
+      <IndustryPills
+        industries={industries}
+        locale={locale}
+        heading={t('industries.pillsHeading')}
+      />
 
-      {/* 3. Strategic CTA route cards */}
+      {/* 3. 3 strategic CTA route cards (sand-100) */}
       <IndustryRouteCards locale={locale} />
 
-      {/* 4. Featured products */}
-      <Section tone="default">
-        <Container size="2xl">
-          <div className="grid gap-6 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-8">
-              <h2 className="text-title-xl text-ink-950">
-                {t('featured.heading')}
-              </h2>
-              <p className="mt-3 max-w-2xl text-body-lg text-stone-600">
-                {t('featured.subhead')}
-              </p>
-            </div>
-          </div>
-          <ProductGrid
-            products={featured}
-            locale={locale}
-            columns={3}
-            className="mt-10"
-          />
-          <div className="mt-10 flex justify-end">
-            <Link
-              href={`${base}/produits`}
-              className="inline-flex items-center gap-1 text-body-md font-medium text-ink-950 hover:underline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
-            >
-              {t('featured.viewAll')}
-              <ArrowRight aria-hidden className="h-4 w-4" />
-            </Link>
-          </div>
-        </Container>
-      </Section>
+      {/* 4. Best categories (canvas-000) */}
+      <BestCategories
+        categories={homeCategories}
+        locale={locale}
+        heading={t('categories.heading')}
+        subhead={t('categories.subhead')}
+        viewLabel={t('categories.viewLabel')}
+        viewAllLabel={t('categories.viewAllLabel')}
+        priceFromLabel={priceFromLabel}
+      />
 
-      {/* 5. Industry grid */}
-      <Section tone="warm">
-        <Container size="2xl">
-          <h2 className="text-title-xl text-ink-950">
-            {t('industries.heading')}
-          </h2>
-          <IndustryGrid
-            industries={industries}
-            locale={locale}
-            className="mt-10"
-          />
-        </Container>
-      </Section>
-
-      {/* 6. How it works */}
+      {/* 5. How it works (warm) */}
       <HowItWorks locale={locale} />
 
-      {/* 7. Client logo marquee */}
+      {/* 6. Client logo marquee (default) */}
       <Section tone="default">
         <Container size="2xl">
           <h2 className="text-center text-title-lg text-ink-950">
@@ -209,14 +201,19 @@ export default async function HomePage({ params }: Props) {
         </Container>
       </Section>
 
-      {/* 8. Reviews */}
+      {/* 7. Reviews (warm) */}
       <Section tone="warm">
         <Container size="2xl">
           <div className="md:max-w-2xl">
             <h2 className="text-title-xl text-ink-950">
               {t('reviews.heading')}
             </h2>
-            <p className="mt-3 text-body-lg text-stone-600">{reviewSubhead}</p>
+            <p className="mt-3 text-body-lg text-stone-600">
+              {t('reviews.subhead', {
+                avg: overallAvgFormatted,
+                count: overall.count,
+              })}
+            </p>
           </div>
           <ReviewGrid
             reviews={featuredReviews}
@@ -235,28 +232,28 @@ export default async function HomePage({ params }: Props) {
         </Container>
       </Section>
 
-      {/* 9. Discovery kit teaser */}
+      {/* 8. Discovery kit teaser (sand-100) */}
       <DiscoveryKitTeaser locale={locale} />
 
-      {/* 10. FAQ */}
+      {/* 9. FAQ (default) — 5 items */}
       <Section tone="default">
         <Container size="xl">
           <h2 className="text-title-xl text-ink-950">{t('faq.heading')}</h2>
-          <FaqAccordion
-            items={faqItems}
-            locale={locale}
-            className="mt-8"
-          />
+          <FaqAccordion items={faqItems} locale={locale} className="mt-8" />
         </Container>
       </Section>
 
-      {/* 11. Final CTA */}
+      {/* 10. Final CTA (ink) */}
       <HeroBlock
         tone="ink"
         headline={t('finalCta.heading')}
-        primaryCta={{ label: t('finalCta.cta.1'), href: `${base}/produits` }}
+        subhead={t('finalCta.subhead')}
+        primaryCta={{
+          label: t('finalCta.ctaPrimary'),
+          href: `${base}/produits`,
+        }}
         secondaryCta={{
-          label: t('finalCta.cta.2'),
+          label: t('finalCta.ctaSecondary'),
           href: `${base}/soumission`,
         }}
       />

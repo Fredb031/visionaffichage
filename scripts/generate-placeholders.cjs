@@ -909,6 +909,159 @@ function clientSvg({ id, name, style }) {
   void id;
 }
 
+// ---------- home hero collage (4 panels, 400x400) ----------
+//
+// Each panel reuses the garment silhouette logic from product SVGs but at a
+// smaller, square viewport (400x400). Light shadow, transparent-canvas
+// background. Used inside the new HeroSplit 2x2 collage on the homepage.
+
+function heroCollagePanel({ id, category, color }) {
+  // 400x400 viewport. Use viewBox 0 0 800 900 (same as product SVGs) and
+  // let the renderer scale via preserveAspectRatio. This avoids re-deriving
+  // every silhouette path for a smaller box.
+  const isCap = category === 'cap' || category === 'tuque';
+  const bbox = garmentBBox(category);
+
+  let bodyFragment;
+  if (category === 'tshirt') {
+    bodyFragment = `<path d="${tshirtBody(color, { back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else if (category === 'hoodie') {
+    bodyFragment = `<path d="${hoodieBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else if (category === 'cap') {
+    const c = capBody();
+    bodyFragment = [
+      `<path d="${c.bill}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+      `<path d="${c.crown}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+      `<path d="${c.button}" fill="${isLightColor(color) ? TOK.slate700 : '#FFFFFF'}" fill-opacity="0.55"/>`,
+    ].join('\n    ');
+  } else if (category === 'polo') {
+    bodyFragment = `<path d="${poloBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else {
+    bodyFragment = `<rect x="220" y="220" width="360" height="500" fill="${color}"/>`;
+  }
+
+  const accents = categoryDetails(category, '', color);
+  const groundCy = bbox.bottom + 30;
+  const groundRx = bbox.w * 0.42;
+  const groundRy = isCap ? 18 : 28;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="400" height="400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="hero-${id}">
+  <defs>
+    <radialGradient id="bg-hero-${id}" cx="50%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="${TOK.canvas050}"/>
+      <stop offset="100%" stop-color="${TOK.sand100}"/>
+    </radialGradient>
+    <radialGradient id="hl-hero-${id}" cx="50%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-hero-${id}" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-hero-${id})"/>
+  <ellipse cx="${bbox.cx}" cy="${groundCy}" rx="${groundRx}" ry="${groundRy}" fill="url(#gnd-hero-${id})"/>
+  <g>
+    ${bodyFragment}
+    <ellipse cx="${bbox.cx}" cy="${isCap ? bbox.top + 60 : bbox.top + 70}" rx="${bbox.w * (isCap ? 0.45 : 0.42)}" ry="${isCap ? 60 : 110}" fill="url(#hl-hero-${id})"/>
+    ${accents}
+  </g>
+</svg>
+`;
+}
+
+const HERO_PANELS = [
+  // Top-left: t-shirt slate-700 (~ -3deg rotation handled in component)
+  { id: '1', category: 'tshirt', color: BRAND.slate700 },
+  // Top-right: hoodie ink-800
+  { id: '2', category: 'hoodie', color: BRAND.ink800 },
+  // Bottom-left: cap with sand-100 base + slate accent
+  { id: '3', category: 'cap', color: BRAND.sand100 },
+  // Bottom-right: polo on canvas-000
+  { id: '4', category: 'polo', color: '#FFFFFF' },
+];
+
+// ---------- home category cards (6 panels, 600x600) ----------
+//
+// Each card reuses the garment silhouette but framed in a 600x600 viewport
+// with the existing 800x900 source coordinates scaled down. Background
+// canvas-050, garment in slate-700 (or specific color) with subtle shadow.
+
+function categoryCardSvg({ slug, category, color }) {
+  const isCap = category === 'cap' || category === 'tuque';
+  const bbox = garmentBBox(category);
+  let bodyFragment;
+  if (category === 'tshirt') {
+    bodyFragment = `<path d="${tshirtBody(color, { back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else if (category === 'hoodie') {
+    bodyFragment = `<path d="${hoodieBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else if (category === 'polo') {
+    bodyFragment = `<path d="${poloBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else if (category === 'cap') {
+    const c = capBody();
+    bodyFragment = [
+      `<path d="${c.bill}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+      `<path d="${c.crown}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+      `<path d="${c.button}" fill="${isLightColor(color) ? TOK.slate700 : '#FFFFFF'}" fill-opacity="0.55"/>`,
+    ].join('\n    ');
+  } else if (category === 'tuque') {
+    const t = tuqueBody();
+    bodyFragment = [
+      `<path d="${t.body}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+      `<path d="${t.cuff}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
+    ].join('\n    ');
+  } else if (category === 'workwear') {
+    bodyFragment = `<path d="${workwearBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
+  } else {
+    bodyFragment = `<rect x="220" y="220" width="360" height="500" fill="${color}"/>`;
+  }
+
+  const accents = categoryDetails(category, '', color);
+  const groundCy = isCap ? bbox.bottom + 30 : bbox.bottom + 30;
+  const groundRx = bbox.w * 0.42;
+  const groundRy = isCap ? 18 : 28;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="600" height="600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${slug}">
+  <defs>
+    <radialGradient id="bg-cat-${slug}" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="${TOK.canvas050}"/>
+      <stop offset="100%" stop-color="${TOK.sand100}"/>
+    </radialGradient>
+    <radialGradient id="hl-cat-${slug}" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gnd-cat-${slug}" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="900" fill="url(#bg-cat-${slug})"/>
+  <ellipse cx="${bbox.cx}" cy="${groundCy}" rx="${groundRx}" ry="${groundRy}" fill="url(#gnd-cat-${slug})"/>
+  <g>
+    ${bodyFragment}
+    <ellipse cx="${bbox.cx}" cy="${isCap ? bbox.top + 60 : bbox.top + 70}" rx="${bbox.w * (isCap ? 0.45 : 0.42)}" ry="${isCap ? 60 : 110}" fill="url(#hl-cat-${slug})"/>
+    ${accents}
+  </g>
+</svg>
+`;
+}
+
+const HOME_CATEGORIES = [
+  { slug: 'tshirt', category: 'tshirt', color: BRAND.slate700 },
+  { slug: 'hoodie', category: 'hoodie', color: BRAND.ink800 },
+  { slug: 'polo', category: 'polo', color: BRAND.slate700 },
+  { slug: 'cap', category: 'cap', color: BRAND.slate700 },
+  { slug: 'tuque', category: 'tuque', color: BRAND.slate700 },
+  { slug: 'workwear', category: 'workwear', color: BRAND.ink800 },
+];
+
 // ---------- run ----------
 
 function main() {
@@ -916,6 +1069,8 @@ function main() {
   mkdir(path.join(OUT_DIR, 'products'));
   mkdir(path.join(OUT_DIR, 'industries'));
   mkdir(path.join(OUT_DIR, 'clients'));
+  mkdir(path.join(OUT_DIR, 'hero'));
+  mkdir(path.join(OUT_DIR, 'categories'));
 
   console.log('Generating product silhouettes (3 views each)…');
   for (const p of products) {
@@ -933,6 +1088,22 @@ function main() {
   console.log('Generating client logos…');
   for (const c of clients) {
     write(path.join(OUT_DIR, 'clients', `${c.id}.svg`), clientSvg(c));
+  }
+
+  console.log('Generating home hero collage panels…');
+  for (const p of HERO_PANELS) {
+    write(
+      path.join(OUT_DIR, 'hero', `${p.id}.svg`),
+      heroCollagePanel({ id: p.id, category: p.category, color: p.color }),
+    );
+  }
+
+  console.log('Generating home category cards…');
+  for (const c of HOME_CATEGORIES) {
+    write(
+      path.join(OUT_DIR, 'categories', `${c.slug}.svg`),
+      categoryCardSvg(c),
+    );
   }
 
   console.log('\nDone.');

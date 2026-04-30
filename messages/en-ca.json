@@ -901,19 +901,30 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Company Apparel · Québec",
+      "eyebrow": "Company apparel · Québec",
       "headline": "Company apparel that looks professional from day one.",
-      "subhead": "T-shirts, hoodies, crewnecks, caps, and employee kits for Québec businesses. Easy to order. Easy to reorder.",
-      "cta": {
-        "primary": "Shop the uniforms",
-        "secondary": "Request a quote"
+      "subhead": "T-shirts, hoodies, crewnecks, caps, workwear, and employee kits for Québec businesses. Easy to order. Easy to reorder.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote",
+      "trust": {
+        "items": {
+          "1": "5-business-day production",
+          "2": "Logo approved before production",
+          "3": "French and English service",
+          "4": "5.0 on Google · 500+ teams"
+        }
+      },
+      "collage": {
+        "alt": {
+          "1": "Embroidered t-shirt",
+          "2": "Embroidered hoodie",
+          "3": "Embroidered cap",
+          "4": "Embroidered polo"
+        }
       }
     },
-    "trustStrip": {
-      "production": "5 business-day production",
-      "fr": "Service in French",
-      "logo": "Logo approved before printing",
-      "google": "5.0 on Google"
+    "industries": {
+      "pillsHeading": "For your industry"
     },
     "routes": {
       "shop": {
@@ -929,13 +940,12 @@
         "subtitle": "Response in under one business day."
       }
     },
-    "featured": {
-      "heading": "The uniforms Québec teams wear",
-      "subhead": "Field-tested fabrics, embroidery that survives industrial laundering, delivery in five business days after logo approval.",
-      "viewAll": "View all products"
-    },
-    "industries": {
-      "heading": "For your industry"
+    "categories": {
+      "heading": "The essentials for your team",
+      "subhead": "Six categories with field-tested fabrics and pricing that holds from your first hire to your fiftieth.",
+      "priceFromLabel": "From {price}",
+      "viewLabel": "View",
+      "viewAllLabel": "View all products"
     },
     "howItWorks": {
       "heading": "How it works",
@@ -959,6 +969,7 @@
     },
     "reviews": {
       "heading": "What our customers say",
+      "subhead": "{avg} out of 5 — {count} verified reviews",
       "viewAll": "Read all reviews"
     },
     "faq": {
@@ -977,25 +988,20 @@
           "a": "Upload a PDF, AI, SVG, PNG, or JPG. We check the quality and show you a proof to approve before we touch any apparel."
         },
         "4": {
-          "q": "Do you ship across Canada?",
-          "a": "Québec and Ontario by default, with carriers we know well. Other provinces available on request."
+          "q": "Do you ship to Québec and Ontario?",
+          "a": "Yes — Québec and Ontario by default, with carriers we know well. Other provinces available on request."
         },
         "5": {
           "q": "What is the difference between embroidery and screen printing?",
           "a": "Embroidery suits simple logos on polos, caps, and beanies: durable, raised texture. Screen printing works on all apparel and supports more colors."
-        },
-        "6": {
-          "q": "Can I reorder the same order?",
-          "a": "Yes. Your logo, sizes, and colors are kept on file. Reordering the same thing takes thirty seconds."
         }
       }
     },
     "finalCta": {
       "heading": "Ready to outfit your team?",
-      "cta": {
-        "1": "Shop uniforms",
-        "2": "Request a quote"
-      }
+      "subhead": "Quote in 24 business hours. Production in 5 days. Service in French and English.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote"
     }
   },
   "howItWorks": {

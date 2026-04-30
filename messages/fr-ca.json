@@ -904,16 +904,27 @@
       "eyebrow": "Vêtements d'entreprise · Québec",
       "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
       "subhead": "T-shirts, hoodies, crewnecks, casquettes et kit employés pour les entreprises du Québec. Simple à commander. Facile à recommander.",
-      "cta": {
-        "primary": "Magasiner les uniformes",
-        "secondary": "Demander une soumission"
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission",
+      "trust": {
+        "items": {
+          "1": "Production 5 jours ouvrables",
+          "2": "Logo approuvé avant production",
+          "3": "Service en français",
+          "4": "5,0 sur Google · 500+ équipes"
+        }
+      },
+      "collage": {
+        "alt": {
+          "1": "T-shirt brodé",
+          "2": "Hoodie brodé",
+          "3": "Casquette brodée",
+          "4": "Polo brodé"
+        }
       }
     },
-    "trustStrip": {
-      "production": "Production 5 jours ouvrables",
-      "fr": "Service en français",
-      "logo": "Logo approuvé avant impression",
-      "google": "5,0 sur Google"
+    "industries": {
+      "pillsHeading": "Pour ton industrie"
     },
     "routes": {
       "shop": {
@@ -929,13 +940,12 @@
         "subtitle": "Réponse en moins d'un jour ouvrable."
       }
     },
-    "featured": {
-      "heading": "Les uniformes que les équipes québécoises portent",
-      "subhead": "Tissus testés sur le terrain, broderie qui tient au lavage industriel, livraison en cinq jours ouvrables après l'approbation du logo.",
-      "viewAll": "Voir tous les produits"
-    },
-    "industries": {
-      "heading": "Pour ton industrie"
+    "categories": {
+      "heading": "Les essentiels pour ton équipe",
+      "subhead": "Six catégories, des tissus testés en chantier et des prix qui tiennent du premier au cinquantième employé.",
+      "priceFromLabel": "À partir de {price}",
+      "viewLabel": "Voir",
+      "viewAllLabel": "Voir tous les produits"
     },
     "howItWorks": {
       "heading": "Comment ça marche",
@@ -959,6 +969,7 @@
     },
     "reviews": {
       "heading": "Ce que disent nos clients",
+      "subhead": "{avg} sur 5 — {count} avis vérifiés",
       "viewAll": "Voir tous les avis"
     },
     "faq": {
@@ -977,25 +988,20 @@
           "a": "Téléverse un fichier PDF, AI, SVG, PNG ou JPG. On vérifie la qualité et on te montre une maquette à approuver avant de toucher aux vêtements."
         },
         "4": {
-          "q": "Livrez-vous partout au Canada ?",
-          "a": "Québec et Ontario par défaut, avec des transporteurs qu'on connaît. Les autres provinces sont disponibles sur demande."
+          "q": "Livrez-vous au Québec et en Ontario ?",
+          "a": "Oui — Québec et Ontario par défaut, avec des transporteurs qu'on connaît. Les autres provinces sont disponibles sur demande."
         },
         "5": {
           "q": "Quelle est la différence entre la broderie et la sérigraphie ?",
           "a": "La broderie convient aux logos simples sur polos, casquettes et tuques : durable, texture relevée. La sérigraphie passe sur tous les vêtements et accepte plus de couleurs."
-        },
-        "6": {
-          "q": "Puis-je recommander la même commande ?",
-          "a": "Oui. Ton logo, tes tailles et tes couleurs sont gardés en mémoire. Recommander la même chose prend trente secondes."
         }
       }
     },
     "finalCta": {
       "heading": "Prêt à uniformiser ton équipe ?",
-      "cta": {
-        "1": "Magasiner les uniformes",
-        "2": "Demander une soumission"
-      }
+      "subhead": "Soumission en 24 heures ouvrables. Production en 5 jours. Service en français.",
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission"
     }
   },
   "howItWorks": {
