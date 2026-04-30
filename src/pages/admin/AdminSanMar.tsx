@@ -27,6 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { sanmarClient } from '@/lib/sanmar/client';
 import type { SanmarOrderStatus, SanmarOrderInput } from '@/lib/sanmar/types';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { CacheHealthBadge } from '@/components/sanmar/CacheHealthBadge';
 import { downloadCsv, csvFilename } from '@/lib/csv';
 import {
   categorizeError,
@@ -1569,8 +1570,11 @@ export default function AdminSanMar() {
           ) : null}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="bg-va-bg-2 rounded-xl px-5 py-4">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
-                {lang === 'en' ? 'Last sync' : 'Dernière synchro'}
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  {lang === 'en' ? 'Last sync' : 'Dernière synchro'}
+                </div>
+                <CacheHealthBadge />
               </div>
               <div className="text-va-ink font-bold mt-1">
                 {syncStatus.loading ? '…' : formatTimestamp(syncStatus.lastSync)}
