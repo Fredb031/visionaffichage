@@ -460,6 +460,12 @@ export default function AdminSanMar() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] =
     useState<SanmarErrorContext | null>(null);
+  // Per-style force-refresh state. Keyed by style_id so multiple inflight
+  // refreshes (operator clicks several rows fast) each have their own
+  // spinner — without this map every row's button would spin in sync.
+  const [refreshingStyles, setRefreshingStyles] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // ── Open orders ────────────────────────────────────────────────────────
   const [openOrders, setOpenOrders] = useState<SanmarOrderStatus[]>([]);
@@ -1025,67 +1031,74 @@ export default function AdminSanMar() {
    * (style_id, color, size) keeps a deterministic pagination window
    * even as new rows arrive; without an explicit order Supabase can
    * shuffle on each request and the operator sees the same SKU twice.
+   *
+   * Extracted into a useCallback so the per-style "Force resync" button
+   * (handleForceRefreshStyle) can reload the visible page after a
+   * successful upsert without bumping `catalogPage` and confusing the
+   * operator's pagination context.
    */
+  const loadCatalog = useCallback(async () => {
+    setCatalogLoading(true);
+    setCatalogError(null);
+    if (!supabase) {
+      setCatalogLoading(false);
+      return;
+    }
+    const from = catalogPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    try {
+      const { data, count, error } = await supabase
+        .from('sanmar_catalog')
+        .select(
+          'sku,style_id,color,size,price,total_qty,vancouver_qty,mississauga_qty,calgary_qty,last_synced_at',
+          { count: 'exact' },
+        )
+        .order('style_id', { ascending: true })
+        .order('color', { ascending: true })
+        .order('size', { ascending: true })
+        .range(from, to);
+      if (error) {
+        // Distinguish missing-table (soft empty) from a permission /
+        // connectivity failure (structured panel). The 42P01 code is
+        // PostgreSQL's "undefined_table"; PGRST205 is the PostgREST
+        // equivalent.
+        const code = (error as { code?: string }).code ?? '';
+        const msg = (error.message ?? '').toLowerCase();
+        const isMissingTable =
+          code === '42P01' ||
+          code === 'PGRST205' ||
+          msg.includes('does not exist') ||
+          (msg.includes('relation') && msg.includes('not exist'));
+        if (!isMissingTable) {
+          setCatalogError({ code, message: error.message });
+        }
+        setCatalogRows([]);
+        setCatalogTotal(0);
+      } else {
+        setCatalogRows((data ?? []) as SanmarCatalogRow[]);
+        setCatalogTotal(count ?? 0);
+      }
+    } catch (e) {
+      setCatalogRows([]);
+      setCatalogTotal(0);
+      setCatalogError({
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [catalogPage]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setCatalogLoading(true);
-      setCatalogError(null);
-      if (!supabase) {
-        if (!cancelled) setCatalogLoading(false);
-        return;
-      }
-      const from = catalogPage * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      try {
-        const { data, count, error } = await supabase
-          .from('sanmar_catalog')
-          .select(
-            'sku,style_id,color,size,price,total_qty,vancouver_qty,mississauga_qty,calgary_qty,last_synced_at',
-            { count: 'exact' },
-          )
-          .order('style_id', { ascending: true })
-          .order('color', { ascending: true })
-          .order('size', { ascending: true })
-          .range(from, to);
-        if (cancelled) return;
-        if (error) {
-          // Distinguish missing-table (soft empty) from a permission /
-          // connectivity failure (structured panel). The 42P01 code is
-          // PostgreSQL's "undefined_table"; PGRST205 is the PostgREST
-          // equivalent.
-          const code = (error as { code?: string }).code ?? '';
-          const msg = (error.message ?? '').toLowerCase();
-          const isMissingTable =
-            code === '42P01' ||
-            code === 'PGRST205' ||
-            msg.includes('does not exist') ||
-            msg.includes('relation') && msg.includes('not exist');
-          if (!isMissingTable) {
-            setCatalogError({ code, message: error.message });
-          }
-          setCatalogRows([]);
-          setCatalogTotal(0);
-        } else {
-          setCatalogRows((data ?? []) as SanmarCatalogRow[]);
-          setCatalogTotal(count ?? 0);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setCatalogRows([]);
-          setCatalogTotal(0);
-          setCatalogError({
-            message: e instanceof Error ? e.message : String(e),
-          });
-        }
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
+      await loadCatalog();
+      if (cancelled) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, [catalogPage]);
+  }, [loadCatalog]);
 
   /**
    * Fetch all open orders (queryType = 4 per the SanMar PDF: "all open
@@ -1171,6 +1184,107 @@ export default function AdminSanMar() {
       setSyncing(false);
     }
   };
+
+  /**
+   * Operator-initiated single-style refresh. Bypasses the daily cron
+   * and refetches product + inventory + pricing for one style
+   * immediately, then reloads the catalogue page so the operator sees
+   * the new values without scrolling. Auth is gated server-side
+   * (admin role only); we pass the style_id straight through.
+   *
+   * Multiple parts share a style_id so several rows on screen map to
+   * the same SOAP refetch — `refreshingStyles` is keyed by style so a
+   * second click on the same style is a no-op while the first is
+   * inflight, but a click on a different style spins independently.
+   */
+  const handleForceRefreshStyle = useCallback(
+    async (styleId: string | null) => {
+      if (!styleId) return;
+      if (!supabase) {
+        toast.error(
+          lang === 'en'
+            ? 'Supabase client not initialized'
+            : 'Client Supabase non initialisé',
+        );
+        return;
+      }
+      // Idempotent guard — second click while first is inflight is a no-op.
+      if (refreshingStyles.has(styleId)) return;
+      setRefreshingStyles((prev) => {
+        const next = new Set(prev);
+        next.add(styleId);
+        return next;
+      });
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'sanmar-force-refresh-style',
+          { body: { style_id: styleId } },
+        );
+        if (error) {
+          const msg = error.message || '';
+          // Mirror handleSync's "function not deployed" branch so the
+          // operator gets a clear hint instead of a generic 404.
+          if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+            toast.error(
+              lang === 'en'
+                ? 'Edge function not deployed — operator action required'
+                : 'Edge function non déployée — opérateur action requise',
+            );
+          } else {
+            const { title, action } = categorizeError(
+              { message: msg },
+              lang,
+            );
+            toast.error(
+              lang === 'en'
+                ? `Refresh failed for ${styleId}: ${title}`
+                : `Échec actualisation ${styleId} : ${title}`,
+              { description: action },
+            );
+          }
+          return;
+        }
+        // Surface server-reported failure (function returned 4xx/5xx body)
+        const payload = data as { success?: boolean; error?: string } | null;
+        if (!payload || payload.success !== true) {
+          const msg = payload?.error ?? 'Unknown error';
+          const { title, action } = categorizeError({ message: msg }, lang);
+          toast.error(
+            lang === 'en'
+              ? `Refresh failed for ${styleId}: ${title}`
+              : `Échec actualisation ${styleId} : ${title}`,
+            { description: action },
+          );
+          return;
+        }
+        toast.success(
+          lang === 'en'
+            ? `Style ${styleId} refreshed`
+            : `Style ${styleId} actualisé`,
+        );
+        // Reload the visible page so the new quantity_available + price
+        // land in the row the operator just clicked. Keeps catalogPage
+        // unchanged so the operator's pagination context survives.
+        await loadCatalog();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const { title, action } = categorizeError({ message: msg }, lang);
+        toast.error(
+          lang === 'en'
+            ? `Refresh failed for ${styleId}: ${title}`
+            : `Échec actualisation ${styleId} : ${title}`,
+          { description: action },
+        );
+      } finally {
+        setRefreshingStyles((prev) => {
+          const next = new Set(prev);
+          next.delete(styleId);
+          return next;
+        });
+      }
+    },
+    [lang, refreshingStyles, loadCatalog],
+  );
 
   /**
    * Test order submission — dispatches a Sample-type order with a
@@ -2317,18 +2431,23 @@ export default function AdminSanMar() {
                   <th className="py-2 pr-4">
                     {lang === 'en' ? 'Last synced' : 'Dernière synchro'}
                   </th>
+                  <th className="py-2 pr-4 text-right">
+                    <span className="sr-only">
+                      {lang === 'en' ? 'Refresh' : 'Actualiser'}
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {catalogLoading ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-va-muted">
+                    <td colSpan={11} className="py-12 text-center text-va-muted">
                       {lang === 'en' ? 'Loading...' : 'Chargement...'}
                     </td>
                   </tr>
                 ) : catalogRows.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center">
+                    <td colSpan={11} className="py-12 text-center">
                       <div className="space-y-1.5">
                         <p className="text-va-fg text-sm font-medium">
                           {lang === 'en'
@@ -2379,6 +2498,36 @@ export default function AdminSanMar() {
                       </td>
                       <td className="py-2 pr-4 text-xs text-va-muted">
                         {formatTimestamp(row.last_synced_at)}
+                      </td>
+                      <td className="py-2 pr-4 text-right">
+                        {row.style_id ? (
+                          <button
+                            type="button"
+                            onClick={() => handleForceRefreshStyle(row.style_id)}
+                            disabled={refreshingStyles.has(row.style_id)}
+                            className="inline-flex items-center justify-center rounded-md p-1.5 text-va-muted hover:text-va-ink hover:bg-va-bg-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            aria-label={
+                              lang === 'en'
+                                ? `Force resync style ${row.style_id}`
+                                : `Forcer la resynchro du style ${row.style_id}`
+                            }
+                            title={
+                              lang === 'en'
+                                ? `Force resync style ${row.style_id}`
+                                : `Forcer la resynchro du style ${row.style_id}`
+                            }
+                          >
+                            <RefreshCw
+                              size={14}
+                              aria-hidden="true"
+                              className={
+                                refreshingStyles.has(row.style_id)
+                                  ? 'animate-spin'
+                                  : ''
+                              }
+                            />
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ))
