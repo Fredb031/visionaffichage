@@ -442,23 +442,26 @@ export default function AdminSanMar() {
   }, [loadCronHealth]);
 
   /**
-   * Pull every `sanmar_orders` row that's still "open" (status_id IS
-   * NULL OR < 80) and aggregate three numbers + a per-status histogram
-   * client-side. We deliberately fetch only the columns we need —
-   * `total_amount_cad` does NOT exist as a column in the current
-   * migration (`sanmar_orders` stores the full `order_data` JSONB
-   * instead, see 20260429132247_sanmar_catalog.sql), so we read
-   * `order_data` and pull `totalAmount` out of it. Currency is always
-   * CAD per `SanmarOrderInput.currency` in src/lib/sanmar/types.ts.
+   * Load AR aggregate stats. Wave 13: prefer the
+   * `get_sanmar_ar_summary()` SECURITY DEFINER RPC (migration
+   * 20260429200000_sanmar_ar_summary_rpc.sql) — single round trip,
+   * single aggregate row, gated by public.is_admin() which already
+   * covers admin AND president roles (see 0001_auth_quotes_invites.sql).
+   * If the RPC isn't deployed yet (e.g. running against a Supabase
+   * project that hasn't applied the migration) we fall back to the
+   * legacy client-side scan over `sanmar_orders` so the widget keeps
+   * working through the deploy window.
    *
-   * RLS gates this select to admins (policy from commit 087b20a) which
-   * is exactly the audience for this page; non-admin operators get
-   * zero rows back rather than an error and the widget renders the
-   * empty-state zeroes.
+   * Empty result handling:
+   *   - RPC returns zero rows when the caller isn't admin/president
+   *     → render zeroes / "—" gracefully, no banner.
+   *   - RPC returns one row with COALESCE'd zero columns when the
+   *     table is empty → tiles show 0 / 0 / "—".
+   *   - RPC errors with "function does not exist" → fall through to
+   *     the legacy aggregator below.
    *
-   * On UAT (no orders submitted yet) the query returns an empty array
-   * and we surface 0 / 0 / "—" rather than crashing — verified
-   * manually by reading through the assembly loop with `rows = []`.
+   * Currency is always CAD per `SanmarOrderInput.currency` in
+   * src/lib/sanmar/types.ts.
    */
   const loadArStats = useMemo(
     () => async () => {
@@ -468,21 +471,102 @@ export default function AdminSanMar() {
       }
       setArLoading(true);
       setArError(null);
+
+      // ── Path A: server-side RPC (preferred) ───────────────────────────
+      try {
+        const { data, error } = await supabase.rpc('get_sanmar_ar_summary');
+        if (!error) {
+          const rows = (data ?? []) as Array<{
+            open_count: number | string | null;
+            open_balance_cad: number | string | null;
+            oldest_open_days: number | null;
+            closed_count_30d: number | string | null;
+            paid_balance_30d_cad: number | string | null;
+          }>;
+          // Non-admin callers get zero rows back by design — surface
+          // zeroes / "—" rather than treating it as an error.
+          if (rows.length === 0) {
+            setArStats({
+              openBalance: 0,
+              openCount: 0,
+              oldestDays: null,
+              closedCount30d: 0,
+              paidBalance30d: 0,
+              byStatus: new Map(),
+            });
+            setArUpdatedAt(new Date());
+            setArLoading(false);
+            return;
+          }
+          const r = rows[0];
+          // Postgres bigint comes back as a string in PostgREST; numeric
+          // can be either depending on driver — coerce both defensively.
+          const openCount = Number(r.open_count ?? 0);
+          const openBalance = Number(r.open_balance_cad ?? 0);
+          const oldestRaw = r.oldest_open_days;
+          // Server returns 0 when there are no open rows (COALESCE);
+          // map that back to null so the "—" placeholder still renders
+          // rather than "0d" (which would imply "submitted today" —
+          // misleading on an empty table).
+          const oldestDays =
+            openCount > 0 && oldestRaw != null && Number.isFinite(Number(oldestRaw))
+              ? Number(oldestRaw)
+              : null;
+          const closedCount30d = Number(r.closed_count_30d ?? 0);
+          const paidBalance30d = Number(r.paid_balance_30d_cad ?? 0);
+          setArStats({
+            openBalance: Number.isFinite(openBalance) ? openBalance : 0,
+            openCount: Number.isFinite(openCount) ? openCount : 0,
+            oldestDays,
+            closedCount30d: Number.isFinite(closedCount30d) ? closedCount30d : 0,
+            paidBalance30d: Number.isFinite(paidBalance30d) ? paidBalance30d : 0,
+            byStatus: new Map(),
+          });
+          setArUpdatedAt(new Date());
+          setArLoading(false);
+          return;
+        }
+        // Detect "function not deployed" — Supabase surfaces this as
+        // PGRST202 ("Could not find the function") or a 404. Anything
+        // else is a real error we want to log; only fall through on a
+        // missing-function signal so we don't paper over RLS / permission
+        // failures.
+        const msg = (error.message ?? '').toLowerCase();
+        const code = (error as { code?: string }).code ?? '';
+        const isMissingFn =
+          code === 'PGRST202' ||
+          msg.includes('could not find the function') ||
+          msg.includes('does not exist');
+        if (!isMissingFn) {
+          // Real error; record but still try the fallback so the top
+          // three tiles keep working under transient RPC errors.
+          setArError(error.message);
+        }
+      } catch (e) {
+        // Network blip / parse failure / etc. Record and try fallback.
+        setArError(e instanceof Error ? e.message : String(e));
+      }
+
+      // ── Path B: legacy client-side aggregate (fallback) ───────────────
+      // This covers two cases: (1) the RPC migration hasn't been
+      // applied yet, (2) the RPC errored transiently. We query the
+      // raw rows under RLS — non-admins get zero rows back per the
+      // existing policy. The closed-30d tiles render zeroes here
+      // because the legacy fetch only pulls "open" rows; widening
+      // it would defeat the purpose of having an RPC at all.
       try {
         const { data, error } = await supabase
           .from('sanmar_orders')
           .select('status_id, created_at, order_data')
           .or(`status_id.is.null,status_id.lt.${OPEN_STATUS_CUTOFF}`);
         if (error) {
-          // Common cases here: table not present in early-deploy envs,
-          // or RLS denied (operator isn't admin). Both render the same
-          // empty-state tiles — surface a soft error caption rather
-          // than a banner so the page stays usable.
           setArError(error.message);
           setArStats({
             openBalance: 0,
             openCount: 0,
             oldestDays: null,
+            closedCount30d: 0,
+            paidBalance30d: 0,
             byStatus: new Map(),
           });
           setArUpdatedAt(new Date());
@@ -527,7 +611,14 @@ export default function AdminSanMar() {
           oldestMs == null
             ? null
             : Math.floor((nowMs - oldestMs) / (1000 * 60 * 60 * 24));
-        setArStats({ openBalance, openCount, oldestDays, byStatus });
+        setArStats({
+          openBalance,
+          openCount,
+          oldestDays,
+          closedCount30d: 0,
+          paidBalance30d: 0,
+          byStatus,
+        });
         setArUpdatedAt(new Date());
       } catch (e) {
         // Network blips, JSON parse failures, etc. — never crash the
@@ -537,6 +628,8 @@ export default function AdminSanMar() {
           openBalance: 0,
           openCount: 0,
           oldestDays: null,
+          closedCount30d: 0,
+          paidBalance30d: 0,
           byStatus: new Map(),
         });
         setArUpdatedAt(new Date());
@@ -1409,8 +1502,8 @@ export default function AdminSanMar() {
               </h2>
               <p className="text-va-muted text-sm mt-1">
                 {lang === 'en'
-                  ? 'Live snapshot from sanmar_orders — open balance, count, oldest open age. Click a tile to filter the orders table below.'
-                  : 'Aperçu en direct de sanmar_orders — solde ouvert, nombre, âge de la plus ancienne. Clique sur une tuile pour filtrer la table de commandes ci-dessous.'}
+                  ? 'Server-side aggregate via get_sanmar_ar_summary(). Open balance, count, oldest age — plus a 30-day closed/paid recap below. Click a tile to filter the orders table.'
+                  : 'Agrégat côté serveur via get_sanmar_ar_summary(). Solde ouvert, nombre, plus ancienne — plus un récap 30 jours fermé/payé ci-dessous. Clique sur une tuile pour filtrer la table.'}
               </p>
             </div>
             <button
@@ -1555,6 +1648,57 @@ export default function AdminSanMar() {
                     : formatUpdatedAgo(arUpdatedAt)}
               </div>
             </button>
+          </div>
+
+          {/* 30-day recap subsection — closed orders count + paid balance.
+              Smaller, secondary read because the operator's main job is
+              still chasing open AR; these two tiles show "what
+              actually closed lately" so accounting can sanity-check
+              the digest and the president can see throughput at a
+              glance without per-order PII. Both source from the
+              get_sanmar_ar_summary() RPC; the legacy fallback path
+              renders zeroes here (closed/paid history isn't part of
+              the legacy "open rows only" query). */}
+          <div className="mt-6 pt-6 border-t border-va-line">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-va-muted mb-3">
+              {lang === 'en' ? 'Last 30 days' : '30 derniers jours'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Tile 4 — Closed last 30d (count) */}
+              <div className="bg-va-bg-2 rounded-xl px-5 py-4 border border-transparent">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  <CheckCircle2 size={12} aria-hidden="true" />
+                  {lang === 'en' ? 'Closed last 30d' : 'Fermées (30 j)'}
+                </div>
+                <div className="text-va-ink font-black text-2xl mt-2 tabular-nums">
+                  {arLoading ? '…' : arStats.closedCount30d.toLocaleString()}
+                </div>
+                <div className="text-va-muted text-xs mt-1">
+                  {lang === 'en'
+                    ? 'Status 80 (paid) + 99 (cancelled)'
+                    : 'Statut 80 (payée) + 99 (annulée)'}
+                </div>
+              </div>
+
+              {/* Tile 5 — Paid balance, last 30d (CAD).
+                  Status 80 only (cancelled orders excluded — they were
+                  never invoiced). Useful for the daily/weekly throughput
+                  sanity check against the digest. */}
+              <div className="bg-va-bg-2 rounded-xl px-5 py-4 border border-transparent">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  <DollarSign size={12} aria-hidden="true" />
+                  {lang === 'en' ? 'Paid 30d (CAD)' : 'Payé 30 j (CAD)'}
+                </div>
+                <div className="text-va-ink font-black text-2xl mt-2 tabular-nums">
+                  {arLoading ? '…' : formatCad(arStats.paidBalance30d)}
+                </div>
+                <div className="text-va-muted text-xs mt-1">
+                  {lang === 'en'
+                    ? 'Sum of order_data.totalAmount where status_id = 80'
+                    : 'Somme de order_data.totalAmount, statut_id = 80'}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
