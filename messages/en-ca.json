@@ -105,6 +105,105 @@
     "headline": "Company apparel that looks professional from day one.",
     "subhead": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality."
   },
+  "home": {
+    "hero": {
+      "eyebrow": "Company Apparel · Québec",
+      "headline": "Company apparel that looks professional from day one.",
+      "subhead": "T-shirts, hoodies, crewnecks, caps, and employee kits for Québec businesses. Easy to order. Easy to reorder.",
+      "cta": {
+        "primary": "Shop the uniforms",
+        "secondary": "Request a quote"
+      }
+    },
+    "trustStrip": {
+      "production": "5 business-day production",
+      "fr": "Service in French",
+      "logo": "Logo approved before printing",
+      "google": "5.0 on Google"
+    },
+    "routes": {
+      "shop": {
+        "title": "Shop uniforms",
+        "subtitle": "Embroidered polos, tees, hoodies, jackets."
+      },
+      "kit": {
+        "title": "Order a discovery kit",
+        "subtitle": "Three samples to touch before you commit."
+      },
+      "quote": {
+        "title": "Request a quote",
+        "subtitle": "Response in under one business day."
+      }
+    },
+    "featured": {
+      "heading": "The uniforms Québec teams wear",
+      "subhead": "Field-tested fabrics, embroidery that survives industrial laundering, delivery in five business days after logo approval.",
+      "viewAll": "View all products"
+    },
+    "industries": {
+      "heading": "For your industry"
+    },
+    "howItWorks": {
+      "heading": "How it works",
+      "steps": {
+        "1": {
+          "title": "Choose your apparel",
+          "desc": "Browse the catalog or order a discovery kit to touch three samples first."
+        },
+        "2": {
+          "title": "We approve your logo",
+          "desc": "We digitize and send a proof. You approve before we touch any apparel."
+        },
+        "3": {
+          "title": "Receive in 5 business days",
+          "desc": "Guaranteed five-day production after approval. Delivery anywhere in Québec."
+        }
+      }
+    },
+    "clients": {
+      "heading": "Trusted by 500+ teams"
+    },
+    "reviews": {
+      "heading": "What our customers say",
+      "viewAll": "Read all reviews"
+    },
+    "faq": {
+      "heading": "Frequently asked questions",
+      "items": {
+        "1": {
+          "q": "What is your production lead time?",
+          "a": "Five business days after logo approval. For rush orders, talk to us — we can often accelerate."
+        },
+        "2": {
+          "q": "What is the minimum order?",
+          "a": "Twelve units for embroidery, twenty-four for screen printing. For smaller quantities, we'll work something out."
+        },
+        "3": {
+          "q": "How do I submit my logo?",
+          "a": "Upload a PDF, AI, SVG, PNG, or JPG. We check the quality and show you a proof to approve before we touch any apparel."
+        },
+        "4": {
+          "q": "Do you ship across Canada?",
+          "a": "Québec and Ontario by default, with carriers we know well. Other provinces available on request."
+        },
+        "5": {
+          "q": "What is the difference between embroidery and screen printing?",
+          "a": "Embroidery suits simple logos on polos, caps, and beanies: durable, raised texture. Screen printing works on all apparel and supports more colors."
+        },
+        "6": {
+          "q": "Can I reorder the same order?",
+          "a": "Yes. Your logo, sizes, and colors are kept on file. Reordering the same thing takes thirty seconds."
+        }
+      }
+    },
+    "finalCta": {
+      "heading": "Ready to outfit your team?",
+      "cta": {
+        "1": "Shop uniforms",
+        "2": "Request a quote"
+      }
+    }
+  },
   "howItWorks": {
     "step1Description": "Browse the catalog or order a discovery kit to touch three samples first.",
     "step1Title": "Pick your apparel",

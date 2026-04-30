@@ -105,6 +105,105 @@
     "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
     "subhead": "Polos, t-shirts et chandails brodés ou imprimés pour les PME québécoises. Service complet, livraison rapide, qualité durable."
   },
+  "home": {
+    "hero": {
+      "eyebrow": "Vêtements d'entreprise · Québec",
+      "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
+      "subhead": "T-shirts, hoodies, crewnecks, casquettes et kit employés pour les entreprises du Québec. Simple à commander. Facile à recommander.",
+      "cta": {
+        "primary": "Magasiner les uniformes",
+        "secondary": "Demander une soumission"
+      }
+    },
+    "trustStrip": {
+      "production": "Production 5 jours ouvrables",
+      "fr": "Service en français",
+      "logo": "Logo approuvé avant impression",
+      "google": "5,0 sur Google"
+    },
+    "routes": {
+      "shop": {
+        "title": "Magasiner les uniformes",
+        "subtitle": "Polos, t-shirts, ouates, vestes brodés."
+      },
+      "kit": {
+        "title": "Commander un kit découverte",
+        "subtitle": "Trois échantillons à toucher avant de commander."
+      },
+      "quote": {
+        "title": "Demander une soumission",
+        "subtitle": "Réponse en moins d'un jour ouvrable."
+      }
+    },
+    "featured": {
+      "heading": "Les uniformes que les équipes québécoises portent",
+      "subhead": "Tissus testés sur le terrain, broderie qui tient au lavage industriel, livraison en cinq jours ouvrables après l'approbation du logo.",
+      "viewAll": "Voir tous les produits"
+    },
+    "industries": {
+      "heading": "Pour ton industrie"
+    },
+    "howItWorks": {
+      "heading": "Comment ça marche",
+      "steps": {
+        "1": {
+          "title": "Choisis tes vêtements",
+          "desc": "Magasine notre catalogue ou commande un kit découverte pour toucher trois échantillons."
+        },
+        "2": {
+          "title": "On approuve ton logo",
+          "desc": "On numérise et on t'envoie une épreuve. Tu approuves avant qu'on touche aux vêtements."
+        },
+        "3": {
+          "title": "Reçois en 5 jours ouvrables",
+          "desc": "Production garantie en cinq jours après approbation. Livraison partout au Québec."
+        }
+      }
+    },
+    "clients": {
+      "heading": "Plus de 500 équipes nous font confiance"
+    },
+    "reviews": {
+      "heading": "Ce que disent nos clients",
+      "viewAll": "Voir tous les avis"
+    },
+    "faq": {
+      "heading": "Questions fréquentes",
+      "items": {
+        "1": {
+          "q": "Quel est le délai de production ?",
+          "a": "Cinq jours ouvrables après l'approbation du logo. Pour les commandes urgentes, parle-nous : on peut souvent accélérer."
+        },
+        "2": {
+          "q": "Quel est le minimum de commande ?",
+          "a": "Douze unités pour la broderie, vingt-quatre pour la sérigraphie. Pour des plus petites quantités, on s'arrange ensemble."
+        },
+        "3": {
+          "q": "Comment soumettre mon logo ?",
+          "a": "Téléverse un fichier PDF, AI, SVG, PNG ou JPG. On vérifie la qualité et on te montre une maquette à approuver avant de toucher aux vêtements."
+        },
+        "4": {
+          "q": "Livrez-vous partout au Canada ?",
+          "a": "Québec et Ontario par défaut, avec des transporteurs qu'on connaît. Les autres provinces sont disponibles sur demande."
+        },
+        "5": {
+          "q": "Quelle est la différence entre la broderie et la sérigraphie ?",
+          "a": "La broderie convient aux logos simples sur polos, casquettes et tuques : durable, texture relevée. La sérigraphie passe sur tous les vêtements et accepte plus de couleurs."
+        },
+        "6": {
+          "q": "Puis-je recommander la même commande ?",
+          "a": "Oui. Ton logo, tes tailles et tes couleurs sont gardés en mémoire. Recommander la même chose prend trente secondes."
+        }
+      }
+    },
+    "finalCta": {
+      "heading": "Prêt à uniformiser ton équipe ?",
+      "cta": {
+        "1": "Magasiner les uniformes",
+        "2": "Demander une soumission"
+      }
+    }
+  },
   "howItWorks": {
     "step1Description": "Magasine notre catalogue ou commande un kit découverte pour toucher trois échantillons.",
     "step1Title": "Choisis tes vêtements",
