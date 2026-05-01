@@ -908,23 +908,25 @@
       "ctaSecondary": "Demander une soumission",
       "trust": {
         "items": {
-          "1": "Production 5 jours ouvrables",
-          "2": "Logo approuvé avant production",
-          "3": "Service en français",
-          "4": "5,0 sur Google · 500+ équipes"
+          "1": "5 jours · production",
+          "2": "Maquette · approuvée avant production",
+          "3": "FR/EN · service en français",
+          "4": "5,0 · 500+ équipes Google"
         }
       },
       "collage": {
         "alt": {
-          "1": "T-shirt brodé",
-          "2": "Hoodie brodé",
-          "3": "Casquette brodée",
-          "4": "Polo brodé"
+          "1": "Trois t-shirts empilés en flat-lay studio",
+          "2": "Macro d'un logo brodé sur tissu",
+          "3": "Trame du tissu en gros plan",
+          "4": "Badge Fait au Québec"
         }
       }
     },
     "industries": {
-      "pillsHeading": "Pour ton industrie"
+      "pillsHeading": "Pour ton industrie",
+      "pillsEyebrow": "POUR TON INDUSTRIE",
+      "pillsCaption": "6 secteurs d'activité · uniformes adaptés à la réalité du terrain"
     },
     "routes": {
       "shop": {
@@ -942,8 +944,8 @@
     },
     "categories": {
       "heading": "Les essentiels pour ton équipe",
-      "subhead": "Six catégories, des tissus testés en chantier et des prix qui tiennent du premier au cinquantième employé.",
-      "priceFromLabel": "À partir de {price}",
+      "subhead": "Sélection serrée. Tissus testés sur le chantier. Pas de catalogue infini.",
+      "priceFromLabel": "Dès {price}",
       "viewLabel": "Voir",
       "viewAllLabel": "Voir tous les produits"
     },

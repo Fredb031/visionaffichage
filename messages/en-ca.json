@@ -908,23 +908,25 @@
       "ctaSecondary": "Request a quote",
       "trust": {
         "items": {
-          "1": "5-business-day production",
-          "2": "Logo approved before production",
-          "3": "French and English service",
-          "4": "5.0 on Google · 500+ teams"
+          "1": "5 days · production",
+          "2": "Proof · approved before production",
+          "3": "FR/EN · bilingual service",
+          "4": "5.0 · 500+ Google reviews"
         }
       },
       "collage": {
         "alt": {
-          "1": "Embroidered t-shirt",
-          "2": "Embroidered hoodie",
-          "3": "Embroidered cap",
-          "4": "Embroidered polo"
+          "1": "Three stacked t-shirts in studio flat-lay",
+          "2": "Close-up of an embroidered logo on fabric",
+          "3": "Fabric weave macro",
+          "4": "Made in Québec QC badge"
         }
       }
     },
     "industries": {
-      "pillsHeading": "For your industry"
+      "pillsHeading": "For your industry",
+      "pillsEyebrow": "FOR YOUR INDUSTRY",
+      "pillsCaption": "6 industries · uniforms tuned to the realities of the trade"
     },
     "routes": {
       "shop": {
@@ -942,7 +944,7 @@
     },
     "categories": {
       "heading": "The essentials for your team",
-      "subhead": "Six categories with field-tested fabrics and pricing that holds from your first hire to your fiftieth.",
+      "subhead": "A tight selection. Fabrics tested on the job. No bottomless catalog.",
       "priceFromLabel": "From {price}",
       "viewLabel": "View",
       "viewAllLabel": "View all products"

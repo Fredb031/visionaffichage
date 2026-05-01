@@ -915,74 +915,224 @@ function clientSvg({ id, name, style }) {
 // smaller, square viewport (400x400). Light shadow, transparent-canvas
 // background. Used inside the new HeroSplit 2x2 collage on the homepage.
 
-function heroCollagePanel({ id, category, color }) {
-  // 400x400 viewport. Use viewBox 0 0 800 900 (same as product SVGs) and
-  // let the renderer scale via preserveAspectRatio. This avoids re-deriving
-  // every silhouette path for a smaller box.
-  const isCap = category === 'cap' || category === 'tuque';
-  const bbox = garmentBBox(category);
+// ---------- Hero editorial panels ----------
+//
+// Four crafted panels: 1 large feature flat-lay (3 stacked tees) + 3 detail
+// macros (logo close-up, fabric weave, QC badge). Premium catalog feel: warm
+// canvas background, subtle radial gradients, multi-stop drop shadows, tiny
+// metadata at the edges to imply real photography (style codes, ruler ticks).
 
-  let bodyFragment;
-  if (category === 'tshirt') {
-    bodyFragment = `<path d="${tshirtBody(color, { back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
-  } else if (category === 'hoodie') {
-    bodyFragment = `<path d="${hoodieBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
-  } else if (category === 'cap') {
-    const c = capBody();
-    bodyFragment = [
-      `<path d="${c.bill}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
-      `<path d="${c.crown}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`,
-      `<path d="${c.button}" fill="${isLightColor(color) ? TOK.slate700 : '#FFFFFF'}" fill-opacity="0.55"/>`,
-    ].join('\n    ');
-  } else if (category === 'polo') {
-    bodyFragment = `<path d="${poloBody({ back: false })}" fill="${color}" stroke="${isLightColor(color) ? TOK.slate700 : 'none'}" stroke-width="${isLightColor(color) ? 1.5 : 0}" stroke-linejoin="round"/>`;
-  } else {
-    bodyFragment = `<rect x="220" y="220" width="360" height="500" fill="${color}"/>`;
-  }
-
-  const accents = categoryDetails(category, '', color);
-  const groundCy = bbox.bottom + 30;
-  const groundRx = bbox.w * 0.42;
-  const groundRy = isCap ? 18 : 28;
-
+function heroFeatureFlatlaySvg() {
+  // 4:5 portrait flat-lay of three stacked tees, slightly off-axis.
+  // Top: slate-700, middle: sand-100, bottom: ink-800. Each gets its own
+  // multi-stop shadow blur underneath.
+  const W = 800;
+  const H = 1000;
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="400" height="400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="hero-${id}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="hero-feature">
   <defs>
-    <radialGradient id="bg-hero-${id}" cx="50%" cy="40%" r="75%">
+    <radialGradient id="hero-feat-bg" cx="48%" cy="42%" r="78%">
+      <stop offset="0%" stop-color="${TOK.canvas050}"/>
+      <stop offset="60%" stop-color="${TOK.sand100}"/>
+      <stop offset="100%" stop-color="${TOK.sand200}"/>
+    </radialGradient>
+    <filter id="hero-feat-shadow" x="-25%" y="-15%" width="150%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hero-feat-shadow-soft" x="-25%" y="-15%" width="150%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+      <feOffset dx="0" dy="22"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#hero-feat-bg)"/>
+
+  <!-- ruler tick marks at right edge for "real photo" feel -->
+  <g stroke="${TOK.slate700}" stroke-opacity="0.18" stroke-width="1">
+    <line x1="${W - 22}" y1="60" x2="${W - 12}" y2="60"/>
+    <line x1="${W - 16}" y1="120" x2="${W - 12}" y2="120"/>
+    <line x1="${W - 16}" y1="180" x2="${W - 12}" y2="180"/>
+    <line x1="${W - 22}" y1="240" x2="${W - 12}" y2="240"/>
+    <line x1="${W - 16}" y1="300" x2="${W - 12}" y2="300"/>
+    <line x1="${W - 16}" y1="360" x2="${W - 12}" y2="360"/>
+    <line x1="${W - 22}" y1="420" x2="${W - 12}" y2="420"/>
+  </g>
+
+  <!-- BOTTOM tee: ink-800, rotated +6deg, larger shadow -->
+  <g transform="translate(80,140) rotate(6 320 380)" filter="url(#hero-feat-shadow-soft)">
+    <path d="${tshirtBody(BRAND.ink800, { back: false })}" fill="${BRAND.ink800}" transform="translate(-80,40) scale(0.86)"/>
+  </g>
+  <text x="450" y="780" font-family="Inter, system-ui" font-size="14" fill="${TOK.sand300}" font-weight="500" letter-spacing="1.2">ATC1015 · INK</text>
+
+  <!-- MIDDLE tee: sand-100, rotated -3deg -->
+  <g transform="translate(120,90) rotate(-3 320 360)" filter="url(#hero-feat-shadow)">
+    <path d="${tshirtBody(BRAND.sand100, { back: false })}" fill="${BRAND.sand100}" stroke="${TOK.sand300}" stroke-width="1.5" transform="translate(-60,30) scale(0.84)"/>
+  </g>
+  <text x="500" y="540" font-family="Inter, system-ui" font-size="14" fill="${TOK.stone500}" font-weight="500" letter-spacing="1.2">ATC1015 · SAND</text>
+
+  <!-- TOP tee: slate-700, slight rotation +1deg, smallest shadow -->
+  <g transform="translate(160,40) rotate(1 320 340)" filter="url(#hero-feat-shadow)">
+    <path d="${tshirtBody(BRAND.slate700, { back: false })}" fill="${BRAND.slate700}" transform="translate(-40,20) scale(0.82)"/>
+  </g>
+  <text x="540" y="320" font-family="Inter, system-ui" font-size="14" fill="${TOK.stone500}" font-weight="500" letter-spacing="1.2">ATC1015 · SLATE</text>
+
+  <!-- micro caption bottom-left: studio-flat reference -->
+  <text x="40" y="${H - 32}" font-family="Inter, system-ui" font-size="12" fill="${TOK.stone500}" font-weight="500" letter-spacing="2">FLAT-LAY · 3 / 24 colorways</text>
+  <line x1="40" y1="${H - 22}" x2="160" y2="${H - 22}" stroke="${TOK.slate700}" stroke-opacity="0.25" stroke-width="1"/>
+</svg>
+`;
+}
+
+function heroDetailLogoSvg() {
+  // Close-up: a small geometric mark stitched/printed on fabric weave.
+  const W = 600;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" width="${W}" height="${W}" role="img" aria-label="hero-detail-logo">
+  <defs>
+    <radialGradient id="logo-bg" cx="50%" cy="40%" r="80%">
       <stop offset="0%" stop-color="${TOK.canvas050}"/>
       <stop offset="100%" stop-color="${TOK.sand100}"/>
     </radialGradient>
-    <radialGradient id="hl-hero-${id}" cx="50%" cy="35%" r="55%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.20"/>
-      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="gnd-hero-${id}" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    <pattern id="logo-weave" patternUnits="userSpaceOnUse" width="6" height="6">
+      <line x1="0" y1="6" x2="6" y2="0" stroke="${TOK.slate700}" stroke-opacity="0.06" stroke-width="0.8"/>
+    </pattern>
+    <filter id="logo-shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="${W}" height="${W}" fill="url(#logo-bg)"/>
+  <rect width="${W}" height="${W}" fill="url(#logo-weave)"/>
+
+  <!-- Stitched logo mark: 3 abstract strokes forming a "V" + bar -->
+  <g filter="url(#logo-shadow)" stroke="${BRAND.ink950}" stroke-width="14" stroke-linecap="round" fill="none">
+    <line x1="220" y1="220" x2="300" y2="380"/>
+    <line x1="380" y1="220" x2="300" y2="380"/>
+    <line x1="240" y1="430" x2="360" y2="430" stroke-width="10"/>
+  </g>
+
+  <!-- stitch-dash overlay on the strokes to imply embroidery -->
+  <g stroke="${TOK.canvas050}" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6" fill="none" opacity="0.5">
+    <line x1="220" y1="220" x2="300" y2="380"/>
+    <line x1="380" y1="220" x2="300" y2="380"/>
+  </g>
+
+  <!-- tiny caption: stitch density -->
+  <text x="36" y="${W - 28}" font-family="Inter, system-ui" font-size="11" fill="${TOK.stone500}" font-weight="500" letter-spacing="1.6">LOGO · BRODERIE 12K POINTS</text>
+</svg>
+`;
+}
+
+function heroDetailFabricSvg() {
+  // Fabric weave detail: diagonal lines at varying opacity over warm canvas.
+  const W = 600;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" width="${W}" height="${W}" role="img" aria-label="hero-detail-fabric">
+  <defs>
+    <linearGradient id="fab-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${BRAND.slate700}"/>
+      <stop offset="100%" stop-color="${BRAND.ink800}"/>
+    </linearGradient>
+    <pattern id="weave-warp" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="2"/>
+    </pattern>
+    <pattern id="weave-weft" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#000000" stroke-opacity="0.10" stroke-width="2"/>
+    </pattern>
+    <radialGradient id="fab-vignette" cx="50%" cy="50%" r="70%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.25"/>
     </radialGradient>
   </defs>
-  <rect width="800" height="900" fill="url(#bg-hero-${id})"/>
-  <ellipse cx="${bbox.cx}" cy="${groundCy}" rx="${groundRx}" ry="${groundRy}" fill="url(#gnd-hero-${id})"/>
-  <g>
-    ${bodyFragment}
-    <ellipse cx="${bbox.cx}" cy="${isCap ? bbox.top + 60 : bbox.top + 70}" rx="${bbox.w * (isCap ? 0.45 : 0.42)}" ry="${isCap ? 60 : 110}" fill="url(#hl-hero-${id})"/>
-    ${accents}
+  <rect width="${W}" height="${W}" fill="url(#fab-bg)"/>
+  <rect width="${W}" height="${W}" fill="url(#weave-warp)"/>
+  <rect width="${W}" height="${W}" fill="url(#weave-weft)"/>
+  <rect width="${W}" height="${W}" fill="url(#fab-vignette)"/>
+
+  <!-- single highlight thread crossing -->
+  <line x1="0" y1="${W * 0.62}" x2="${W}" y2="${W * 0.38}" stroke="${TOK.sand100}" stroke-opacity="0.18" stroke-width="2"/>
+
+  <text x="36" y="${W - 28}" font-family="Inter, system-ui" font-size="11" fill="${TOK.sand100}" fill-opacity="0.55" font-weight="500" letter-spacing="1.6">TISSU · 6.1 OZ COTON</text>
+</svg>
+`;
+}
+
+function heroDetailQcBadgeSvg() {
+  // Embossed circular QC badge: "Made in Québec" wordmark.
+  const W = 600;
+  const cx = W / 2;
+  const cy = W / 2;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" width="${W}" height="${W}" role="img" aria-label="hero-detail-qc">
+  <defs>
+    <radialGradient id="qc-bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="${TOK.canvas050}"/>
+      <stop offset="100%" stop-color="${TOK.sand100}"/>
+    </radialGradient>
+    <radialGradient id="qc-emboss" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="qc-shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="${W}" height="${W}" fill="url(#qc-bg)"/>
+
+  <g filter="url(#qc-shadow)">
+    <!-- outer ring -->
+    <circle cx="${cx}" cy="${cy}" r="200" fill="${BRAND.ink950}"/>
+    <circle cx="${cx}" cy="${cy}" r="200" fill="url(#qc-emboss)"/>
+    <!-- inner ring -->
+    <circle cx="${cx}" cy="${cy}" r="172" fill="none" stroke="${TOK.sand100}" stroke-opacity="0.35" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="156" fill="none" stroke="${TOK.sand100}" stroke-opacity="0.18" stroke-width="1"/>
+    <!-- fleur de lys (abstract) -->
+    <g fill="${TOK.sand100}" transform="translate(${cx} ${cy - 36})">
+      <path d="M0 -28 L8 -10 L20 -8 L10 4 L14 22 L0 14 L-14 22 L-10 4 L-20 -8 L-8 -10 Z"/>
+    </g>
+    <!-- wordmark -->
+    <text x="${cx}" y="${cy + 18}" font-family="Inter, system-ui" font-size="22" font-weight="700" fill="${TOK.sand100}" text-anchor="middle" letter-spacing="3">FAIT AU</text>
+    <text x="${cx}" y="${cy + 50}" font-family="Inter, system-ui" font-size="22" font-weight="700" fill="${TOK.sand100}" text-anchor="middle" letter-spacing="3">QUÉBEC</text>
+    <!-- top arc tick marks -->
+    <g stroke="${TOK.sand100}" stroke-opacity="0.45" stroke-width="1.4" fill="none">
+      <line x1="${cx - 80}" y1="${cy + 90}" x2="${cx - 60}" y2="${cy + 90}"/>
+      <line x1="${cx + 60}" y1="${cy + 90}" x2="${cx + 80}" y2="${cy + 90}"/>
+    </g>
+    <text x="${cx}" y="${cy + 96}" font-family="Inter, system-ui" font-size="10" font-weight="500" fill="${TOK.sand100}" fill-opacity="0.55" text-anchor="middle" letter-spacing="2">QC · ATELIER</text>
   </g>
+
+  <text x="36" y="${W - 28}" font-family="Inter, system-ui" font-size="11" fill="${TOK.stone500}" font-weight="500" letter-spacing="1.6">QC BADGE · ATELIER #03</text>
 </svg>
 `;
 }
 
 const HERO_PANELS = [
-  // Top-left: t-shirt slate-700 (~ -3deg rotation handled in component)
-  { id: '1', category: 'tshirt', color: BRAND.slate700 },
-  // Top-right: hoodie ink-800
-  { id: '2', category: 'hoodie', color: BRAND.ink800 },
-  // Bottom-left: cap with sand-100 base + slate accent
-  { id: '3', category: 'cap', color: BRAND.sand100 },
-  // Bottom-right: polo on canvas-000
-  { id: '4', category: 'polo', color: '#FFFFFF' },
+  // 1 = large feature flat-lay (3 stacked tees)
+  { id: '1', kind: 'feature' },
+  // 2 = logo detail
+  { id: '2', kind: 'logo' },
+  // 3 = fabric weave
+  { id: '3', kind: 'fabric' },
+  // 4 = QC badge
+  { id: '4', kind: 'qc' },
 ];
+
+function heroPanelSvg(panel) {
+  if (panel.kind === 'feature') return heroFeatureFlatlaySvg();
+  if (panel.kind === 'logo') return heroDetailLogoSvg();
+  if (panel.kind === 'fabric') return heroDetailFabricSvg();
+  if (panel.kind === 'qc') return heroDetailQcBadgeSvg();
+  return '';
+}
 
 // ---------- home category cards (6 panels, 600x600) ----------
 //
@@ -990,7 +1140,7 @@ const HERO_PANELS = [
 // with the existing 800x900 source coordinates scaled down. Background
 // canvas-050, garment in slate-700 (or specific color) with subtle shadow.
 
-function categoryCardSvg({ slug, category, color }) {
+function categoryCardSvg({ slug, category, color, code }) {
   const isCap = category === 'cap' || category === 'tuque';
   const bbox = garmentBBox(category);
   let bodyFragment;
@@ -1027,39 +1177,41 @@ function categoryCardSvg({ slug, category, color }) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="600" height="600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${slug}">
   <defs>
-    <radialGradient id="bg-cat-${slug}" cx="50%" cy="42%" r="75%">
-      <stop offset="0%" stop-color="${TOK.canvas050}"/>
-      <stop offset="100%" stop-color="${TOK.sand100}"/>
-    </radialGradient>
+    <linearGradient id="bg-cat-${slug}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="${TOK.canvas050}"/>
+    </linearGradient>
     <radialGradient id="hl-cat-${slug}" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
       <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
       <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="gnd-cat-${slug}" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+    <filter id="cat-shadow-${slug}" x="-20%" y="-10%" width="140%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.16"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
   <rect width="800" height="900" fill="url(#bg-cat-${slug})"/>
-  <ellipse cx="${bbox.cx}" cy="${groundCy}" rx="${groundRx}" ry="${groundRy}" fill="url(#gnd-cat-${slug})"/>
-  <g>
+  <g filter="url(#cat-shadow-${slug})">
     ${bodyFragment}
     <ellipse cx="${bbox.cx}" cy="${isCap ? bbox.top + 60 : bbox.top + 70}" rx="${bbox.w * (isCap ? 0.45 : 0.42)}" ry="${isCap ? 60 : 110}" fill="url(#hl-cat-${slug})"/>
     ${accents}
   </g>
+  <text x="730" y="850" font-family="Inter, system-ui" font-size="22" font-weight="600" fill="${TOK.stone500}" fill-opacity="0.55" text-anchor="end" letter-spacing="3">${code || ''}</text>
+  <line x1="60" y1="850" x2="120" y2="850" stroke="${TOK.slate700}" stroke-opacity="0.25" stroke-width="1"/>
 </svg>
 `;
 }
 
 const HOME_CATEGORIES = [
-  { slug: 'tshirt', category: 'tshirt', color: BRAND.slate700 },
-  { slug: 'hoodie', category: 'hoodie', color: BRAND.ink800 },
-  { slug: 'polo', category: 'polo', color: BRAND.slate700 },
-  { slug: 'cap', category: 'cap', color: BRAND.slate700 },
-  { slug: 'tuque', category: 'tuque', color: BRAND.slate700 },
-  { slug: 'workwear', category: 'workwear', color: BRAND.ink800 },
+  { slug: 'tshirt', category: 'tshirt', color: BRAND.slate700, code: 'TS' },
+  { slug: 'hoodie', category: 'hoodie', color: BRAND.ink800, code: 'HD' },
+  { slug: 'polo', category: 'polo', color: BRAND.slate700, code: 'PL' },
+  { slug: 'cap', category: 'cap', color: BRAND.slate700, code: 'CP' },
+  { slug: 'tuque', category: 'tuque', color: BRAND.slate700, code: 'TQ' },
+  { slug: 'workwear', category: 'workwear', color: BRAND.ink800, code: 'WW' },
 ];
 
 // ---------- run ----------
@@ -1090,11 +1242,11 @@ function main() {
     write(path.join(OUT_DIR, 'clients', `${c.id}.svg`), clientSvg(c));
   }
 
-  console.log('Generating home hero collage panels…');
+  console.log('Generating home hero editorial panels…');
   for (const p of HERO_PANELS) {
     write(
       path.join(OUT_DIR, 'hero', `${p.id}.svg`),
-      heroCollagePanel({ id: p.id, category: p.category, color: p.color }),
+      heroPanelSvg(p),
     );
   }
 

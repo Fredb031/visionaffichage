@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="600" height="600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="workwear">
   <defs>
-    <radialGradient id="bg-cat-workwear" cx="50%" cy="42%" r="75%">
-      <stop offset="0%" stop-color="#F8F7F3"/>
-      <stop offset="100%" stop-color="#F0ECE4"/>
-    </radialGradient>
+    <linearGradient id="bg-cat-workwear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F8F7F3"/>
+    </linearGradient>
     <radialGradient id="hl-cat-workwear" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
       <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.05"/>
       <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="gnd-cat-workwear" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+    <filter id="cat-shadow-workwear" x="-20%" y="-10%" width="140%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.16"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
   <rect width="800" height="900" fill="url(#bg-cat-workwear)"/>
-  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-cat-workwear)"/>
-  <g>
+  <g filter="url(#cat-shadow-workwear)">
     <path d="M 240 230 L 320 200 L 400 215 L 480 200 L 560 230 L 670 290 Q 685 320 655 345 L 575 325 L 575 770 L 400 780 L 225 770 L 225 325 L 145 345 Q 115 320 130 290 Z" fill="#1D2127" stroke="none" stroke-width="0" stroke-linejoin="round"/>
     <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-cat-workwear)"/>
     <line x1="260" y1="775" x2="540" y2="775" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
@@ -32,4 +32,6 @@
     <line x1="420" y1="395" x2="530" y2="395" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1"/>
     <path d="M 320 200 L 480 200" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1.5"/>
   </g>
+  <text x="730" y="850" font-family="Inter, system-ui" font-size="22" font-weight="600" fill="undefined" fill-opacity="0.55" text-anchor="end" letter-spacing="3">WW</text>
+  <line x1="60" y1="850" x2="120" y2="850" stroke="#5C636B" stroke-opacity="0.25" stroke-width="1"/>
 </svg>

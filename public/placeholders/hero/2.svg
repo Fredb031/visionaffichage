@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="400" height="400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="hero-2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" role="img" aria-label="hero-detail-logo">
   <defs>
-    <radialGradient id="bg-hero-2" cx="50%" cy="40%" r="75%">
+    <radialGradient id="logo-bg" cx="50%" cy="40%" r="80%">
       <stop offset="0%" stop-color="#F8F7F3"/>
       <stop offset="100%" stop-color="#F0ECE4"/>
     </radialGradient>
-    <radialGradient id="hl-hero-2" cx="50%" cy="35%" r="55%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.20"/>
-      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="gnd-hero-2" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+    <pattern id="logo-weave" patternUnits="userSpaceOnUse" width="6" height="6">
+      <line x1="0" y1="6" x2="6" y2="0" stroke="#5C636B" stroke-opacity="0.06" stroke-width="0.8"/>
+    </pattern>
+    <filter id="logo-shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <rect width="800" height="900" fill="url(#bg-hero-2)"/>
-  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-hero-2)"/>
-  <g>
-    <path d="M 290 220 Q 320 130 400 120 Q 480 130 510 220 L 560 240 L 670 300 Q 685 325 660 350 L 575 335 L 565 760 Q 545 780 480 782 Q 400 788 320 782 Q 255 780 235 760 L 225 335 L 140 350 Q 115 325 130 300 L 240 240 Z" fill="#1D2127" stroke="none" stroke-width="0" stroke-linejoin="round"/>
-    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-hero-2)"/>
-    <line x1="260" y1="778" x2="540" y2="778" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
-    <line x1="235" y1="350" x2="235" y2="766" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
-    <line x1="565" y1="350" x2="565" y2="766" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
-    <line x1="370" y1="225" x2="368" y2="320" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2"/>
-    <line x1="430" y1="225" x2="432" y2="320" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2"/>
-    <circle cx="368" cy="324" r="4" fill="#FFFFFF" fill-opacity="0.5"/>
-    <circle cx="432" cy="324" r="4" fill="#FFFFFF" fill-opacity="0.5"/>
-    <path d="M 290 520 Q 290 470 340 460 L 460 460 Q 510 470 510 520" fill="none" stroke="#FFFFFF" stroke-opacity="0.216" stroke-width="1.5" stroke-dasharray="3 3"/>
-    <line x1="290" y1="520" x2="510" y2="520" stroke="#FFFFFF" stroke-opacity="0.216" stroke-width="1.5" stroke-dasharray="3 3"/>
-    <path d="M 290 230 Q 400 245 510 230" fill="none" stroke="#FFFFFF" stroke-opacity="0.252" stroke-width="1.2" stroke-dasharray="2 3"/>
-    <line x1="248" y1="345" x2="248" y2="755" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="3"/>
-    <line x1="552" y1="345" x2="552" y2="755" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="3"/>
+  <rect width="600" height="600" fill="url(#logo-bg)"/>
+  <rect width="600" height="600" fill="url(#logo-weave)"/>
+
+  <!-- Stitched logo mark: 3 abstract strokes forming a "V" + bar -->
+  <g filter="url(#logo-shadow)" stroke="#101114" stroke-width="14" stroke-linecap="round" fill="none">
+    <line x1="220" y1="220" x2="300" y2="380"/>
+    <line x1="380" y1="220" x2="300" y2="380"/>
+    <line x1="240" y1="430" x2="360" y2="430" stroke-width="10"/>
   </g>
+
+  <!-- stitch-dash overlay on the strokes to imply embroidery -->
+  <g stroke="#F8F7F3" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6" fill="none" opacity="0.5">
+    <line x1="220" y1="220" x2="300" y2="380"/>
+    <line x1="380" y1="220" x2="300" y2="380"/>
+  </g>
+
+  <!-- tiny caption: stitch density -->
+  <text x="36" y="572" font-family="Inter, system-ui" font-size="11" fill="undefined" font-weight="500" letter-spacing="1.6">LOGO · BRODERIE 12K POINTS</text>
 </svg>

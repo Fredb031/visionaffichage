@@ -150,6 +150,9 @@ export default async function HomePage({ params }: Props) {
       <HeroSplit
         eyebrow={t('hero.eyebrow')}
         headline={t('hero.headline')}
+        headlineAccent={
+          locale === 'fr-ca' ? 'premier regard' : 'day one'
+        }
         subhead={t('hero.subhead')}
         primaryCta={{
           label: t('hero.ctaPrimary'),
@@ -168,6 +171,8 @@ export default async function HomePage({ params }: Props) {
         industries={industries}
         locale={locale}
         heading={t('industries.pillsHeading')}
+        eyebrow={t('industries.pillsEyebrow')}
+        caption={t('industries.pillsCaption')}
       />
 
       {/* 3. 3 strategic CTA route cards (sand-100) */}

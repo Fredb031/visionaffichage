@@ -1,34 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="400" height="400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="hero-4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" role="img" aria-label="hero-detail-qc">
   <defs>
-    <radialGradient id="bg-hero-4" cx="50%" cy="40%" r="75%">
+    <radialGradient id="qc-bg" cx="50%" cy="40%" r="80%">
       <stop offset="0%" stop-color="#F8F7F3"/>
       <stop offset="100%" stop-color="#F0ECE4"/>
     </radialGradient>
-    <radialGradient id="hl-hero-4" cx="50%" cy="35%" r="55%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.20"/>
-      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
+    <radialGradient id="qc-emboss" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="gnd-hero-4" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+    <filter id="qc-shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <rect width="800" height="900" fill="url(#bg-hero-4)"/>
-  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-hero-4)"/>
-  <g>
-    <path d="M 260 240 Q 320 200 350 215 Q 400 210 450 215 Q 480 200 540 240 L 645 320 Q 660 350 635 370 L 560 350 L 555 745 L 555 745 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 745 L 245 350 L 245 350 L 165 370 Q 140 350 155 320 L 260 240 Z" fill="#FFFFFF" stroke="#5C636B" stroke-width="1.5" stroke-linejoin="round"/>
-    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-hero-4)"/>
-    <line x1="270" y1="770" x2="530" y2="770" stroke="#5C636B" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3"/>
-    <line x1="245" y1="360" x2="245" y2="758" stroke="#5C636B" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="2 4"/>
-    <line x1="555" y1="360" x2="555" y2="758" stroke="#5C636B" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="2 4"/>
-    <line x1="400" y1="245" x2="400" y2="335" stroke="#5C636B" stroke-opacity="0.6" stroke-width="1.2"/>
-    <line x1="385" y1="245" x2="385" y2="335" stroke="#5C636B" stroke-opacity="0.25" stroke-width="0.8" stroke-dasharray="2 3"/>
-    <line x1="415" y1="245" x2="415" y2="335" stroke="#5C636B" stroke-opacity="0.25" stroke-width="0.8" stroke-dasharray="2 3"/>
-    <circle cx="400" cy="262" r="3.5" fill="#5C636B" fill-opacity="0.6"/>
-    <circle cx="400" cy="290" r="3.5" fill="#5C636B" fill-opacity="0.6"/>
-    <circle cx="400" cy="318" r="3.5" fill="#5C636B" fill-opacity="0.6"/>
-    <path d="M 340 220 L 395 250 L 405 250 L 460 220" fill="none" stroke="#5C636B" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect width="600" height="600" fill="url(#qc-bg)"/>
+
+  <g filter="url(#qc-shadow)">
+    <!-- outer ring -->
+    <circle cx="300" cy="300" r="200" fill="#101114"/>
+    <circle cx="300" cy="300" r="200" fill="url(#qc-emboss)"/>
+    <!-- inner ring -->
+    <circle cx="300" cy="300" r="172" fill="none" stroke="#F0ECE4" stroke-opacity="0.35" stroke-width="1.5"/>
+    <circle cx="300" cy="300" r="156" fill="none" stroke="#F0ECE4" stroke-opacity="0.18" stroke-width="1"/>
+    <!-- fleur de lys (abstract) -->
+    <g fill="#F0ECE4" transform="translate(300 264)">
+      <path d="M0 -28 L8 -10 L20 -8 L10 4 L14 22 L0 14 L-14 22 L-10 4 L-20 -8 L-8 -10 Z"/>
+    </g>
+    <!-- wordmark -->
+    <text x="300" y="318" font-family="Inter, system-ui" font-size="22" font-weight="700" fill="#F0ECE4" text-anchor="middle" letter-spacing="3">FAIT AU</text>
+    <text x="300" y="350" font-family="Inter, system-ui" font-size="22" font-weight="700" fill="#F0ECE4" text-anchor="middle" letter-spacing="3">QUÉBEC</text>
+    <!-- top arc tick marks -->
+    <g stroke="#F0ECE4" stroke-opacity="0.45" stroke-width="1.4" fill="none">
+      <line x1="220" y1="390" x2="240" y2="390"/>
+      <line x1="360" y1="390" x2="380" y2="390"/>
+    </g>
+    <text x="300" y="396" font-family="Inter, system-ui" font-size="10" font-weight="500" fill="#F0ECE4" fill-opacity="0.55" text-anchor="middle" letter-spacing="2">QC · ATELIER</text>
   </g>
+
+  <text x="36" y="572" font-family="Inter, system-ui" font-size="11" fill="undefined" font-weight="500" letter-spacing="1.6">QC BADGE · ATELIER #03</text>
 </svg>

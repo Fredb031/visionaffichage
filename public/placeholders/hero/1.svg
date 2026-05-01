@@ -1,31 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" width="400" height="400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="hero-1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="hero-feature">
   <defs>
-    <radialGradient id="bg-hero-1" cx="50%" cy="40%" r="75%">
+    <radialGradient id="hero-feat-bg" cx="48%" cy="42%" r="78%">
       <stop offset="0%" stop-color="#F8F7F3"/>
-      <stop offset="100%" stop-color="#F0ECE4"/>
+      <stop offset="60%" stop-color="#F0ECE4"/>
+      <stop offset="100%" stop-color="#E4DDCD"/>
     </radialGradient>
-    <radialGradient id="hl-hero-1" cx="50%" cy="35%" r="55%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.20"/>
-      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="gnd-hero-1" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#000000" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+    <filter id="hero-feat-shadow" x="-25%" y="-15%" width="150%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hero-feat-shadow-soft" x="-25%" y="-15%" width="150%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+      <feOffset dx="0" dy="22"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <rect width="800" height="900" fill="url(#bg-hero-1)"/>
-  <ellipse cx="400" cy="820" rx="226.79999999999998" ry="28" fill="url(#gnd-hero-1)"/>
-  <g>
-    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 640 280 Q 660 310 635 345 L 560 330 L 555 740 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 740 L 240 330 L 165 345 Q 140 310 160 280 Z" fill="#35556D" stroke="none" stroke-width="0" stroke-linejoin="round"/>
-    <ellipse cx="400" cy="270" rx="226.79999999999998" ry="110" fill="url(#hl-hero-1)"/>
-    <line x1="270" y1="770" x2="530" y2="770" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.18" stroke-dasharray="3 3"/>
-    <line x1="245" y1="335" x2="245" y2="758" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
-    <line x1="555" y1="335" x2="555" y2="758" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.144" stroke-dasharray="2 4"/>
-    <path d="M 280 230 Q 330 210 360 215" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
-    <path d="M 440 215 Q 470 210 520 230" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
-    <path d="M 165 340 Q 180 350 235 335" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
-    <path d="M 565 335 Q 620 350 635 340" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 3"/>
+  <rect width="800" height="1000" fill="url(#hero-feat-bg)"/>
+
+  <!-- ruler tick marks at right edge for "real photo" feel -->
+  <g stroke="#5C636B" stroke-opacity="0.18" stroke-width="1">
+    <line x1="778" y1="60" x2="788" y2="60"/>
+    <line x1="784" y1="120" x2="788" y2="120"/>
+    <line x1="784" y1="180" x2="788" y2="180"/>
+    <line x1="778" y1="240" x2="788" y2="240"/>
+    <line x1="784" y1="300" x2="788" y2="300"/>
+    <line x1="784" y1="360" x2="788" y2="360"/>
+    <line x1="778" y1="420" x2="788" y2="420"/>
   </g>
+
+  <!-- BOTTOM tee: ink-800, rotated +6deg, larger shadow -->
+  <g transform="translate(80,140) rotate(6 320 380)" filter="url(#hero-feat-shadow-soft)">
+    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 640 280 Q 660 310 635 345 L 560 330 L 555 740 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 740 L 240 330 L 165 345 Q 140 310 160 280 Z" fill="#1D2127" transform="translate(-80,40) scale(0.86)"/>
+  </g>
+  <text x="450" y="780" font-family="Inter, system-ui" font-size="14" fill="#D2C7B0" font-weight="500" letter-spacing="1.2">ATC1015 · INK</text>
+
+  <!-- MIDDLE tee: sand-100, rotated -3deg -->
+  <g transform="translate(120,90) rotate(-3 320 360)" filter="url(#hero-feat-shadow)">
+    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 640 280 Q 660 310 635 345 L 560 330 L 555 740 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 740 L 240 330 L 165 345 Q 140 310 160 280 Z" fill="#F0ECE4" stroke="#D2C7B0" stroke-width="1.5" transform="translate(-60,30) scale(0.84)"/>
+  </g>
+  <text x="500" y="540" font-family="Inter, system-ui" font-size="14" fill="undefined" font-weight="500" letter-spacing="1.2">ATC1015 · SAND</text>
+
+  <!-- TOP tee: slate-700, slight rotation +1deg, smallest shadow -->
+  <g transform="translate(160,40) rotate(1 320 340)" filter="url(#hero-feat-shadow)">
+    <path d="M 260 220 Q 330 190 360 205 Q 400 245 440 205 Q 470 190 540 220 L 640 280 Q 660 310 635 345 L 560 330 L 555 740 Q 540 770 490 775 Q 400 785 310 775 Q 260 770 245 740 L 240 330 L 165 345 Q 140 310 160 280 Z" fill="#35556D" transform="translate(-40,20) scale(0.82)"/>
+  </g>
+  <text x="540" y="320" font-family="Inter, system-ui" font-size="14" fill="undefined" font-weight="500" letter-spacing="1.2">ATC1015 · SLATE</text>
+
+  <!-- micro caption bottom-left: studio-flat reference -->
+  <text x="40" y="968" font-family="Inter, system-ui" font-size="12" fill="undefined" font-weight="500" letter-spacing="2">FLAT-LAY · 3 / 24 colorways</text>
+  <line x1="40" y1="978" x2="160" y2="978" stroke="#5C636B" stroke-opacity="0.25" stroke-width="1"/>
 </svg>
