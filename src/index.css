@@ -80,13 +80,13 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'Inter', system-ui, sans-serif; }
+  body { @apply bg-background text-foreground antialiased; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
 
   /* Global default focus-visible ring (Task 6.1).
      `:where()` keeps specificity at 0 so any component-level
      focus-visible:* override wins via Tailwind's higher specificity. */
   :where(button, a, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"]), input, select, textarea):focus-visible {
-    outline: 2px solid #0052CC;
+    outline: 2px solid #C4852A;
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -191,7 +191,7 @@
   transform: translateY(0);
 }
 
-/* ── Volume II Section 13 micro-interactions ──────────────────────────
+/* ── Volume II Section 13 micro-interactions ──────────────────────
    Named utility classes for the 20-item motion bundle. Most of Sec 13
    (cart bounce, product zoom, scroll-fade, modal focus traps, drawer
    slide, intro animation) was already shipped via component-level

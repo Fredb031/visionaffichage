@@ -1,311 +1,173 @@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
-// MoleGame and IntroAnimation are one-off, first-visit chrome that
-// most returning visitors never see — keep them out of the initial
-// home-page bundle and fetch on demand.
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 const MoleGame = lazy(() => import('@/components/MoleGame').then(m => ({ default: m.MoleGame })));
 const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m => ({ default: m.IntroAnimation })));
-// OP-9: CartDrawer pulls framer-motion (slide animation). It's only
-// mounted when the user opens the cart from Navbar/BottomNav, so lazy-
-// loading it keeps framer-motion out of the home-page eager graph
-// while preserving the slide-in UX once the user actually engages.
-const CartDrawer = lazy(() =>
-  import('@/components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
-);
-// Phase 8 perf — LoginModal is ~14 KB of auth UI that only mounts
-// after the user clicks the navbar user-icon (or the "Connectez-vous"
-// CTA in the QuickPriceCalculator). Eagerly importing it dragged
-// LoginModal + its lucide icons + email-validation helpers into the
-// home-page eager `index` chunk that every visitor pays for at first
-// paint. Lazy import + a gated mount keeps the modal off the critical
-// path entirely on cold visits.
-const LoginModal = lazy(() =>
-  import('@/components/LoginModal').then((m) => ({ default: m.LoginModal })),
-);
+const CartDrawer = lazy(() => import('@/components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const LoginModal = lazy(() => import('@/components/LoginModal').then((m) => ({ default: m.LoginModal })));
 import { AIChat } from '@/components/AIChat';
-import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
-import { CountUp } from '@/components/CountUp';
-import { QuickPriceCalculator } from '@/components/QuickPriceCalculator';
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  ChevronDown,
-  Lock,
-  Shirt,
-  Upload,
-  Printer,
-  Package,
-  Zap,
-  Check,
-  Star as StarIcon,
-} from 'lucide-react';
+import { ChevronDown, Lock } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useInView } from '@/hooks/useInView';
-import { useMagnetic } from '@/hooks/useMagnetic';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// FAQ Q&A pairs — lifted out of the JSX render path so they can be
-// reused by the FAQPage JSON-LD injection without duplicating the
-// content. Editing one keeps the schema and the rendered accordion in
-// sync — both read from the same module-level constants.
-const FAQ_EN: { q: string; a: string }[] = [
-  { q: 'Is there a minimum order quantity?', a: 'No minimum — order as little as 1 piece. Whether you need a single sample or 500 uniforms, the price per unit stays fair. Most clients start with one or two to test quality, then scale up.' },
-  { q: 'How fast can I receive my order?', a: 'Standard turnaround is 5 business days from proof approval. Orders placed before 3 pm hit production the same day; after that they roll to the next business day. Ship date is confirmed at checkout.' },
-  { q: 'What file formats do you accept for artwork?', a: 'Vector files (SVG, AI, PDF) are ideal for crisp results at any size. High-resolution PNG works too as long as it’s at least 300 DPI at final print size. We’ll tell you if we need a better version before charging you anything.' },
-  { q: 'What’s the minimum logo resolution you need?', a: 'For raster files, 300 DPI at actual print size — typically 3000 px wide for a standard chest print. Vector files have no resolution limit since they scale cleanly. Not sure? Send what you have and we’ll check.' },
-  { q: 'Can I order a single sample before committing?', a: 'Yes. Single-piece sample orders are welcome and ship at the same 5-day turnaround. It’s the best way to feel the fabric and confirm colors before ordering for a full team.' },
-  { q: 'Can you match a specific Pantone color?', a: 'Yes, custom Pantone matches are available on screen-printed and embroidered orders. Give us the PMS code at quote time and we’ll ink-match it. A small color-setup fee may apply on very small runs.' },
-  { q: 'How many colors can I use in one print?', a: 'Screen printing supports up to 8 spot colors per location; DTG and DTF handle unlimited colors including gradients. Embroidery runs up to 12 thread colors per logo. We’ll recommend the best method for your art.' },
-  { q: 'Where can you place the print on a garment?', a: 'Front, back, left or right chest, sleeves, nape, bottom hem — pretty much anywhere. Most orders use 1 to 3 locations; each additional placement is priced per print. Let us know your ideal layout and we’ll mock it up.' },
-  { q: 'What shipping methods and times do you offer?', a: 'Canada Post Expedited for most orders (2-5 business days in Quebec, 3-7 elsewhere in Canada) and Purolator Ground when speed matters. Express and overnight options show up at checkout if your postal code qualifies.' },
-  { q: 'How is shipping cost calculated?', a: 'Live rates from Canada Post and Purolator based on weight and destination — no flat markup. Orders over $300 CAD ship free anywhere in Canada. You see the final shipping cost before you pay.' },
-  { q: 'Do I pay GST and QST?', a: 'Yes. Canadian orders are charged GST (5%) and, for Quebec addresses, QST (9.975%). Taxes are calculated automatically at checkout based on your shipping address. Out-of-country orders ship tax-exempt.' },
-  { q: 'What payment methods do you accept?', a: 'Visa, Mastercard, American Express, Apple Pay, Google Pay and Interac e-Transfer. Business accounts can request net-30 terms after the first order. Everything runs through Shopify’s PCI-compliant checkout.' },
-  { q: 'Is there a bulk discount?', a: 'Yes. Pricing tiers kick in at 12, 25, 50, 100 and 250 pieces per design — the more you order, the lower the unit cost. You’ll see the tier pricing live in the quote builder as you adjust quantity.' },
-  { q: 'What’s your return or remake policy?', a: 'If we misprint, miscolor or mis-size anything, we remake it free and cover shipping both ways. One-year guarantee on stitching, print and embroidery under normal use. Custom pieces can’t be returned for buyer’s remorse, but quality issues are always on us.' },
-  { q: 'Can I get fabric or color swatches before ordering?', a: 'Yes. We mail fabric swatches and Pantone color chips free for orders over 25 pieces, or $15 CAD refundable on smaller runs. Most decisions happen faster once you see and feel the options in hand.' },
-  { q: 'What happens if a product is out of stock?', a: 'We notify you within one business day with closest-match alternatives and an honest ETA on the original. No silent swaps — you always choose whether to wait, substitute or cancel for a full refund.' },
-  { q: 'Do you offer rush orders?', a: 'Yes, 48-hour and 72-hour rush is available on most products for a 25-40% fee depending on quantity. Call or message before ordering so we can confirm capacity and lock in your slot in the production queue.' },
-  { q: 'Can I mix different products in one order?', a: 'Absolutely. T-shirts, hoodies, caps, tote bags, mugs — mix and match freely with a single decoration setup. Combining products often unlocks the next bulk-discount tier on total units.' },
-  { q: 'Should I choose embroidery or screen print?', a: 'Embroidery looks premium and lasts decades on caps, polos and jackets — best for logos up to 4 inches. Screen print is sharper, faster and cheaper on t-shirts and hoodies, especially for larger designs. We’ll recommend per piece when you quote.' },
-  { q: 'Do you offer eco-friendly materials?', a: 'Yes. Organic cotton, recycled polyester (rPET), and blanks from B-Corp-certified suppliers like Stanley/Stella and Allmade are available across most product categories. Water-based inks are standard on all our screen prints.' },
-  { q: 'Can I pick up my order instead of shipping?', a: 'Yes — free local pickup at our Quebec facility during business hours, usually ready the day production wraps. Select "Pickup" at checkout and we’ll text you when your order is boxed and ready.' },
-];
-
-const FAQ_FR: { q: string; a: string }[] = [
-  { q: 'Y a-t-il une quantité minimum par commande?', a: 'Aucun minimum — commande dès 1 pièce. Que tu aies besoin d’un seul échantillon ou de 500 uniformes, le prix unitaire reste juste. La plupart des clients commencent avec un ou deux pour tester, puis augmentent.' },
-  { q: 'En combien de temps vais-je recevoir ma commande?', a: 'Délai standard de 5 jours ouvrables après approbation de l’épreuve. Les commandes passées avant 15 h partent en production la journée même; après, elles roulent au prochain jour ouvrable. Date d’expédition confirmée au paiement.' },
-  { q: 'Quels formats de fichier acceptez-vous pour les visuels?', a: 'Les fichiers vectoriels (SVG, AI, PDF) sont idéaux pour un rendu net à toute taille. Un PNG haute résolution fonctionne aussi s’il est d’au moins 300 DPI à la taille d’impression finale. On t’avise si on a besoin d’une meilleure version avant de facturer quoi que ce soit.' },
-  { q: 'Quelle est la résolution minimum pour un logo?', a: 'Pour les fichiers matriciels, 300 DPI à la taille réelle d’impression — environ 3000 px de large pour une impression poitrine standard. Les vectoriels n’ont pas de limite de résolution. Pas certain? Envoie ce que tu as et on vérifie.' },
-  { q: 'Puis-je commander un échantillon avant de m’engager?', a: 'Oui. Les commandes échantillons à une pièce sont les bienvenues, avec le même délai de 5 jours. C’est la meilleure façon de sentir le tissu et confirmer les couleurs avant de commander pour toute une équipe.' },
-  { q: 'Pouvez-vous matcher une couleur Pantone précise?', a: 'Oui, les matchs Pantone sur mesure sont disponibles en sérigraphie et en broderie. Donne-nous le code PMS lors du devis et on le reproduit. Des frais de calibration peuvent s’appliquer sur les très petites quantités.' },
-  { q: 'Combien de couleurs puis-je utiliser par impression?', a: 'La sérigraphie supporte jusqu’à 8 couleurs spot par emplacement; le DTG et le DTF gèrent un nombre illimité de couleurs incluant les dégradés. La broderie monte à 12 couleurs de fil par logo. On te recommandera la meilleure méthode pour ton visuel.' },
-  { q: 'Où peut-on imprimer sur un vêtement?', a: 'Devant, dos, cœur gauche ou droit, manches, nuque, bas du vêtement — pratiquement partout. La plupart des commandes utilisent 1 à 3 emplacements; chaque emplacement additionnel est facturé à l’unité. Dis-nous ta disposition idéale et on te fait un visuel.' },
-  { q: 'Quels modes et délais de livraison offrez-vous?', a: 'Postes Canada Expédié pour la plupart des commandes (2-5 jours ouvrables au Québec, 3-7 ailleurs au Canada) et Purolator Sol quand la vitesse compte. Les options Express et jour suivant apparaissent au paiement si ton code postal y donne droit.' },
-  { q: 'Comment les frais de livraison sont-ils calculés?', a: 'Tarifs en direct de Postes Canada et Purolator selon le poids et la destination — sans majoration fixe. Livraison gratuite au Canada pour les commandes de plus de 300 $ CAD. Le coût final s’affiche avant le paiement.' },
-  { q: 'Dois-je payer la TPS et la TVQ?', a: 'Oui. Les commandes canadiennes sont taxées TPS (5 %) et, pour les adresses au Québec, TVQ (9,975 %). Les taxes sont calculées automatiquement au paiement selon ton adresse de livraison. Les commandes hors Canada sont exonérées.' },
-  { q: 'Quels modes de paiement acceptez-vous?', a: 'Visa, Mastercard, American Express, Apple Pay, Google Pay et Interac virement. Les comptes entreprise peuvent demander des termes net-30 après la première commande. Tout passe par la caisse sécurisée PCI de Shopify.' },
-  { q: 'Y a-t-il un rabais de volume?', a: 'Oui. Les paliers de prix s’activent à 12, 25, 50, 100 et 250 pièces par design — plus tu commandes, plus le coût unitaire baisse. Tu vois les paliers en direct dans le calculateur de devis en ajustant la quantité.' },
-  { q: 'Quelle est votre politique de retour ou refabrication?', a: 'Si on rate une impression, une couleur ou une taille, on refait gratuitement et on paie la livraison aller-retour. Garantie un an sur couture, impression et broderie à usage normal. Les pièces personnalisées ne sont pas retournables pour changement d’idée, mais les défauts sont toujours notre responsabilité.' },
-  { q: 'Puis-je recevoir des échantillons de tissu ou de couleur?', a: 'Oui. On envoie des échantillons de tissu et des puces Pantone gratuitement pour les commandes de plus de 25 pièces, ou 15 $ CAD remboursable sur les plus petites. Les décisions se prennent plus vite quand tu vois et touches les options.' },
-  { q: 'Que se passe-t-il si un produit est en rupture?', a: 'On t’avise en un jour ouvrable avec des alternatives les plus proches et une date réaliste pour le produit d’origine. Jamais de substitution silencieuse — c’est toi qui choisis d’attendre, de substituer ou d’annuler avec remboursement complet.' },
-  { q: 'Offrez-vous des commandes urgentes?', a: 'Oui, des rush de 48 h et 72 h sont possibles sur la plupart des produits avec des frais de 25 à 40 % selon la quantité. Appelle ou écris avant de commander pour qu’on confirme la capacité et réserve ta place dans la file de production.' },
-  { q: 'Puis-je mélanger différents produits dans une commande?', a: 'Absolument. T-shirts, hoodies, casquettes, sacs, tasses — mélange librement avec une seule configuration de décoration. Combiner les produits permet souvent d’atteindre le prochain palier de rabais sur le total des unités.' },
-  { q: 'Broderie ou sérigraphie, que choisir?', a: 'La broderie a un look premium et dure des décennies sur casquettes, polos et vestes — idéale pour les logos jusqu’à 4 pouces. La sérigraphie est plus nette, rapide et économique sur t-shirts et hoodies, surtout pour les grands designs. On te recommande selon la pièce lors du devis.' },
-  { q: 'Offrez-vous des matières écoresponsables?', a: 'Oui. Coton bio, polyester recyclé (rPET) et blanks de fournisseurs certifiés B-Corp comme Stanley/Stella et Allmade sont disponibles sur la plupart des catégories. Les encres à base d’eau sont standard sur toutes nos sérigraphies.' },
-  { q: 'Puis-je ramasser ma commande au lieu de me faire livrer?', a: 'Oui — cueillette locale gratuite à notre atelier au Québec durant les heures d’ouverture, habituellement prête la journée où la production se termine. Choisis "Cueillette" au paiement et on t’écrit dès que ta commande est emballée et prête.' },
-];
-
-// Marquee logos — rendered as text pills rather than fetched brand
-// images so the homepage doesn't burn a bunch of CDN bytes for what is
-// fundamentally a "social proof rail" treatment. Names match the Vol.
-// III brief: a mix of public-sector (Boscoville, Ville de Laval),
-// industrial trades (Construction Frères, Plomberie Pro), and outdoor
-// services (Paysages Verts, Garda) so the rail reads as broad B2B
-// trust rather than a single niche.
-const MARQUEE_CLIENTS = [
-  'Boscoville',
-  'Garda',
-  'Ville de Laval',
-  'Construction Frères',
-  'Plomberie Pro',
-  'Paysages Verts',
-  'Ferme Lacasse',
-  'Sports Experts',
-];
-
-// Reviews — six bilingual testimonials shown in the snap-rail under the
-// "5.0 · 50+ avis Google" header. Quotes are kept short so each card
-// reads in a single glance on the horizontal scroll.
-const REVIEWS = [
-  {
-    fr: { quote: 'Reçu en 4 jours pile. Mes gars ont adoré le hoodie. On va recommander pour le reste de l’équipe.', name: 'Marc Lévesque', company: 'Construction Frères' },
-    en: { quote: 'Got it in 4 days flat. My crew loved the hoodie. We’ll re-order for the rest of the team.', name: 'Marc Lévesque', company: 'Construction Frères' },
-  },
-  {
-    fr: { quote: 'Aucun minimum, vraiment. J’ai commencé avec 3 polos pour tester. Qualité impeccable.', name: 'Sophie Tremblay', company: 'Paysages Verts' },
-    en: { quote: 'No minimum, for real. I started with 3 polos to test. Quality was spot-on.', name: 'Sophie Tremblay', company: 'Paysages Verts' },
-  },
-  {
-    fr: { quote: 'Le logo brodé sur les casquettes est incroyable. Mes clients me demandent où je les ai eues.', name: 'Karim Benoît', company: 'Plomberie Pro' },
-    en: { quote: 'The embroidered logo on the caps is incredible. Clients ask me where I got them.', name: 'Karim Benoît', company: 'Plomberie Pro' },
-  },
-  {
-    fr: { quote: 'Service rapide, prix juste, communication claire. Je recommande à tous mes confrères.', name: 'Annie Roy', company: 'Boscoville' },
-    en: { quote: 'Fast service, fair price, clear comms. I recommend them to every colleague.', name: 'Annie Roy', company: 'Boscoville' },
-  },
-  {
-    fr: { quote: 'On a habillé toute l’équipe pour le tournoi. 5 jours, livré, sans accroc. Bravo.', name: 'David Pelletier', company: 'Sports Experts' },
-    en: { quote: 'Kitted out the whole team for the tournament. 5 days, delivered, no hiccups. Solid.', name: 'David Pelletier', company: 'Sports Experts' },
-  },
-  {
-    fr: { quote: 'Premier essai à 1 pièce, puis on a passé à 80. Aucun minimum c’est pas une promesse vide.', name: 'Julie Côté', company: 'Ferme Lacasse' },
-    en: { quote: 'First try at 1 piece, then ramped to 80. No-minimum is not an empty promise here.', name: 'Julie Côté', company: 'Ferme Lacasse' },
-  },
-];
-
-/**
- * SectionReveal — wraps a section with the standard fade-up gate keyed
- * to the existing single-fire `useInView` hook. The Vol. III brief
- * specifies every section after the hero gets the same treatment
- * (`opacity-0 translate-y-8` → `opacity-100 translate-y-0` over 700ms),
- * so this thin wrapper keeps the JSX readable instead of repeating the
- * ref/visible boilerplate at every section call site.
- */
-function SectionReveal({
-  children,
-  className = '',
-  as: Tag = 'section',
-}: {
-  children: React.ReactNode;
-  className?: string;
-  as?: 'section' | 'div';
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const visible = useInView(ref, { threshold: 0.12 });
-  return (
-    <Tag
-      ref={ref as React.RefObject<HTMLDivElement>}
-      className={`${className} transition-all duration-700 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      }`}
-    >
-      {children}
-    </Tag>
-  );
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
 }
+
+const FAQ_FR = [
+  { q: 'Y a-t-il une quantité minimum?', a: 'Aucun minimum — commande dès 1 pièce. Que tu aies besoin d’un seul échantillon ou de 500 uniformes, le prix unitaire reste juste.' },
+  { q: 'En combien de temps vais-je recevoir ma commande?', a: 'Délai standard de 5 jours ouvrables après approbation. Les commandes passées avant 15 h partent en production la journée même.' },
+  { q: 'Quels formats de fichier acceptez-vous?', a: 'Vectoriels (SVG, AI, PDF) idéaux. PNG haute résolution fonctionne aussi (300 DPI minimum). On t’avise si on a besoin d’une meilleure version avant de facturer.' },
+  { q: 'Puis-je commander un seul échantillon?', a: 'Oui. Une pièce, livrée en 5 jours. C’est la meilleure façon de tester avant de commander pour ton équipe.' },
+  { q: 'Que se passe-t-il si vous ratez mon délai?', a: 'Si on dépasse les 5 jours ouvrables d’une seule journée — remboursement intégral, sans questions.' },
+  { q: 'Broderie ou sérigraphie?', a: 'Broderie pour casquettes, polos, vestes (look premium qui dure). Sérigraphie pour t-shirts et hoodies (plus net, plus rapide). On te recommande selon la pièce.' },
+  { q: 'Y a-t-il un rabais de volume?', a: 'Oui. Paliers à 12, 25, 50, 100 et 250 pièces par design. Les paliers s’affichent en direct dans le calculateur.' },
+  { q: 'Quelle est votre politique de retour?', a: 'Erreur de notre part — refait gratuitement, livraison aller-retour à nos frais. Garantie un an sur couture et impression à usage normal.' },
+];
+
+const FAQ_EN = [
+  { q: 'Is there a minimum order quantity?', a: 'No minimum — order as little as 1 piece. Whether you need a single sample or 500 uniforms, the per-unit price stays fair.' },
+  { q: 'How fast will I receive my order?', a: 'Standard 5 business days after approval. Orders placed before 3 pm hit production the same day.' },
+  { q: 'What file formats do you accept?', a: 'Vector (SVG, AI, PDF) is ideal. High-res PNG works too (300 DPI minimum). We tell you if we need a better version before charging.' },
+  { q: 'Can I order a single sample?', a: 'Yes. One piece, delivered in 5 days. Best way to test before ordering for the whole team.' },
+  { q: 'What happens if you miss the deadline?', a: 'Past 5 business days by a single day — full refund, no questions.' },
+  { q: 'Embroidery or screen print?', a: 'Embroidery for caps, polos, jackets (premium, lasts decades). Screen print for tees and hoodies (sharper, faster). We recommend per piece.' },
+  { q: 'Bulk discount?', a: 'Yes. Tiers at 12, 25, 50, 100, 250 pieces per design. Tiers show live in the quote builder.' },
+  { q: 'Return policy?', a: 'Our mistake — remade free, shipping both ways on us. One-year guarantee on stitching and print under normal use.' },
+];
+
+const REVIEWS = [
+  { fr: { q: 'Reçu en 4 jours pile. Mes gars ont adoré le hoodie. On va recommander pour le reste de l’équipe.', n: 'Marc Lévesque', c: 'Construction Frères' }, en: { q: 'Got it in 4 days flat. Crew loved the hoodie. Re-ordering for the rest.', n: 'Marc Lévesque', c: 'Construction Frères' } },
+  { fr: { q: 'Aucun minimum, vraiment. J’ai commencé avec 3 polos pour tester. Qualité impeccable.', n: 'Sophie Tremblay', c: 'Paysages Verts' }, en: { q: 'No minimum, for real. Started with 3 polos to test. Quality was spot-on.', n: 'Sophie Tremblay', c: 'Paysages Verts' } },
+  { fr: { q: 'Le logo brodé sur les casquettes est incroyable. Mes clients me demandent où je les ai eues.', n: 'Karim Benoît', c: 'Plomberie Pro' }, en: { q: 'The embroidered logo on the caps is incredible. Clients ask me where I got them.', n: 'Karim Benoît', c: 'Plomberie Pro' } },
+];
+
+const INDUSTRIES = ['CONSTRUCTION', 'PAYSAGEMENT', 'PLOMBERIE', 'ÉLECTRICITÉ', 'TOITURE', 'SÉCURITÉ', 'TRANSPORT', 'EXCAVATION', 'MÉCANIQUE', 'PEINTURE'];
+
+const BENTO_PRODUCTS = [
+  { sku: 'ATC1000',  type: 'T-SHIRT',          name: 'T-shirt unisexe',           price: '4.15$',  handle: 'atc1000', img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATC1000-Devant.jpg?v=1770866927',  size: 'large' as const },
+  { sku: 'S445',     type: 'POLO',             name: 'Polo performance',          price: '27.99$', handle: 's445-1',  img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/S445-Devant.jpg?v=1770866896',     size: 'large' as const },
+  { sku: 'S445LS',   type: 'POLO MANCHES LONGUES', name: 'Polo manches longues',  price: '33.59$', handle: 's445ls-1', img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/S445LS-Devant.jpg?v=1770866896',  size: 'small' as const },
+  { sku: 'L445',     type: 'POLO FEMME',        name: 'Polo femme',                price: '27.99$', handle: 'l445-1',   img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/L445-Devant.jpg?v=1770866896',    size: 'small' as const },
+  { sku: '6245CM',   type: 'CASQUETTE',         name: 'Casquette dad vintage',     price: '11.54$', handle: '6245cm',   img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/IMG_5337.jpg?v=1777758336',     size: 'small' as const },
+  { sku: 'C100',     type: 'TUQUE',             name: 'Tuque acrylique',           price: '4.50$',  handle: 'c100-1',   img: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/IMG_5332.jpg?v=1777758336',     size: 'small' as const },
+];
+
+const HERO_IMG = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/hf_20260130_190909_bf75301e-d22b-41a1-93d2-5bb932ac4df5_1.png?v=1769816240';
 
 export default function Index() {
   const { lang } = useLang();
-  // Homepage SEO snippet. Bilingual title + description so Google's
-  // en-CA index gets English copy when the visitor toggles EN.
   useDocumentTitle(
     lang === 'en' ? 'Vision Affichage — Custom merch' : 'Vision Affichage — Merch d’entreprise personnalisé',
     lang === 'en'
-      ? 'Vision Affichage — Custom merch for Québec businesses. Free quote, 5-day turnaround, 100% local.'
-      : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. Soumission gratuite, 5 jours ouvrables, 100 % local.',
+      ? 'Vision Affichage — Custom merch for Québec businesses. 5-day turnaround, refunded if late, from 1 piece.'
+      : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. 5 jours ouvrables, remboursé si retard, à partir d’une pièce.',
     {},
   );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [showGame, setShowGame] = useState(false);
-  // Intro animation disabled by default per owner feedback. The
-  // IntroAnimation module + audio engine are still on disk and lazy-
-  // loaded only if `showLoader` is flipped back on, so re-enabling is a
-  // one-line change without dragging the chunk into the eager bundle.
-  const [showLoader, setShowLoader] = useState(false);
+  const [showLoader] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  // Sticky bottom CTA (mobile only). The sentinel sits at the bottom of
-  // the hero; once it leaves the viewport we know the visitor has
-  // scrolled past the hero and should see the always-visible "Free
-  // quote" CTA. Re-entering hides it. Desktop never shows the bar — the
-  // top-nav CTA handles desktop conversion.
-  const heroSentinelRef = useRef<HTMLDivElement>(null);
-  // Vol III §07 — magnetic primary CTA. The hook owns the inline
-  // transform on the anchor while the cursor is within 80px of the
-  // button's center, drifting it ~6px towards the pointer. No-ops on
-  // touch devices and when prefers-reduced-motion is set, so the only
-  // observable cost on phones is the ref attach itself.
-  const heroPrimaryCtaRef = useMagnetic<HTMLAnchorElement>();
-  const [showStickyCta, setShowStickyCta] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
+  const bentoRef = useRef<HTMLElement>(null);
+  const processRef = useRef<HTMLElement>(null);
+  const faqGroupRef = useRef<HTMLDivElement>(null);
+
+  // GSAP timeline + scroll triggers. Respects prefers-reduced-motion via
+  // the matchMedia branch — when reduced motion is requested, content
+  // mounts at its final state and skips the entrance choreography.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReducedMotion(mq.matches);
-    update();
-    if (mq.addEventListener) mq.addEventListener('change', update);
-    else mq.addListener(update);
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener('change', update);
-      else mq.removeListener(update);
-    };
-  }, []);
-  useEffect(() => {
-    const el = heroSentinelRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setShowStickyCta(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.6 } });
+      tl.from('.hero-headline', { y: 24, opacity: 0 })
+        .from('.hero-meta', { y: 16, opacity: 0, duration: 0.5 }, '-=0.4')
+        .from('.hero-image-wrap', { scaleY: 0.94, opacity: 0, transformOrigin: 'top center' }, '-=0.35')
+        .from('.hero-stats > *', { y: 12, opacity: 0, stagger: 0.08, duration: 0.4 }, '-=0.2');
+
+      gsap.from('.bento-card', {
+        scrollTrigger: { trigger: bentoRef.current, start: 'top 85%' },
+        y: 18, opacity: 0, stagger: 0.07, duration: 0.5, ease: 'power2.out',
+      });
+
+      gsap.from('.process-step', {
+        scrollTrigger: { trigger: processRef.current, start: 'top 80%' },
+        x: -20, opacity: 0, stagger: 0.15, duration: 0.6, ease: 'power2.out',
+      });
+
+      gsap.utils.toArray<HTMLElement>('.section-reveal').forEach((s) => {
+        gsap.from(s, {
+          scrollTrigger: { trigger: s, start: 'top 88%' },
+          y: 14, opacity: 0, duration: 0.55, ease: 'power2.out',
+        });
+      });
+
+      document.querySelectorAll<HTMLElement>('[data-countup]').forEach((el) => {
+        const target = parseInt(el.dataset.countup || '0', 10);
+        const obj = { v: 0 };
+        gsap.to(obj, {
+          v: target,
+          scrollTrigger: { trigger: el, start: 'top 90%' },
+          duration: 1.4,
+          ease: 'power2.inOut',
+          onUpdate() {
+            el.textContent = Math.round(obj.v).toLocaleString('fr-CA');
+          },
+        });
+      });
+    });
+
+    return () => ctx.revert();
   }, []);
 
-  // FAQ accordion — one-at-a-time open behaviour. Native <details> gives
-  // us keyboard/SR semantics + no-JS progressive enhancement for free;
-  // this handler enforces mutual exclusion so opening one auto-closes
-  // the rest in the same group.
-  const faqGroupRef = useRef<HTMLDivElement>(null);
+  // FAQ accordion — one-at-a-time open behaviour.
   useEffect(() => {
     const root = faqGroupRef.current;
     if (!root) return;
     const items = Array.from(root.querySelectorAll<HTMLDetailsElement>('details[data-faq-item]'));
     const onToggle = (e: Event) => {
-      const target = e.target as HTMLDetailsElement;
-      if (!target.open) return;
-      items.forEach(d => { if (d !== target && d.open) d.open = false; });
+      const t = e.target as HTMLDetailsElement;
+      if (!t.open) return;
+      items.forEach(d => { if (d !== t && d.open) d.open = false; });
     };
     items.forEach(d => d.addEventListener('toggle', onToggle));
     return () => items.forEach(d => d.removeEventListener('toggle', onToggle));
-  }, []);
+  }, [lang]);
 
-  // Track timers kicked off by the loader so a route change before the
-  // game popup appears doesn't fire state updates on an unmounted page.
-  const loaderTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
-  useEffect(() => {
-    return () => {
-      loaderTimersRef.current.forEach(t => clearTimeout(t));
-      loaderTimersRef.current = [];
-    };
-  }, []);
-
-  // Organization JSON-LD schema. Feeds Google the canonical name /
-  // address / phone / social graph so the homepage can attach to a
-  // knowledge panel or render a rich SERP card. Dataset marker
-  // prevents duplicates if Index remounts before cleanup runs.
+  // Organization + LocalBusiness + FAQPage JSON-LD schemas.
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    if (document.head.querySelector('script[data-vision-org-ld]')) return;
+    const exists = document.head.querySelector('script[data-vision-org-ld]');
+    if (exists) return;
     const orgSchema = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
       name: 'Vision Affichage',
-      alternateName: 'Vision Affichage Inc.',
       url: 'https://visionaffichage.com',
       logo: 'https://visionaffichage.com/logo.svg',
       telephone: '+1-367-380-4808',
       email: 'info@visionaffichage.com',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Saint-Hyacinthe',
-        addressRegion: 'QC',
-        addressCountry: 'CA',
-      },
-      sameAs: [
-        'https://instagram.com/visionaffichage',
-        'https://facebook.com/visionaffichage',
-      ],
+      address: { '@type': 'PostalAddress', addressLocality: 'Saint-Hyacinthe', addressRegion: 'QC', addressCountry: 'CA' },
+      sameAs: ['https://instagram.com/visionaffichage', 'https://facebook.com/visionaffichage'],
     };
     const el = document.createElement('script');
     el.type = 'application/ld+json';
     el.dataset.visionOrgLd = 'true';
     el.text = JSON.stringify(orgSchema);
     document.head.appendChild(el);
-    return () => {
-      if (el.parentNode) document.head.removeChild(el);
-    };
+    return () => { if (el.parentNode) document.head.removeChild(el); };
   }, []);
 
-  // FAQPage JSON-LD schema. Feeds Google the 21 Q&A pairs already
-  // rendered in the visual FAQ so the SERP can surface them as a rich-
-  // results card directly under the homepage listing. Effect re-runs
-  // when `lang` flips, swapping the graph in place.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (document.head.querySelector('script[data-faq-ld]')) return;
@@ -313,101 +175,34 @@ export default function Index() {
     const faqSchema = {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: pairs.map(({ q, a }) => ({
-        '@type': 'Question',
-        name: q,
-        acceptedAnswer: { '@type': 'Answer', text: a },
-      })),
+      mainEntity: pairs.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
     };
     const el = document.createElement('script');
     el.type = 'application/ld+json';
     el.dataset.faqLd = 'true';
     el.text = JSON.stringify(faqSchema);
     document.head.appendChild(el);
-    return () => {
-      if (el.parentNode) document.head.removeChild(el);
-    };
+    return () => { if (el.parentNode) document.head.removeChild(el); };
   }, [lang]);
 
-  // LocalBusiness JSON-LD schema. Gives Google the Maps-style business-
-  // card fields (hours, geo, phone, priceRange) needed to render the
-  // local-pack treatment in SERP. Runs alongside the Organization graph
-  // — Google accepts both and merges signals.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    if (document.head.querySelector('script[data-local-business-ld]')) return;
-    const localBusinessSchema = {
-      '@context': 'https://schema.org',
-      '@type': 'LocalBusiness',
-      name: 'Vision Affichage',
-      image: 'https://visionaffichage.com/logo.svg',
-      priceRange: '$$',
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: '<owner fills in>',
-        addressLocality: 'Saint-Hyacinthe',
-        addressRegion: 'QC',
-        postalCode: '<owner fills in>',
-        addressCountry: 'CA',
-      },
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: 45.62,
-        longitude: -72.95,
-      },
-      telephone: '+1-367-380-4808',
-      email: 'info@visionaffichage.com',
-      openingHours: 'Mo-Fr 08:00-17:00',
-      url: 'https://visionaffichage.com',
-      sameAs: [
-        'https://instagram.com/visionaffichage',
-        'https://facebook.com/visionaffichage',
-      ],
-    };
-    const el = document.createElement('script');
-    el.type = 'application/ld+json';
-    el.dataset.localBusinessLd = 'true';
-    el.text = JSON.stringify(localBusinessSchema);
-    document.head.appendChild(el);
-    return () => {
-      if (el.parentNode) document.head.removeChild(el);
-    };
-  }, []);
-
   const handleLoaderComplete = useCallback(() => {
-    setShowLoader(false);
-    // Auto-open the mini-game on first site visit only (once per
-    // browser). Wrap localStorage in try/catch — Safari private
-    // browsing throws on getItem and that uncaught error would break
-    // the loader teardown.
     let alreadyPlayed = true;
     try {
       alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
-    } catch { /* private mode — treat as already seen */ }
-    if (!alreadyPlayed) {
-      loaderTimersRef.current.push(setTimeout(() => setShowGame(true), 650));
-    }
+    } catch { /* noop */ }
+    if (!alreadyPlayed) setTimeout(() => setShowGame(true), 650);
   }, []);
 
   const handleGameClose = (won: boolean) => {
     setShowGame(false);
-    try {
-      localStorage.setItem('moleGamePlayed', 'true');
-    } catch {
-      // Private browsing or quota — one-time game, not worth blocking on.
-    }
-    if (won) {
-      cart.applyDiscount('VISION10');
-    }
+    try { localStorage.setItem('moleGamePlayed', 'true'); } catch { /* noop */ }
+    if (won) cart.applyDiscount('VISION10');
   };
 
-  // Trust pill avatar config — initials + colored circles for the four
-  // "team" dots. Real photos can swap in later by replacing the
-  // initials with <img> tags; the layout already accounts for w-7 h-7.
-  const trustAvatars = ['ML', 'PB', 'SR', 'AT'];
+  const FAQ = lang === 'en' ? FAQ_EN : FAQ_FR;
 
   return (
-    <div id="main-content" tabIndex={-1} className="min-h-screen bg-background pb-20 focus:outline-none">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-va-paper pb-20 focus:outline-none">
       <Suspense fallback={null}>
         {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
         {showGame && <MoleGame isOpen={showGame} onClose={handleGameClose} />}
@@ -422,446 +217,244 @@ export default function Index() {
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
       </Suspense>
 
-      {/* ================================================================
-          HERO — Vol. III PDF spec. Dark va-ink canvas, blue glow on the
-          left, faded team image on the right (luminosity-blended), 64×64
-          grid texture overlay. Headline / sub / CTA / trust bar /
-          QuickPriceCalculator stagger in via fadeSlideUp keyframes
-          authored in src/index.css.
-          ============================================================== */}
-      <section className="relative min-h-screen bg-va-ink overflow-hidden flex items-center">
-        {/* 1. 64×64 grid texture (very low opacity — reads as paper, not pattern) */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.025]"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
-
-        {/* 2. Blue glow on the left */}
-        <div
-          className="absolute left-8 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-va-blue/6 blur-[100px] pointer-events-none"
-          aria-hidden="true"
-        />
-
-        {/* 3. Right team image (lg+ only). Spread {...{ fetchpriority }}
-             to dodge React 18's camelCase warning on the lowercase
-             attribute the spec requires. onError hides the node if the
-             asset 404s rather than leaving a broken-image rectangle. */}
-        <div className="absolute right-0 inset-y-0 w-[45%] hidden lg:block pointer-events-none" aria-hidden="true">
-          <img
-            src="/hero-team.webp"
-            alt=""
-            loading="eager"
-            decoding="async"
-            {...{ fetchpriority: 'high' }}
-            className="w-full h-full object-cover opacity-55 mix-blend-luminosity"
-            onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement;
-              img.style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-va-ink via-va-ink/70 to-va-ink/20" />
-        </div>
-
-        {/* 4. Content column */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-24">
-          <div className="grid lg:grid-cols-[600px_1fr] gap-10 lg:gap-16 items-center">
-            <div className="max-w-[600px]">
-              {/* Trust pill — frosted glass, animates from above */}
-              <div
-                className="inline-flex items-center h-10 bg-white/6 backdrop-blur-md border border-white/12 rounded-full px-5 py-2 gap-3 mb-7"
-                style={{ animation: 'fadeSlideDown 0.4s 0ms forwards', opacity: 0 }}
-              >
-                <div className="flex -space-x-1.5">
-                  {trustAvatars.map((init, i) => (
-                    <div
-                      key={i}
-                      className="w-7 h-7 rounded-full border-2 border-va-ink bg-va-blue/50 flex items-center justify-center text-white text-[10px] font-bold"
-                      aria-hidden="true"
-                    >
-                      {init}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-yellow-400 text-xs tracking-wide" aria-hidden="true">★★★★★</span>
-                <span className="text-white/80 text-xs font-medium">
-                  {lang === 'en' ? '500+ companies in Quebec' : '500+ entreprises au Québec'}
-                </span>
+      {/* HERO — light editorial. Mega Prompt v4.0 §4. */}
+      <section ref={heroRef} className="bg-va-paper pt-10 pb-16 md:pt-14 md:pb-20">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-16 lg:px-24">
+          {/* A. Headline + meta band */}
+          <div className="grid md:grid-cols-2 gap-8 items-end mb-10">
+            <h1 className="hero-headline font-display font-extrabold text-va-ink text-[44px] md:text-[52px] leading-[0.98] tracking-[-0.04em] max-w-[460px]">
+              {lang === 'en' ? (
+                <>Kit your crew <span className="text-va-gold">this Friday.</span></>
+              ) : (
+                <>Habille ton équipe <span className="text-va-gold">ce vendredi.</span></>
+              )}
+            </h1>
+            <div className="hero-meta md:text-right">
+              <div className="text-[9px] font-bold tracking-[0.16em] uppercase text-va-muted mb-2">
+                {lang === 'en' ? 'Already delivered in Quebec' : 'Déjà livrés au Québec'}
               </div>
-
-              {/* H1 — three lines, blue accent on line 2.
-                  Phase 8 LCP fix: rendered at full opacity from frame 0
-                  (no fade) so it can win the LCP race without waiting
-                  on a 580ms animation tail. Adornments around it
-                  (trust pill, subhead, CTAs) still animate in. */}
-              <h1
-                className="font-display font-black text-white text-5xl md:text-6xl xl:text-[76px] leading-[1.0] tracking-[-0.04em] mb-7"
-              >
-                {lang === 'en' ? (
-                  <>
-                    Your team.<br />
-                    <span className="text-va-blue">Your image.</span><br />
-                    5 days.
-                  </>
-                ) : (
-                  <>
-                    Ton équipe.<br />
-                    <span className="text-va-blue">Ton image.</span><br />
-                    5 jours.
-                  </>
-                )}
-              </h1>
-
-              {/* Sub */}
-              <p
-                className="text-white/55 text-lg md:text-xl leading-relaxed mb-10 max-w-[520px]"
-                style={{ animation: 'fadeSlideUp 0.5s 180ms forwards', opacity: 0 }}
-              >
-                {lang === 'en'
-                  ? 'Logo printed on your t-shirts, hoodies, polos and caps. Delivery guaranteed in 5 business days — starting from a single piece.'
-                  : 'Logo imprimé sur tes t-shirts, hoodies, polos et casquettes. Livraison garantie en 5 jours ouvrables — à partir d’une seule pièce.'}
-              </p>
-
-              {/* CTAs */}
-              <div
-                className="flex flex-wrap items-center gap-3 mb-10"
-                style={{ animation: 'fadeSlideUp 0.5s 300ms forwards', opacity: 0 }}
-              >
-                {/* Magnetic primary CTA — Vol III §07. The outer <Link>'s
-                    inline transform is owned by useMagnetic; the inner
-                    span keeps the hover/active scale feedback so click
-                    feedback still reads when the cursor is in-radius
-                    (otherwise the inline translate3d would clobber the
-                    Tailwind scale utility on the same element). */}
-                <Link
-                  ref={heroPrimaryCtaRef}
-                  to="/boutique"
-                  className="group inline-block rounded-xl shadow-[0_0_36px_rgba(0,71,204,0.32)] hover:shadow-[0_0_52px_rgba(0,71,204,0.55)] transition-shadow duration-200 will-change-transform"
-                >
-                  <span className="inline-flex items-center gap-2 bg-va-blue text-white font-semibold px-8 py-4 rounded-xl text-[15px] tracking-[0.02em] hover:bg-va-blue-hover group-hover:scale-[1.02] group-active:scale-[0.97] transition-[transform,background-color] duration-200">
-                    {lang === 'en' ? 'Order now' : 'Commander maintenant'}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-                  </span>
-                </Link>
-                <Link
-                  to="/customizer"
-                  className="inline-flex items-center bg-transparent text-white/80 font-medium px-8 py-4 rounded-xl text-[15px] border border-white/22 hover:bg-white/6 hover:text-white hover:border-white/40 hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
-                >
-                  {lang === 'en' ? 'Customize my product' : 'Personnaliser mon produit'}
-                </Link>
+              <div className="font-display font-extrabold text-[28px] tracking-[-0.03em] text-va-ink">
+                <span data-countup="33000">33 000</span>+
               </div>
-
-              {/* Trust bar — 4 micro-claims, va-blue glyphs */}
-              <div
-                className="flex flex-wrap gap-x-7 gap-y-2"
-                style={{ animation: 'fadeIn 0.4s 450ms forwards', opacity: 0 }}
-              >
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Zap className="w-4 h-4 text-va-blue" aria-hidden="true" />
-                  <span>{lang === 'en' ? '5 business days' : '5 jours ouvrables'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Check className="w-4 h-4 text-va-blue" aria-hidden="true" />
-                  <span>{lang === 'en' ? 'From 1 piece' : 'À partir d’1 pièce'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <StarIcon className="w-4 h-4 text-va-blue" aria-hidden="true" />
-                  <span>{lang === 'en' ? '1-year warranty' : 'Garantie 1 an'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Package className="w-4 h-4 text-va-blue" aria-hidden="true" />
-                  <span>{lang === 'en' ? 'Free shipping over $300' : 'Livraison gratuite dès 300$'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* QuickPriceCalculator — frosted glass card, right column on
-                lg+, full-width below trust bar on mobile. Animation
-                stagger continues at 560ms (after the trust bar's 450ms
-                fadeIn) so the eye lands on it last. */}
-            <div className="lg:justify-self-end w-full">
-              <QuickPriceCalculator />
             </div>
           </div>
-        </div>
 
-        {/* Sentinel for mobile sticky CTA — placed at the bottom of the
-            hero. Once it leaves the viewport, the sticky bar reveals. */}
-        <div
-          ref={heroSentinelRef}
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 h-px w-full pointer-events-none"
-        />
+          {/* B. Hero image */}
+          <div className="hero-image-wrap relative w-full overflow-hidden rounded-[4px] mb-5" style={{ height: 'min(46vw, 320px)' }}>
+            <img
+              src={HERO_IMG}
+              alt={lang === 'en' ? 'Vision Affichage corporate merchandise' : 'Merchandising corporatif Vision Affichage'}
+              loading="eager"
+              decoding="async"
+              {...{ fetchpriority: 'high' }}
+              className="w-full h-full object-cover object-[center_25%]"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.background = '#F0EDE8'; }}
+            />
+            <div aria-hidden className="absolute bottom-3 right-4 text-[9px] tracking-[0.18em] uppercase text-white/40 font-semibold">
+              VISIONAFFICHAGE.COM
+            </div>
+          </div>
+
+          {/* C. Stats bar */}
+          <div className="hero-stats border-t border-va-border pt-4 grid grid-cols-2 md:grid-cols-4 gap-6 items-center">
+            <div>
+              <div className="font-display font-extrabold text-[20px] tracking-[-0.03em] text-va-ink leading-none">5 jours</div>
+              <div className="text-[9px] font-bold tracking-[0.16em] uppercase text-va-muted mt-2">
+                {lang === 'en' ? 'Guaranteed delivery' : 'Livraison garantie'}
+              </div>
+            </div>
+            <div>
+              <div className="font-display font-extrabold text-[20px] tracking-[-0.03em] text-va-ink leading-none">
+                <span data-countup="500">500</span>+
+              </div>
+              <div className="text-[9px] font-bold tracking-[0.16em] uppercase text-va-muted mt-2">
+                {lang === 'en' ? 'Companies' : 'Entreprises'}
+              </div>
+            </div>
+            <div>
+              <div className="font-display font-extrabold text-[20px] tracking-[-0.03em] text-va-ink leading-none">1 pièce</div>
+              <div className="text-[9px] font-bold tracking-[0.16em] uppercase text-va-muted mt-2">
+                {lang === 'en' ? 'Minimum' : 'Minimum'}
+              </div>
+            </div>
+            <Link
+              to="/boutique"
+              className="inline-flex items-center justify-center bg-va-gold hover:bg-va-gold-h text-va-ink font-bold text-[11px] tracking-[0.04em] px-5 py-3 rounded-[2px] transition-colors duration-150 hover:scale-[1.02] active:scale-[0.97]"
+            >
+              {lang === 'en' ? 'VIEW PRODUCTS →' : 'VOIR LES PRODUITS →'}
+            </Link>
+          </div>
+        </div>
       </section>
 
-      {/* ================================================================
-          1. LOGO MARQUEE — warm sand band beneath the dark hero. Eyebrow
-          + infinite-scroll text pills. Two copies of the list rendered
-          back-to-back so the `marquee` keyframe (-50% translate) loops
-          seamlessly without a gap.
-          ============================================================== */}
-      <SectionReveal className="border-y border-va-line/50 py-10 bg-va-sand/50">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-          <p className="text-va-muted text-[11px] font-semibold uppercase tracking-[0.15em] mb-8 text-center">
-            {lang === 'en'
-              ? 'Quebec pros choose Vision Affichage'
-              : 'Les pros du Québec choisissent Vision Affichage'}
-          </p>
-          <div
-            className="overflow-hidden relative"
-            style={{
-              maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-            }}
-          >
-            <div className="flex w-max animate-[marquee_25s_linear_infinite]">
-              {[...MARQUEE_CLIENTS, ...MARQUEE_CLIENTS].map((name, i) => (
-                <div
-                  key={i}
-                  className="px-8 flex items-center justify-center text-va-ink/70 font-display font-bold text-xl whitespace-nowrap opacity-35 hover:opacity-70 grayscale hover:grayscale-0 transition-all duration-300"
-                >
-                  {name}
-                </div>
-              ))}
+      {/* INDUSTRIES MARQUEE */}
+      <section aria-label={lang === 'en' ? 'Industries served' : 'Industries servies'} className="border-y border-va-border bg-va-paper py-3 overflow-hidden">
+        <div className="flex w-max animate-[marqueeScroll_40s_linear_infinite] whitespace-nowrap">
+          {[...INDUSTRIES, ...INDUSTRIES, ...INDUSTRIES].map((ind, i) => (
+            <div key={i} className="px-6 text-[9px] font-semibold tracking-[0.2em] text-va-muted">
+              {ind} <span className="text-va-ghost ml-6">·</span>
             </div>
-          </div>
+          ))}
         </div>
-      </SectionReveal>
+      </section>
 
-      {/* ================================================================
-          2. STATS — three CountUp tiles on dark va-ink. Tiles are
-          separated by hairline gaps drawn via gap-px on a white/8 bg.
-          ============================================================== */}
-      <SectionReveal className="bg-va-ink py-24">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/8 rounded-3xl overflow-hidden">
-            {/* Tile 1 — pieces shipped */}
-            <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
-                <CountUp to={33000} suffix="+" />
-              </div>
-              <div className="text-white text-base font-semibold mb-1">
-                {lang === 'en' ? 'pieces delivered' : 'pièces livrées'}
-              </div>
-              <div className="text-white/45 text-sm">
-                {lang === 'en' ? 'since 2021' : 'depuis 2021'}
-              </div>
+      {/* BENTO PRODUCTS */}
+      <section ref={bentoRef} className="section-reveal bg-va-white px-6 md:px-16 lg:px-20 py-20">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex items-end justify-between mb-8">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-va-muted">
+              {lang === 'en' ? 'Our products' : 'Nos produits'}
             </div>
-            {/* Tile 2 — companies */}
-            <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
-                <CountUp to={500} suffix="+" />
-              </div>
-              <div className="text-white text-base font-semibold mb-1">
-                {lang === 'en' ? 'companies' : 'entreprises'}
-              </div>
-              <div className="text-white/45 text-sm">
-                {lang === 'en'
-                  ? 'construction · landscaping · corporate'
-                  : 'construction · paysagement · corporate'}
-              </div>
-            </div>
-            {/* Tile 3 — turnaround */}
-            <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
-                <CountUp to={5} />
-              </div>
-              <div className="text-white text-base font-semibold mb-1">
-                {lang === 'en' ? 'days' : 'jours'}
-              </div>
-              <div className="text-white/45 text-sm">
-                {lang === 'en' ? 'or refunded — no conditions' : 'ou remboursé — sans condition'}
-              </div>
-            </div>
+            <Link to="/boutique" className="text-[11px] font-bold text-va-gold hover:text-va-gold-h tracking-[0.04em]">
+              {lang === 'en' ? 'See all →' : 'Voir tout →'}
+            </Link>
           </div>
-        </div>
-      </SectionReveal>
-
-      {/* ================================================================
-          3. HOW IT WORKS — white canvas, three steps with ghost numerals
-          (01/02/03), va-blue-tint icon tiles, and a CTA arrow on step 3.
-          ============================================================== */}
-      <SectionReveal className="bg-va-white py-24 md:py-36">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-          <div className="mb-14">
-            <p className="text-va-muted text-[11px] font-semibold uppercase tracking-[0.15em] mb-4">
-              {lang === 'en' ? 'The process' : 'Le processus'}
-            </p>
-            <h2 className="font-display font-black text-va-ink text-4xl md:text-5xl tracking-tight leading-[1.1]">
-              {lang === 'en' ? 'Three actions. One uniform.' : 'Trois actions. Un uniforme.'}
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {[
-              {
-                n: '01',
-                Icon: Upload,
-                fr: { title: 'Tu envoies ton logo.', body: 'PNG, SVG ou JPEG. On accepte tout. Pas de brief, pas de call. Juste ton fichier.' },
-                en: { title: 'You send your logo.', body: 'PNG, SVG or JPEG. We accept everything. No brief, no call. Just your file.' },
-              },
-              {
-                n: '02',
-                Icon: Printer,
-                fr: { title: 'On imprime. Tu approuves rien.', body: 'Notre équipe valide la qualité. Si on n’aime pas, on refait. Tu reçois du parfait.' },
-                en: { title: 'We print. You approve nothing.', body: 'Our team checks quality. If we don’t love it, we redo it. You only get perfect.' },
-              },
-              {
-                n: '03',
-                Icon: Package,
-                fr: { title: 'Tu reçois en 5 jours.', body: 'Livraison garantie 5 jours ouvrables. Au-delà ? On rembourse. Sans condition.' },
-                en: { title: 'You get it in 5 days.', body: 'Delivery guaranteed 5 business days. Past that? Full refund. No conditions.' },
-              },
-            ].map((step) => {
-              const copy = lang === 'en' ? step.en : step.fr;
-              const isLast = step.n === '03';
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {BENTO_PRODUCTS.map((p) => {
+              const isLarge = p.size === 'large';
               return (
-                <div key={step.n} className="relative">
-                  {/* Ghost numeral */}
-                  <div
-                    className="font-mono font-black text-[140px] leading-none text-va-line/40 absolute -top-6 -left-3 select-none pointer-events-none"
-                    aria-hidden="true"
-                  >
-                    {step.n}
+                <Link
+                  key={p.sku}
+                  to={`/product/${p.handle}`}
+                  className={`bento-card group bg-va-warm hover:bg-[#e8e3dc] rounded-[3px] overflow-hidden transition-colors duration-150 ${isLarge ? 'md:col-span-2' : ''} ${isLarge ? 'border-b-2 border-va-gold' : ''}`}
+                >
+                  <div className="bg-va-paper flex items-center justify-center p-4" style={{ height: isLarge ? 170 : 120 }}>
+                    <img
+                      src={p.img}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="max-h-full max-w-full object-contain group-hover:scale-[1.04] transition-transform duration-300"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                    />
                   </div>
-                  <div className="relative pt-8">
-                    <div className="w-12 h-12 bg-va-blue-tint rounded-xl flex items-center justify-center mb-5">
-                      <step.Icon className="w-5 h-5 text-va-blue" aria-hidden="true" />
+                  <div className="p-3 md:p-3.5">
+                    <div className="text-[8px] font-bold tracking-[0.14em] uppercase text-va-muted mb-1">
+                      {p.type} · {p.sku}
                     </div>
-                    <h3 className="font-display font-bold text-va-ink text-xl mb-3 tracking-tight">
-                      {copy.title}
-                    </h3>
-                    <p className="text-va-dim text-base leading-relaxed mb-5">
-                      {copy.body}
-                    </p>
-                    {isLast && (
-                      <Link
-                        to="/boutique"
-                        className="inline-flex items-center gap-2 text-va-blue font-semibold hover:gap-3 hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
-                      >
-                        {lang === 'en' ? 'Order now' : 'Commander maintenant'}
-                        <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                      </Link>
-                    )}
+                    <div className="font-display font-bold text-[12px] md:text-[13px] text-va-ink mb-1 leading-tight">
+                      {p.name}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="font-mono font-bold text-[11px] text-va-ink">{p.price}</div>
+                      <div className="text-[9px] font-bold tracking-[0.04em] text-va-gold uppercase">
+                        {lang === 'en' ? 'Customize →' : 'Personnaliser →'}
+                      </div>
+                    </div>
                   </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* PROCESS — dark canvas, 01/02/03 */}
+      <section ref={processRef} className="bg-va-dark text-white px-6 md:px-16 lg:px-24 py-20 md:py-28">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="border-b border-white/8 pb-6 mb-12 flex flex-wrap items-end gap-4 justify-between">
+            <h2 className="font-display font-extrabold text-[18px] md:text-[22px] tracking-[-0.025em] text-white">
+              {lang === 'en' ? 'How it works' : 'Comment ça marche'}
+            </h2>
+            <div className="text-[9px] font-bold tracking-[0.18em] uppercase text-[#555]">
+              {lang === 'en' ? 'ZERO FRICTION · ZERO SURPRISE' : 'ZÉRO FRICTION · ZÉRO SURPRISE'}
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-px bg-white/6">
+            {[
+              { n: '01', fr: { t: 'Tu envoies ton logo', b: 'PNG, SVG ou JPEG. Pas de brief. Pas de call.' }, en: { t: 'You send your logo', b: 'PNG, SVG, or JPEG. No brief. No call.' } },
+              { n: '02', fr: { t: 'On imprime. Tu approuves rien.', b: 'Standards de l’industrie appliqués automatiquement.' }, en: { t: 'We print. You approve nothing.', b: 'Industry standards applied automatically.' } },
+              { n: '03', fr: { t: 'Livré en 5 jours. Garanti.', b: 'Si retard d’une seule journée — remboursé sans questions.' }, en: { t: 'Delivered in 5 days. Guaranteed.', b: 'A single day late — refunded, no questions.' } },
+            ].map((s) => {
+              const c = lang === 'en' ? s.en : s.fr;
+              return (
+                <div key={s.n} className="process-step bg-va-dark p-8 md:p-10">
+                  <div className="font-mono font-black text-[44px] md:text-[52px] text-va-gold leading-none mb-6">
+                    {s.n}
+                  </div>
+                  <div className="font-display font-bold text-white text-[12px] md:text-[13px] mb-3 tracking-[-0.01em]">
+                    {c.t}
+                  </div>
+                  <div className="text-[#666] text-[11px] leading-[1.55]">{c.b}</div>
                 </div>
               );
             })}
           </div>
         </div>
-      </SectionReveal>
-
-      {/* ================================================================
-          4. FEATURED PRODUCTS — kept as-is from the previous build.
-          ============================================================== */}
-      <FeaturedProducts />
-
-      {/* ================================================================
-          5. LOSS AVERSION — final dark push before reviews. The
-          headline frames the cost of inaction; the glowing CTA reads as
-          the relief.
-          ============================================================== */}
-      <SectionReveal className="bg-va-ink py-24 md:py-36">
-        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16">
-          <p className="text-va-muted text-[11px] font-semibold uppercase tracking-[0.15em] mb-5">
-            {lang === 'en' ? 'The invisible cost' : 'Le coût invisible'}
-          </p>
-          <h2 className="font-display font-black text-white text-4xl md:text-6xl tracking-tight leading-[1.0] mb-8">
-            {lang === 'en' ? (
-              <>Every week without a uniform,<br /><span className="text-va-blue">that’s lost advertising.</span></>
-            ) : (
-              <>Chaque semaine sans uniforme,<br /><span className="text-va-blue">c’est de la publicité perdue.</span></>
-            )}
-          </h2>
-          <p className="text-white/45 text-xl leading-relaxed max-w-2xl mb-14">
-            {lang === 'en'
-              ? 'Your crew drives past 100 homes a week. If nobody knows who they work for — you don’t exist. 500+ Quebec contractors fixed that. Most started with 5 t-shirts.'
-              : 'Tes gars passent devant 100 maisons par semaine. Si personne sait c’est qui — tu n’existes pas. 500+ entrepreneurs québécois ont réglé ça. La plupart ont commencé avec 5 t-shirts.'}
-          </p>
-          <Link
-            to="/boutique"
-            className="inline-flex items-center gap-2 bg-va-blue text-white px-10 py-5 rounded-xl text-lg font-semibold shadow-[0_0_48px_rgba(0,71,204,0.40)] hover:shadow-[0_0_64px_rgba(0,71,204,0.60)] hover:bg-va-blue-hover hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
-          >
-            {lang === 'en' ? 'Order now' : 'Commander maintenant'}
-            <ArrowRight className="w-5 h-5" aria-hidden="true" />
-          </Link>
-          <p className="text-white/20 text-sm mt-5">
-            {lang === 'en'
-              ? 'Delivery guaranteed in 5 days · No minimum · Refunded if late'
-              : 'Livraison garantie en 5 jours · Aucun minimum · Remboursé si retard'}
-          </p>
+        {/* Guarantee bar */}
+        <div className="max-w-[1400px] mx-auto mt-10 bg-va-gold text-va-ink px-6 md:px-10 py-4 flex flex-wrap items-center justify-between gap-3 rounded-[2px]">
+          <div className="text-[9px] md:text-[10px] font-bold tracking-[0.1em] uppercase">
+            {lang === 'en' ? 'SATISFACTION GUARANTEED · 5 DAYS OR REFUNDED · FROM 1 PIECE' : 'SATISFACTION GARANTIE · 5 JOURS OU REMBOURSÉ · À PARTIR D’1 PIÈCE'}
+          </div>
+          <div className="text-[9px] md:text-[10px] font-bold tracking-[0.1em] uppercase">
+            {lang === 'en' ? 'FREE SHIPPING OVER $300' : 'LIVRAISON GRATUITE DÈS 300$'}
+          </div>
         </div>
-      </SectionReveal>
+      </section>
 
-      {/* ================================================================
-          6. REVIEWS — sand band, big "5.0" rating + 6 testimonials in a
-          horizontal snap-scroll rail.
-          ============================================================== */}
-      <SectionReveal className="bg-va-sand py-24">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
+      {/* SOCIAL PROOF */}
+      <section className="section-reveal bg-va-white border-t border-va-border px-6 md:px-16 lg:px-24 py-20">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid md:grid-cols-[auto_1fr] gap-8 md:gap-16 items-end mb-10">
             <div>
-              <div className="font-mono font-black text-7xl md:text-8xl text-va-ink leading-none">
-                5.0
-              </div>
-              <div className="text-yellow-400 text-2xl mt-1" aria-hidden="true">★★★★★</div>
-              <div className="text-va-muted text-sm mt-2">
+              <div className="font-mono font-black text-[52px] md:text-[64px] text-va-ink leading-none">5.0</div>
+              <div className="text-va-gold text-xl mt-1" aria-hidden>★★★★★</div>
+              <div className="text-[9px] font-bold tracking-[0.16em] uppercase text-va-muted mt-2">
                 {lang === 'en' ? '50+ verified Google reviews' : '50+ avis Google vérifiés'}
               </div>
             </div>
-            <div className="md:max-w-md">
-              <h2 className="font-display font-bold text-3xl text-va-ink leading-tight">
-                {lang === 'en'
-                  ? 'What entrepreneurs are saying'
-                  : 'Ce que les entrepreneurs disent'}
+            <div className="md:max-w-md md:text-right">
+              <h2 className="font-display font-extrabold text-va-ink text-[22px] md:text-[26px] tracking-[-0.025em] leading-[1.1]">
+                {lang === 'en' ? 'What entrepreneurs are saying' : 'Ce que les entrepreneurs disent'}
               </h2>
-              <p className="text-va-muted mt-2">
-                {lang === 'en'
-                  ? 'Landscapers, contractors, plumbers, corporate firms.'
-                  : 'Paysagistes, contracteurs, plombiers, firmes corporate.'}
-              </p>
             </div>
           </div>
-
-          <div className="overflow-x-auto snap-x snap-mandatory -mx-6 md:-mx-12 lg:-mx-16 px-6 md:px-12 lg:px-16 pb-4">
-            <div className="flex gap-5 min-w-max">
-              {REVIEWS.map((r, i) => {
-                const c = lang === 'en' ? r.en : r.fr;
-                return (
-                  <article
-                    key={i}
-                    className="bg-white rounded-2xl border border-va-line p-6 w-[320px] flex-shrink-0 snap-start"
-                  >
-                    <div className="text-yellow-400 text-base mb-3" aria-hidden="true">★★★★★</div>
-                    <p className="text-va-dim text-sm italic leading-relaxed mb-5">
-                      &ldquo;{c.quote}&rdquo;
-                    </p>
-                    <div className="font-semibold text-va-ink text-sm">{c.name}</div>
-                    <div className="text-va-muted text-xs">{c.company}</div>
-                  </article>
-                );
-              })}
-            </div>
+          <div className="grid md:grid-cols-3 gap-3">
+            {REVIEWS.map((r, i) => {
+              const c = lang === 'en' ? r.en : r.fr;
+              return (
+                <article key={i} className="bg-va-warm rounded-[3px] p-4 md:p-5">
+                  <div className="text-va-gold text-sm mb-3" aria-hidden>★★★★★</div>
+                  <p className="text-va-dim text-[12px] italic leading-[1.55] mb-4">&ldquo;{c.q}&rdquo;</p>
+                  <div className="text-[10px] font-bold tracking-[0.04em] uppercase text-va-ink">{c.n}</div>
+                  <div className="text-[9px] tracking-[0.06em] uppercase text-va-muted">{c.c}</div>
+                </article>
+              );
+            })}
           </div>
         </div>
-      </SectionReveal>
+      </section>
 
-      {/* ================================================================
-          7. FAQ — native <details> accordion, one-at-a-time open. The
-          inline <style> tag handles the two CSS rules that can't be
-          expressed as Tailwind utilities (::-webkit-details-marker,
-          details[open] selector for chevron rotation).
-          ============================================================== */}
-      <SectionReveal className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-va-line bg-va-white">
+      {/* FINALE CTA */}
+      <section className="bg-va-dark text-white px-6 md:px-16 lg:px-24 py-20 md:py-24">
+        <div className="max-w-[1400px] mx-auto grid md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-end">
+          <h2 className="font-display font-extrabold text-white text-[26px] md:text-[34px] leading-[1.08] tracking-[-0.025em]">
+            {lang === 'en' ? (
+              <>Every week without a uniform — that’s ad budget <span className="text-va-gold">wasted.</span></>
+            ) : (
+              <>Chaque semaine sans uniforme, c’est de la pub <span className="text-va-gold">perdue.</span></>
+            )}
+          </h2>
+          <Link
+            to="/boutique"
+            className="inline-flex items-center justify-center bg-va-gold hover:bg-va-gold-h text-va-ink font-extrabold text-[10px] md:text-[11px] tracking-[0.06em] px-6 py-4 rounded-[2px] transition-colors duration-150 hover:scale-[1.02] active:scale-[0.97] whitespace-nowrap"
+          >
+            {lang === 'en' ? 'ORDER THIS FRIDAY →' : 'COMMANDER CE VENDREDI →'}
+          </Link>
+        </div>
+        <div className="max-w-[1400px] mx-auto mt-8 text-[9px] font-semibold tracking-[0.16em] uppercase text-white/35">
+          {lang === 'en' ? 'NO MINIMUM · 5-DAY GUARANTEE · REFUNDED IF LATE · SECURE SSL' : 'AUCUN MINIMUM · 5 JOURS GARANTIS · REMBOURSÉ SI RETARD · SSL SÉCURISÉ'}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section-reveal scroll-mt-20 py-16 px-6 md:px-10 border-t border-va-border bg-va-paper">
         <div className="max-w-[780px] mx-auto">
           <div className="text-center mb-10">
-            <div className="text-[11px] font-semibold tracking-[0.15em] uppercase text-va-muted mb-2.5">
+            <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-va-muted mb-2">
               {lang === 'en' ? 'FAQ' : 'Questions fréquentes'}
             </div>
-            <h2 className="font-display font-black text-va-ink text-3xl md:text-4xl tracking-tight leading-tight">
+            <h2 className="font-display font-extrabold text-va-ink text-[26px] md:text-[30px] tracking-[-0.025em] leading-tight">
               {lang === 'en' ? 'Everything you need to know' : 'Tout ce que tu dois savoir'}
             </h2>
           </div>
@@ -871,117 +464,45 @@ export default function Index() {
             .faq-group details[open] .faq-chevron { transform: rotate(180deg); }
           `}</style>
           <div ref={faqGroupRef} className="faq-group flex flex-col gap-2">
-            {(lang === 'en' ? FAQ_EN : FAQ_FR).map((item, i) => (
+            {FAQ.map((item, i) => (
               <details
                 key={i}
                 data-faq-item
-                className="group rounded-lg bg-white border border-va-line transition-colors hover:bg-va-stone/40"
+                className="group rounded-[3px] bg-va-white border border-va-border transition-colors hover:bg-va-warm/50"
               >
-                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-va-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1">
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-[3px] text-[13px] md:text-[14px] font-medium text-va-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-va-gold focus-visible:ring-offset-1">
                   <span>{item.q}</span>
-                  <ChevronDown
-                    size={18}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                    className="faq-chevron flex-shrink-0 text-va-blue transition-transform duration-200"
-                  />
+                  <ChevronDown size={16} strokeWidth={2} aria-hidden className="faq-chevron flex-shrink-0 text-va-gold transition-transform duration-200" />
                 </summary>
-                <div className="px-5 pb-4 pt-0 text-[14px] text-va-dim leading-[1.7]">
+                <div className="px-5 pb-4 pt-0 text-[12px] text-va-dim leading-[1.65]">
                   {item.a}
                 </div>
               </details>
             ))}
           </div>
         </div>
-      </SectionReveal>
+      </section>
 
-      {/* ================================================================
-          8. TRUST BADGES — sits just above the footer so the final pre-
-          footer impression is the payment-safety promise.
-          ============================================================== */}
-      <SectionReveal className="border-t border-va-line py-8 px-6 md:px-10 bg-va-white">
+      {/* Trust badges */}
+      <section className="section-reveal border-t border-va-border py-8 px-6 md:px-10 bg-va-white">
         <div className="max-w-[1060px] mx-auto">
           <div className="flex items-center justify-center gap-2 mb-3 text-va-muted">
-            <Lock size={12} strokeWidth={2} aria-hidden="true" />
-            <span className="text-[11px] font-bold tracking-[2px] uppercase">
+            <Lock size={11} strokeWidth={2} aria-hidden />
+            <span className="text-[10px] font-bold tracking-[0.18em] uppercase">
               {lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}
             </span>
           </div>
-          <ul className="flex flex-wrap items-center justify-center gap-3">
-            <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[11px] font-black italic tracking-[1px] text-va-muted">
-              VISA
-            </li>
-            <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[10px] font-semibold tracking-[0.3px] text-va-muted">
-              <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true">
-                <circle cx="8" cy="7" r="6" fill="currentColor" opacity="0.45" />
-                <circle cx="14" cy="7" r="6" fill="currentColor" opacity="0.25" />
-              </svg>
-              <span>Mastercard</span>
-            </li>
-            <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[11px] font-black tracking-[1px] text-va-muted">
-              AMEX
-            </li>
-            <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[11px] font-semibold tracking-[0.2px] text-va-muted">
-              <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-                <rect x="1" y="1" width="8" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              </svg>
-              <span>Apple&nbsp;Pay</span>
-            </li>
-            <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[11px] font-semibold tracking-[0.2px] text-va-muted">
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                <text x="6" y="8.2" textAnchor="middle" fontSize="6.4" fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">G</text>
-              </svg>
-              <span>Google&nbsp;Pay</span>
-            </li>
-            <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-va-line bg-va-stone/40 text-[11px] font-semibold tracking-[0.2px] text-va-muted">
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M3 4 V3.2 A2.8 2.8 0 0 1 8.6 3.2 V4 H10 L9.2 10.5 H2.8 L2 4 Z" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-              </svg>
-              <span>Shopify</span>
-            </li>
+          <ul className="flex flex-wrap items-center justify-center gap-2">
+            {['VISA', 'Mastercard', 'AMEX', 'Apple Pay', 'Google Pay', 'Shopify'].map((p) => (
+              <li key={p} className="inline-flex items-center h-[26px] px-3 rounded-[3px] border border-va-border bg-va-warm/40 text-[10px] font-bold tracking-[0.06em] text-va-muted uppercase">
+                {p}
+              </li>
+            ))}
           </ul>
         </div>
-      </SectionReveal>
+      </section>
 
       <SiteFooter />
-
-      {/* Sticky mobile CTA bar — appears once the hero sentinel exits
-          the viewport. md:hidden keeps it off desktop. z-[445] sits
-          below the toast/modal stack (z-50+) so dialogs can still
-          cover it. safe-area-inset-bottom protects against the iOS
-          home indicator. */}
-      <div
-        aria-hidden={!showStickyCta}
-        className={`md:hidden fixed left-0 right-0 z-[445] bg-va-blue text-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${
-          reducedMotion ? '' : 'transition-transform duration-300 ease-out'
-        } ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <div className="flex items-center justify-between gap-3 h-16 px-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-white/12 flex items-center justify-center flex-shrink-0">
-              <Shirt className="text-white" size={20} strokeWidth={1.75} aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[12px] font-bold leading-tight text-white truncate">
-                {lang === 'en' ? 'Need quality merch?' : 'Du merch de qualité?'}
-              </div>
-              <div className="text-[10px] text-white/70 leading-tight truncate">
-                {lang === 'en' ? 'No minimum · 5-day delivery' : 'Aucun minimum · 5 jours'}
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/boutique"
-            tabIndex={showStickyCta ? 0 : -1}
-            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-white text-va-blue text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-va-blue"
-          >
-            {lang === 'en' ? 'Order now' : 'Commander'}
-          </Link>
-        </div>
-      </div>
-
       <AIChat />
       <BottomNav />
     </div>

@@ -12,9 +12,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Syne', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        display: ['DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'sans-serif'],
+        mono: ['Courier New', 'Courier', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -56,33 +56,43 @@ export default {
           warning: '#D97706',
         },
         va: {
-          // Vol I + Vol III PDF brief — canonical foundation tokens.
-          ink:           '#0A0A0A',
-          blue:          '#0047CC',
-          'blue-hover':  '#0035A8',
-          'blue-tint':   '#EBF0FF',
+          // Mega Prompt v4.0 — "Industrial Precision" direction. Gold #C4852A
+          // replaces blue site-wide; the historical `va.blue` alias now
+          // resolves to gold so legacy `bg-va-blue` callers automatically
+          // adopt the new accent without a hand-migration sweep.
+          ink:           '#111111',
+          paper:         '#FAFAF8',
+          warm:          '#F0EDE8',
           white:         '#FFFFFF',
-          sand:          '#F5F0E8',
-          stone:         '#F0EDE7',
-          dim:           '#374151',
-          muted:         '#6B7280',
-          ghost:         '#9CA3AF',
-          line:          '#E2E0DB',
-          ok:            '#059669',
-          warn:          '#D97706',
-          err:           '#DC2626',
-          // Deprecated aliases — kept until Phase 7 cleanup so already-shipped
-          // consumers (va-black / va-blue-h / va-blue-l / va-offwhite /
-          // va-bg-1/2/3 / va-line-h) keep compiling. Each alias points at
-          // the new PDF value above so the visual end state is correct.
-          black:         '#0A0A0A', // alias → ink
-          'blue-h':      '#0035A8', // alias → blue-hover
-          'blue-l':      '#EBF0FF', // alias → blue-tint
-          offwhite:      '#F5F0E8', // alias → sand
-          'line-h':      '#D1D5DB', // alias kept (no replacement)
-          'bg-1':        '#FFFFFF', // alias → white
-          'bg-2':        '#F5F0E8', // alias → sand
-          'bg-3':        '#F0EDE7', // alias → stone
+          dark:          '#111111',
+          gold:          '#C4852A',
+          'gold-h':      '#B07520',
+          'gold-tint':   '#FAF3E5',
+          dim:           '#666660',
+          muted:         '#AAAAAA',
+          ghost:         '#DDDDDD',
+          border:        '#EBEBEB',
+          line:          '#EBEBEB',
+          ok:            '#4A7C59',
+          warn:          '#C4852A',
+          err:           '#B84040',
+          // Legacy aliases — every existing `bg-va-blue` / `text-va-blue` /
+          // `bg-va-sand` / `bg-va-stone` call site keeps compiling, but now
+          // renders gold/paper/warm to match the new identity. No hand
+          // migration required across the rest of the codebase.
+          blue:          '#C4852A', // alias → gold
+          'blue-hover':  '#B07520', // alias → gold-h
+          'blue-tint':   '#FAF3E5', // alias → gold-tint
+          sand:          '#FAFAF8', // alias → paper
+          stone:         '#F0EDE8', // alias → warm
+          black:         '#111111', // alias → ink
+          'blue-h':      '#B07520', // legacy alias → gold-h
+          'blue-l':      '#FAF3E5', // legacy alias → gold-tint
+          offwhite:      '#FAFAF8', // alias → paper
+          'line-h':      '#DDDDDD', // alias → ghost
+          'bg-1':        '#FFFFFF',
+          'bg-2':        '#FAFAF8',
+          'bg-3':        '#F0EDE8',
         },
       },
       borderRadius: {
